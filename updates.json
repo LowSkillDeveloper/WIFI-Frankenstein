@@ -1,0 +1,29 @@
+{
+  "app": {
+    "version": "1.0",
+    "changelog_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/app_changelog.txt",
+    "download_url": "https://example.com/app_update.apk"
+  },
+  "files": [
+    {
+      "name": "vendor.db",
+      "version": "1.0",
+      "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/vendor.db"
+    },
+    {
+      "name": "vendor_data.txt",
+      "version": "1.1",
+      "download_url": "https://raw.githubusercontent.com/LowSkillDeveloper/WIFI-Frankenstein/service/vendor_data.txt"
+    },
+    {
+      "name": "wps_pin.db",
+      "version": "1.0",
+      "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/wps_pin.db"
+    },
+    {
+      "name": "wpspin.html",
+      "version": "1.0",
+      "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/wpspin.html"
+    }
+  ]
+}
