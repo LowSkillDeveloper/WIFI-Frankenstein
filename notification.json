@@ -5,8 +5,8 @@
     "ru": "Добро пожаловать в WiFi Frankenstein"
   },
   "message": {
-    "en": "Thanks for using this app.",
-    "ru": "Спасибо за использование этого приложения."
+    "en": "Report any bugs you find to Telegram with the hashtag #bug or to the Issues section on GitHub. You can also write your suggestions there, but DO NOT use the hashtag #bug for suggestions.",
+    "ru": "Про любые найденные баги сообщайте в телеграм с хештегом #bug или в раздел Issues на GitHub. Тудаже можете писать и свои предложения, но для предложений НЕ используйте хегтег #bug"
   },
   "primaryButton": {
     "en": "OK",
