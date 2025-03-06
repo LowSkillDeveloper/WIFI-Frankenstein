@@ -1,0 +1,15 @@
+{
+  "id": "notification_001",
+  "title": {
+    "en": "Welcome to WiFi Frankenstein",
+    "ru": "Добро пожаловать в WiFi Frankenstein"
+  },
+  "message": {
+    "en": "Thanks for using this app.",
+    "ru": "Спасибо за использование этого приложения."
+  },
+  "primaryButton": {
+    "en": "OK",
+    "ru": "ОК"
+  }
+}
