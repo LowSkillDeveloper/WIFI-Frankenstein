@@ -1,0 +1,8 @@
+<resources>
+    <string-array name="db_types">
+        <item>SQLite file (Custom)</item>
+        <item>SQLite file (3WiFi type)</item>
+        <item>3WiFi API</item>
+        <item>SmartLinkDB</item>
+    </string-array>
+</resources>

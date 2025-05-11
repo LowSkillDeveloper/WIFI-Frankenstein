@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="card_background">#FFFFFF</color>
+    <color name="button_color">#FF6200EE</color>
+
+    <color name="purple_button">#FF6200EE</color>
+    <color name="green_button">#4CAF50</color>
+    <color name="blue_button">#2196F3</color>
+
+
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="green_200">#A5D6A7</color>
+    <color name="green_500">#4CAF50</color>
+    <color name="green_700">#388E3C</color>
+    <color name="blue_200">#90CAF9</color>
+    <color name="blue_500">#2196F3</color>
+    <color name="blue_700">#1976D2</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="success_green">#4CAF50</color>
+    <color name="error_red">#F44336</color>
+    <color name="divider">#1F000000</color>
+
+    <color name="detail_row_even">#FFFFFF</color>
+    <color name="detail_row_odd">#F5F5F5</color>
+
+
+    <color name="purple_200_dark">#FFBB86FC</color>
+    <color name="purple_500_dark">#FF6200EE</color>
+    <color name="purple_700_dark">#FF3700B3</color>
+    <color name="green_200_dark">#81C784</color>
+    <color name="green_500_dark">#4CAF50</color>
+    <color name="green_700_dark">#388E3C</color>
+    <color name="blue_200_dark">#64B5F6</color>
+    <color name="blue_500_dark">#2196F3</color>
+    <color name="blue_700_dark">#1976D2</color>
+
+
+    <color name="card_background_light">#FFFFFF</color>
+    <color name="card_background_dark">#121212</color>
+    <color name="text_color_light">#DE000000</color>
+    <color name="text_color_dark">#DEFFFFFF</color>
+
+
+</resources>

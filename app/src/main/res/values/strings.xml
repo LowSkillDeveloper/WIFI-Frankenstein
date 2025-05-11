@@ -1,0 +1,661 @@
+<resources>
+
+    <string name="app_name" translatable="false">WIFI Frankenstein</string>
+    <string name="app_identifier" translatable="false">WIFIFrankenstein-1.0-official</string>
+
+    <string name="include_app_identifier">Include App Identifier</string>
+    <string name="app_identifier_description">Send app identifier with requests</string>
+    <string name="nav_header_title" translatable="false">WIFI Frankenstein</string>
+    <string name="nav_header_subtitle">New generation of 3Wifi Locator</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="db_type_sqlite_3wifi">SQLite file (3WiFi type)</string>
+    <string name="db_type_sqlite_custom">SQLite file (Custom)</string>
+    <string name="db_type_3wifi">3WiFi API</string>
+    <string name="db_type_smartlink">SmartLinkDB</string>
+    <string name="unknown_ssid">Unknown SSID</string>
+    <string name="menu_wifi_scanner">WiFi Scanner</string>
+    <string name="menu_database_finder">Local Database Query</string>
+    <string name="menu_wifi_map">WiFi Map</string>
+    <string name="menu_updates">Updates</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_about">About</string>
+    <string name="check_in_online_bt">Check Online</string>
+    <string name="check_in_offline_bt">Check Offline</string>
+    <string name="select_source">Select source</string>
+    <string name="offline_algorithms">OFFLINE ALGORITHMS</string>
+    <string name="pin_database">PIN DATABASE</string>
+    <string name="copy">Copy</string>
+    <string name="copy_ssid">Copy SSID</string>
+    <string name="copy_bssid">Copy BSSID</string>
+    <string name="actions">Actions</string>
+    <string name="check_vendor">Check Vendor</string>
+    <string name="calculate_distance">Calculate Distance</string>
+    <string name="wps_actions">WPS Actions</string>
+    <string name="connect_wps_button">Connect using WPS Button</string>
+    <string name="generate_wps_pins">Generate WPS pins</string>
+    <string name="local_db_wifi_tester">Local DB (WIFI TESTER)</string>
+    <string name="local_db_wifi_analyzer">Local DB (WIFI Analyzer)</string>
+    <string name="online_db_wps_finder">Online DB (WPS Finder)</string>
+    <string name="online_db_3wifi_server">Online DB (3WIFI Server)</string>
+    <string name="searching">Searching…</string>
+    <string name="add_database">Add Database</string>
+    <string name="database_type">Database Type</string>
+    <string name="api_link">API Link</string>
+    <string name="select_file">Select File</string>
+    <string name="add_database_button">Add Database</string>
+    <string name="added_databases">Added Databases</string>
+    <string name="database_settings">Database Settings</string>
+    <string name="configure_database_description">Configure and manage your database connections</string>
+    <string name="configure_databases">Configure Databases</string>
+    <string name="app_theme">App Theme</string>
+    <string name="choose_app_theme">Choose your preferred app theme</string>
+    <string name="system_default">System Default</string>
+    <string name="light_theme">Light Theme</string>
+    <string name="dark_theme">Dark Theme</string>
+    <string name="current_version">Current version: %s</string>
+    <string name="new_version_available">New version available: %s</string>
+    <string name="app_up_to_date">Your app is up to date</string>
+    <string name="update_app">Update App</string>
+    <string name="show_changelog">Show Changelog</string>
+    <string name="update_all">Update All Components</string>
+    <string name="check_for_updates">Check for Updates</string>
+    <string name="retry">Retry</string>
+    <string name="changelog">Changelog</string>
+    <string name="ok">OK</string>
+    <string name="error_checking_updates">Error checking for updates: %s</string>
+    <string name="ssid">SSID</string>
+    <string name="bssid">BSSID</string>
+    <string name="copied_to_clipboard">%s copied to clipboard</string>
+    <string name="api_key">API Key</string>
+    <string name="api_key_hint">If left empty, 000000000000 will be used as the API key</string>
+
+
+    <string name="show_database_info">Show Database Info</string>
+    <string name="copy_wifi_key">Copy WiFi Key</string>
+    <string name="copy_wps_pin">Copy WPS PIN</string>
+    <string name="connect_wps">Connect (WPS)</string>
+    <string name="connect_wps_root"> ® Connect (WPS with root)</string>
+    <string name="save_profile">Save Profile</string>
+    <string name="show_all_credentials">Show All</string>
+
+
+    <string name="secondary_action_1">Secondary action 1</string>
+    <string name="secondary_action_2">Secondary action 2</string>
+    <string name="location_permission_required">Location permission is required to scan WiFi networks.</string>
+    <string name="records_found">%1$d records found in %2$d db</string>
+    <string name="error_starting_app_update">Error starting app update: %s</string>
+    <string name="app_update_title">WIFI Frankenstein Update</string>
+    <string name="downloading_new_version">Downloading new version of the app</string>
+    <string name="no_pins_found">No pins found</string>
+    <string name="wps_generator_title">WPS Generator</string>
+    <string name="error_accessing_database">Error accessing database</string>
+    <string name="error_updating_file">Error updating file %1$s: %2$s</string>
+    <string name="error_updating_files">Error updating files: %s</string>
+    <string name="error_fetching_changelog">Error fetching changelog: %1$s</string>
+    <string name="app_update">App Update</string>
+    <string name="wps_started">WPS Started.</string>
+    <string name="wps_succeeded">WPS Succeeded</string>
+    <string name="wps_failed">WPS Failed. Reason: %d</string>
+    <string name="change_wifi_state_permission_required">CHANGE_WIFI_STATE permission required</string>
+    <string name="close">Close</string>
+    <string name="scanning_wifi">Scanning WiFi…</string>
+    <string name="failed_to_start_wifi_scan">Failed to start WiFi scan.</string>
+    <string name="permission_denied_wifi_scan">Permission denied for WiFi scan.</string>
+    <string name="error_accessing_text_file">Error accessing text file</string>
+    <string name="permission_denied_select_file">Permission denied. Cannot select file.</string>
+    <string name="enter_valid_path_or_url">Please enter a valid path or URL</string>
+    <string name="invalid_3wifi_sqlite_structure">Invalid 3WiFi SQLite file structure</string>
+    <string name="error_changelog_url_not_available">Changelog URL not available</string>
+
+    <string name="purple_theme">Purple Theme</string>
+    <string name="green_theme">Green Theme</string>
+    <string name="blue_theme">Blue Theme</string>
+
+    <string name="color_theme">Color Theme</string>
+    <string name="app_settings">App Settings</string>
+    <string name="full_cleanup_on_network_update">Full cleanup on network update</string>
+    <string name="check_updates_on_app_open">Check for updates when app opens</string>
+    <string name="enable_root_functions"> ® Enable root functions</string>
+    <string name="scan_networks_on_startup">Scan networks on app startup</string>
+
+    <string name="app_icon">App Icon</string>
+    <string name="choose_app_icon">Choose app icon</string>
+    <string name="icon_default">Default</string>
+    <string name="icon_3wifi" translatable="false">3WiFi</string>
+    <string name="icon_anti3wifi" translatable="false">Anti-3WiFi</string>
+    <string name="icon_p3wifi" translatable="false">p3WiFi</string>
+    <string name="icon_p3wifi_pixel" translatable="false">p3WiFi Pixel</string>
+    <string name="icon_changed">App icon changed. Restart the phone to see changes.</string>
+
+    <string name="request_storage_access">Request Storage Access</string>
+    <string name="storage_access_info">Without direct file access permission, the app will need to copy SQLite files to its internal storage for each search, which may significantly slow down the process. However, the app will still function without this permission. With permission, SQLite files can be read directly from the phone\'s memory, allowing for instant database searches.</string>
+    <string name="warning_storage_access_info">The app does not have direct access to files</string>
+
+    <string name="select_database_type">Select database type</string>
+    <string name="grant_access">Grant Access</string>
+    <string name="no">No</string>
+    <string name="permission_denied">Permission Denied</string>
+    <string name="permission_denied_message">You can grant file access permission anytime in the app settings. Please note that you may need to remove and re-add database files here after granting permission.</string>
+
+
+    <string name="warning">Warning</string>
+    <string name="db_cache_warning">Direct access to the file is not available. The added database will be cached in the application for fast reading. This will take up an additional %1$.2f MB of phone memory. You can try granting direct file read permission and attempt to add the database again.</string>
+    <string name="db_direct_access_error">Failed to obtain direct access to the file. Your firmware or Android version may not allow direct reading of SQLite files. The database will be cached in the application.</string>
+    <string name="continue_anyway">Continue anyway</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="clear_cached_databases">Clear Cached Databases</string>
+    <string name="storage_access_granted">The app has direct file access permission</string>
+
+
+    <string name="max_points_info">Maximum number of points to send in one request. Default limit on all servers is 100, so it\'s recommended to keep it at 99.</string>
+    <string name="request_delay_info">Delay between split requests in milliseconds.</string>
+    <string name="connect_timeout_info">Connection timeout in milliseconds.</string>
+    <string name="read_timeout_info">Read timeout in milliseconds.</string>
+    <string name="cache_results_info">Enable caching of results to reduce server load and speed up repeated requests.</string>
+    <string name="try_alternative_url_info">Try sending request to 3wifi.php?a=apiquery if the request to api/apiquery fails.</string>
+    <string name="ignore_ssl_certificate_info">Ignore SSL Certificate info</string>
+
+    <string name="api_3wifi_settings">API 3WiFi Settings</string>
+    <string name="max_points_per_request">Max points per request</string>
+    <string name="request_delay_ms">Request delay (ms)</string>
+    <string name="connect_timeout_ms">Connect timeout (ms)</string>
+    <string name="read_timeout_ms">Read timeout (ms)</string>
+    <string name="cache_results">Cache results</string>
+    <string name="try_alternative_url">Try alternative URL</string>
+    <string name="clear_api_cache">Clear API Cache</string>
+    <string name="save_api_settings">Save API Settings</string>
+
+    <string name="ignore_ssl_certificate">Ignore SSL Certificate</string>
+    <string name="reset_to_default">Reset to Default</string>
+
+    <string name="always_expand_settings">Always expand settings</string>
+
+    <string name="developer_settings">Developer Settings</string>
+    <string name="dummy_network_mode">Dummy Networks Mode</string>
+
+    <string name="developer_warning_title">Warning</string>
+    <string name="developer_warning_message">Enabling features in this section may cause application malfunctions, requiring a complete uninstall and reinstall. Change settings at your own risk.</string>
+    <string name="i_understand">I understand</string>
+
+    <string name="max_points_warning">The maximum number of points per request is set to more than 100. This may cause errors on some servers.</string>
+
+
+    <string name="merge_online_offline_results">Merge results from different DB</string>
+
+    <string name="enable_debug_logging">Enable Debug Logging (WIP)</string>
+
+
+    <string name="test_results_with_domain">Test Results [%1$s]</string>
+
+    <string name="test_server">Test Server</string>
+    <string name="test_server_message">Do you want to test the server functionality?</string>
+    <string name="yes">Yes</string>
+    <string name="testing_server">Testing Server</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="unknown_error">An unknown error occurred</string>
+
+    <!-- Server Test Results -->
+
+    <string name="server_status_available">Server status: Available</string>
+    <string name="ping_result">Ping: %1$d ms</string>
+
+    <string name="test_title">POST "%1$s" test:</string>
+    <string name="api_availability_success">API Availability: Success</string>
+    <string name="api_request_test_success">API Request Test: Success</string>
+    <string name="api_availability_http_error">API Availability: HTTP ERROR %1$s</string>
+    <string name="api_request_test_error">API Request Test: Error</string>
+    <string name="time">Time: %1$d ms</string>
+
+    <string name="online_servers">Online Servers</string>
+    <string name="no_servers_configured">No API 3WiFi servers configured</string>
+    <string name="use_post_method">Use POST requests instead of GET in WPS</string>
+
+    <string name="previous_server">Previous server</string>
+    <string name="next_server">Next server</string>
+
+    <string name="search_hint">Search by WiFi name or MAC address</string>
+    <string name="search">Search</string>
+
+    <string name="add_record">Add Record</string>
+    <string name="choose_action">Choose Action</string>
+    <string name="copy_password">Copy Password</string>
+    <string name="delete_record">Delete Record</string>
+    <string name="record_deleted">Record deleted</string>
+
+
+    <string name="add_new_record">Add New Record</string>
+    <string name="wifi_name">WiFi Name</string>
+    <string name="mac_address">MAC Address</string>
+    <string name="wifi_password">WiFi Password</string>
+    <string name="wps_pin">WPS PIN</string>
+    <string name="add">Add</string>
+
+    <string name="edit_record">Edit Record</string>
+    <string name="update">Update</string>
+
+    <string name="admin_panel">Admin Panel</string>
+    <string name="latitude">Latitude</string>
+    <string name="longitude">Longitude</string>
+
+    <string name="copy_admin_panel">Copy Admin Panel</string>
+
+    <string name="db_stats">Total records: %1$d, Database size: %2$s</string>
+    <string name="show_on_map">Show on map</string>
+    <string name="records_deleted">%d records deleted</string>
+
+    <string name="delete">Delete</string>
+
+    <string name="export_format">Export Format</string>
+    <string name="import_format">Import Format</string>
+    <string name="export_successful">Export successful</string>
+    <string name="export_failed">Export failed: %s</string>
+    <string name="import_successful">Import successful</string>
+    <string name="import_failed">Import failed: %s</string>
+    <string name="import_database">Import Database</string>
+
+    <string name="routerscan_import_not_implemented">RouterScan import not yet implemented</string>
+
+    <string name="clear_local_database">Clear Local Database</string>
+    <string name="clear_database_warning">Are you sure you want to clear the local database? This action cannot be undone.</string>
+    <string name="backup_before_clear">Do you want to backup the database before clearing?</string>
+
+    <string name="database_cleared">Local database has been cleared</string>
+    <string name="database_backed_up">Database has been backed up</string>
+    <string name="database_backed_up_and_cleared">Database has been backed up and cleared</string>
+
+    <string name="backup">Backup</string>
+
+    <string name="advanced_options">Show all options</string>
+
+    <string name="search_whole_words">Search whole words only</string>
+    <string name="case_sensitive">Case sensitive</string>
+
+    <string name="filter_by_name">Filter by Name</string>
+    <string name="filter_by_mac">Filter by MAC Address</string>
+    <string name="filter_by_password">Filter by Password</string>
+    <string name="filter_by_wps">Filter by WPS</string>
+
+    <string name="fetch_smartlink_databases">Fetch SmartLink Databases</string>
+    <string name="select_databases_to_download">Select databases to download</string>
+    <string name="download">Download</string>
+
+    <string name="smartlink_db_updates">SmartLink Database Updates</string>
+    <string name="updating">Updating…</string>
+
+    <string name="sources">Sources</string>
+    <string name="filters">Filters</string>
+    <string name="select_sources">Select Sources</string>
+    <string name="select_filters">Select Filters</string>
+    <string name="filter_bssid">BSSID</string>
+    <string name="filter_essid">ESSID</string>
+    <string name="filter_wifi_password">WiFi Password</string>
+    <string name="filter_wps_pin">WPS PIN</string>
+    <string name="password_not_available">Password not available</string>
+    <string name="wps_pin_not_available">WPS PIN not available</string>
+
+    <string name="toast_no_data_to_save">No network data to save</string>
+    <string name="toast_network_stored">Network profile stored successfully</string>
+    <string name="toast_failed_to_store">Failed to store network profile</string>
+    <string name="toast_wifi_disabled">WiFi is disabled</string>
+
+    <string name="connect_wps_root_menu">Connect using WPS (ROOT)</string>
+    <string name="root_wps_not_implemented">ROOT WPS connection not implemented yet</string>
+
+    <string name="connect_wps_pin_button">Connect using WPS Pin</string>
+    <string name="enter_wps_pin">Enter WPS PIN</string>
+    <string name="connect">Connect</string>
+
+    <string name="wps_not_supported">WPS is not supported on Android 10 and above.</string>
+
+    <string name="error_general">Error: %1$s</string>
+
+    <string name="show_wip_features">Show WIP Features</string>
+    <string name="wip_features_warning">Are you sure you want to enable WIP (Work in Progress) features? These features are not fully functional and may cause unexpected behavior.</string>
+
+    <!-- Update Banner -->
+    <string name="view_updates">View Updates</string>
+    <string name="update_banner_app">New app version available: %s</string>
+    <string name="update_banner_system">System components updates available</string>
+    <string name="update_banner_databases">Database updates available</string>
+    <string name="update_banner_multiple">Multiple updates available</string>
+
+    <string name="password_format">Password: %s</string>
+    <string name="wps_pin_format">WPS PIN: %s</string>
+    <string name="source_format">Source: %s</string>
+
+    <string name="copy_wps">Copy WPS PIN</string>
+    <string name="save_wifi">Save WiFi profile</string>
+    <string name="open_generator">Open WPS generator</string>
+    <string name="item_info">Info</string>
+    <string name="item_map">Map</string>
+    <string name="more_options">More</string>
+
+    <string name="no_ssid">Unnamed Network</string>
+
+    <string name="not_available">N/A</string>
+    <string name="wifi_key_format">WiFi Key: %s</string>
+
+    <string name="type_3wifi">3WiFi type</string>
+    <string name="type_custom">Custom type</string>
+    <string name="downloading_database_progress">Downloading database %1$d/%2$d: %3$s</string>
+    <string name="downloading_database_progress_size">Downloading database %1$d/%2$d: %3$s (%4$d/%5$d MB)</string>
+    <string name="downloading_database_progress_no_size">Downloading database %1$d/%2$d: %3$s (%4$d MB downloaded)</string>
+    <string name="error_downloading_database">Error downloading database: %1$s</string>
+
+    <string name="error_reading_database">Error reading database</string>
+
+    <string name="menu_api_query">API 3WiFi Query</string>
+    <string name="menu_mac_location">MAC Location</string>
+    <string name="menu_rss_news">RSS News</string>
+
+    <string name="error_database_access">Error accessing database: %1$s</string>
+
+    <!-- WiFi Map -->
+    <string name="select_databases">Select databases to show points from</string>
+    <string name="network_info">Network Information</string>
+    <string name="map_legend">Legend</string>
+    <string name="loading_points_progress">Loaded %1$d points</string>
+
+
+    <string name="wifi_map_settings">WiFi Map Settings</string>
+
+    <string name="zoom_in_message">Zoom in to see WiFi points</string>
+
+    <string name="database_error">Error loading database: %1$s</string>
+    <string name="point_loading_error">Error loading point info</string>
+
+    <!-- API 3WiFi -->
+    <string name="select_api_server">Select API Server</string>
+    <string name="select_api_method">Select API Method</string>
+    <string name="get_request">GET</string>
+    <string name="post_form">POST Form</string>
+    <string name="post_json">POST JSON</string>
+    <string name="execute_request">Execute Request</string>
+    <string name="response">Response</string>
+    <string name="enter_bssid">Enter BSSID</string>
+    <string name="add_bssid">Add BSSID</string>
+    <string name="add_essid">Add ESSID</string>
+    <string name="radius">Radius</string>
+
+    <!-- API 3WiFi Method Params -->
+    <string name="exclude_wifi_clients">Exclude Wi-Fi Clients</string>
+    <string name="invalid_bssid_format">Invalid BSSID format</string>
+    <string name="invalid_latitude">Latitude must be between -90 and 90</string>
+    <string name="invalid_longitude">Longitude must be between -180 and 180</string>
+    <string name="invalid_radius">Radius must be between 0.001 and 25</string>
+
+    <!-- API 3WiFi Fragment -->
+    <string name="select_server_error">Please select a server</string>
+    <string name="select_method_error">Please select a method</string>
+    <string name="invalid_server">Invalid server selected</string>
+    <string name="invalid_request_params">Invalid request parameters</string>
+
+    <!-- Mac Location -->
+    <string name="mac_address_hint">Enter MAC address (XX:XX:XX:XX:XX:XX)</string>
+    <string name="search_button">Search</string>
+    <string name="api_settings_title">API Settings</string>
+    <string name="wigle_api_hint">Wigle API Key</string>
+    <string name="google_api_hint">Google API Key</string>
+    <string name="combain_api_hint">Combain API Key</string>
+    <string name="save_settings">Save Settings</string>
+    <string name="error_invalid_mac">Invalid MAC address format</string>
+    <string name="api_keys_saved">API keys saved successfully</string>
+
+    <string name="ssid_hint">Enter network name (ESSID)</string>
+
+    <string name="query_type_bssid_only">Only BSSID</string>
+    <string name="query_type_essid_only">Only ESSID</string>
+    <string name="query_type_exact_match">Exact match BSSID+ESSID</string>
+    <string name="add_pair">Add BSSID+ESSID pair</string>
+    <string name="bssid_hint">BSSID (XX:XX:XX:XX:XX:XX)</string>
+    <string name="essid_hint">ESSID (Network name)</string>
+    <string name="at_least_one_pair">At least one BSSID+ESSID pair required</string>
+    <string name="at_least_one_bssid">At least one BSSID required</string>
+    <string name="at_least_one_essid">At least one ESSID required</string>
+    <string name="essid_required">ESSID is required</string>
+
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
+
+    <string name="notification_image">Notification image</string>
+
+
+
+    <!-- Welcome Screen Strings -->
+    <string name="welcome_title">Welcome to WiFi Frankenstein</string>
+    <string name="disclaimer_title">Disclaimer</string>
+    <string name="disclaimer_text">By using this application, you agree to the following terms:\n\n• You will only use this application on your personal networks or with explicit permission from the network owner\n\n• This application is designed for checking personal network security and mapping free WiFi networks\n\n• The application does not contain a built-in database of networks and does not collect any personal data\n\n• The author takes no responsibility for any misuse of this application</string>
+    <string name="choose_theme">Choose Theme</string>
+    <string name="choose_color_theme">Choose Color Theme</string>
+    <string name="system_theme">System Theme</string>
+    <string name="skip">Skip</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="checking_updates">Checking for Updates</string>
+    <string name="welcome_completed">Setup Completed</string>
+    <string name="welcome_setup_completed_message">Your app is now set up and ready to use!</string>
+    <string name="start_using_app">Start Using App</string>
+    <string name="theme_setup">Appearance Setup</string>
+    <string name="choose_your_preferences">Choose your preferences:</string>
+    <string name="updates_setup">Update Check</string>
+    <string name="added">Added</string>
+
+
+    <!-- WelcomeDatabases strings -->
+
+
+    <string name="no_databases_selected">No databases selected</string>
+    <string name="updates_available">Updates available!</string>
+    <string name="everything_up_to_date">Everything is up to date!</string>
+
+
+    <string name="server_url">Server URL</string>
+    <string name="test_results">Test Results</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="local_database">Local database</string>
+    <string name="enable_indexing">Enable indexing</string>
+    <string name="indexing_info">Enabling indexing will speed up searching in large databases, but will slow down adding new networks.</string>
+    <string name="manage_local_database">Manage local database</string>
+
+    <string name="optimize_database">Optimize database</string>
+    <string name="remove_duplicates">Remove duplicates</string>
+    <string name="export_database">Export database</string>
+    <string name="backup_database">Create backup of entire DB</string>
+    <string name="restore_database">Restore from backup</string>
+
+    <string name="database_optimized">Database optimized</string>
+    <string name="duplicates_removed">Duplicates removed</string>
+    <string name="database_restored">Database restored</string>
+
+    <string name="search_local_database">Search local DB</string>
+
+    <string name="select_table">Select table</string>
+    <string name="map_columns">Column mapping</string>
+    <string name="map_mac">MAC column</string>
+    <string name="map_wifi_pass">WiFi password column</string>
+    <string name="map_wps_pin">WPS PIN column</string>
+    <string name="map_admin_panel">Admin panel column</string>
+    <string name="map_latitude">Latitude column</string>
+    <string name="map_longitude">Longitude column</string>
+    <string name="map_security_type">Security type column</string>
+    <string name="map_timestamp">Timestamp column</string>
+
+    <string name="not_specified">Not specified</string>
+    <string name="map_essid">ESSID column</string>
+    <string name="show_additional_fields">Show additional fields</string>
+    <string name="hide_additional_fields">Hide additional fields</string>
+
+    <string name="local_version">Local version: %1$s</string>
+    <string name="server_version">Available version: %1$s</string>
+
+    <string name="database_check_in_progress">Database search in progress…</string>
+    <string name="no_databases_configured">No configured databases</string>
+    <string name="error_searching_local_db">Error searching in local database: %1$s</string>
+
+    <string name="search_by_mac">Search by BSSID</string>
+    <string name="search_by_ssid">Search by ESSID</string>
+
+    <string name="create_indexes_title">Creating indexes</string>
+    <string name="create_indexes_message">To improve performance, it\'s recommended to create indexes for this database. Create now?</string>
+    <string name="creating_indexes">Creating indexes…</string>
+    <string name="indexing_failed">Index creation failed</string>
+
+    <string name="directpath_missing">Direct path to database is missing</string>
+
+    <string name="db_check_error">Database check error.</string>
+
+    <string name="select_database_message">Select database to display points from</string>
+
+    <string name="restart_needed_for_full_update">Database added. App restart may be required for full functionality.</string>
+    <string name="databases_list_refreshed">Database list updated</string>
+    <string name="database_removed">Database removed</string>
+
+    <!-- DB Indexing -->
+    <string name="indexed">Indexed</string>
+    <string name="not_indexed">Not indexed</string>
+    <string name="index_database">Index</string>
+    <string name="delete_indexes">Delete indexes</string>
+    <string name="index_database_prompt">It\'s recommended to index the database for faster searches, and indexes are required for map functionality. Index now?</string>
+    <string name="indexing_in_progress">Indexing in progress…</string>
+    <string name="indexing_complete">Indexing complete</string>
+    <string name="indexes_deleted">Indexes deleted</string>
+    <string name="column_mapping_missing">Column mapping is missing for custom database</string>
+    <string name="delete_indexes_confirm">Are you sure you want to delete the indexes? If you\'re updating indexes, don\'t forget to create new ones after deletion.</string>
+    <string name="operation_failed">Operation failed</string>
+    <string name="indexing_in_progress_message">Please wait. The process may take several minutes depending on the database size.</string>
+    <string name="remove_database">Remove database</string>
+    <string name="drag_handle">Drag handle</string>
+    <string name="index_status_label">Indexing:</string>
+
+    <string name="map_no_location">No coordinates for this point</string>
+    <string name="map_choose_app">Open map using</string>
+    <string name="wifi_saved">Wi-Fi profile saved</string>
+    <string name="wifi_save_error">Error saving profile</string>
+    <string name="wps_connection_started">WPS connection initiated</string>
+    <string name="wps_connection_error">WPS connection error</string>
+    <string name="permission_location_required">Location permission required</string>
+    <string name="permission_wifi_required">Wi-Fi management permission required</string>
+
+    <string name="detail_dialog_title">Detailed information</string>
+    <string name="detail_error">Error loading data</string>
+    <string name="detail_no_data">No data to display</string>
+    <string name="detail_close">Close</string>
+    <string name="database_not_found">Database not found</string>
+
+    <string name="copy_to_clipboard">Copy to clipboard</string>
+
+    <string name="loading_coordinates">Loading coordinates…</string>
+    <string name="map_error">Error loading map</string>
+
+    <string name="cluster_aggressiveness">Cluster aggressiveness</string>
+    <string name="cluster_aggressiveness_info">The level of aggressiveness for grouping points into clusters. Higher values create fewer clusters.</string>
+    <string name="max_cluster_size">Maximum cluster size</string>
+    <string name="max_cluster_size_info">Maximum number of points in one cluster. If a cluster has more points, it will be split.</string>
+    <string name="minimum">Minimum</string>
+    <string name="aggressive">Aggressive</string>
+    <string name="points">points</string>
+    <string name="zoom_level_value">Zoom level: %1$d</string>
+    <string name="marker_density">Marker density</string>
+    <string name="marker_density_info">Maximum number of markers to display. Lower values improve performance.</string>
+    <string name="sparse">Sparse</string>
+    <string name="dense">Dense</string>
+
+    <string name="show_at_any_zoom">Always</string>
+    <string name="only_when_close">Only when close</string>
+
+    <string name="marker_visibility_zoom">Marker visibility</string>
+    <string name="marker_visibility_zoom_info">Indicates how close you need to zoom to the map to see markers. Low values allow you to see markers even when zoomed out.</string>
+
+    <string name="prevent_cluster_merge">Prevent cluster merging</string>
+    <string name="prevent_cluster_merge_desc">Prevents clusters from merging when zooming out</string>
+
+    <string name="force_point_separation">Separate overlapping points</string>
+    <string name="force_point_separation_desc">Apply offset to points with identical coordinates</string>
+
+    <string name="toggle_clusters">Toggle cluster mode</string>
+    <string name="clusters_merged">Clusters merged</string>
+    <string name="clusters_separated">Clusters separated</string>
+
+    <!-- WelcomeDatabases strings -->
+    <string name="title_welcome_db_step1">Recommended databases</string>
+    <string name="title_welcome_db_step2">Database link</string>
+    <string name="title_welcome_db_step3">Database files</string>
+    <string name="title_welcome_db_step4">API access</string>
+
+    <string name="db_step1_description">Checking for recommended databases…</string>
+    <string name="db_step1_no_databases">No recommended databases found</string>
+    <string name="db_step1_found_databases">Found the following recommended databases:</string>
+    <string name="db_step1_skip">Skip</string>
+    <string name="db_step1_next">Next</string>
+
+    <string name="db_step2_description">Enter a link to a community SmartLinkDB or use your own</string>
+    <string name="db_step2_hint">SmartLinkDB link</string>
+    <string name="db_step2_add">Add</string>
+    <string name="db_step2_skip">Skip</string>
+    <string name="db_step2_next">Next</string>
+
+    <string name="db_step3_description">Select SQLite database files saved in your device\'s memory</string>
+    <string name="db_step3_3wifi_explanation">3WiFi type: A database compatible with the 3WiFi format, containing geo, nets or base tables and other relevant tables.</string>
+    <string name="db_step3_custom_explanation">Custom type: Any SQLite database with an arbitrary structure, for which you can configure column mapping.</string>
+    <string name="db_step3_select_3wifi">Select 3WiFi type database</string>
+    <string name="db_step3_select_custom">Select custom database</string>
+    <string name="db_step3_skip">Skip</string>
+    <string name="db_step3_next">Next</string>
+
+    <string name="db_step4_description">Enter a link to a 3WiFi API server</string>
+    <string name="db_step4_url_hint">3WiFi API link</string>
+    <string name="db_step4_key_hint">API key (optional)</string>
+    <string name="db_step4_skip">Skip</string>
+    <string name="db_step4_finish">Finish</string>
+
+    <string name="db_error_loading">Error loading data</string>
+    <string name="db_added_successfully">Database successfully added</string>
+    <string name="db_invalid_url">Invalid URL</string>
+    <string name="db_check_connection">Check your internet connection</string>
+
+    <string name="error_opening_file">Error opening file</string>
+    <string name="db_type_unknown">Unknown database type</string>
+    <string name="remove">Remove</string>
+
+    <string name="api_not_required">Adding an API server is not required for the application to function</string>
+
+    <string name="selected_databases">Selected databases</string>
+    <string name="download_completed">Download completed</string>
+
+    <string name="update_banner_system_and_db">System files and database updates available</string>
+
+    <!-- Permission strings -->
+    <string name="permissions_required">Required permissions</string>
+    <string name="permissions_description">The following permissions are required for the application to function correctly:</string>
+    <string name="location_permission">Location access permission</string>
+    <string name="location_permission_description">This permission is required to search for Wi-Fi networks and display them on the map. Without it, you will not be able to search for networks around you.</string>
+    <string name="storage_permission">File system access</string>
+    <string name="storage_permission_description">This permission is required to work with databases. Without it, database indexing will not be possible, and files will be cached inside the application, which will lead to double memory consumption.</string>
+    <string name="request_permission">Request permission</string>
+    <string name="permission_granted">Permission granted</string>
+    <string name="permission_not_granted">Permission not granted</string>
+    <string name="location_icon">Location icon</string>
+    <string name="storage_icon">Storage icon</string>
+    <string name="permission_status">Permission status</string>
+    <string name="permissions_footer">You can change these permissions later in your device settings.</string>
+    <string name="location_permission_title">Location access</string>
+    <string name="location_permission_rationale">Location access permission is required to search for Wi-Fi networks and display them on the map. Without this permission, you will not be able to search for networks around you.</string>
+    <string name="location_permission_denied_message">Without access to the location, the application will not be able to search for Wi-Fi networks around you and display them correctly on the map.</string>
+    <string name="storage_permission_denied_message">Without access to the file system, the application will cache all databases inside the application, which will lead to double memory consumption and slow operation.</string>
+    <string name="request_again">Request again</string>
+
+    <string name="wifi_network_saved">Wi-Fi network saved</string>
+    <string name="wifi_network_save_failed">Failed to save network</string>
+    <string name="open_wifi_settings">Open Wi-Fi settings</string>
+    <string name="wifi_saved_note">Copy the network name and password, then click the button below to open Wi-Fi settings</string>
+    <string name="wifi_profile_info">Wi-Fi profile information</string>
+    <string name="wifi_profile_password">Password: %s</string>
+    <string name="wifi_profile_ssid">SSID: %s</string>
+    <string name="wifi_suggestion_added">Network suggested to system</string>
+    <string name="wifi_suggestion_failed">Failed to suggest network to system</string>
+    <string name="password">Password</string>
+    <string name="offline_algorithms_notice">At the moment, in the offline generator section, the application only generates pin codes, but does not determine the possible one, this will be implemented in the next updates.</string>
+
+</resources>

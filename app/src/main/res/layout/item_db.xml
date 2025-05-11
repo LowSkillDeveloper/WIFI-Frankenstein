@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="4dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:strokeColor="?attr/colorPrimary"
+    app:strokeWidth="1dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/iconDatabase"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_database"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="?attr/colorPrimary" />
+
+        <TextView
+            android:id="@+id/textViewDbType"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:textAppearance="?attr/textAppearanceSubtitle1"
+            android:textColor="?attr/colorPrimary"
+            app:layout_constraintEnd_toStartOf="@+id/buttonRemove"
+            app:layout_constraintStart_toEndOf="@+id/iconDatabase"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="SQLite file (3WiFi type)" />
+
+        <TextView
+            android:id="@+id/textViewDbPath"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:textAppearance="?attr/textAppearanceBody2"
+            app:layout_constraintEnd_toStartOf="@+id/buttonRemove"
+            app:layout_constraintStart_toStartOf="@+id/textViewDbType"
+            app:layout_constraintTop_toBottomOf="@+id/textViewDbType"
+            tools:text="Path: /storage/emulated/0/Download/database.db" />
+
+        <TextView
+            android:id="@+id/textViewOriginalSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceBody2"
+            app:layout_constraintStart_toStartOf="@+id/textViewDbPath"
+            app:layout_constraintTop_toBottomOf="@+id/textViewDbPath"
+            tools:text="Original size: 24.5 MB" />
+
+        <TextView
+            android:id="@+id/textViewCachedSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceBody2"
+            app:layout_constraintStart_toStartOf="@+id/textViewOriginalSize"
+            app:layout_constraintTop_toBottomOf="@+id/textViewOriginalSize"
+            tools:text="Cached size: 24.5 MB" />
+
+        <!-- Индикатор статуса индексации -->
+        <TextView
+            android:id="@+id/textViewIndexStatusLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/index_status_label"
+            android:textSize="12sp"
+            android:textAppearance="?attr/textAppearanceCaption"
+            app:layout_constraintStart_toStartOf="@+id/textViewCachedSize"
+            app:layout_constraintTop_toBottomOf="@+id/textViewCachedSize"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/textViewIndexStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="@string/not_indexed"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:textColor="?attr/colorError"
+            app:layout_constraintStart_toEndOf="@+id/textViewIndexStatusLabel"
+            app:layout_constraintTop_toTopOf="@+id/textViewIndexStatusLabel"
+            app:layout_constraintBottom_toBottomOf="@+id/textViewIndexStatusLabel"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+        <!-- Кнопка управления индексами - только для custom баз -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonManageIndexes"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:minWidth="0dp"
+            android:minHeight="32dp"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:text="@string/index_database"
+            android:textSize="11sp"
+            android:layout_marginTop="4dp"
+            app:layout_constraintStart_toStartOf="@+id/textViewIndexStatusLabel"
+            app:layout_constraintTop_toBottomOf="@+id/textViewIndexStatusLabel"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/textViewMain"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Main"
+            android:textColor="?attr/colorSecondary"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/textViewCachedSize"
+            app:layout_constraintEnd_toEndOf="@+id/textViewDbPath"
+            app:layout_constraintTop_toTopOf="@+id/textViewCachedSize"
+            tools:visibility="visible" />
+
+        <ImageButton
+            android:id="@+id/buttonRemove"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/remove_database"
+            android:padding="8dp"
+            android:src="@drawable/ic_remove"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="?attr/colorError" />
+
+        <ImageView
+            android:id="@+id/imageDragHandle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:contentDescription="@string/drag_handle"
+            android:src="@drawable/ic_drag_handle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/buttonManageIndexes"
+            app:tint="?attr/colorPrimary" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

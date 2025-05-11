@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_connect_wps"
+        android:title="@string/connect_wps" />
+    <item
+        android:id="@+id/action_connect_wps_root"
+        android:title="@string/connect_wps_root" />
+    <item
+        android:id="@+id/action_copy_pin"
+        android:title="@string/copy_wps_pin" />
+</menu>

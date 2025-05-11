@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_copy_ssid"
+        android:title="@string/copy_ssid" />
+    <item
+        android:id="@+id/action_copy_bssid"
+        android:title="@string/copy_bssid" />
+    <item
+        android:id="@+id/action_copy_password"
+        android:title="@string/copy_password" />
+    <item
+        android:id="@+id/action_copy_wps"
+        android:title="@string/copy_wps" />
+    <item
+        android:id="@+id/action_save_wifi"
+        android:title="@string/save_wifi" />
+    <item
+        android:id="@+id/action_connect_wps"
+        android:title="@string/connect_wps" />
+
+    <item
+        android:id="@+id/action_connect_wps_root"
+        android:title="@string/connect_wps_root" />
+    <item
+        android:id="@+id/action_open_generator"
+        android:title="@string/open_generator" />
+</menu>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_wifi_scanner">
+
+    <fragment
+        android:id="@+id/nav_rss_news"
+        android:name="com.lsd.wififrankenstein.ui.rssnews.RssNewsFragment"
+        android:label="@string/menu_rss_news"
+        tools:layout="@layout/fragment_rss_news" />
+
+    <fragment
+        android:id="@+id/nav_wifi_scanner"
+        android:name="com.lsd.wififrankenstein.ui.wifiscanner.WiFiScannerFragment"
+        android:label="@string/menu_wifi_scanner"
+        tools:layout="@layout/fragment_wifi_scanner" />
+
+    <fragment
+        android:id="@+id/nav_api_query"
+        android:name="com.lsd.wififrankenstein.ui.api3wifi.API3WiFiFragment"
+        android:label="@string/menu_api_query"
+        tools:layout="@layout/fragment_api3wifi" />
+
+    <fragment
+        android:id="@+id/nav_database_finder"
+        android:name="com.lsd.wififrankenstein.ui.databasefinder.DatabaseFinderFragment"
+        android:label="@string/menu_database_finder"
+        tools:layout="@layout/fragment_database_finder" />
+
+    <fragment
+        android:id="@+id/nav_wifi_map"
+        android:name="com.lsd.wififrankenstein.ui.wifimap.WiFiMapFragment"
+        android:label="@string/menu_wifi_map"
+        tools:layout="@layout/fragment_wifi_map" />
+
+    <fragment
+        android:id="@+id/nav_mac_location"
+        android:name="com.lsd.wififrankenstein.ui.maclocation.MacLocationFragment"
+        android:label="@string/menu_mac_location"
+        tools:layout="@layout/fragment_mac_location" />
+
+    <fragment
+        android:id="@+id/nav_updates"
+        android:name="com.lsd.wififrankenstein.ui.updates.UpdatesFragment"
+        android:label="@string/menu_settings"
+        tools:layout="@layout/fragment_settings" />
+
+    <fragment
+        android:id="@+id/nav_settings"
+        android:name="com.lsd.wififrankenstein.ui.settings.SettingsFragment"
+        android:label="@string/menu_settings"
+        tools:layout="@layout/fragment_settings">
+        <action
+            android:id="@+id/action_nav_settings_to_dbSetupFragment"
+            app:destination="@id/dbSetupFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/dbSetupFragment"
+        android:name="com.lsd.wififrankenstein.ui.dbsetup.DbSetupFragment"
+        android:label="Database Setup"
+        tools:layout="@layout/fragment_db_setup" />
+
+    <fragment
+        android:id="@+id/nav_about"
+        android:name="com.lsd.wififrankenstein.ui.about.AboutFragment"
+        android:label="@string/menu_about"
+        tools:layout="@layout/fragment_about" />
+
+    <fragment
+        android:id="@+id/nav_local_db_viewer"
+        android:name="com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalDbViewerFragment"
+        android:label="@string/search_local_database"
+        tools:layout="@layout/fragment_local_db_viewer" />
+
+    <fragment
+        android:id="@+id/localDbManagementFragment"
+        android:name="com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalDbManagementFragment"
+        android:label="@string/manage_local_database"
+        tools:layout="@layout/fragment_local_db_management" />
+
+    <action
+        android:id="@+id/action_dbSetupFragment_to_localDbManagementFragment"
+        app:destination="@id/localDbManagementFragment" />
+</navigation>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_rss_news"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/menu_rss_news" />
+        <item
+            android:id="@+id/nav_wifi_scanner"
+            android:icon="@drawable/ic_menu_camera"
+            android:title="@string/menu_wifi_scanner" />
+        <item
+            android:id="@+id/nav_database_finder"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/menu_database_finder" />
+        <item
+            android:id="@+id/nav_api_query"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/menu_api_query" />
+        <item
+            android:id="@+id/nav_wifi_map"
+            android:icon="@drawable/ic_menu_slideshow"
+            android:title="@string/menu_wifi_map" />
+        <item
+            android:id="@+id/nav_mac_location"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/menu_mac_location" />
+        <item
+            android:id="@+id/nav_updates"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/menu_updates" />
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/menu_settings" />
+        <item
+            android:id="@+id/nav_about"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/menu_about" />
+    </group>
+</menu>

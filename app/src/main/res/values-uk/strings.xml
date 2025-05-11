@@ -1,0 +1,661 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WIFI Frankenstein</string>
+
+    <string name="app_identifier">WIFIFrankenstein-1.0-official</string>
+
+    <string name="include_app_identifier">Включити ідентифікатор додатку</string>
+    <string name="app_identifier_description">Надсилати ідентифікатор додатку із запитами</string>
+    <string name="nav_header_title">WIFI Франкенштейн</string>
+    <string name="nav_header_subtitle">Нове покоління 3Wifi Локатора</string>
+    <string name="nav_header_desc">Заголовок навігації</string>
+    <string name="db_type_sqlite_3wifi">SQLite файл (тип 3WiFi)</string>
+    <string name="db_type_sqlite_custom">SQLite файл (Користувацький)</string>
+    <string name="db_type_3wifi">3WiFi API</string>
+    <string name="db_type_smartlink">SmartLinkDB</string>
+    <string name="unknown_ssid">Невідомий SSID</string>
+    <string name="menu_wifi_scanner">WiFi Сканер</string>
+    <string name="menu_database_finder">Локальний пошук по базі даних</string>
+    <string name="menu_wifi_map">WiFi Карта</string>
+    <string name="menu_updates">Оновлення</string>
+    <string name="menu_settings">Налаштування</string>
+    <string name="menu_about">Про додаток</string>
+    <string name="check_in_online_bt">Перевірити онлайн</string>
+    <string name="check_in_offline_bt">Перевірити офлайн</string>
+    <string name="select_source">Вибрати джерело</string>
+    <string name="offline_algorithms">ОФЛАЙН АЛГОРИТМИ</string>
+    <string name="pin_database">PIN БАЗА ДАНИХ</string>
+    <string name="copy">Копіювати</string>
+    <string name="copy_ssid">Копіювати SSID</string>
+    <string name="copy_bssid">Копіювати BSSID</string>
+    <string name="actions">Дії</string>
+    <string name="check_vendor">Перевірити виробника</string>
+    <string name="calculate_distance">Розрахувати відстань</string>
+    <string name="wps_actions">WPS дії</string>
+    <string name="connect_wps_button">Підключитися за допомогою кнопки WPS</string>
+    <string name="generate_wps_pins">Згенерувати WPS пін-коди</string>
+    <string name="local_db_wifi_tester">Локальна БД (WIFI TESTER)</string>
+    <string name="local_db_wifi_analyzer">Локальна БД (WIFI Analyzer)</string>
+    <string name="online_db_wps_finder">Онлайн БД (WPS Finder)</string>
+    <string name="online_db_3wifi_server">Онлайн БД (3WIFI Сервер)</string>
+    <string name="searching">Пошук…</string>
+    <string name="add_database">Додати базу даних</string>
+    <string name="database_type">Тип бази даних</string>
+    <string name="api_link">API Посилання</string>
+    <string name="select_file">Вибрати файл</string>
+    <string name="add_database_button">Додати базу даних</string>
+    <string name="added_databases">Додані бази даних</string>
+    <string name="database_settings">Налаштування бази даних</string>
+    <string name="configure_database_description">Налаштування та керування підключеннями до баз даних</string>
+    <string name="configure_databases">Налаштувати бази даних</string>
+    <string name="app_theme">Тема додатку</string>
+    <string name="choose_app_theme">Виберіть бажану тему додатку</string>
+    <string name="system_default">Системна</string>
+    <string name="light_theme">Світла тема</string>
+    <string name="dark_theme">Темна тема</string>
+    <string name="current_version">Поточна версія: %s</string>
+    <string name="new_version_available">Доступна нова версія: %s</string>
+    <string name="app_up_to_date">Ваш додаток оновлено</string>
+    <string name="update_app">Оновити Apk</string>
+    <string name="show_changelog">Показати зміни</string>
+    <string name="update_all">Оновити всі компоненти</string>
+    <string name="check_for_updates">Перевірити оновлення</string>
+    <string name="retry">Повторити</string>
+    <string name="changelog">Список змін</string>
+    <string name="ok">OK</string>
+    <string name="error_checking_updates">Помилка перевірки оновлень: %s</string>
+    <string name="ssid">SSID</string>
+    <string name="bssid">BSSID</string>
+    <string name="copied_to_clipboard">%s скопійовано в буфер обміну</string>
+    <string name="api_key">API Ключ</string>
+    <string name="api_key_hint">Якщо залишити порожнім, буде використано ключ 000000000000</string>
+
+
+    <string name="show_database_info">Показати інформацію про базу даних</string>
+    <string name="copy_wifi_key">Копіювати WiFi ключ</string>
+    <string name="copy_wps_pin">Копіювати WPS PIN</string>
+    <string name="connect_wps">Підключитися (WPS)</string>
+    <string name="connect_wps_root"> ® Підключитися (WPS з root)</string>
+    <string name="save_profile">Зберегти профіль</string>
+    <string name="show_all_credentials">Показати все</string>
+
+
+    <string name="secondary_action_1">Додаткова дія 1</string>
+    <string name="secondary_action_2">Додаткова дія 2</string>
+    <string name="location_permission_required">Для сканування WiFi мереж потрібен дозвіл на визначення місцезнаходження.</string>
+    <string name="records_found">Знайдено %1$d записів у %2$d базах даних</string>
+    <string name="error_starting_app_update">Помилка запуску оновлення додатку: %s</string>
+    <string name="app_update_title">Оновлення WIFI Франкенштейн</string>
+    <string name="downloading_new_version">Завантаження нової версії додатку</string>
+    <string name="no_pins_found">Пін-коди не знайдено</string>
+    <string name="wps_generator_title">Генератор WPS</string>
+    <string name="error_accessing_database">Помилка доступу до бази даних</string>
+    <string name="error_updating_file">Помилка оновлення файлу %1$s: %2$s</string>
+    <string name="error_updating_files">Помилка оновлення файлів: %s</string>
+    <string name="error_fetching_changelog">Помилка отримання списку змін: %1$s</string>
+    <string name="app_update">Оновлення додатку</string>
+    <string name="wps_started">WPS запущено.</string>
+    <string name="wps_succeeded">WPS успішно виконано</string>
+    <string name="wps_failed">WPS не вдалося. Причина: %d</string>
+    <string name="change_wifi_state_permission_required">Потрібен дозвіл CHANGE_WIFI_STATE</string>
+    <string name="close">Закрити</string>
+    <string name="scanning_wifi">Сканування WiFi…</string>
+    <string name="failed_to_start_wifi_scan">Не вдалося запустити сканування WiFi.</string>
+    <string name="permission_denied_wifi_scan">Відмовлено в дозволі на сканування WiFi.</string>
+    <string name="error_accessing_text_file">Помилка доступу до текстового файлу</string>
+    <string name="permission_denied_select_file">Відмовлено в дозволі. Неможливо вибрати файл.</string>
+    <string name="enter_valid_path_or_url">Будь ласка, введіть коректний шлях або URL</string>
+    <string name="invalid_3wifi_sqlite_structure">Неправильна структура SQLite файлу 3WiFi</string>
+    <string name="error_changelog_url_not_available">URL списку змін недоступний</string>
+
+    <string name="purple_theme">Фіолетова тема</string>
+    <string name="green_theme">Зелена тема</string>
+    <string name="blue_theme">Синя тема</string>
+
+    <string name="color_theme">Кольорова тема</string>
+    <string name="app_settings">Налаштування додатку</string>
+    <string name="full_cleanup_on_network_update">Повне очищення при оновленні мережі</string>
+    <string name="check_updates_on_app_open">Перевіряти оновлення при запуску додатку</string>
+    <string name="enable_root_functions"> ® Увімкнути функції root</string>
+    <string name="scan_networks_on_startup">Сканувати мережі при запуску додатку</string>
+
+    <string name="app_icon">Іконка додатку</string>
+    <string name="choose_app_icon">Виберіть іконку додатку</string>
+    <string name="icon_default">За замовчуванням</string>
+    <string name="icon_3wifi">3WiFi</string>
+    <string name="icon_anti3wifi">Anti-3WiFi</string>
+    <string name="icon_p3wifi">p3WiFi</string>
+    <string name="icon_p3wifi_pixel">p3WiFi Pixel</string>
+    <string name="icon_changed">Іконку додатку змінено. Перезавантажте телефон, щоб побачити зміни.</string>
+
+    <string name="request_storage_access">Запитати доступ до сховища</string>
+    <string name="storage_access_info">Без дозволу на прямий доступ до файлів додаток буде копіювати SQLite файли у внутрішнє сховище для кожного пошуку, що може значно сповільнити процес. Однак додаток працюватиме і без цього дозволу. З дозволом SQLite файли можуть бути прочитані безпосередньо з пам\'яті телефону, забезпечуючи миттєвий пошук у базі даних.</string>
+    <string name="warning_storage_access_info">Додаток не має прямого доступу до файлів</string>
+
+    <string name="select_database_type">Виберіть тип бази даних</string>
+    <string name="grant_access">Надати доступ</string>
+    <string name="no">Ні</string>
+    <string name="permission_denied">Доступ заборонено</string>
+    <string name="permission_denied_message">Ви можете надати дозвіл на доступ до файлів у будь-який час у налаштуваннях додатку. Зверніть увагу, що може знадобитися видалити та повторно додати файли бази даних після надання дозволу.</string>
+
+
+    <string name="warning">Попередження</string>
+    <string name="db_cache_warning">Прямий доступ до файлу недоступний. Додана база даних буде кешована в додатку для швидкого читання. Це займе додатково %1$.2f МБ пам\'яті телефону. Ви можете спробувати надати дозвіл на пряме читання файлів і спробувати додати базу даних знову.</string>
+    <string name="db_direct_access_error">Не вдалося отримати прямий доступ до файлу. Ваша прошивка або версія Android може не дозволяти пряме читання SQLite файлів. База даних буде кешована в додатку.</string>
+    <string name="continue_anyway">Все одно продовжити</string>
+    <string name="cancel">Скасувати</string>
+
+    <string name="clear_cached_databases">Очистити кешовані бази даних</string>
+    <string name="storage_access_granted">Додаток має дозвіл на прямий доступ до файлів</string>
+
+
+    <string name="max_points_info">Максимальна кількість точок для відправки в одному запиті. Стандартний ліміт на всіх серверах - 100, тому рекомендується залишити 99.</string>
+    <string name="request_delay_info">Затримка між розділеними запитами в мілісекундах.</string>
+    <string name="connect_timeout_info">Таймаут з\'єднання в мілісекундах.</string>
+    <string name="read_timeout_info">Таймаут читання в мілісекундах.</string>
+    <string name="cache_results_info">Увімкнути кешування результатів для зниження навантаження на сервер і прискорення повторних запитів.</string>
+    <string name="try_alternative_url_info">Спробувати відправити запит на 3wifi.php?a=apiquery, якщо запит до api/apiquery не вдався.</string>
+    <string name="ignore_ssl_certificate_info">Ігнорувати інформацію SSL сертифікату</string>
+
+    <string name="api_3wifi_settings">Налаштування API 3WiFi</string>
+    <string name="max_points_per_request">Макс. точок на запит</string>
+    <string name="request_delay_ms">Затримка запиту (мс)</string>
+    <string name="connect_timeout_ms">Таймаут з\'єднання (мс)</string>
+    <string name="read_timeout_ms">Таймаут читання (мс)</string>
+    <string name="cache_results">Кешувати результати</string>
+    <string name="try_alternative_url">Пробувати альтернативний URL</string>
+    <string name="clear_api_cache">Очистити API кеш</string>
+    <string name="save_api_settings">Зберегти налаштування API</string>
+
+    <string name="ignore_ssl_certificate">Ігнорувати SSL сертифікат</string>
+    <string name="reset_to_default">Скинути на замовчування</string>
+
+    <string name="always_expand_settings">Завжди розгортати налаштування</string>
+
+    <string name="developer_settings">Налаштування розробника</string>
+    <string name="dummy_network_mode">Режим фіктивних мереж</string>
+
+    <string name="developer_warning_title">Попередження</string>
+    <string name="developer_warning_message">Увімкнення функцій у цьому розділі може викликати неполадки в роботі додатку, що вимагатимуть повного видалення та перевстановлення. Змінюйте налаштування на свій страх і ризик.</string>
+    <string name="i_understand">Я розумію</string>
+
+    <string name="max_points_warning">Максимальна кількість точок на запит встановлена більше 100. Це може викликати помилки на деяких серверах.</string>
+
+
+    <string name="merge_online_offline_results">Об\'єднувати результати з різних БД</string>
+
+    <string name="enable_debug_logging">Увімкнути журнал налагодження (WIP)</string>
+
+
+    <string name="test_results_with_domain">Результати тесту [%1$s]</string>
+
+    <string name="test_server">Тестувати сервер</string>
+    <string name="test_server_message">Хочете перевірити функціональність сервера?</string>
+    <string name="yes">Так</string>
+    <string name="testing_server">Тестування сервера</string>
+    <string name="dismiss">Відхилити</string>
+    <string name="unknown_error">Сталася невідома помилка</string>
+
+    <!-- Server Test Results -->
+
+    <string name="server_status_available">Статус сервера: Доступний</string>
+    <string name="ping_result">Пінг: %1$d мс</string>
+
+    <string name="test_title">Тест POST "%1$s":</string>
+    <string name="api_availability_success">Доступність API: Успішно</string>
+    <string name="api_request_test_success">Тест запиту API: Успішно</string>
+    <string name="api_availability_http_error">Доступність API: HTTP ПОМИЛКА %1$s</string>
+    <string name="api_request_test_error">Тест запиту API: Помилка</string>
+    <string name="time">Час: %1$d мс</string>
+
+    <string name="online_servers">Онлайн сервери</string>
+    <string name="no_servers_configured">Сервери API 3WiFi не налаштовані</string>
+    <string name="use_post_method">Використовувати POST запити замість GET у WPS</string>
+
+    <string name="previous_server">Попередній сервер</string>
+    <string name="next_server">Наступний сервер</string>
+
+    <string name="search_hint">Пошук за назвою WiFi або MAC адресою</string>
+    <string name="search">Пошук</string>
+
+    <string name="add_record">Додати запис</string>
+    <string name="choose_action">Виберіть дію</string>
+    <string name="copy_password">Копіювати пароль</string>
+    <string name="delete_record">Видалити запис</string>
+    <string name="record_deleted">Запис видалено</string>
+
+
+    <string name="add_new_record">Додати новий запис</string>
+    <string name="wifi_name">Назва WiFi</string>
+    <string name="mac_address">MAC адреса</string>
+    <string name="wifi_password">Пароль WiFi</string>
+    <string name="wps_pin">WPS PIN</string>
+    <string name="add">Додати</string>
+
+    <string name="edit_record">Редагувати запис</string>
+    <string name="update">Оновити</string>
+
+    <string name="admin_panel">Панель адміністратора</string>
+    <string name="latitude">Широта</string>
+    <string name="longitude">Довгота</string>
+
+    <string name="copy_admin_panel">Копіювати панель адміністратора</string>
+
+    <string name="db_stats">Всього записів: %1$d, Розмір бази даних: %2$s</string>
+    <string name="show_on_map">Показати на карті</string>
+    <string name="records_deleted">Видалено записів: %d</string>
+
+    <string name="delete">Видалити</string>
+
+    <string name="export_format">Формат експорту</string>
+    <string name="import_format">Формат імпорту</string>
+    <string name="export_successful">Експорт успішно виконано</string>
+    <string name="export_failed">Помилка експорту: %s</string>
+    <string name="import_successful">Імпорт успішно виконано</string>
+    <string name="import_failed">Помилка імпорту: %s</string>
+    <string name="import_database">Імпорт бази даних</string>
+
+    <string name="routerscan_import_not_implemented">Імпорт RouterScan ще не реалізовано</string>
+
+    <string name="clear_local_database">Очистити локальну базу даних</string>
+    <string name="clear_database_warning">Ви впевнені, що хочете очистити локальну базу даних? Цю дію неможливо скасувати.</string>
+    <string name="backup_before_clear">Створити резервну копію бази даних перед очищенням?</string>
+
+    <string name="database_cleared">Локальну базу даних очищено</string>
+    <string name="database_backed_up">Створено резервну копію бази даних</string>
+    <string name="database_backed_up_and_cleared">Створено резервну копію бази даних і базу очищено</string>
+
+    <string name="backup">Резервне копіювання</string>
+
+    <string name="advanced_options">Показати всі опції</string>
+
+    <string name="search_whole_words">Шукати тільки цілі слова</string>
+    <string name="case_sensitive">Враховувати регістр</string>
+
+    <string name="filter_by_name">Фільтр за назвою</string>
+    <string name="filter_by_mac">Фільтр за MAC адресою</string>
+    <string name="filter_by_password">Фільтр за паролем</string>
+    <string name="filter_by_wps">Фільтр за WPS</string>
+
+    <string name="fetch_smartlink_databases">Отримати бази даних SmartLink</string>
+    <string name="select_databases_to_download">Виберіть бази даних для завантаження</string>
+    <string name="download">Завантажити</string>
+
+    <string name="smartlink_db_updates">Оновлення бази даних SmartLink</string>
+    <string name="updating">Оновлення…</string>
+
+    <string name="sources">Джерела</string>
+    <string name="filters">Фільтри</string>
+    <string name="select_sources">Вибрати джерела</string>
+    <string name="select_filters">Вибрати фільтри</string>
+    <string name="filter_bssid">BSSID</string>
+    <string name="filter_essid">ESSID</string>
+    <string name="filter_wifi_password">Пароль WiFi</string>
+    <string name="filter_wps_pin">WPS PIN</string>
+    <string name="password_not_available">Пароль недоступний</string>
+    <string name="wps_pin_not_available">WPS PIN недоступний</string>
+
+    <string name="toast_no_data_to_save">Немає даних про мережу для збереження</string>
+    <string name="toast_network_stored">Профіль мережі успішно збережено</string>
+    <string name="toast_failed_to_store">Не вдалося зберегти профіль мережі</string>
+    <string name="toast_wifi_disabled">WiFi вимкнено</string>
+
+    <string name="connect_wps_root_menu">Підключитися з використанням WPS (ROOT)</string>
+    <string name="root_wps_not_implemented">Підключення ROOT WPS ще не реалізовано</string>
+
+    <string name="connect_wps_pin_button">Підключитися з використанням WPS Pin</string>
+    <string name="enter_wps_pin">Введіть WPS PIN</string>
+    <string name="connect">Підключитися</string>
+
+    <string name="wps_not_supported">WPS не підтримується на Android 10 і вище.</string>
+
+    <string name="error_general">Помилка: %1$s</string>
+
+    <string name="show_wip_features">Показати функції в розробці</string>
+    <string name="wip_features_warning">Ви впевнені, що хочете увімкнути WIP (в розробці) функції? Ці функції не повністю робочі і можуть викликати неочікувану поведінку.</string>
+
+    <!-- Update Banner -->
+    <string name="view_updates">Перегляд оновлень</string>
+    <string name="update_banner_app">Доступна нова версія додатку: %s</string>
+    <string name="update_banner_system">Доступні оновлення системних компонентів</string>
+    <string name="update_banner_databases">Доступні оновлення бази даних</string>
+    <string name="update_banner_multiple">Доступні кілька оновлень</string>
+
+    <string name="password_format">Пароль: %s</string>
+    <string name="wps_pin_format">WPS PIN: %s</string>
+    <string name="source_format">Джерело: %s</string>
+
+    <string name="copy_wps">Копіювати WPS PIN</string>
+    <string name="save_wifi">Зберегти профіль WiFi</string>
+    <string name="open_generator">Відкрити генератор WPS</string>
+    <string name="item_info">Інформація</string>
+    <string name="item_map">Карта</string>
+    <string name="more_options">Ще</string>
+
+    <string name="no_ssid">Безіменна мережа</string>
+
+    <string name="not_available">Н/Д</string>
+    <string name="wifi_key_format">WiFi ключ: %s</string>
+
+    <string name="type_3wifi">Тип 3WiFi</string>
+    <string name="type_custom">Користувацький тип</string>
+    <string name="downloading_database_progress">Завантаження бази даних %1$d/%2$d: %3$s</string>
+    <string name="downloading_database_progress_size">Завантаження бази даних %1$d/%2$d: %3$s (%4$d/%5$d МБ)</string>
+    <string name="downloading_database_progress_no_size">Завантаження бази даних %1$d/%2$d: %3$s (завантажено %4$d МБ)</string>
+    <string name="error_downloading_database">Помилка завантаження бази даних: %1$s</string>
+
+    <string name="error_reading_database">Помилка читання бази даних</string>
+
+    <string name="menu_api_query">Запит API 3WiFi</string>
+    <string name="menu_mac_location">Локація за MAC</string>
+    <string name="menu_rss_news">RSS Новини</string>
+
+    <string name="error_database_access">Помилка доступу до бази даних: %1$s</string>
+
+    <!-- WiFi Map -->
+    <string name="select_databases">Виберіть бази даних для відображення точок</string>
+    <string name="network_info">Інформація про мережу</string>
+    <string name="map_legend">Легенда</string>
+    <string name="loading_points_progress">Завантажено %1$d точок</string>
+
+
+    <string name="wifi_map_settings">Налаштування WiFi карти</string>
+
+    <string name="zoom_in_message">Збільшіть масштаб, щоб побачити WiFi точки</string>
+
+    <string name="database_error">Помилка завантаження бази даних: %1$s</string>
+    <string name="point_loading_error">Помилка завантаження інформації про точку</string>
+
+    <!-- API 3WiFi -->
+    <string name="select_api_server">Вибрати API сервер</string>
+    <string name="select_api_method">Вибрати метод API</string>
+    <string name="get_request">GET</string>
+    <string name="post_form">POST Form</string>
+    <string name="post_json">POST JSON</string>
+    <string name="execute_request">Виконати запит</string>
+    <string name="response">Відповідь</string>
+    <string name="enter_bssid">Введіть BSSID</string>
+    <string name="add_bssid">Додати BSSID</string>
+    <string name="add_essid">Додати ESSID</string>
+    <string name="radius">Радіус</string>
+
+    <!-- API 3WiFi Method Params -->
+    <string name="exclude_wifi_clients">Виключити клієнтів Wi-Fi</string>
+    <string name="invalid_bssid_format">Неправильний формат BSSID</string>
+    <string name="invalid_latitude">Широта повинна бути від -90 до 90</string>
+    <string name="invalid_longitude">Довгота повинна бути від -180 до 180</string>
+    <string name="invalid_radius">Радіус повинен бути від 0.001 до 25</string>
+
+    <!-- API 3WiFi Fragment -->
+    <string name="select_server_error">Будь ласка, виберіть сервер</string>
+    <string name="select_method_error">Будь ласка, виберіть метод</string>
+    <string name="invalid_server">Вибрано неправильний сервер</string>
+    <string name="invalid_request_params">Неправильні параметри запиту</string>
+
+    <!-- Mac Location -->
+    <string name="mac_address_hint">Введіть MAC адресу (XX:XX:XX:XX:XX:XX)</string>
+    <string name="search_button">Пошук</string>
+    <string name="api_settings_title">Налаштування API</string>
+    <string name="wigle_api_hint">Wigle API ключ</string>
+    <string name="google_api_hint">Google API ключ</string>
+    <string name="combain_api_hint">Combain API ключ</string>
+    <string name="save_settings">Зберегти налаштування</string>
+    <string name="error_invalid_mac">Неправильний формат MAC адреси</string>
+    <string name="api_keys_saved">API ключі успішно збережено</string>
+
+    <string name="ssid_hint">Введіть назву мережі (ESSID)</string>
+
+    <string name="query_type_bssid_only">Тільки BSSID</string>
+    <string name="query_type_essid_only">Тільки ESSID</string>
+    <string name="query_type_exact_match">Точна відповідність BSSID+ESSID</string>
+    <string name="add_pair">Додати пару BSSID+ESSID</string>
+    <string name="bssid_hint">BSSID (XX:XX:XX:XX:XX:XX)</string>
+    <string name="essid_hint">ESSID (Назва мережі)</string>
+    <string name="at_least_one_pair">Потрібна хоча б одна пара BSSID+ESSID</string>
+    <string name="at_least_one_bssid">Потрібен хоча б один BSSID</string>
+    <string name="at_least_one_essid">Потрібен хоча б один ESSID</string>
+    <string name="essid_required">ESSID обов\'язковий</string>
+
+    <string name="collapse">Згорнути</string>
+    <string name="expand">Розгорнути</string>
+
+    <string name="notification_image">Зображення сповіщення</string>
+
+
+
+    <!-- Welcome Screen Strings -->
+    <string name="welcome_title">Ласкаво просимо до WiFi Франкенштейн</string>
+    <string name="disclaimer_title">Відмова від відповідальності</string>
+    <string name="disclaimer_text">Використовуючи цей додаток, ви погоджуєтеся з наступними умовами:\n\n• Ви будете використовувати цей додаток лише у своїх особистих мережах або з явного дозволу власника мережі\n\n• Цей додаток призначений для перевірки безпеки особистих мереж та картографування безкоштовних WiFi мереж\n\n• Додаток не містить вбудованої бази даних мереж і не збирає жодних особистих даних\n\n• Автор не несе відповідальності за будь-яке неправильне використання цього додатку</string>
+    <string name="choose_theme">Виберіть тему</string>
+    <string name="choose_color_theme">Виберіть кольорову тему</string>
+    <string name="system_theme">Системна тема</string>
+    <string name="skip">Пропустити</string>
+    <string name="next">Далі</string>
+    <string name="previous">Назад</string>
+    <string name="checking_updates">Перевірка оновлень</string>
+    <string name="welcome_completed">Налаштування завершено</string>
+    <string name="welcome_setup_completed_message">Ваш додаток налаштовано та готовий до використання!</string>
+    <string name="start_using_app">Почати використовувати додаток</string>
+    <string name="theme_setup">Налаштування зовнішнього вигляду</string>
+    <string name="choose_your_preferences">Виберіть ваші налаштування:</string>
+    <string name="updates_setup">Перевірка оновлень</string>
+    <string name="added">Додано</string>
+
+
+    <!-- WelcomeDatabases strings -->
+
+
+    <string name="no_databases_selected">Бази даних не вибрано</string>
+    <string name="updates_available">Доступні оновлення!</string>
+    <string name="everything_up_to_date">Все оновлено!</string>
+
+
+    <string name="server_url">URL сервера</string>
+    <string name="test_results">Результати тесту</string>
+    <string name="action_settings">Налаштування</string>
+
+    <string name="local_database">Локальна база даних</string>
+    <string name="enable_indexing">Увімкнути індексування</string>
+    <string name="indexing_info">Увімкнення індексування прискорить пошук у великих базах даних, але сповільнить додавання нових мереж.</string>
+    <string name="manage_local_database">Управління локальною базою даних</string>
+
+    <string name="optimize_database">Оптимізувати базу даних</string>
+    <string name="remove_duplicates">Видалити дублікати</string>
+    <string name="export_database">Експорт бази даних</string>
+    <string name="backup_database">Створити резервну копію всієї БД</string>
+    <string name="restore_database">Відновити з резервної копії</string>
+
+    <string name="database_optimized">Базу даних оптимізовано</string>
+    <string name="duplicates_removed">Дублікати видалено</string>
+    <string name="database_restored">Базу даних відновлено</string>
+
+    <string name="search_local_database">Пошук у локальній БД</string>
+
+    <string name="select_table">Вибрати таблицю</string>
+    <string name="map_columns">Зіставлення стовпців</string>
+    <string name="map_mac">Стовпець MAC</string>
+    <string name="map_wifi_pass">Стовпець WiFi пароля</string>
+    <string name="map_wps_pin">Стовпець WPS PIN</string>
+    <string name="map_admin_panel">Стовпець панелі адміністратора</string>
+    <string name="map_latitude">Стовпець широти</string>
+    <string name="map_longitude">Стовпець довготи</string>
+    <string name="map_security_type">Стовпець типу захисту</string>
+    <string name="map_timestamp">Стовпець часової мітки</string>
+
+    <string name="not_specified">Не вказано</string>
+    <string name="map_essid">Стовпець ESSID</string>
+    <string name="show_additional_fields">Показати додаткові поля</string>
+    <string name="hide_additional_fields">Приховати додаткові поля</string>
+
+    <string name="local_version">Локальна версія: %1$s</string>
+    <string name="server_version">Доступна версія: %1$s</string>
+
+    <string name="database_check_in_progress">Пошук у базі даних…</string>
+    <string name="no_databases_configured">Немає налаштованих баз даних</string>
+    <string name="error_searching_local_db">Помилка пошуку в локальній базі даних: %1$s</string>
+
+    <string name="search_by_mac">Пошук за BSSID</string>
+    <string name="search_by_ssid">Пошук за ESSID</string>
+
+    <string name="create_indexes_title">Створення індексів</string>
+    <string name="create_indexes_message">Для підвищення продуктивності рекомендується створити індекси для цієї бази даних. Створити зараз?</string>
+    <string name="creating_indexes">Створення індексів…</string>
+    <string name="indexing_failed">Створення індексів не вдалося</string>
+
+    <string name="directpath_missing">Відсутній прямий шлях до бази даних</string>
+
+    <string name="db_check_error">Помилка перевірки бази даних.</string>
+
+    <string name="select_database_message">Виберіть базу даних для відображення точок</string>
+
+    <string name="restart_needed_for_full_update">Базу даних додано. Для повної функціональності може знадобитися перезапуск додатку.</string>
+    <string name="databases_list_refreshed">Список баз даних оновлено</string>
+    <string name="database_removed">Базу даних видалено</string>
+
+    <!-- DB Indexing -->
+    <string name="indexed">Індексовано</string>
+    <string name="not_indexed">Не індексовано</string>
+    <string name="index_database">Індексувати</string>
+    <string name="delete_indexes">Видалити індекси</string>
+    <string name="index_database_prompt">Рекомендується індексувати базу даних для швидшого пошуку, і індекси необхідні для функціональності карти. Індексувати зараз?</string>
+    <string name="indexing_in_progress">Індексування…</string>
+    <string name="indexing_complete">Індексування завершено</string>
+    <string name="indexes_deleted">Індекси видалено</string>
+    <string name="column_mapping_missing">Відсутнє зіставлення стовпців для користувацької бази даних</string>
+    <string name="delete_indexes_confirm">Ви впевнені, що хочете видалити індекси? Якщо ви оновлюєте індекси, не забудьте створити нові після видалення.</string>
+    <string name="operation_failed">Операція не вдалася</string>
+    <string name="indexing_in_progress_message">Будь ласка, зачекайте. Процес може зайняти кілька хвилин залежно від розміру бази даних.</string>
+    <string name="remove_database">Видалити базу даних</string>
+    <string name="drag_handle">Перетягнути</string>
+    <string name="index_status_label">Індексування:</string>
+
+    <string name="map_no_location">Немає координат для цієї точки</string>
+    <string name="map_choose_app">Відкрити карту за допомогою</string>
+    <string name="wifi_saved">Wi-Fi профіль збережено</string>
+    <string name="wifi_save_error">Помилка збереження профілю</string>
+    <string name="wps_connection_started">Підключення WPS ініційовано</string>
+    <string name="wps_connection_error">Помилка підключення WPS</string>
+    <string name="permission_location_required">Потрібен дозвіл на визначення місцезнаходження</string>
+    <string name="permission_wifi_required">Потрібен дозвіл на керування Wi-Fi</string>
+
+    <string name="detail_dialog_title">Детальна інформація</string>
+    <string name="detail_error">Помилка завантаження даних</string>
+    <string name="detail_no_data">Немає даних для відображення</string>
+    <string name="detail_close">Закрити</string>
+    <string name="database_not_found">Базу даних не знайдено</string>
+
+    <string name="copy_to_clipboard">Копіювати в буфер обміну</string>
+
+    <string name="loading_coordinates">Завантаження координат…</string>
+    <string name="map_error">Помилка завантаження карти</string>
+
+    <string name="cluster_aggressiveness">Агресивність кластеризації</string>
+    <string name="cluster_aggressiveness_info">Рівень агресивності для групування точок у кластери. Вищі значення створюють менше кластерів.</string>
+    <string name="max_cluster_size">Максимальний розмір кластера</string>
+    <string name="max_cluster_size_info">Максимальна кількість точок в одному кластері. Якщо кластер має більше точок, він буде розділений.</string>
+    <string name="minimum">Мінімальний</string>
+    <string name="aggressive">Агресивний</string>
+    <string name="points">точок</string>
+    <string name="zoom_level_value">Рівень масштабу: %1$d</string>
+    <string name="marker_density">Щільність маркерів</string>
+    <string name="marker_density_info">Максимальна кількість маркерів для відображення. Менші значення покращують продуктивність.</string>
+    <string name="sparse">Розріджений</string>
+    <string name="dense">Щільний</string>
+
+    <string name="show_at_any_zoom">Завжди</string>
+    <string name="only_when_close">Тільки при наближенні</string>
+
+    <string name="marker_visibility_zoom">Видимість маркерів</string>
+    <string name="marker_visibility_zoom_info">Вказує, наскільки близько потрібно наблизити карту, щоб побачити маркери. Низькі значення дозволяють бачити маркери навіть при віддаленні.</string>
+
+    <string name="prevent_cluster_merge">Запобігати злиттю кластерів</string>
+    <string name="prevent_cluster_merge_desc">Запобігає злиттю кластерів при віддаленні</string>
+
+    <string name="force_point_separation">Розділяти точки, що перекриваються</string>
+    <string name="force_point_separation_desc">Застосовувати зміщення до точок з однаковими координатами</string>
+
+    <string name="toggle_clusters">Перемкнути режим кластерів</string>
+    <string name="clusters_merged">Кластери об\'єднано</string>
+    <string name="clusters_separated">Кластери розділено</string>
+
+    <!-- WelcomeDatabases strings -->
+    <string name="title_welcome_db_step1">Рекомендовані бази даних</string>
+    <string name="title_welcome_db_step2">Посилання на базу даних</string>
+    <string name="title_welcome_db_step3">Файли бази даних</string>
+    <string name="title_welcome_db_step4">Доступ до API</string>
+
+    <string name="db_step1_description">Перевірка рекомендованих баз даних…</string>
+    <string name="db_step1_no_databases">Рекомендовані бази даних не знайдено</string>
+    <string name="db_step1_found_databases">Знайдено наступні рекомендовані бази даних:</string>
+    <string name="db_step1_skip">Пропустити</string>
+    <string name="db_step1_next">Далі</string>
+
+    <string name="db_step2_description">Введіть посилання на громадську SmartLinkDB або використовуйте свою</string>
+    <string name="db_step2_hint">Посилання на SmartLinkDB</string>
+    <string name="db_step2_add">Додати</string>
+    <string name="db_step2_skip">Пропустити</string>
+    <string name="db_step2_next">Далі</string>
+
+    <string name="db_step3_description">Виберіть файли SQLite бази даних, збережені в пам\'яті вашого пристрою</string>
+    <string name="db_step3_3wifi_explanation">Тип 3WiFi: База даних, сумісна з форматом 3WiFi, що містить таблиці geo, nets або base та інші відповідні таблиці.</string>
+    <string name="db_step3_custom_explanation">Користувацький тип: Будь-яка SQLite база даних з довільною структурою, для якої ви можете налаштувати зіставлення стовпців.</string>
+    <string name="db_step3_select_3wifi">Вибрати базу даних типу 3WiFi</string>
+    <string name="db_step3_select_custom">Вибрати користувацьку базу даних</string>
+    <string name="db_step3_skip">Пропустити</string>
+    <string name="db_step3_next">Далі</string>
+
+    <string name="db_step4_description">Введіть посилання на сервер 3WiFi API</string>
+    <string name="db_step4_url_hint">Посилання на 3WiFi API</string>
+    <string name="db_step4_key_hint">API ключ (необов\'язково)</string>
+    <string name="db_step4_skip">Пропустити</string>
+    <string name="db_step4_finish">Завершити</string>
+
+    <string name="db_error_loading">Помилка завантаження даних</string>
+    <string name="db_added_successfully">Базу даних успішно додано</string>
+    <string name="db_invalid_url">Неправильний URL</string>
+    <string name="db_check_connection">Перевірте підключення до інтернету</string>
+
+    <string name="error_opening_file">Помилка відкриття файлу</string>
+    <string name="db_type_unknown">Невідомий тип бази даних</string>
+    <string name="remove">Видалити</string>
+
+    <string name="api_not_required">Додавання API сервера не обов\'язкове для роботи додатку</string>
+
+    <string name="selected_databases">Вибрані бази даних</string>
+    <string name="download_completed">Завантаження завершено</string>
+
+    <string name="update_banner_system_and_db">Доступні оновлення системних файлів і баз даних</string>
+
+    <!-- Permission strings -->
+    <string name="permissions_required">Необхідні дозволи</string>
+    <string name="permissions_description">Наступні дозволи необхідні для правильної роботи додатку:</string>
+    <string name="location_permission">Дозвіл на доступ до місцезнаходження</string>
+    <string name="location_permission_description">Цей дозвіл потрібен для пошуку Wi-Fi мереж та відображення їх на карті. Без нього ви не зможете шукати мережі навколо вас.</string>
+    <string name="storage_permission">Доступ до файлової системи</string>
+    <string name="storage_permission_description">Цей дозвіл потрібен для роботи з базами даних. Без нього індексування баз даних буде неможливе, і файли будуть кешуватися всередині додатку, що призведе до подвійного споживання пам\'яті.</string>
+    <string name="request_permission">Запитати дозвіл</string>
+    <string name="permission_granted">Дозвіл надано</string>
+    <string name="permission_not_granted">Дозвіл не надано</string>
+    <string name="location_icon">Іконка місцезнаходження</string>
+    <string name="storage_icon">Іконка сховища</string>
+    <string name="permission_status">Статус дозволу</string>
+    <string name="permissions_footer">Ви можете змінити ці дозволи пізніше в налаштуваннях пристрою.</string>
+    <string name="location_permission_title">Доступ до місцезнаходження</string>
+    <string name="location_permission_rationale">Дозвіл на доступ до місцезнаходження потрібен для пошуку Wi-Fi мереж та відображення їх на карті. Без цього дозволу ви не зможете шукати мережі навколо вас.</string>
+    <string name="location_permission_denied_message">Без доступу до місцезнаходження додаток не зможе шукати Wi-Fi мережі навколо вас і правильно відображати їх на карті.</string>
+    <string name="storage_permission_denied_message">Без доступу до файлової системи додаток буде кешувати всі бази даних всередині додатку, що призведе до подвійного споживання пам\'яті та повільної роботи.</string>
+    <string name="request_again">Запитати знову</string>
+
+    <string name="wifi_network_saved">Wi-Fi мережу збережено</string>
+    <string name="wifi_network_save_failed">Не вдалося зберегти мережу</string>
+    <string name="open_wifi_settings">Відкрити налаштування Wi-Fi</string>
+    <string name="wifi_saved_note">Скопіюйте назву мережі та пароль, потім натисніть кнопку нижче, щоб відкрити налаштування Wi-Fi</string>
+    <string name="wifi_profile_info">Інформація про Wi-Fi профіль</string>
+    <string name="wifi_profile_password">Пароль: %s</string>
+    <string name="wifi_profile_ssid">SSID: %s</string>
+    <string name="wifi_suggestion_added">Мережу запропоновано системі</string>
+    <string name="wifi_suggestion_failed">Не вдалося запропонувати мережу системі</string>
+    <string name="password">Пароль</string>
+    <string name="offline_algorithms_notice">На даний момент у розділі оффлайн генератора додаток тільки генерує пін коди, але не визначає можливий, це буде реалізовано в наступних оновленнях.</string>
+</resources>
