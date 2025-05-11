@@ -1,6 +1,6 @@
 {
   "app": {
-    "version": "1.1",
+    "version": "1.0",
     "changelog_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/app_changelog.txt",
     "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/test1/app-debug.apk"
   },
@@ -12,7 +12,7 @@
     },
     {
       "name": "vendor_data.txt",
-      "version": "1.1",
+      "version": "1.0",
       "download_url": "https://raw.githubusercontent.com/LowSkillDeveloper/WIFI-Frankenstein/service/vendor_data.txt"
     },
     {
