@@ -35,15 +35,15 @@ android {
     }
     kotlinOptions {
         jvmTarget = "24"
-        languageVersion = "2.2"
-        apiVersion = "2.2"
+        languageVersion = "2.3"
+        apiVersion = "2.3"
     }
     buildFeatures {
         viewBinding = true
     }
     buildToolsVersion = "36.0.0"
-}
 
+}
 
 dependencies {
 
@@ -61,11 +61,12 @@ dependencies {
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.sqlite.framework)
     implementation(libs.androidx.sqlite.ktx)
-    implementation(libs.org.jetbrains.kotlin.plugin.serialization.gradle.plugin)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.paging.runtime.ktx)
-    implementation(libs.opencsv)
+    implementation(libs.opencsv){
+        exclude(group = "commons-logging", module = "commons-logging")
+    }
     implementation(libs.okhttp)
     implementation(libs.osmdroid.android)
     implementation(libs.kotlinx.serialization.protobuf)
