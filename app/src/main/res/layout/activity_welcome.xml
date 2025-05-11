@@ -41,14 +41,6 @@
             android:layout_weight="1" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonSkip"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="?attr/colorPrimary"
-            android:text="@string/skip" />
-
-        <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonNext"
             style="@style/RoundedButton"
             android:layout_width="wrap_content"

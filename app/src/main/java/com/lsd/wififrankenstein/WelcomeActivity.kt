@@ -115,15 +115,6 @@ class WelcomeActivity : AppCompatActivity() {
             }
         }
 
-        binding.buttonSkip.setOnClickListener {
-            val currentFragment = fragments[viewPager.currentItem]
-            if (currentFragment is WelcomeDatabasesFragment) {
-                currentFragment.goNext()
-            } else {
-                viewPager.currentItem = fragments.size - 1
-            }
-        }
-
         updateButtonVisibility(0)
     }
 
@@ -136,7 +127,6 @@ class WelcomeActivity : AppCompatActivity() {
 
     private fun updateButtonVisibility(position: Int) {
         binding.buttonPrev.visibility = if (position > 0) View.VISIBLE else View.INVISIBLE
-        binding.buttonSkip.visibility = if (position < fragments.size - 1) View.VISIBLE else View.GONE
         binding.buttonNext.visibility = if (position < fragments.size - 1) View.VISIBLE else View.GONE
     }
 
@@ -154,9 +144,7 @@ class WelcomeActivity : AppCompatActivity() {
                                 skipText: String = getString(R.string.skip),
                                 nextText: String = getString(R.string.next)) {
         binding.buttonPrev.visibility = if (showPrev) View.VISIBLE else View.INVISIBLE
-        binding.buttonSkip.visibility = if (showSkip) View.VISIBLE else View.GONE
         binding.buttonNext.visibility = if (showNext) View.VISIBLE else View.GONE
-        binding.buttonSkip.text = skipText
         binding.buttonNext.text = nextText
     }
 
