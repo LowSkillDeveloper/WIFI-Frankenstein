@@ -130,6 +130,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _tryAlternativeUrl.value = api3WiFiPrefs.getBoolean("tryAlternativeUrl", true)
         _ignoreSSLCertificate.value = api3WiFiPrefs.getBoolean("ignoreSSLCertificate", false)
         _includeAppIdentifier.value = api3WiFiPrefs.getBoolean("includeAppIdentifier", true)
+        _showWipFeatures.value = prefs.getBoolean("show_wip_features", false)
     }
 
     fun getForcePointSeparation() = _forcePointSeparation.value != false
