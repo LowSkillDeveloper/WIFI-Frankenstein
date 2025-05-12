@@ -658,4 +658,23 @@
     <string name="password">Password</string>
     <string name="offline_algorithms_notice">At the moment, in the offline generator section, the application only generates pin codes, but does not determine the possible one, this will be implemented in the next updates.</string>
 
+    <!-- About Page -->
+    <string name="about_title">About the application</string>
+    <string name="about_app_description">WIFI Frankenstein is an application for pintesting your wifi networks and working with wifi databases, displaying the location of wifi points on the map and much more. This is a Frankenstein application, which contains various functionality for working with wifi.</string>
+    <string name="about_app_replacement">The application was created to replace the old 3WiFi Locator application.</string>
+    <string name="about_app_author">Author: LowSkillDeveloper (Internet User in Telegram)</string>
+    <string name="about_libraries_title">Libraries used:</string>
+    <string name="about_github">GitHub: https://github.com/LowSkillDeveloper/WIFI-Frankenstein</string>
+    <string name="github_button">Open on GitHub</string>
+
+    <!-- Libraries -->
+    <string name="library_androidx">AndroidX - Apache License 2.0</string>
+    <string name="library_material">Material Components - Apache License 2.0</string>
+    <string name="library_opencsv">OpenCSV - Apache License 2.0</string>
+    <string name="library_okhttp">OkHttp - Apache License 2.0</string>
+    <string name="library_osmdroid">osmdroid - Apache License 2.0</string>
+    <string name="library_kotlinx">KotlinX Serialization - Apache License 2.0</string>
+
+
+
 </resources>

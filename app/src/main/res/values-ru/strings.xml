@@ -660,4 +660,23 @@
 
     <string name="offline_algorithms_notice">В данный момент в раздел оффлайн генератора приложение только генерирует пин коды, но не определяет возможный, это будет реализовано в следующих обновлениях.</string>
 
+    <!-- About Page -->
+    <string name="about_title">О приложении</string>
+    <string name="about_app_description">WIFI Frankenstein — приложение для пинтестинга ваших сетей Wi-Fi и работы с базами данных Wi-Fi, отображения местоположения точек Wi-Fi на карте и многого другого. Это приложение Франкинштейн, которое содержит различные функции для работы с Wi-Fi.</string>
+    <string name="about_app_replacement">Приложение создано для замены старого приложения 3WiFi Locator.</string>
+    <string name="about_app_author">Author: LowSkillDeveloper (Internet User в Telegram)</string>
+    <string name="about_github">GitHub: https://github.com/LowSkillDeveloper/WIFI-Frankenstein</string>
+    <string name="github_button">Открыть на GitHub</string>
+    <string name="about_libraries_title">Используемые библиотеки:</string>
+
+    <!-- Libraries -->
+    <string name="library_androidx">AndroidX - Apache License 2.0</string>
+    <string name="library_material">Material Components - Apache License 2.0</string>
+    <string name="library_opencsv">OpenCSV - Apache License 2.0</string>
+    <string name="library_okhttp">OkHttp - Apache License 2.0</string>
+    <string name="library_osmdroid">osmdroid - Apache License 2.0</string>
+    <string name="library_kotlinx">KotlinX Serialization - Apache License 2.0</string>
+
+
+
 </resources>
