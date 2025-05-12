@@ -10,35 +10,35 @@
             android:title="@string/menu_rss_news" />
         <item
             android:id="@+id/nav_wifi_scanner"
-            android:icon="@drawable/ic_menu_camera"
+            android:icon="@drawable/baseline_wifi_find_24"
             android:title="@string/menu_wifi_scanner" />
         <item
             android:id="@+id/nav_database_finder"
-            android:icon="@drawable/ic_menu_gallery"
+            android:icon="@drawable/ic_storage"
             android:title="@string/menu_database_finder" />
         <item
             android:id="@+id/nav_api_query"
-            android:icon="@drawable/ic_menu_gallery"
+            android:icon="@drawable/outline_arrow_upload_ready_24"
             android:title="@string/menu_api_query" />
         <item
             android:id="@+id/nav_wifi_map"
-            android:icon="@drawable/ic_menu_slideshow"
+            android:icon="@drawable/ic_menu_mapmode"
             android:title="@string/menu_wifi_map" />
         <item
             android:id="@+id/nav_mac_location"
-            android:icon="@drawable/ic_menu_gallery"
+            android:icon="@drawable/ic_location"
             android:title="@string/menu_mac_location" />
         <item
             android:id="@+id/nav_updates"
-            android:icon="@drawable/ic_menu_gallery"
+            android:icon="@drawable/outline_archive_24"
             android:title="@string/menu_updates" />
         <item
             android:id="@+id/nav_settings"
-            android:icon="@drawable/ic_menu_gallery"
+            android:icon="@drawable/outline_build_circle_24"
             android:title="@string/menu_settings" />
         <item
             android:id="@+id/nav_about"
-            android:icon="@drawable/ic_menu_gallery"
+            android:icon="@drawable/ic_info"
             android:title="@string/menu_about" />
     </group>
 </menu>
