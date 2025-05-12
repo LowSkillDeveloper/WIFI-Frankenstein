@@ -1,11 +1,48 @@
-# PY Converters for backups of SQL databases 3WIFI and p3WIFI files to SQLite databases
+# 🔍 Converters for 3WIFI and p3WIFI SQL Database Backups
 
-To convert a backup of the classic 3WIFI database, use the 3wifi.py file. Place the python file in the folder with the unpacked SQL backup, namely the geo.sql and base.sql files
+Tools for converting SQL backups of 3WIFI and p3WIFI databases to SQLite format for portable use and application integration.
 
-To convert a p3WiFi backup, use the p3wifi.py file. Place the python file in the folder with the unpacked SQL backup and rename the SQL file (for example, p3wifi_dump_19.05.2024.sql) to input.sql and run the python file.
+## 🚀 Quick Start
 
-The conversion occurs in several stages. Parsing and insertion into the DB, then the errors_nets.txt and errors_geo.txt files are created, which will contain the lines that could not be added to the DB. The second part attempts to insert the lines that were included in these files (this part of the code is written by ChatGPT), but even so, some lines do not get into the DB, so the code manually adds lines to the DB. If there are unadded lines in the final report, you can add them to the script itself and at the end of the script they will be added to the DB. This part of the code is called "problem_entries", add the data that could not get into the DB, you can also use this part of the code to add your own data to the code.
+### For 3WIFI Database Conversion
 
-When you run the code, you will have an option to choose whether to create indexes or not. Choose the option with indexes, the file will weigh more, but it will work correctly and quickly in the application. The option without indexes was originally created for debugging and testing, but it can be used to create smaller databases, but the map may stop working in the application, and the search in the database will also take a long time.
+1. Place `3wifi.py` in the folder with your unpacked SQL backup
+2. Ensure `geo.sql` and `base.sql` files are present in the same directory
+3. Run the script: `python 3wifi.py`
 
-IMPORTANT! DO NOT ATTEMPT TO MANUALLY ADD OR MODIFY THE SQLITE FILE! THIS WILL BREAK THE INDEXING IN THE APPLICATION OR THE ENTIRE DATABASE.
+### For p3WIFI Database Conversion
+
+1. Place `p3wifi.py` in the folder with your unpacked SQL backup
+2. Rename your SQL backup file (e.g., `p3wifi_dump_19.05.2024.sql`) to `input.sql`
+3. Run the script: python `p3wifi.py`
+
+## ⚙️ Conversion Process
+
+The conversion happens in multiple stages:
+
+1. **Initial Parsing & Insertion**: The script reads and processes SQL data into SQLite
+2. **Error Handling**: Creates `errors_nets.txt` and `errors_geo.txt` files for problematic lines
+3. **Retry Process**: Attempts to reinsert problematic lines (algorithm by ChatGPT)
+4. **Manual Insertion**: Some problematic entries are handled through dedicated code
+
+## 📊 Index Options
+
+When running either script, you will be prompted to choose:
+
+- **Create with indexes** (Recommended): Larger file size but provides correct functionality and fast performance in applications
+- **Create without indexes**: Smaller file size but may break map functionality and result in slow search performance
+
+> ⚠️ **IMPORTANT WARNING**: DO NOT MANUALLY MODIFY THE SQLITE DATABASE FILE! This will break the indexing in applications or corrupt the entire database.
+
+## 🔧 Handling Problematic Entries
+
+If the final report shows unadded lines, you can:
+
+1. Add them to the `problem_entries` section at the end of the script
+2. Re-run the script to include these entries
+
+This section can also be used to add your own custom data to the database.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
