@@ -7,7 +7,7 @@
   "files": [
     {
       "name": "vendor.db",
-      "version": "1.0",
+      "version": "1.1",
       "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/vendor.db"
     },
     {
@@ -17,7 +17,7 @@
     },
     {
       "name": "wps_pin.db",
-      "version": "1.0",
+      "version": "1.1",
       "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/wps_pin.db"
     },
     {
