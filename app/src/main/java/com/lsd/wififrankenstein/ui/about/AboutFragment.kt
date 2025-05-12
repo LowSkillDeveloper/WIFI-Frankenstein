@@ -1,17 +1,15 @@
 package com.lsd.wififrankenstein.ui.about
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.text.method.LinkMovementMethod
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.lsd.wififrankenstein.databinding.FragmentAboutBinding
-import androidx.core.net.toUri
 
 class AboutFragment : Fragment() {
 
