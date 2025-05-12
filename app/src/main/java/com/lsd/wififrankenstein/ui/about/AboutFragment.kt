@@ -35,7 +35,7 @@ class AboutFragment : Fragment() {
 
         binding.githubButton.setOnClickListener {
             val intent = Intent(Intent.ACTION_VIEW,
-                "https://github.com/LowSkillDeveloper/WiFiFrankenstein".toUri())
+                "https://github.com/LowSkillDeveloper/WiFi-Frankenstein".toUri())
             startActivity(intent)
         }
 
