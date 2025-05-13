@@ -17,7 +17,7 @@
     {
       "id": "3wifi_zip_001",
       "name": "Zip DB WiFi Database",
-      "downloadUrl": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/refs/heads/test/test_temp.db.zst",
+      "downloadUrl": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/refs/heads/test/test_temp.zip",
       "version": "1.0",
       "type": "3wifi"
     }
