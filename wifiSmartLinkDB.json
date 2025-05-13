@@ -13,6 +13,13 @@
       "downloadUrl": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/test/test_custom.sqlite",
       "version": "2.0",
       "type": "custom"
+    },
+    {
+      "id": "3wifi_zip_001",
+      "name": "Zip DB WiFi Database",
+      "downloadUrl": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/refs/heads/test/test_temp.db.zst",
+      "version": "1.0",
+      "type": "3wifi"
     }
   ]
 }
