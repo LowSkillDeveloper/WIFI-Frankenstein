@@ -1,8 +1,8 @@
 <resources>
     <string-array name="db_types">
-        <item>SQLite file (Custom)</item>
-        <item>SQLite file (3WiFi type)</item>
-        <item>3WiFi API</item>
-        <item>SmartLinkDB</item>
+        <item>@string/db_type_sqlite_custom</item>
+        <item>@string/db_type_sqlite_3wifi</item>
+        <item>@string/db_type_3wifi</item>
+        <item>@string/db_type_smartlink</item>
     </string-array>
 </resources>
