@@ -52,6 +52,8 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+
+        viewModel.setDbSetupViewModel(dbSetupViewModel)
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentUpdatesBinding.bind(view)
 

@@ -26,10 +26,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.math.log10
 import kotlin.math.pow
+import com.lsd.wififrankenstein.ui.dbsetup.DbType
 
 class UpdatesViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val dbSetupViewModel = DbSetupViewModel(application)
+    private lateinit var dbSetupViewModel: DbSetupViewModel
 
     private val _updateInfo = MutableStateFlow<List<FileUpdateInfo>>(emptyList())
     val updateInfo: StateFlow<List<FileUpdateInfo>> = _updateInfo.asStateFlow()
@@ -102,28 +103,57 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun setDbSetupViewModel(viewModel: DbSetupViewModel) {
+        dbSetupViewModel = viewModel
+    }
+
     fun checkSmartLinkDbUpdates() {
         viewModelScope.launch {
             try {
-                val dbList = dbSetupViewModel.getSmartLinkDatabases()
-                Log.d("UpdatesViewModel", "SmartLinkDb list: $dbList")
+                if (!::dbSetupViewModel.isInitialized) {
+                    return@launch
+                }
 
-                val updateInfoList = dbList.mapNotNull { dbItem ->
-                    val updateInfos = fetchUpdateInfo(dbItem.updateUrl)
-                    updateInfos.find { it.id == dbItem.idJson }?.let { info ->
+                val dbList = dbSetupViewModel.dbList.value ?: emptyList()
+
+                val smartLinkDbs = dbList.filter { dbItem ->
+                    dbItem.dbType == DbType.SMARTLINK_SQLITE_FILE_3WIFI ||
+                            dbItem.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM ||
+                            !dbItem.smartlinkType.isNullOrEmpty()
+                }
+
+                smartLinkDbs.forEach { db ->
+                }
+
+                val updateInfoList = smartLinkDbs.mapNotNull { dbItem ->
+                    val updateUrl = dbItem.updateUrl
+                    if (updateUrl.isNullOrEmpty()) {
+                        return@mapNotNull null
+                    }
+
+                    try {
+                        val updateInfos = fetchUpdateInfo(updateUrl)
+                        val matchingInfo = updateInfos.find { it.id == dbItem.idJson }
+
+                        if (matchingInfo == null) {
+                            return@mapNotNull null
+                        }
+
+                        val needsUpdate = matchingInfo.version != dbItem.version
+
                         SmartLinkDbUpdateInfo(
                             dbItem = dbItem,
-                            serverVersion = info.version,
-                            downloadUrl = info.getDownloadUrls().firstOrNull() ?: "",
-                            needsUpdate = info.version != dbItem.version
+                            serverVersion = matchingInfo.version,
+                            downloadUrl = matchingInfo.getDownloadUrls().firstOrNull() ?: "",
+                            needsUpdate = needsUpdate
                         )
+                    } catch (e: Exception) {
+                        null
                     }
                 }
 
-                Log.d("UpdatesViewModel", "SmartLinkDb updates: $updateInfoList")
                 _smartLinkDbUpdates.value = updateInfoList
             } catch (e: Exception) {
-                Log.e("UpdatesViewModel", "Error checking SmartLink DB updates", e)
                 _errorMessage.value = e.message ?: "Failed to check SmartLink DB updates"
             }
         }
