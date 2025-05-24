@@ -221,8 +221,15 @@ class SmartLinkDbHelper(private val context: Context) {
             }
 
             val firstUrl = urls.firstOrNull() ?: throw Exception("No URLs provided")
-            val archiveExtension = firstUrl.substringAfterLast('.', "").lowercase()
-                .replace(Regex("\\.[0-9]+$"), "") // Удаляем .001, .002 и т.д.
+            val archiveExtension = when {
+                firstUrl.contains(".zip.", ignoreCase = true) -> "zip"
+                firstUrl.contains(".7z.", ignoreCase = true) -> "7z"
+                else -> {
+                    val fullName = firstUrl.substringAfterLast('/')
+                    val extensionMatch = Regex("\\.(zip|7z)\\.[0-9]+$", RegexOption.IGNORE_CASE).find(fullName)
+                    extensionMatch?.groupValues?.get(1)?.lowercase() ?: "zip"
+                }
+            }
             val mergedArchive = File(context.cacheDir, "${outputFile.nameWithoutExtension}.$archiveExtension")
             mergeFiles(tempParts, mergedArchive)
 
