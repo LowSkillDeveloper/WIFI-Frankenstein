@@ -20,6 +20,15 @@
       "downloadUrl": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/refs/heads/test/test_temp.db.zip",
       "version": "1.1",
       "type": "3wifi"
+    },
+    {
+      "id": "3wifi_zip_split_001",
+      "name": "Zip split DB WiFi Database",
+      "downloadUrl1": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/refs/heads/test/anti3wifi.zip.001",
+      "downloadUrl2": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/refs/heads/test/anti3wifi.zip.001",
+      "downloadUrl3": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/refs/heads/test/anti3wifi.zip.001",
+      "version": "1.1",
+      "type": "3wifi"
     }
   ]
 }
