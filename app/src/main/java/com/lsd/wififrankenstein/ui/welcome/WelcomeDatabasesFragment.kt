@@ -726,7 +726,7 @@ class WelcomeDatabasesFragment : Fragment() {
 
         return DbItem(
             id = UUID.randomUUID().toString(),
-            path = smartLinkInfo.downloadUrl,
+            path = smartLinkInfo.getDownloadUrls().firstOrNull() ?: "",
             directPath = null,
             type = smartLinkInfo.name,
             dbType = dbType,
@@ -734,7 +734,7 @@ class WelcomeDatabasesFragment : Fragment() {
             cachedSizeInMB = 0f,
             idJson = smartLinkInfo.id,
             version = smartLinkInfo.version,
-            updateUrl = smartLinkInfo.downloadUrl,
+            updateUrl = smartLinkInfo.getDownloadUrls().firstOrNull() ?: "",
             smartlinkType = smartLinkInfo.type
         )
     }

@@ -675,6 +675,10 @@
     <string name="library_osmdroid">osmdroid - Apache License 2.0</string>
     <string name="library_kotlinx">KotlinX Serialization - Apache License 2.0</string>
 
-
+    <string name="downloading_archive_part">Скачивание части %1$d из %2$d</string>
+    <string name="extracting_archive">Извлечение архива…</string>
+    <string name="merging_archive_parts">Объединение частей архива…</string>
+    <string name="error_extracting_archive">Ошибка извлечения архива: %1$s</string>
+    <string name="error_merging_parts">Ошибка объединения частей: %1$s</string>
 
 </resources>

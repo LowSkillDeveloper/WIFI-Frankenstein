@@ -819,12 +819,19 @@ class DbSetupFragment : Fragment() {
                         val downloadedMB = downloaded / (1024 * 1024)
                         val totalMB = total?.let { it / (1024 * 1024) }
 
-                        val progressMessage = if (total != null) {
-                            getString(R.string.downloading_database_progress_size,
-                                index + 1, databases.size, dbInfo.name, downloadedMB, totalMB)
-                        } else {
-                            getString(R.string.downloading_database_progress_no_size,
-                                index + 1, databases.size, dbInfo.name, downloadedMB)
+                        val progressMessage = when (progress) {
+                            -1 -> getString(R.string.extracting_archive)
+                            -2 -> getString(R.string.downloading_archive_part, downloaded.toInt(), total?.toInt() ?: 0)
+                            -3 -> getString(R.string.merging_archive_parts)
+                            else -> {
+                                if (total != null) {
+                                    getString(R.string.downloading_database_progress_size,
+                                        index + 1, databases.size, dbInfo.name, downloadedMB, totalMB)
+                                } else {
+                                    getString(R.string.downloading_database_progress_no_size,
+                                        index + 1, databases.size, dbInfo.name, downloadedMB)
+                                }
+                            }
                         }
                         progressText?.text = progressMessage
                     }
@@ -863,7 +870,12 @@ class DbSetupFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     dialog.dismiss()
                     if (e !is CancellationException) {
-                        showSnackbar(getString(R.string.error_downloading_database, e.message))
+                        val errorMessage = when {
+                            e.message?.contains("archive") == true -> getString(R.string.error_extracting_archive, e.message)
+                            e.message?.contains("merg") == true -> getString(R.string.error_merging_parts, e.message)
+                            else -> getString(R.string.error_downloading_database, e.message)
+                        }
+                        showSnackbar(errorMessage)
                     }
                 }
             }

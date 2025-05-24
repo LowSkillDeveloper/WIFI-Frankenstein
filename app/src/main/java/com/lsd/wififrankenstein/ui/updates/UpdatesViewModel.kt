@@ -114,7 +114,7 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
                         SmartLinkDbUpdateInfo(
                             dbItem = dbItem,
                             serverVersion = info.version,
-                            downloadUrl = info.downloadUrl,
+                            downloadUrl = info.getDownloadUrls().firstOrNull() ?: "",
                             needsUpdate = info.version != dbItem.version
                         )
                     }
@@ -142,7 +142,12 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
                     result.add(SmartLinkDbInfo(
                         id = dbInfo.getString("id"),
                         name = dbInfo.getString("name"),
-                        downloadUrl = dbInfo.getString("downloadUrl"),
+                        downloadUrl = dbInfo.optString("downloadUrl", null),
+                        downloadUrl1 = dbInfo.optString("downloadUrl1", null),
+                        downloadUrl2 = dbInfo.optString("downloadUrl2", null),
+                        downloadUrl3 = dbInfo.optString("downloadUrl3", null),
+                        downloadUrl4 = dbInfo.optString("downloadUrl4", null),
+                        downloadUrl5 = dbInfo.optString("downloadUrl5", null),
                         version = dbInfo.getString("version"),
                         type = dbInfo.getString("type")
                     ))
@@ -368,7 +373,20 @@ data class AppUpdateInfo(
 data class SmartLinkDbInfo(
     val id: String,
     val name: String,
-    val downloadUrl: String,
+    val downloadUrl: String? = null,
+    val downloadUrl1: String? = null,
+    val downloadUrl2: String? = null,
+    val downloadUrl3: String? = null,
+    val downloadUrl4: String? = null,
+    val downloadUrl5: String? = null,
     val version: String,
     val type: String
-)
+) {
+    fun getDownloadUrls(): List<String> {
+        return listOfNotNull(downloadUrl, downloadUrl1, downloadUrl2, downloadUrl3, downloadUrl4, downloadUrl5)
+    }
+
+    fun isMultiPart(): Boolean {
+        return downloadUrl == null && downloadUrl1 != null
+    }
+}

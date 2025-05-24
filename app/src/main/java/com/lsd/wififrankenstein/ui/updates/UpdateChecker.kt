@@ -15,6 +15,7 @@ import java.io.File
 import java.net.URL
 import kotlin.math.log10
 import kotlin.math.pow
+import com.lsd.wififrankenstein.ui.dbsetup.SmartLinkDbInfo
 
 class UpdateChecker(private val context: Context) {
 
@@ -133,7 +134,12 @@ class UpdateChecker(private val context: Context) {
                 val info = SmartLinkDbInfo(
                     id = dbInfo.getString("id"),
                     name = dbInfo.getString("name"),
-                    downloadUrl = dbInfo.getString("downloadUrl"),
+                    downloadUrl = dbInfo.optString("downloadUrl", null),
+                    downloadUrl1 = dbInfo.optString("downloadUrl1", null),
+                    downloadUrl2 = dbInfo.optString("downloadUrl2", null),
+                    downloadUrl3 = dbInfo.optString("downloadUrl3", null),
+                    downloadUrl4 = dbInfo.optString("downloadUrl4", null),
+                    downloadUrl5 = dbInfo.optString("downloadUrl5", null),
                     version = dbInfo.getString("version"),
                     type = dbInfo.getString("type")
                 )
@@ -142,7 +148,7 @@ class UpdateChecker(private val context: Context) {
 
                 val dbItem = DbItem(
                     id = info.id,
-                    path = info.downloadUrl,
+                    path = info.getDownloadUrls().firstOrNull() ?: "",
                     directPath = null,
                     type = info.name,
                     dbType = if (info.type == "3wifi") DbType.SMARTLINK_SQLITE_FILE_3WIFI
@@ -158,7 +164,7 @@ class UpdateChecker(private val context: Context) {
                 SmartLinkDbUpdateInfo(
                     dbItem = dbItem,
                     serverVersion = info.version,
-                    downloadUrl = info.downloadUrl,
+                    downloadUrl = info.getDownloadUrls().firstOrNull() ?: "",
                     needsUpdate = info.version != localVersion,
                     isUpdating = false,
                     updateProgress = 0

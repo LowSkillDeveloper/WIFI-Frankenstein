@@ -71,6 +71,8 @@ dependencies {
     implementation(libs.osmdroid.android)
     implementation(libs.kotlinx.serialization.protobuf)
     implementation(libs.glide)
+    implementation(libs.commons.compress)
+    implementation(libs.xz)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
