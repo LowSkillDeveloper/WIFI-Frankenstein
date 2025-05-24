@@ -315,10 +315,14 @@
 
     <!-- Update Banner -->
     <string name="view_updates">View Updates</string>
-    <string name="update_banner_app">New app version available: %s</string>
-    <string name="update_banner_system">System components updates available</string>
-    <string name="update_banner_databases">Database updates available</string>
+    <string name="update_banner_app">App update to %1$s available</string>
+    <string name="update_banner_system">System updates available</string>
     <string name="update_banner_multiple">Multiple updates available</string>
+    <string name="update_banner_databases">Database updates available</string>
+    <string name="update_banner_smartlink_db">Available database updates</string>
+    <string name="update_banner_app_and_smartlink">App update to %1$s and database updates available</string>
+    <string name="update_banner_system_and_smartlink">System and database updates available</string>
+    <string name="update_banner_all_updates">App, system and database updates available</string>
 
     <string name="password_format">Password: %s</string>
     <string name="wps_pin_format">WPS PIN: %s</string>
@@ -675,10 +679,12 @@
     <string name="library_osmdroid">osmdroid - Apache License 2.0</string>
     <string name="library_kotlinx">KotlinX Serialization - Apache License 2.0</string>
 
-    <string name="downloading_archive_part">Скачивание части %1$d из %2$d</string>
-    <string name="extracting_archive">Извлечение архива…</string>
-    <string name="merging_archive_parts">Объединение частей архива…</string>
-    <string name="error_extracting_archive">Ошибка извлечения архива: %1$s</string>
-    <string name="error_merging_parts">Ошибка объединения частей: %1$s</string>
+    <string name="downloading_archive_part">Downloading part %1$d of %2$d</string>
+    <string name="extracting_archive">Extracting archive…</string>
+    <string name="merging_archive_parts">Merging archive parts…</string>
+    <string name="error_extracting_archive">Error extracting archive: %1$s</string>
+    <string name="error_merging_parts">Error merging parts: %1$s</string>
+
+
 
 </resources>

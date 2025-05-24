@@ -316,10 +316,14 @@
 
     <!-- Update Banner -->
     <string name="view_updates">Перегляд оновлень</string>
-    <string name="update_banner_app">Доступна нова версія додатку: %s</string>
-    <string name="update_banner_system">Доступні оновлення системних компонентів</string>
-    <string name="update_banner_databases">Доступні оновлення бази даних</string>
-    <string name="update_banner_multiple">Доступні кілька оновлень</string>
+    <string name="update_banner_app">Доступне оновлення додатку до версії %1$s</string>
+    <string name="update_banner_system">Доступні системні оновлення</string>
+    <string name="update_banner_multiple">Доступно кілька оновлень</string>
+    <string name="update_banner_databases">Доступні оновлення баз даних</string>
+    <string name="update_banner_smartlink_db">Доступні оновлення баз даних</string>
+    <string name="update_banner_app_and_smartlink">Доступне оновлення додатку до %1$s та оновлення баз даних</string>
+    <string name="update_banner_system_and_smartlink">Доступні системні оновлення та оновлення баз даних</string>
+    <string name="update_banner_all_updates">Доступні оновлення додатку, системи та баз даних</string>
 
     <string name="password_format">Пароль: %s</string>
     <string name="wps_pin_format">WPS PIN: %s</string>
@@ -675,5 +679,11 @@
     <string name="library_okhttp">OkHttp - Apache License 2.0</string>
     <string name="library_osmdroid">osmdroid - Apache License 2.0</string>
     <string name="library_kotlinx">KotlinX Serialization - Apache License 2.0</string>
+
+    <string name="downloading_archive_part">Завантаження частини %1$d з %2$d</string>
+    <string name="extracting_archive">Розпакування архіву…</string>
+    <string name="merging_archive_parts">Об’єднання частин архіву…</string>
+    <string name="error_extracting_archive">Помилка розпакування архіву: %1$s</string>
+    <string name="error_merging_parts">Помилка об’єднання частин: %1$s</string>
 
 </resources>

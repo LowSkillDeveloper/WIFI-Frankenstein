@@ -316,10 +316,14 @@
 
     <!-- Update Banner -->
     <string name="view_updates">Просмотр обновлений</string>
-    <string name="update_banner_app">Доступна новая версия приложения: %s</string>
-    <string name="update_banner_system">Доступны обновления системных компонентов</string>
-    <string name="update_banner_databases">Доступны обновления базы данных</string>
-    <string name="update_banner_multiple">Доступны несколько обновлений</string>
+    <string name="update_banner_app">Доступно обновление приложения до версии %1$s</string>
+    <string name="update_banner_system">Доступны системные обновления</string>
+    <string name="update_banner_multiple">Доступно несколько обновлений</string>
+    <string name="update_banner_databases">Доступны обновления баз данных</string>
+    <string name="update_banner_smartlink_db">Доступны обновления баз данных</string>
+    <string name="update_banner_app_and_smartlink">Доступно обновление приложения до %1$s и обновления баз данных</string>
+    <string name="update_banner_system_and_smartlink">Доступны системные обновления и обновления баз данных</string>
+    <string name="update_banner_all_updates">Доступны обновления приложения, системы и баз данных</string>
 
     <string name="password_format">Пароль: %s</string>
     <string name="wps_pin_format">WPS PIN: %s</string>
@@ -677,6 +681,11 @@
     <string name="library_osmdroid">osmdroid - Apache License 2.0</string>
     <string name="library_kotlinx">KotlinX Serialization - Apache License 2.0</string>
 
+    <string name="downloading_archive_part">Скачивание части %1$d из %2$d</string>
+    <string name="extracting_archive">Извлечение архива…</string>
+    <string name="merging_archive_parts">Объединение частей архива…</string>
+    <string name="error_extracting_archive">Ошибка извлечения архива: %1$s</string>
+    <string name="error_merging_parts">Ошибка объединения частей: %1$s</string>
 
 
 </resources>

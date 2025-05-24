@@ -110,50 +110,41 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
     fun checkSmartLinkDbUpdates() {
         viewModelScope.launch {
             try {
-                if (!::dbSetupViewModel.isInitialized) {
-                    return@launch
-                }
+                Log.d("UpdatesViewModel", "Starting SmartLink DB updates check...")
+                val dbList = dbSetupViewModel.getSmartLinkDatabases()  // Этот метод уже исправлен
+                Log.d("UpdatesViewModel", "Found ${dbList.size} SmartLink databases")
 
-                val dbList = dbSetupViewModel.dbList.value ?: emptyList()
+                val updateInfoList = dbList.mapNotNull { dbItem ->
+                    Log.d("UpdatesViewModel", "Checking updates for: ${dbItem.type}, updateUrl: ${dbItem.updateUrl}")
 
-                val smartLinkDbs = dbList.filter { dbItem ->
-                    dbItem.dbType == DbType.SMARTLINK_SQLITE_FILE_3WIFI ||
-                            dbItem.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM ||
-                            !dbItem.smartlinkType.isNullOrEmpty()
-                }
-
-                smartLinkDbs.forEach { db ->
-                }
-
-                val updateInfoList = smartLinkDbs.mapNotNull { dbItem ->
-                    val updateUrl = dbItem.updateUrl
-                    if (updateUrl.isNullOrEmpty()) {
+                    if (dbItem.updateUrl.isNullOrBlank()) {
+                        Log.w("UpdatesViewModel", "No updateUrl for database: ${dbItem.type}")
                         return@mapNotNull null
                     }
 
-                    try {
-                        val updateInfos = fetchUpdateInfo(updateUrl)
-                        val matchingInfo = updateInfos.find { it.id == dbItem.idJson }
+                    val updateInfos = fetchUpdateInfo(dbItem.updateUrl)
+                    val matchingInfo = updateInfos.find { it.id == dbItem.idJson }
 
-                        if (matchingInfo == null) {
-                            return@mapNotNull null
-                        }
-
-                        val needsUpdate = matchingInfo.version != dbItem.version
-
-                        SmartLinkDbUpdateInfo(
-                            dbItem = dbItem,
-                            serverVersion = matchingInfo.version,
-                            downloadUrl = matchingInfo.getDownloadUrls().firstOrNull() ?: "",
-                            needsUpdate = needsUpdate
-                        )
-                    } catch (e: Exception) {
-                        null
+                    if (matchingInfo == null) {
+                        Log.w("UpdatesViewModel", "No matching info found for database: ${dbItem.type} with id: ${dbItem.idJson}")
+                        return@mapNotNull null
                     }
+
+                    val needsUpdate = matchingInfo.version != dbItem.version
+                    Log.d("UpdatesViewModel", "Database ${dbItem.type}: local=${dbItem.version}, server=${matchingInfo.version}, needsUpdate=$needsUpdate")
+
+                    SmartLinkDbUpdateInfo(
+                        dbItem = dbItem,
+                        serverVersion = matchingInfo.version,
+                        downloadUrl = matchingInfo.getDownloadUrls().firstOrNull() ?: "",
+                        needsUpdate = needsUpdate
+                    )
                 }
 
+                Log.d("UpdatesViewModel", "SmartLink DB update results: ${updateInfoList.size} items, ${updateInfoList.count { it.needsUpdate }} need updates")
                 _smartLinkDbUpdates.value = updateInfoList
             } catch (e: Exception) {
+                Log.e("UpdatesViewModel", "Error checking SmartLink DB updates", e)
                 _errorMessage.value = e.message ?: "Failed to check SmartLink DB updates"
             }
         }

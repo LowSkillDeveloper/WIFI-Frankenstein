@@ -117,7 +117,7 @@ class SmartLinkDbHelper(private val context: Context) {
                     path = uri.toString(),
                     directPath = file.absolutePath,
                     type = dbInfo.name,
-                    dbType = dbType,
+                    dbType = if (dbType == DbType.SQLITE_FILE_3WIFI) DbType.SMARTLINK_SQLITE_FILE_3WIFI else DbType.SMARTLINK_SQLITE_FILE_CUSTOM,
                     originalSizeInMB = actualFileSize,
                     cachedSizeInMB = actualFileSize,
                     idJson = dbInfo.id,

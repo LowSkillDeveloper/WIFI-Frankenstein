@@ -16,6 +16,7 @@ import java.net.URL
 import kotlin.math.log10
 import kotlin.math.pow
 import com.lsd.wififrankenstein.ui.dbsetup.SmartLinkDbInfo
+import kotlinx.serialization.json.Json
 
 class UpdateChecker(private val context: Context) {
 
@@ -128,47 +129,72 @@ class UpdateChecker(private val context: Context) {
 
     private fun checkDatabaseUpdates(json: JSONObject): List<SmartLinkDbUpdateInfo> {
         return try {
-            val dbUpdates = json.optJSONArray("databases") ?: return emptyList()
-            (0 until dbUpdates.length()).mapNotNull { i ->
-                val dbInfo = dbUpdates.getJSONObject(i)
-                val info = SmartLinkDbInfo(
-                    id = dbInfo.getString("id"),
-                    name = dbInfo.getString("name"),
-                    downloadUrl = dbInfo.optString("downloadUrl", null),
-                    downloadUrl1 = dbInfo.optString("downloadUrl1", null),
-                    downloadUrl2 = dbInfo.optString("downloadUrl2", null),
-                    downloadUrl3 = dbInfo.optString("downloadUrl3", null),
-                    downloadUrl4 = dbInfo.optString("downloadUrl4", null),
-                    downloadUrl5 = dbInfo.optString("downloadUrl5", null),
-                    version = dbInfo.getString("version"),
-                    type = dbInfo.getString("type")
-                )
+            val context = this.context
 
-                val localVersion = getFileVersion("${info.id}.db")
+            val dbSetupPrefs = context.getSharedPreferences("db_setup_prefs", Context.MODE_PRIVATE)
+            val dbListJson = dbSetupPrefs.getString("db_list", null) ?: return emptyList()
 
-                val dbItem = DbItem(
-                    id = info.id,
-                    path = info.getDownloadUrls().firstOrNull() ?: "",
-                    directPath = null,
-                    type = info.name,
-                    dbType = if (info.type == "3wifi") DbType.SMARTLINK_SQLITE_FILE_3WIFI
-                    else DbType.SMARTLINK_SQLITE_FILE_CUSTOM,
-                    originalSizeInMB = 0f,
-                    cachedSizeInMB = 0f,
-                    version = localVersion,
-                    idJson = info.id,
-                    updateUrl = UPDATE_URL,
-                    smartlinkType = info.type
-                )
+            val installedDbs = try {
+                Json.decodeFromString<List<DbItem>>(dbListJson).filter {
+                    it.smartlinkType != null && !it.smartlinkType.isBlank() &&
+                            !it.updateUrl.isNullOrBlank() &&
+                            !it.idJson.isNullOrBlank()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error parsing installed databases", e)
+                emptyList()
+            }
 
-                SmartLinkDbUpdateInfo(
-                    dbItem = dbItem,
-                    serverVersion = info.version,
-                    downloadUrl = info.getDownloadUrls().firstOrNull() ?: "",
-                    needsUpdate = info.version != localVersion,
-                    isUpdating = false,
-                    updateProgress = 0
-                )
+            Log.d(TAG, "Found ${installedDbs.size} SmartLink databases to check for updates")
+            installedDbs.forEach { db ->
+                Log.d(TAG, "SmartLink DB: ${db.type}, smartlinkType: ${db.smartlinkType}, version: ${db.version}")
+            }
+
+            installedDbs.mapNotNull { installedDb ->
+                try {
+                    val updateUrl = installedDb.updateUrl ?: return@mapNotNull null
+                    val response = URL(updateUrl).readText()
+                    val updateJson = JSONObject(response)
+                    val databasesArray = updateJson.getJSONArray("databases")
+
+                    for (i in 0 until databasesArray.length()) {
+                        val dbInfo = databasesArray.getJSONObject(i)
+                        val serverId = dbInfo.getString("id")
+
+                        if (serverId == installedDb.idJson) {
+                            val serverVersion = dbInfo.getString("version")
+                            val localVersion = installedDb.version ?: "1.0"
+
+                            Log.d(TAG, "Checking DB ${installedDb.type}: local=$localVersion, server=$serverVersion")
+
+                            val info = SmartLinkDbInfo(
+                                id = serverId,
+                                name = dbInfo.getString("name"),
+                                downloadUrl = dbInfo.optString("downloadUrl", null),
+                                downloadUrl1 = dbInfo.optString("downloadUrl1", null),
+                                downloadUrl2 = dbInfo.optString("downloadUrl2", null),
+                                downloadUrl3 = dbInfo.optString("downloadUrl3", null),
+                                downloadUrl4 = dbInfo.optString("downloadUrl4", null),
+                                downloadUrl5 = dbInfo.optString("downloadUrl5", null),
+                                version = serverVersion,
+                                type = dbInfo.getString("type")
+                            )
+
+                            return@mapNotNull SmartLinkDbUpdateInfo(
+                                dbItem = installedDb,
+                                serverVersion = serverVersion,
+                                downloadUrl = info.getDownloadUrls().firstOrNull() ?: "",
+                                needsUpdate = serverVersion != localVersion,
+                                isUpdating = false,
+                                updateProgress = 0
+                            )
+                        }
+                    }
+                    null
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error checking updates for database ${installedDb.type}", e)
+                    null
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error checking database updates", e)

@@ -98,10 +98,18 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun getSmartLinkDatabases(): List<DbItem> {
-        return dbList.value?.filter {
-            it.dbType == DbType.SMARTLINK_SQLITE_FILE_3WIFI ||
-                    it.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM
+        val result = dbList.value?.filter {
+            it.smartlinkType != null && !it.smartlinkType.isBlank() &&
+                    it.updateUrl != null && !it.updateUrl.isBlank() &&
+                    it.idJson != null && !it.idJson.isBlank()
         } ?: emptyList()
+
+        Log.d("DbSetupViewModel", "getSmartLinkDatabases: found ${result.size} databases")
+        result.forEach { db ->
+            Log.d("DbSetupViewModel", "SmartLink DB: ${db.type}, smartlinkType: ${db.smartlinkType}, updateUrl: ${db.updateUrl}, idJson: ${db.idJson}, version: ${db.version}")
+        }
+
+        return result
     }
 
     suspend fun updateSmartLinkDatabase(

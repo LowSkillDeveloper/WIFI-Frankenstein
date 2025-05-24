@@ -55,6 +55,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.util.Locale
+import kotlinx.coroutines.flow.collect
 
 
 class WiFiScannerFragment : Fragment() {
@@ -313,78 +314,99 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun setupUpdateBanner() {
-        val updateStatus = try {
-            JSONObject(requireContext().getSharedPreferences("updates", Context.MODE_PRIVATE)
-                .getString("update_status", "{}"))
-        } catch (e: Exception) {
-            null
-        }
+        lifecycleScope.launch {
+            try {
+                Log.d("WiFiScannerFragment", "Starting update check...")
+                val updateChecker = UpdateChecker(requireContext())
+                updateChecker.checkForUpdates().collect { status ->
+                    if (!isAdded) return@collect
 
-        if (updateStatus == null || !shouldCheckUpdates()) {
-            binding.updateBanner.root.visibility = View.GONE
-            return
-        }
+                    Log.d("WiFiScannerFragment", "Update status received:")
+                    Log.d("WiFiScannerFragment", "- App update: ${status.appUpdate}")
+                    Log.d("WiFiScannerFragment", "- File updates: ${status.fileUpdates.size}")
+                    Log.d("WiFiScannerFragment", "- DB updates: ${status.dbUpdates.size}")
 
-        val hasAppUpdate = updateStatus.optBoolean("hasAppUpdate")
-        val hasSystemUpdates = updateStatus.optBoolean("hasSystemUpdates")
-        val hasDbUpdates = updateStatus.optBoolean("hasDbUpdates")
+                    val hasAppUpdate = status.appUpdate != null &&
+                            status.appUpdate.currentVersion != status.appUpdate.newVersion
+                    val hasSystemUpdates = status.fileUpdates.any { it.needsUpdate }
+                    val hasDbUpdates = status.dbUpdates.any { it.needsUpdate }
 
-        if (!hasAppUpdate && !hasSystemUpdates && !hasDbUpdates) {
-            binding.updateBanner.root.visibility = View.GONE
-            return
-        }
+                    Log.d("WiFiScannerFragment", "Processed status:")
+                    Log.d("WiFiScannerFragment", "- hasAppUpdate: $hasAppUpdate")
+                    Log.d("WiFiScannerFragment", "- hasSystemUpdates: $hasSystemUpdates")
+                    Log.d("WiFiScannerFragment", "- hasDbUpdates: $hasDbUpdates")
 
-        binding.updateBanner.root.visibility = View.VISIBLE
-        val message = when {
-            hasAppUpdate && (hasSystemUpdates || hasDbUpdates) ->
-                getString(R.string.update_banner_multiple)
-            hasAppUpdate -> {
-                val newVersion = updateStatus.optString("newVersion")
-                getString(R.string.update_banner_app, newVersion)
-            }
-            hasSystemUpdates && hasDbUpdates ->
-                getString(R.string.update_banner_system_and_db)
-            hasSystemUpdates ->
-                getString(R.string.update_banner_system)
-            else ->
-                getString(R.string.update_banner_databases)
-        }
+                    if (!hasAppUpdate && !hasSystemUpdates && !hasDbUpdates) {
+                        Log.d("WiFiScannerFragment", "No updates available, hiding banner")
+                        binding.updateBanner.root.visibility = View.GONE
+                        return@collect
+                    }
 
-        binding.updateBanner.updateMessage.text = message
+                    Log.d("WiFiScannerFragment", "Updates available, showing banner")
+                    binding.updateBanner.root.visibility = View.VISIBLE
 
-        binding.updateBanner.buttonUpdate.setOnClickListener {
-            findNavController().navigate(R.id.nav_updates)
-        }
+                    val message = when {
+                        hasAppUpdate && hasSystemUpdates && hasDbUpdates ->
+                            getString(R.string.update_banner_all_updates)
+                        hasAppUpdate && hasSystemUpdates ->
+                            getString(R.string.update_banner_multiple)
+                        hasAppUpdate && hasDbUpdates -> {
+                            val newVersion = status.appUpdate?.newVersion ?: ""
+                            getString(R.string.update_banner_app_and_smartlink, newVersion)
+                        }
+                        hasSystemUpdates && hasDbUpdates ->
+                            getString(R.string.update_banner_system_and_smartlink)
+                        hasAppUpdate -> {
+                            val newVersion = status.appUpdate?.newVersion ?: ""
+                            getString(R.string.update_banner_app, newVersion)
+                        }
+                        hasSystemUpdates ->
+                            getString(R.string.update_banner_system)
+                        hasDbUpdates ->
+                            getString(R.string.update_banner_smartlink_db)
+                        else ->
+                            getString(R.string.update_banner_multiple)
+                    }
 
-        binding.updateBanner.buttonChangelog.visibility = if (hasAppUpdate) {
-            View.VISIBLE.also {
-                binding.updateBanner.buttonChangelog.setOnClickListener {
-                    lifecycleScope.launch {
-                        try {
-                            val updateChecker = UpdateChecker(requireContext())
-                            updateChecker.checkForUpdates().collect { status ->
-                                status.appUpdate?.let { appUpdate ->
-                                    updateChecker.getChangelog(appUpdate).collect { changelog ->
-                                        showChangelogDialog(changelog)
+                    Log.d("WiFiScannerFragment", "Banner message: $message")
+                    binding.updateBanner.updateMessage.text = message
+
+                    binding.updateBanner.buttonUpdate.setOnClickListener {
+                        findNavController().navigate(R.id.nav_updates)
+                    }
+
+                    binding.updateBanner.buttonChangelog.visibility = if (hasAppUpdate) {
+                        View.VISIBLE.also {
+                            binding.updateBanner.buttonChangelog.setOnClickListener {
+                                lifecycleScope.launch {
+                                    try {
+                                        status.appUpdate?.let { appUpdate ->
+                                            updateChecker.getChangelog(appUpdate).collect { changelog ->
+                                                showChangelogDialog(changelog)
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        Toast.makeText(
+                                            context,
+                                            getString(R.string.error_fetching_changelog, e.message),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }
                             }
-                        } catch (e: Exception) {
-                            Toast.makeText(
-                                context,
-                                getString(R.string.error_fetching_changelog, e.message),
-                                Toast.LENGTH_SHORT
-                            ).show()
                         }
+                    } else {
+                        View.GONE
+                    }
+
+                    binding.updateBanner.buttonClose.setOnClickListener {
+                        binding.updateBanner.root.visibility = View.GONE
                     }
                 }
+            } catch (e: Exception) {
+                Log.e("WiFiScannerFragment", "Error checking for updates", e)
+                binding.updateBanner.root.visibility = View.GONE
             }
-        } else {
-            View.GONE
-        }
-
-        binding.updateBanner.buttonClose.setOnClickListener {
-            binding.updateBanner.root.visibility = View.GONE
         }
     }
 
