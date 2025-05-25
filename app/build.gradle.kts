@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.jetbrains.kotlin.android)
-    id("com.google.protobuf") version "0.9.4"
+    id("com.google.protobuf") version "0.9.5"
 }
 
 android {
