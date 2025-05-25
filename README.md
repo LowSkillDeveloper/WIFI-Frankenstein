@@ -1,8 +1,8 @@
 # WiFi Frankenstein
 
-![Version](https://img.shields.io/badge/version-1.0-blue)
+![App Version](https://img.shields.io/badge/app_version-1.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
-![Kotlin](https://img.shields.io/badge/kotlin-2.0-purple)
+![Kotlin](https://img.shields.io/badge/kotlin-2.2.0_RC-purple)
 
 
 
