@@ -698,6 +698,20 @@
     <string name="get_request_single_only">GET request is only available for single search</string>
     <string name="selected_request_type">Selected request type: %s</string>
     <string name="request_type">Request Type</string>
+    <string name="copy_response">Copy</string>
     <string name="clear">Clear</string>
+    <string name="show_raw">Show JSON</string>
+    <string name="hide_raw">Hide JSON</string>
+    <string name="wifi_key">WiFi key:</string>
+    <string name="security">Security:</string>
+    <string name="coordinates">Coordinates:</string>
+    <string name="unknown">Unknown</string>
+    <string name="copy_key">Copy key</string>
+    <string name="open_map">Open map</string>
+    <string name="error_response">Error: %s</string>
+    <string name="no_results_found">No results found</string>
+    <string name="choose_map_app">Choose a map application</string>
+    <string name="timetxt">Time</string>
+
 
 </resources>

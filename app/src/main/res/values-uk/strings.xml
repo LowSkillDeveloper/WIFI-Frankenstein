@@ -699,6 +699,21 @@
     <string name="get_request_single_only">GET-запит доступний лише для одиночного пошуку</string>
     <string name="selected_request_type">Вибрано тип запиту: %s</string>
     <string name="request_type">Тип запиту</string>
+    <string name="copy_response">Копіювати</string>
+    <string name="clear">Очистити</string>
+    <string name="show_raw">Показати JSON</string>
+    <string name="hide_raw">Приховати JSON</string>
+    <string name="wifi_key">WiFi-ключ:</string>
+    <string name="security">Захист:</string>
+    <string name="coordinates">Координати:</string>
+    <string name="unknown">Невідомо</string>
+    <string name="copy_key">Копіювати ключ</string>
+    <string name="open_map">Відкрити карту</string>
+    <string name="error_response">Помилка: %s</string>
+    <string name="no_results_found">Результатів не знайдено</string>
+    <string name="choose_map_app">Виберіть застосунок для карт</string>
+    <string name="timetxt">Час</string>
+
 
 
 

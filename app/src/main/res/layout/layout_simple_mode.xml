@@ -12,14 +12,6 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/simple_mode_hint"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:layout_marginBottom="16dp"/>
-
-        <!-- Выбор сервера -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/simpleServerSpinnerLayout"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
@@ -36,7 +28,6 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Переключатель типа поиска -->
         <com.google.android.material.button.MaterialButtonToggleGroup
             android:id="@+id/simpleSearchTypeToggle"
             android:layout_width="match_parent"

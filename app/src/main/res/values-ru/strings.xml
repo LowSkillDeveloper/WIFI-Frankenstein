@@ -700,5 +700,20 @@
     <string name="get_request_single_only">GET запрос доступен только для одиночного поиска</string>
     <string name="selected_request_type">Выбран тип запроса: %s</string>
     <string name="request_type">Тип запроса</string>
+    <string name="copy_response">Копировать</string>
+    <string name="clear">Очистить</string>
+    <string name="show_raw">Показать JSON</string>
+    <string name="hide_raw">Скрыть JSON</string>
+    <string name="wifi_key">WiFi ключ:</string>
+    <string name="security">Безопасность:</string>
+    <string name="coordinates">Координаты:</string>
+    <string name="unknown">Неизвестно</string>
+    <string name="copy_key">Копировать ключ</string>
+    <string name="open_map">Открыть карту</string>
+    <string name="error_response">Ошибка: %s</string>
+    <string name="no_results_found">Результаты не найдены</string>
+    <string name="choose_map_app">Выберите приложение для карт</string>
+    <string name="timetxt">Время</string>
+
 
 </resources>

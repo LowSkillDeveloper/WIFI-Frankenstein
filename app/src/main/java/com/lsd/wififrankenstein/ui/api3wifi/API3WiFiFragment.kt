@@ -1,21 +1,32 @@
 package com.lsd.wififrankenstein.ui.api3wifi
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
+import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentApi3wifiBinding
+import org.json.JSONObject
+import androidx.core.view.isVisible
+import androidx.core.view.isEmpty
+import androidx.core.net.toUri
 
 class API3WiFiFragment : Fragment() {
 
@@ -53,6 +64,22 @@ class API3WiFiFragment : Fragment() {
         setupRequestTypeChips()
         setupExecuteButton()
         setupResponseButtons()
+        setupToggleRawResponse()
+    }
+
+    private fun setupToggleRawResponse() {
+        binding.toggleRawResponseButton.setOnClickListener {
+            val isVisible = binding.rawResponseContainer.isVisible
+            if (isVisible) {
+                binding.rawResponseContainer.visibility = View.GONE
+                binding.toggleRawResponseButton.text = getString(R.string.show_raw)
+                binding.toggleRawResponseButton.setIconResource(R.drawable.ic_expand_more)
+            } else {
+                binding.rawResponseContainer.visibility = View.VISIBLE
+                binding.toggleRawResponseButton.text = getString(R.string.hide_raw)
+                binding.toggleRawResponseButton.setIconResource(R.drawable.ic_expand_less)
+            }
+        }
     }
 
     private fun setupResponseButtons() {
@@ -68,6 +95,7 @@ class API3WiFiFragment : Fragment() {
 
         binding.clearResponseButton.setOnClickListener {
             binding.responseText.text = ""
+            binding.resultsCardsContainer.removeAllViews()
         }
     }
 
@@ -98,7 +126,7 @@ class API3WiFiFragment : Fragment() {
         val searchTypeToggle = simpleView.findViewById<MaterialButtonToggleGroup>(R.id.simpleSearchTypeToggle)
         val inputLayout = simpleView.findViewById<TextInputLayout>(R.id.simpleInputLayout)
         val input = simpleView.findViewById<TextInputEditText>(R.id.simpleInput)
-        val searchButton = simpleView.findViewById<com.google.android.material.button.MaterialButton>(R.id.simpleSearchButton)
+        val searchButton = simpleView.findViewById<MaterialButton>(R.id.simpleSearchButton)
 
         val servers = viewModel.apiServers.value?.map { it.path } ?: emptyList()
         val adapter = ArrayAdapter(
@@ -276,6 +304,7 @@ class API3WiFiFragment : Fragment() {
         currentMethodParams?.clear()
         currentMethodParams = null
         binding.responseText.text = ""
+        binding.resultsCardsContainer.removeAllViews()
         binding.requestTypeInfo.visibility = View.GONE
     }
 
@@ -341,6 +370,172 @@ class API3WiFiFragment : Fragment() {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
     }
 
+    private fun parseAndDisplayResults(jsonResponse: String) {
+        binding.resultsCardsContainer.removeAllViews()
+
+        try {
+            val json = JSONObject(jsonResponse)
+
+            if (!json.optBoolean("result", false)) {
+                val errorMessage = json.optString("error", getString(R.string.unknown_error))
+                addErrorCard(errorMessage)
+                return
+            }
+
+            val data = json.optJSONObject("data") ?: return
+
+            data.keys().forEach { bssid ->
+                val networks = data.optJSONArray(bssid) ?: return@forEach
+
+                for (i in 0 until networks.length()) {
+                    val network = networks.optJSONObject(i) ?: continue
+                    addNetworkCard(network)
+                }
+            }
+
+            if (binding.resultsCardsContainer.isEmpty()) {
+                addNoResultsCard()
+            }
+
+        } catch (_: Exception) {
+        }
+    }
+
+    @SuppressLint("DefaultLocale")
+    private fun addNetworkCard(network: JSONObject) {
+        val cardView = LayoutInflater.from(requireContext()).inflate(
+            R.layout.item_api_result_card,
+            binding.resultsCardsContainer,
+            false
+        )
+
+        val bssidText = cardView.findViewById<TextView>(R.id.bssidText)
+        val essidText = cardView.findViewById<TextView>(R.id.essidText)
+        val keyText = cardView.findViewById<TextView>(R.id.keyText)
+        val wpsText = cardView.findViewById<TextView>(R.id.wpsText)
+        val securityText = cardView.findViewById<TextView>(R.id.securityText)
+        val coordinatesText = cardView.findViewById<TextView>(R.id.coordinatesText)
+        val timeText = cardView.findViewById<TextView>(R.id.timeText)
+        val expandButton = cardView.findViewById<MaterialButton>(R.id.expandButton)
+        val detailsContainer = cardView.findViewById<View>(R.id.detailsContainer)
+        val copyKeyButton = cardView.findViewById<MaterialButton>(R.id.copyKeyButton)
+        val copyWpsButton = cardView.findViewById<MaterialButton>(R.id.copyWpsButton)
+        val openMapButton = cardView.findViewById<MaterialButton>(R.id.openMapButton)
+
+        val bssid = network.optString("bssid", "")
+        val essid = network.optString("essid", getString(R.string.unknown))
+        val key = network.optString("key", "")
+        val wps = network.optString("wps", "")
+        val security = network.optString("sec", getString(R.string.unknown))
+        val lat = network.optDouble("lat", 0.0)
+        val lon = network.optDouble("lon", 0.0)
+        val time = network.optString("time", getString(R.string.unknown))
+
+        bssidText.text = bssid
+        essidText.text = essid
+        keyText.text = if (key.isEmpty()) getString(R.string.not_available) else key
+        wpsText.text = if (wps.isEmpty() || wps == "0") getString(R.string.not_available) else wps
+        securityText.text = security
+        coordinatesText.text = if (lat != 0.0 && lon != 0.0) {
+            String.format("%.6f, %.6f", lat, lon)
+        } else {
+            getString(R.string.not_available)
+        }
+        timeText.text = if (time == "None") getString(R.string.unknown) else time
+
+        if (key.isNotEmpty()) {
+            copyKeyButton.visibility = View.VISIBLE
+            copyKeyButton.setOnClickListener {
+                copyToClipboard(getString(R.string.wifi_key), key)
+            }
+        }
+
+        if (wps.isNotEmpty() && wps != "0") {
+            copyWpsButton.visibility = View.VISIBLE
+            copyWpsButton.setOnClickListener {
+                copyToClipboard(getString(R.string.wps_pin), wps)
+            }
+        }
+
+        if (lat != 0.0 && lon != 0.0) {
+            openMapButton.visibility = View.VISIBLE
+            openMapButton.setOnClickListener {
+                openMapWithCoordinates(essid, lat, lon)
+            }
+        }
+
+        var isExpanded = false
+        expandButton.setOnClickListener {
+            isExpanded = !isExpanded
+            detailsContainer.visibility = if (isExpanded) View.VISIBLE else View.GONE
+            expandButton.setIconResource(
+                if (isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
+            )
+        }
+
+        binding.resultsCardsContainer.addView(cardView)
+    }
+
+    private fun addErrorCard(errorMessage: String) {
+        val ctx = requireContext()
+        val errorColor = ContextCompat.getColor(ctx, R.color.error_red)
+
+        val errorCard = MaterialCardView(ctx).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            setCardBackgroundColor(errorColor)
+            setContentPadding(16, 16, 16, 16)
+        }
+
+        val errorText = TextView(ctx).apply {
+            text = getString(R.string.error_response, errorMessage)
+            setTextColor(errorColor)
+        }
+
+        errorCard.addView(errorText)
+        binding.resultsCardsContainer.addView(errorCard)
+    }
+
+    private fun addNoResultsCard() {
+        val noResultsCard = MaterialCardView(requireContext()).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            setContentPadding(16, 16, 16, 16)
+        }
+
+        val noResultsText = TextView(requireContext()).apply {
+            text = getString(R.string.no_results_found)
+            gravity = android.view.Gravity.CENTER
+        }
+
+        noResultsCard.addView(noResultsText)
+        binding.resultsCardsContainer.addView(noResultsCard)
+    }
+
+    private fun copyToClipboard(label: String, text: String) {
+        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        val clip = android.content.ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+        showError(getString(R.string.copied_to_clipboard))
+    }
+
+    private fun openMapWithCoordinates(name: String, lat: Double, lon: Double) {
+        val uri = "geo:$lat,$lon?q=$lat,$lon(${Uri.encode(name)})".toUri()
+        val mapIntent = Intent(Intent.ACTION_VIEW, uri)
+
+        if (mapIntent.resolveActivity(requireContext().packageManager) != null) {
+            startActivity(Intent.createChooser(mapIntent, getString(R.string.choose_map_app)))
+        } else {
+            val browserUri = "https://maps.google.com/maps?q=$lat,$lon".toUri()
+            val browserIntent = Intent(Intent.ACTION_VIEW, browserUri)
+            startActivity(browserIntent)
+        }
+    }
+
     private fun observeViewModel() {
         viewModel.apiServers.observe(viewLifecycleOwner) { servers ->
             setupServersAdapter(servers.map { it.path })
@@ -360,13 +555,14 @@ class API3WiFiFragment : Fragment() {
 
         viewModel.requestResult.observe(viewLifecycleOwner) { result ->
             binding.responseText.text = result
+            parseAndDisplayResults(result)
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressIndicator.visibility = if (isLoading) View.VISIBLE else View.GONE
             binding.executeButton.isEnabled = !isLoading && validateForm()
 
-            binding.simpleModeContainer.findViewById<com.google.android.material.button.MaterialButton>(
+            binding.simpleModeContainer.findViewById<MaterialButton>(
                 R.id.simpleSearchButton
             )?.isEnabled = !isLoading
         }
