@@ -131,10 +131,14 @@ class API3WiFiNetwork(
                     }
                 }
                 request.exactPairs?.let { pairs ->
-                    val exactMatches = pairs.map { pair ->
-                        API3WiFiRequest.ApiQuery.ExactMatch(pair.first, pair.second)
+                    val exactArray = JSONArray()
+                    pairs.forEach { pair ->
+                        val exactObj = JSONObject()
+                        exactObj.put("bssid", pair.first)
+                        exactObj.put("essid", pair.second)
+                        exactArray.put(exactObj)
                     }
-                    builder.addQueryParameter("exact", JSONArray(exactMatches).toString())
+                    builder.addQueryParameter("exact", exactArray.toString())
                 }
                 builder.addQueryParameter("sens", request.sens.toString())
             }
@@ -162,7 +166,6 @@ class API3WiFiNetwork(
                     .addQueryParameter("rad", request.rad.toString())
             }
         }
-        // Добавляем appinfo в конце
         if (includeAppIdentifier) {
             builder.addQueryParameter("appinfo", context.getString(R.string.app_identifier))
         }
@@ -192,6 +195,16 @@ class API3WiFiNetwork(
                         builder.add("essid", JSONArray(list).toString())
                     }
                 }
+                request.exactPairs?.let { pairs ->
+                    val exactArray = JSONArray()
+                    pairs.forEach { pair ->
+                        val exactObj = JSONObject()
+                        exactObj.put("bssid", pair.first)
+                        exactObj.put("essid", pair.second)
+                        exactArray.put(exactObj)
+                    }
+                    builder.add("exact", exactArray.toString())
+                }
                 builder.add("sens", request.sens.toString())
             }
             is API3WiFiRequest.ApiWps -> {
@@ -218,7 +231,6 @@ class API3WiFiNetwork(
                     .add("rad", request.rad.toString())
             }
         }
-        // Добавляем appinfo в конце
         if (includeAppIdentifier) {
             builder.add("appinfo", context.getString(R.string.app_identifier))
         }
@@ -239,6 +251,16 @@ class API3WiFiNetwork(
                 }
                 request.essidList?.let { list ->
                     put("essid", if (list.size == 1) list.first() else JSONArray(list))
+                }
+                request.exactPairs?.let { pairs ->
+                    val exactArray = JSONArray()
+                    pairs.forEach { pair ->
+                        val exactObj = JSONObject()
+                        exactObj.put("bssid", pair.first)
+                        exactObj.put("essid", pair.second)
+                        exactArray.put(exactObj)
+                    }
+                    put("exact", exactArray)
                 }
                 put("sens", request.sens)
             }

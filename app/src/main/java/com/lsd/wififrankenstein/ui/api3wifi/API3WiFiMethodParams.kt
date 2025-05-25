@@ -34,15 +34,26 @@ sealed class API3WiFiMethodParams {
         private lateinit var caseSensitiveSwitch: SwitchMaterial
         private lateinit var addButton: MaterialButton
 
-        private val bssidList = mutableListOf<String>()
-        private val essidList = mutableListOf<String>()
-        private val exactPairs = mutableListOf<Pair<String, String>>()
+        val bssidList: List<String> get() = _bssidList
+        val essidList: List<String> get() = _essidList
+        val exactPairs: List<Pair<String, String>> get() = _exactPairs
 
-        private enum class QueryType {
+        private val _bssidList = mutableListOf<String>()
+        private val _essidList = mutableListOf<String>()
+        private val _exactPairs = mutableListOf<Pair<String, String>>()
+
+
+        enum class QueryType {
             BSSID_ONLY, ESSID_ONLY, EXACT_MATCH
         }
 
-        private var currentQueryType = QueryType.BSSID_ONLY
+        private var _currentQueryType = QueryType.BSSID_ONLY
+        val currentQueryType: QueryType get() = _currentQueryType
+        private var onDataChangedListener: (() -> Unit)? = null
+
+        fun setOnDataChangedListener(listener: () -> Unit) {
+            onDataChangedListener = listener
+        }
 
         override fun createView(context: Context, container: ViewGroup): View {
             val view = LayoutInflater.from(context).inflate(
@@ -80,7 +91,7 @@ sealed class API3WiFiMethodParams {
 
                 addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                     override fun onTabSelected(tab: TabLayout.Tab?) {
-                        currentQueryType = when(tab?.position) {
+                        _currentQueryType = when(tab?.position) {
                             0 -> QueryType.BSSID_ONLY
                             1 -> QueryType.ESSID_ONLY
                             2 -> QueryType.EXACT_MATCH
@@ -89,6 +100,7 @@ sealed class API3WiFiMethodParams {
                         updateViewsVisibility()
                         clearInputs()
                         validate()
+                        onDataChangedListener?.invoke()
                     }
 
                     override fun onTabUnselected(tab: TabLayout.Tab?) {}
@@ -116,7 +128,7 @@ sealed class API3WiFiMethodParams {
 
         private fun setupAddButton() {
             addButton.setOnClickListener {
-                when (currentQueryType) {
+                when (_currentQueryType) {
                     QueryType.BSSID_ONLY -> addBssid()
                     QueryType.ESSID_ONLY -> addEssid()
                     QueryType.EXACT_MATCH -> addExactPair()
@@ -130,7 +142,7 @@ sealed class API3WiFiMethodParams {
         }
 
         private fun updateViewsVisibility() {
-            when (currentQueryType) {
+            when (_currentQueryType) {
                 QueryType.BSSID_ONLY -> {
                     bssidInputLayout.visibility = View.VISIBLE
                     essidInputLayout.visibility = View.GONE
@@ -148,40 +160,41 @@ sealed class API3WiFiMethodParams {
                 }
             }
         }
+
         private fun addBssid() {
             val bssid = bssidInput.text.toString().uppercase()
-            if (bssid.matches(Regex("^([0-9A-F]{2}:){5}[0-9A-F]{2}$"))) {
-                if (!bssidList.contains(bssid)) {
-                    bssidList.add(bssid)
+            if (bssid.isNotEmpty()) {
+                if (!_bssidList.contains(bssid)) {
+                    _bssidList.add(bssid)
                     (pairsList.adapter as PairsAdapter).notifyDataSetChanged()
                 }
                 bssidInput.text?.clear()
                 bssidInputLayout.error = null
-            } else {
-                bssidInputLayout.error = bssidInputLayout.context.getString(R.string.invalid_bssid_format)
             }
             validate()
+            onDataChangedListener?.invoke()
         }
 
         private fun addEssid() {
             val essid = essidInput.text.toString()
             if (essid.isNotEmpty()) {
-                if (!essidList.contains(essid)) {
-                    essidList.add(essid)
+                if (!_essidList.contains(essid)) {
+                    _essidList.add(essid)
                     (pairsList.adapter as PairsAdapter).notifyDataSetChanged()
                 }
                 essidInput.text?.clear()
                 essidInputLayout.error = null
             }
             validate()
+            onDataChangedListener?.invoke()
         }
 
         private fun addExactPair() {
             val bssid = bssidInput.text.toString().uppercase()
             val essid = essidInput.text.toString()
 
-            if (!bssid.matches(Regex("^([0-9A-F]{2}:){5}[0-9A-F]{2}$"))) {
-                bssidInputLayout.error = bssidInputLayout.context.getString(R.string.invalid_bssid_format)
+            if (bssid.isEmpty()) {
+                bssidInputLayout.error = bssidInputLayout.context.getString(R.string.bssid_required)
                 return
             }
 
@@ -191,8 +204,8 @@ sealed class API3WiFiMethodParams {
             }
 
             val pair = Pair(bssid, essid)
-            if (!exactPairs.contains(pair)) {
-                exactPairs.add(pair)
+            if (!_exactPairs.contains(pair)) {
+                _exactPairs.add(pair)
                 (pairsList.adapter as PairsAdapter).notifyDataSetChanged()
             }
 
@@ -201,6 +214,7 @@ sealed class API3WiFiMethodParams {
             bssidInputLayout.error = null
             essidInputLayout.error = null
             validate()
+            onDataChangedListener?.invoke()
         }
 
         private fun clearInputs() {
@@ -214,40 +228,40 @@ sealed class API3WiFiMethodParams {
             return if (isValid()) {
                 API3WiFiRequest.ApiQuery(
                     key = key,
-                    bssidList = if (currentQueryType == QueryType.BSSID_ONLY) bssidList else null,
-                    essidList = if (currentQueryType == QueryType.ESSID_ONLY) essidList else null,
-                    exactPairs = if (currentQueryType == QueryType.EXACT_MATCH) exactPairs else null,
+                    bssidList = if (_currentQueryType == QueryType.BSSID_ONLY) _bssidList else null,
+                    essidList = if (_currentQueryType == QueryType.ESSID_ONLY) _essidList else null,
+                    exactPairs = if (_currentQueryType == QueryType.EXACT_MATCH) _exactPairs else null,
                     sens = caseSensitiveSwitch.isChecked
                 )
             } else null
         }
 
         override fun isValid(): Boolean {
-            return when (currentQueryType) {
-                QueryType.BSSID_ONLY -> bssidList.isNotEmpty()
-                QueryType.ESSID_ONLY -> essidList.isNotEmpty()
-                QueryType.EXACT_MATCH -> exactPairs.isNotEmpty()
+            return when (_currentQueryType) {
+                QueryType.BSSID_ONLY -> _bssidList.isNotEmpty()
+                QueryType.ESSID_ONLY -> _essidList.isNotEmpty()
+                QueryType.EXACT_MATCH -> _exactPairs.isNotEmpty()
             }
         }
 
         override fun validate() {
-            when (currentQueryType) {
+            when (_currentQueryType) {
                 QueryType.BSSID_ONLY -> {
-                    if (bssidList.isEmpty()) {
+                    if (_bssidList.isEmpty()) {
                         bssidInputLayout.error = bssidInputLayout.context.getString(R.string.at_least_one_bssid)
                     } else {
                         bssidInputLayout.error = null
                     }
                 }
                 QueryType.ESSID_ONLY -> {
-                    if (essidList.isEmpty()) {
+                    if (_essidList.isEmpty()) {
                         essidInputLayout.error = essidInputLayout.context.getString(R.string.at_least_one_essid)
                     } else {
                         essidInputLayout.error = null
                     }
                 }
                 QueryType.EXACT_MATCH -> {
-                    if (exactPairs.isEmpty()) {
+                    if (_exactPairs.isEmpty()) {
                         bssidInputLayout.error = bssidInputLayout.context.getString(R.string.at_least_one_pair)
                         essidInputLayout.error = bssidInputLayout.context.getString(R.string.at_least_one_pair)
                     } else {
@@ -259,11 +273,11 @@ sealed class API3WiFiMethodParams {
         }
 
         override fun clear() {
-            bssidList.clear()
-            essidList.clear()
-            exactPairs.clear()
+            _bssidList.clear()
+            _essidList.clear()
+            _exactPairs.clear()
             clearInputs()
-            (pairsList.adapter as PairsAdapter).notifyDataSetChanged()
+            (pairsList.adapter as? PairsAdapter)?.notifyDataSetChanged()
         }
 
         private inner class PairsAdapter : RecyclerView.Adapter<PairsAdapter.ViewHolder>() {
@@ -280,42 +294,45 @@ sealed class API3WiFiMethodParams {
             }
 
             override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-                when (currentQueryType) {
+                when (_currentQueryType) {
                     QueryType.BSSID_ONLY -> {
-                        holder.bssidText.text = bssidList[position]
+                        holder.bssidText.text = _bssidList[position]
                         holder.essidText.visibility = View.GONE
                         holder.removeButton.setOnClickListener {
-                            bssidList.removeAt(position)
+                            _bssidList.removeAt(holder.adapterPosition)
                             notifyDataSetChanged()
                             validate()
+                            onDataChangedListener?.invoke()
                         }
                     }
                     QueryType.ESSID_ONLY -> {
                         holder.bssidText.visibility = View.GONE
-                        holder.essidText.text = essidList[position]
+                        holder.essidText.text = _essidList[position]
                         holder.removeButton.setOnClickListener {
-                            essidList.removeAt(position)
+                            _essidList.removeAt(holder.adapterPosition)
                             notifyDataSetChanged()
                             validate()
+                            onDataChangedListener?.invoke()
                         }
                     }
                     QueryType.EXACT_MATCH -> {
-                        val pair = exactPairs[position]
+                        val pair = _exactPairs[position]
                         holder.bssidText.text = pair.first
                         holder.essidText.text = pair.second
                         holder.removeButton.setOnClickListener {
-                            exactPairs.removeAt(position)
+                            _exactPairs.removeAt(holder.adapterPosition)
                             notifyDataSetChanged()
                             validate()
+                            onDataChangedListener?.invoke()
                         }
                     }
                 }
             }
 
-            override fun getItemCount(): Int = when (currentQueryType) {
-                QueryType.BSSID_ONLY -> bssidList.size
-                QueryType.ESSID_ONLY -> essidList.size
-                QueryType.EXACT_MATCH -> exactPairs.size
+            override fun getItemCount(): Int = when (_currentQueryType) {
+                QueryType.BSSID_ONLY -> _bssidList.size
+                QueryType.ESSID_ONLY -> _essidList.size
+                QueryType.EXACT_MATCH -> _exactPairs.size
             }
         }
     }
@@ -357,7 +374,7 @@ sealed class API3WiFiMethodParams {
 
         private fun addBssid() {
             val bssid = bssidInput.text.toString().uppercase()
-            if (bssid.matches(Regex("^([0-9A-F]{2}:){5}[0-9A-F]{2}$"))) {
+            if (bssid.isNotEmpty()) {
                 if (!bssidList.contains(bssid)) {
                     bssidList.add(bssid)
                     val chip = Chip(bssidChipGroup.context).apply {
@@ -372,8 +389,6 @@ sealed class API3WiFiMethodParams {
                 }
                 bssidInput.text?.clear()
                 bssidInputLayout.error = null
-            } else {
-                bssidInputLayout.error = bssidInputLayout.context.getString(R.string.invalid_bssid_format)
             }
         }
 
@@ -387,8 +402,7 @@ sealed class API3WiFiMethodParams {
         }
 
         override fun isValid(): Boolean {
-            return bssidList.isNotEmpty() &&
-                    bssidList.all { it.matches(Regex("^([0-9A-F]{2}:){5}[0-9A-F]{2}$")) }
+            return bssidList.isNotEmpty()
         }
 
         override fun validate() {
@@ -561,10 +575,7 @@ sealed class API3WiFiMethodParams {
             val lon = longitudeInput.text.toString().toFloatOrNull()
             val rad = radiusInput.text.toString().toFloatOrNull()
 
-            return lat != null && lon != null && rad != null &&
-                    lat in -90f..90f &&
-                    lon in -180f..180f &&
-                    rad in 0.001f..25f
+            return lat != null && lon != null && rad != null
         }
 
         override fun validate() {
@@ -572,23 +583,9 @@ sealed class API3WiFiMethodParams {
             val lon = longitudeInput.text.toString().toFloatOrNull()
             val rad = radiusInput.text.toString().toFloatOrNull()
 
-            latitudeInputLayout.error = when (lat) {
-                null -> "Invalid number format"
-                !in -90f..90f -> latitudeInputLayout.context.getString(R.string.invalid_latitude)
-                else -> null
-            }
-
-            longitudeInputLayout.error = when (lon) {
-                null -> "Invalid number format"
-                !in -180f..180f -> longitudeInputLayout.context.getString(R.string.invalid_longitude)
-                else -> null
-            }
-
-            radiusInputLayout.error = when (rad) {
-                null -> "Invalid number format"
-                !in 0.001f..25f -> radiusInputLayout.context.getString(R.string.invalid_radius)
-                else -> null
-            }
+            latitudeInputLayout.error = if (lat == null) "Invalid number format" else null
+            longitudeInputLayout.error = if (lon == null) "Invalid number format" else null
+            radiusInputLayout.error = if (rad == null) "Invalid number format" else null
         }
 
         override fun clear() {

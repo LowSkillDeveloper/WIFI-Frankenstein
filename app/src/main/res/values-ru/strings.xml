@@ -687,5 +687,18 @@
     <string name="error_extracting_archive">Ошибка извлечения архива: %1$s</string>
     <string name="error_merging_parts">Ошибка объединения частей: %1$s</string>
 
+    <string name="advanced_mode">Продвинутый режим</string>
+    <string name="simple_mode_hint">Простой поиск в базе данных</string>
+    <string name="search_networks">Поиск сетей</string>
+    <string name="enter_mac_address">MAC-адрес (например: 01:23:45:67:89:AB)</string>
+    <string name="enter_network_name">Имя сети (ESSID)</string>
+    <string name="no_results">Результаты не найдены</string>
+    <string name="error_empty_input">Введите MAC-адрес или имя сети</string>
+    <string name="invalid_input">Неверный формат ввода</string>
+    <string name="bssid_required">Требуется BSSID</string>
+    <string name="search_by_essid">Поиск по имени</string>
+    <string name="get_request_single_only">GET запрос доступен только для одиночного поиска</string>
+    <string name="selected_request_type">Выбран тип запроса: %s</string>
+    <string name="request_type">Тип запроса</string>
 
 </resources>

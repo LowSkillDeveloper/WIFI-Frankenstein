@@ -8,7 +8,11 @@ import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.chip.Chip
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentApi3wifiBinding
 
@@ -20,6 +24,8 @@ class API3WiFiFragment : Fragment() {
 
     private var currentMethodParams: API3WiFiMethodParams? = null
     private val apiMethods = listOf("apiquery", "apiwps", "apidev", "apiranges")
+    private var isAdvancedMode = false
+    private var isSearchByMac = true
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,13 +41,124 @@ class API3WiFiFragment : Fragment() {
         setupUI()
         observeViewModel()
         viewModel.loadApiServers()
+
+        showSimpleMode()
     }
 
     private fun setupUI() {
+        setupModeSwitch()
         setupServerSpinner()
         setupMethodSpinner()
         setupRequestTypeChips()
         setupExecuteButton()
+    }
+
+    private fun setupModeSwitch() {
+        binding.advancedModeSwitch.setOnCheckedChangeListener { _, isChecked ->
+            isAdvancedMode = isChecked
+            if (isChecked) {
+                showAdvancedMode()
+            } else {
+                showSimpleMode()
+            }
+        }
+    }
+
+    private fun showSimpleMode() {
+        binding.simpleModeContainer.visibility = View.VISIBLE
+        binding.advancedModeContainer.visibility = View.GONE
+
+        binding.simpleModeContainer.removeAllViews()
+        val simpleView = LayoutInflater.from(requireContext()).inflate(
+            R.layout.layout_simple_mode,
+            binding.simpleModeContainer,
+            false
+        )
+
+        val serverSpinnerLayout = simpleView.findViewById<TextInputLayout>(R.id.simpleServerSpinnerLayout)
+        val serverSpinner = simpleView.findViewById<AutoCompleteTextView>(R.id.simpleServerSpinner)
+        val searchTypeToggle = simpleView.findViewById<MaterialButtonToggleGroup>(R.id.simpleSearchTypeToggle)
+        val inputLayout = simpleView.findViewById<TextInputLayout>(R.id.simpleInputLayout)
+        val input = simpleView.findViewById<TextInputEditText>(R.id.simpleInput)
+        val searchButton = simpleView.findViewById<com.google.android.material.button.MaterialButton>(R.id.simpleSearchButton)
+
+        val servers = viewModel.apiServers.value?.map { it.path } ?: emptyList()
+        val adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            servers
+        )
+        serverSpinner.setAdapter(adapter)
+        if (servers.isNotEmpty()) {
+            serverSpinner.setText(servers[0], false)
+        }
+
+        searchTypeToggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                isSearchByMac = checkedId == R.id.buttonSearchMac
+                if (isSearchByMac) {
+                    inputLayout.hint = getString(R.string.enter_mac_address)
+                } else {
+                    inputLayout.hint = getString(R.string.enter_network_name)
+                }
+                input.text?.clear()
+                inputLayout.error = null
+            }
+        }
+
+        searchButton.setOnClickListener {
+            val selectedServer = serverSpinner.text.toString()
+            val inputText = input.text.toString().trim()
+
+            if (selectedServer.isEmpty()) {
+                serverSpinnerLayout.error = getString(R.string.select_server_error)
+                return@setOnClickListener
+            }
+
+            if (inputText.isEmpty()) {
+                inputLayout.error = getString(R.string.error_empty_input)
+                return@setOnClickListener
+            }
+
+            serverSpinnerLayout.error = null
+            inputLayout.error = null
+            executeSimpleSearch(selectedServer, inputText)
+        }
+
+        binding.simpleModeContainer.addView(simpleView)
+    }
+
+    private fun showAdvancedMode() {
+        binding.simpleModeContainer.visibility = View.GONE
+        binding.advancedModeContainer.visibility = View.VISIBLE
+    }
+
+    private fun executeSimpleSearch(serverPath: String, input: String) {
+        val server = viewModel.apiServers.value?.find { it.path == serverPath }
+        if (server == null) {
+            showError(getString(R.string.invalid_server))
+            return
+        }
+
+        val request = if (isSearchByMac) {
+            API3WiFiRequest.ApiQuery(
+                key = server.apiKey ?: "",
+                bssidList = listOf(input.uppercase()),
+                essidList = null,
+                exactPairs = null,
+                sens = false
+            )
+        } else {
+            API3WiFiRequest.ApiQuery(
+                key = server.apiKey ?: "",
+                bssidList = null,
+                essidList = listOf(input),
+                exactPairs = null,
+                sens = false
+            )
+        }
+
+        viewModel.executeRequest(server.path, request, API3WiFiViewModel.RequestType.POST_JSON)
     }
 
     private fun setupServerSpinner() {
@@ -68,9 +185,46 @@ class API3WiFiFragment : Fragment() {
     }
 
     private fun setupRequestTypeChips() {
-        binding.chipGet.isChecked = true
-        binding.requestTypeChipGroup.setOnCheckedStateChangeListener { _, _ ->
+        binding.chipPostJson.isChecked = true
+        binding.requestTypeChipGroup.setOnCheckedStateChangeListener { group, checkedIds ->
             validateForm()
+            updateRequestTypeInfo()
+
+            val methodText = (binding.methodSpinnerLayout.editText as? AutoCompleteTextView)?.text.toString()
+            if (methodText == "apiquery" && currentMethodParams is API3WiFiMethodParams.ApiQuery) {
+                checkGetRequestAvailability()
+            }
+        }
+    }
+
+    private fun updateRequestTypeInfo() {
+        val checkedChip = binding.requestTypeChipGroup.findViewById<Chip>(
+            binding.requestTypeChipGroup.checkedChipId
+        )
+        if (checkedChip != null) {
+            binding.requestTypeInfo.visibility = View.VISIBLE
+            binding.requestTypeInfo.text = getString(R.string.selected_request_type, checkedChip.text)
+        }
+    }
+
+    private fun checkGetRequestAvailability() {
+        val params = currentMethodParams as? API3WiFiMethodParams.ApiQuery ?: return
+
+        val bssidCount = when (params.currentQueryType) {
+            API3WiFiMethodParams.ApiQuery.QueryType.BSSID_ONLY -> params.bssidList.size
+            API3WiFiMethodParams.ApiQuery.QueryType.ESSID_ONLY -> params.essidList.size
+            API3WiFiMethodParams.ApiQuery.QueryType.EXACT_MATCH -> params.exactPairs.size
+        }
+
+        val getChip = binding.chipGet
+        if (bssidCount > 1) {
+            getChip.isEnabled = false
+            if (getChip.isChecked) {
+                binding.chipPostJson.isChecked = true
+            }
+            showError(getString(R.string.get_request_single_only))
+        } else {
+            getChip.isEnabled = true
         }
     }
 
@@ -89,6 +243,12 @@ class API3WiFiFragment : Fragment() {
             binding.methodParamsContainer.addView(
                 params.createView(requireContext(), binding.methodParamsContainer)
             )
+
+            if (params is API3WiFiMethodParams.ApiQuery) {
+                params.setOnDataChangedListener {
+                    checkGetRequestAvailability()
+                }
+            }
         }
         validateForm()
     }
@@ -98,9 +258,12 @@ class API3WiFiFragment : Fragment() {
         currentMethodParams?.clear()
         currentMethodParams = null
         binding.responseText.text = null
+        binding.requestTypeInfo.visibility = View.GONE
     }
 
     private fun validateForm(): Boolean {
+        if (!isAdvancedMode) return true
+
         val serverText = (binding.serverSpinnerLayout.editText as? AutoCompleteTextView)?.text.toString()
         val methodText = (binding.methodSpinnerLayout.editText as? AutoCompleteTextView)?.text.toString()
 
@@ -120,8 +283,13 @@ class API3WiFiFragment : Fragment() {
             binding.methodSpinnerLayout.error = null
         }
 
-        currentMethodParams?.validate()
-        isValid = isValid && (currentMethodParams?.isValid() == true)
+        currentMethodParams?.let {
+            if (methodText == "apiquery" || methodText == "apiwps" || methodText == "apidev") {
+                isValid = isValid && true
+            } else if (methodText == "apiranges") {
+                isValid = isValid && it.isValid()
+            }
+        }
 
         binding.executeButton.isEnabled = isValid
         return isValid
@@ -140,7 +308,7 @@ class API3WiFiFragment : Fragment() {
             R.id.chipGet -> API3WiFiViewModel.RequestType.GET
             R.id.chipPostForm -> API3WiFiViewModel.RequestType.POST_FORM
             R.id.chipPostJson -> API3WiFiViewModel.RequestType.POST_JSON
-            else -> API3WiFiViewModel.RequestType.GET
+            else -> API3WiFiViewModel.RequestType.POST_JSON
         }
 
         val request = currentMethodParams?.getRequest(selectedServer.apiKey ?: "")
@@ -158,6 +326,18 @@ class API3WiFiFragment : Fragment() {
     private fun observeViewModel() {
         viewModel.apiServers.observe(viewLifecycleOwner) { servers ->
             setupServersAdapter(servers.map { it.path })
+
+            binding.simpleModeContainer.findViewById<AutoCompleteTextView>(R.id.simpleServerSpinner)?.let { spinner ->
+                val adapter = ArrayAdapter(
+                    requireContext(),
+                    android.R.layout.simple_dropdown_item_1line,
+                    servers.map { it.path }
+                )
+                spinner.setAdapter(adapter)
+                if (servers.isNotEmpty() && spinner.text.isEmpty()) {
+                    spinner.setText(servers[0].path, false)
+                }
+            }
         }
 
         viewModel.requestResult.observe(viewLifecycleOwner) { result ->
@@ -166,7 +346,11 @@ class API3WiFiFragment : Fragment() {
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressIndicator.visibility = if (isLoading) View.VISIBLE else View.GONE
-            binding.executeButton.isEnabled = !isLoading
+            binding.executeButton.isEnabled = !isLoading && validateForm()
+
+            binding.simpleModeContainer.findViewById<com.google.android.material.button.MaterialButton>(
+                R.id.simpleSearchButton
+            )?.isEnabled = !isLoading
         }
     }
 
@@ -177,6 +361,10 @@ class API3WiFiFragment : Fragment() {
             servers
         )
         (binding.serverSpinnerLayout.editText as? AutoCompleteTextView)?.setAdapter(adapter)
+
+        if (servers.isNotEmpty() && isAdvancedMode) {
+            (binding.serverSpinnerLayout.editText as? AutoCompleteTextView)?.setText(servers[0], false)
+        }
     }
 
     override fun onDestroyView() {

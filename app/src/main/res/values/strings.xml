@@ -685,6 +685,18 @@
     <string name="error_extracting_archive">Error extracting archive: %1$s</string>
     <string name="error_merging_parts">Error merging parts: %1$s</string>
 
-
+    <string name="advanced_mode">Advanced Mode</string>
+    <string name="simple_mode_hint">Simple database search</string>
+    <string name="search_networks">Search Networks</string>
+    <string name="enter_mac_address">MAC address (e.g., 01:23:45:67:89:AB)</string>
+    <string name="enter_network_name">Network name (ESSID)</string>
+    <string name="no_results">No results found</string>
+    <string name="error_empty_input">Please enter a MAC address or network name</string>
+    <string name="invalid_input">Invalid input format</string>
+    <string name="bssid_required">BSSID is required</string>
+    <string name="search_by_essid">Search by name</string>
+    <string name="get_request_single_only">GET request is only available for single search</string>
+    <string name="selected_request_type">Selected request type: %s</string>
+    <string name="request_type">Request Type</string>
 
 </resources>

@@ -686,4 +686,20 @@
     <string name="error_extracting_archive">Помилка розпакування архіву: %1$s</string>
     <string name="error_merging_parts">Помилка об’єднання частин: %1$s</string>
 
+    <string name="advanced_mode">Розширений режим</string>
+    <string name="simple_mode_hint">Простий пошук у базі даних</string>
+    <string name="search_networks">Пошук мереж</string>
+    <string name="enter_mac_address">MAC-адреса (наприклад: 01:23:45:67:89:AB)</string>
+    <string name="enter_network_name">Назва мережі (ESSID)</string>
+    <string name="no_results">Результатів не знайдено</string>
+    <string name="error_empty_input">Введіть MAC-адресу або назву мережі</string>
+    <string name="invalid_input">Неправильний формат введення</string>
+    <string name="bssid_required">Потрібен BSSID</string>
+    <string name="search_by_essid">Пошук за назвою</string>
+    <string name="get_request_single_only">GET-запит доступний лише для одиночного пошуку</string>
+    <string name="selected_request_type">Вибрано тип запиту: %s</string>
+    <string name="request_type">Тип запиту</string>
+
+
+
 </resources>
