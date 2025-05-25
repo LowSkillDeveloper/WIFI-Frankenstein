@@ -9,10 +9,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.models.AppleWLoc
 import com.lsd.wififrankenstein.models.WifiDevice
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -50,16 +47,20 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
     )
 
     private val _searchResults = MutableLiveData<List<LocationResult>>()
+    private val _newResult = MutableLiveData<LocationResult>()
     private val _isLoading = MutableLiveData<Boolean>()
     private val _error = MutableLiveData<String>()
     private val _savedApiKeys = MutableLiveData<ApiKeys>()
     private val _logMessages = MutableLiveData<String>()
 
     val searchResults: LiveData<List<LocationResult>> = _searchResults
+    val newResult: LiveData<LocationResult> = _newResult
     val isLoading: LiveData<Boolean> = _isLoading
     val error: LiveData<String> = _error
     val savedApiKeys: LiveData<ApiKeys> = _savedApiKeys
     val logMessages: LiveData<String> = _logMessages
+
+    private val currentResults = mutableListOf<LocationResult>()
 
     init {
         loadSavedApiKeys()
@@ -92,9 +93,20 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun search(searchType: SearchType) {
+        currentResults.clear()
+        _searchResults.value = emptyList()
+
         when (searchType.type) {
             "MAC" -> searchByMac(searchType.query)
             "SSID" -> searchBySSID(searchType.query)
+        }
+    }
+
+    private fun addResult(result: LocationResult) {
+        if (result.latitude != null && result.longitude != null) {
+            currentResults.add(result)
+            _searchResults.postValue(currentResults.toList())
+            _newResult.postValue(result)
         }
     }
 
@@ -106,100 +118,135 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
         }
 
         viewModelScope.launch {
-            withTimeout(30000) {
-                _isLoading.value = true
-                try {
-                    val results = mutableListOf<LocationResult>()
-                    val requests = mutableListOf<Deferred<LocationResult?>>()
+            _isLoading.value = true
+            var completedTasks = 0
+            val totalTasks = 6
 
-                    log("DEBUG: Adding MAC-only services")
-                    requests.add(async { searchApple(mac) })
-                    requests.add(async { searchMylnikov(mac) })
-
-                    if (_savedApiKeys.value?.googleApi?.isNotBlank() == true) {
-                        log("DEBUG: Including Google search")
-                        requests.add(async { searchGoogle(mac) })
-                    }
-
-                    if (_savedApiKeys.value?.combainApi?.isNotBlank() == true) {
-                        log("DEBUG: Including Combain search")
-                        requests.add(async { searchCombain(mac) })
-                    }
-
-                    if (_savedApiKeys.value?.wigleApi?.isNotBlank() == true) {
-                        log("DEBUG: Including Wigle search")
-                        requests.add(async { searchWigle(mac, true) })
-                    }
-                    requests.add(async { searchWifiDB(mac, true) })
-
-                    results.addAll(requests.awaitAll().filterNotNull())
-
-                    log("Search completed. Total results: ${results.size}")
-                    _searchResults.value = results
-
-                    if (results.isEmpty()) {
+            fun checkCompletion() {
+                completedTasks++
+                if (completedTasks >= totalTasks) {
+                    _isLoading.value = false
+                    log("Search completed. Total results: ${currentResults.size}")
+                    if (currentResults.isEmpty()) {
                         log("❌ No results found")
                         _error.value = "No results found"
-                    } else if (results.all { it.module == "vendor_check" }) {
-                        log("⚠️ Only vendor information found. No location data available")
-                        _error.value = "No location data found. Please check API keys"
                     }
-                } catch (e: Exception) {
-                    log("❌ Search error: ${e.message}")
-                    Log.e(TAG, "Search error", e)
-                    _error.value = e.message
-                } finally {
-                    _isLoading.value = false
                 }
+            }
+
+            try {
+                log("Starting search for MAC: $mac")
+
+                launch {
+                    searchApple(mac)
+                    checkCompletion()
+                }
+                launch {
+                    searchMylnikov(mac)
+                    checkCompletion()
+                }
+
+                if (_savedApiKeys.value?.googleApi?.isNotBlank() == true) {
+                    launch {
+                        searchGoogle(mac)
+                        checkCompletion()
+                    }
+                } else {
+                    checkCompletion()
+                }
+
+                if (_savedApiKeys.value?.combainApi?.isNotBlank() == true) {
+                    launch {
+                        searchCombain(mac)
+                        checkCompletion()
+                    }
+                } else {
+                    checkCompletion()
+                }
+
+                if (_savedApiKeys.value?.wigleApi?.isNotBlank() == true) {
+                    launch {
+                        searchWigle(mac, true)
+                        checkCompletion()
+                    }
+                } else {
+                    checkCompletion()
+                }
+
+                launch {
+                    searchWifiDB(mac, true)
+                    checkCompletion()
+                }
+
+            } catch (e: Exception) {
+                log("❌ Search error: ${e.message}")
+                Log.e(TAG, "Search error", e)
+                _error.value = e.message
+                _isLoading.value = false
             }
         }
     }
 
     private fun searchBySSID(ssid: String) {
         viewModelScope.launch {
-            withTimeout(30000) {
-                _isLoading.value = true
-                try {
-                    val results = mutableListOf<LocationResult>()
-                    val requests = mutableListOf<Deferred<LocationResult?>>()
+            _isLoading.value = true
+            var completedTasks = 0
+            val totalTasks = 4
 
-                    log("DEBUG: Adding SSID-only services")
-                    requests.add(async { searchFreifunkCarte(ssid) })
-                    requests.add(async { searchOpenWifiMap(ssid) })
-
-                    if (_savedApiKeys.value?.wigleApi?.isNotBlank() == true) {
-                        log("DEBUG: Including Wigle search")
-                        requests.add(async { searchWigle(ssid, false) })
-                    }
-                    requests.add(async { searchWifiDB(ssid, false) })
-
-                    results.addAll(requests.awaitAll().filterNotNull())
-
-                    log("Search completed. Total results: ${results.size}")
-                    _searchResults.value = results
-
-                    if (results.isEmpty()) {
+            fun checkCompletion() {
+                completedTasks++
+                if (completedTasks >= totalTasks) {
+                    _isLoading.value = false
+                    log("Search completed. Total results: ${currentResults.size}")
+                    if (currentResults.isEmpty()) {
                         log("❌ No results found")
                         _error.value = "No results found"
                     }
-                } catch (e: Exception) {
-                    log("❌ Search error: ${e.message}")
-                    Log.e(TAG, "Search error", e)
-                    _error.value = e.message
-                } finally {
-                    _isLoading.value = false
                 }
+            }
+
+            try {
+                log("Starting search for SSID: $ssid")
+
+                launch {
+                    searchFreifunkCarte(ssid)
+                    checkCompletion()
+                }
+                launch {
+                    searchOpenWifiMap(ssid)
+                    checkCompletion()
+                }
+
+                if (_savedApiKeys.value?.wigleApi?.isNotBlank() == true) {
+                    launch {
+                        searchWigle(ssid, false)
+                        checkCompletion()
+                    }
+                } else {
+                    checkCompletion()
+                }
+
+                launch {
+                    searchWifiDB(ssid, false)
+                    checkCompletion()
+                }
+
+            } catch (e: Exception) {
+                log("❌ Search error: ${e.message}")
+                Log.e(TAG, "Search error", e)
+                _error.value = e.message
+                _isLoading.value = false
             }
         }
     }
 
-    private suspend fun searchWigle(query: String, isMac: Boolean): LocationResult? =
+    private suspend fun searchWigle(query: String, isMac: Boolean) =
         withContext(Dispatchers.IO) {
             try {
                 val searchType = if (isMac) "MAC" else "SSID"
                 log("Starting Wigle search by $searchType: $query")
 
-                val apiKey = _savedApiKeys.value?.wigleApi ?: return@withContext null
+                val apiKey = _savedApiKeys.value?.wigleApi ?: return@withContext
                 val params = if (isMac) "netid=$query" else "ssid=$query"
 
                 val url = URL("https://api.wigle.net/api/v2/network/search?$params")
@@ -228,23 +275,20 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                             longitude = result.getDouble("trilong")
                         )
                         log("✅ Wigle search successful. Found location: ${locationResult.latitude}, ${locationResult.longitude}")
-                        return@withContext locationResult
+                        addResult(locationResult)
                     } else {
                         log("ℹ️ Wigle search completed but no results found")
-                        null
                     }
                 } else {
                     log("⚠️ Wigle search failed: ${jsonResponse.optString("message", "Unknown error")}")
-                    null
                 }
             } catch (e: Exception) {
                 log("❌ Wigle search error: ${e.message}")
                 Log.e(TAG, "Wigle search error", e)
-                LocationResult(module = "wigle", error = e.message)
             }
         }
 
-    private suspend fun searchMylnikov(macAddress: String): LocationResult? =
+    private suspend fun searchMylnikov(macAddress: String) =
         withContext(Dispatchers.IO) {
             try {
                 log("Starting Mylnikov search for MAC: $macAddress")
@@ -260,7 +304,6 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
 
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
 
-
                 val jsonResponse = JSONObject(response)
 
                 if (jsonResponse.getInt("result") == 200) {
@@ -272,19 +315,17 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                         longitude = data.getDouble("lon")
                     )
                     log("✅ Mylnikov search successful. Found location: ${locationResult.latitude}, ${locationResult.longitude}")
-                    return@withContext locationResult
+                    addResult(locationResult)
                 } else {
                     log("ℹ️ Mylnikov search completed but no results found: ${jsonResponse.optString("desc")}")
-                    null
                 }
             } catch (e: Exception) {
                 log("❌ Mylnikov search error: ${e.message}")
                 Log.e(TAG, "Mylnikov search error", e)
-                LocationResult(module = "mylnikov", error = e.message)
             }
         }
 
-    private suspend fun searchApple(macAddress: String): LocationResult? =
+    private suspend fun searchApple(macAddress: String) =
         withContext(Dispatchers.IO) {
             try {
                 log("Starting Apple search for MAC: $macAddress")
@@ -331,7 +372,6 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
 
                 try {
                     val appleResponse = ProtoBuf.decodeFromByteArray(AppleWLoc.serializer(), response)
-                    log("DEBUG: Successfully decoded protobuf response")
 
                     for (device in appleResponse.wifi_devices) {
                         device.location?.let { location ->
@@ -342,12 +382,13 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                                         val longitude = lon.toDouble() * 1e-8
 
                                         log("✅ Apple search successful. Found location: $latitude, $longitude")
-                                        return@withContext LocationResult(
+                                        addResult(LocationResult(
                                             module = "apple",
                                             bssid = macAddress,
                                             latitude = latitude,
                                             longitude = longitude
-                                        )
+                                        ))
+                                        return@withContext
                                     }
                                 }
                             }
@@ -358,21 +399,19 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                     throw e
                 }
                 log("ℹ️ Apple search completed but no valid results found")
-                null
 
             } catch (e: Exception) {
                 log("❌ Apple search error: ${e.message}")
                 Log.e(TAG, "Apple search error", e)
-                LocationResult(module = "apple", error = e.message)
             }
         }
 
-    private suspend fun searchGoogle(macAddress: String): LocationResult? =
+    private suspend fun searchGoogle(macAddress: String) =
         withContext(Dispatchers.IO) {
             try {
                 log("Starting Google search for MAC: $macAddress")
 
-                val apiKey = _savedApiKeys.value?.googleApi ?: return@withContext null
+                val apiKey = _savedApiKeys.value?.googleApi ?: return@withContext
                 val url = URL("https://www.googleapis.com/geolocation/v1/geolocate?key=$apiKey")
 
                 val requestBody = """
@@ -409,22 +448,20 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                     longitude = location.getDouble("lng")
                 )
                 log("✅ Google search successful. Found location: ${locationResult.latitude}, ${locationResult.longitude}")
-                locationResult
+                addResult(locationResult)
             } catch (e: Exception) {
                 log("❌ Google search error: ${e.message}")
                 Log.e(TAG, "Google search error", e)
-                LocationResult(module = "google", error = e.message)
             }
         }
 
-    private suspend fun searchCombain(macAddress: String): LocationResult? =
+    private suspend fun searchCombain(macAddress: String) =
         withContext(Dispatchers.IO) {
             try {
                 log("Starting Combain search for MAC: $macAddress")
 
-                val apiKey = _savedApiKeys.value?.combainApi ?: return@withContext null
+                val apiKey = _savedApiKeys.value?.combainApi ?: return@withContext
                 val url = URL("https://apiv2.combain.com?key=$apiKey")
-
 
                 val requestBody = """
                     {
@@ -450,7 +487,6 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
 
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
 
-
                 val jsonResponse = JSONObject(response)
                 val location = jsonResponse.getJSONObject("location")
 
@@ -462,15 +498,14 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                     vendor = jsonResponse.optJSONObject("indoor")?.optString("building")
                 )
                 log("✅ Combain search successful. Found location: ${locationResult.latitude}, ${locationResult.longitude}")
-                locationResult
+                addResult(locationResult)
             } catch (e: Exception) {
                 log("❌ Combain search error: ${e.message}")
                 Log.e(TAG, "Combain search error", e)
-                LocationResult(module = "combain", error = e.message)
             }
         }
 
-    private suspend fun searchWifiDB(query: String, isMac: Boolean): LocationResult? =
+    private suspend fun searchWifiDB(query: String, isMac: Boolean) =
         withContext(Dispatchers.IO) {
             try {
                 val searchType = if (isMac) "MAC" else "SSID"
@@ -484,14 +519,12 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
 
                 val url = URL("https://wifidb.net/wifidb/api/geojson.php?$params")
 
-
                 val connection = (url.openConnection() as HttpsURLConnection).apply {
                     connectTimeout = 30000
                     readTimeout = 30000
                 }
 
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-
 
                 val jsonResponse = JSONObject(response)
                 val features = jsonResponse.getJSONArray("features")
@@ -508,25 +541,22 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                         longitude = properties.getDouble("lon")
                     )
                     log("✅ WifiDB search successful. Found location: ${locationResult.latitude}, ${locationResult.longitude}")
-                    return@withContext locationResult
+                    addResult(locationResult)
+                } else {
+                    log("ℹ️ WifiDB search completed but no results found")
                 }
-
-                log("ℹ️ WifiDB search completed but no results found")
-                null
             } catch (e: Exception) {
                 log("❌ WifiDB search error: ${e.message}")
                 Log.e(TAG, "WifiDB search error", e)
-                LocationResult(module = "wifidb", error = e.message)
             }
         }
 
-    private suspend fun searchOpenWifiMap(ssid: String): LocationResult? =
+    private suspend fun searchOpenWifiMap(ssid: String) =
         withContext(Dispatchers.IO) {
             try {
                 log("Starting OpenWifiMap search for SSID: $ssid")
 
                 val url = URL("https://api.openwifimap.net/view_nodes")
-
 
                 val connection = (url.openConnection() as HttpsURLConnection).apply {
                     connectTimeout = 10000
@@ -544,7 +574,6 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
 
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
 
-
                 val jsonResponse = JSONObject(response)
                 val rows = jsonResponse.optJSONArray("rows")
 
@@ -560,25 +589,22 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                         vendor = value.optString("hostname")
                     )
                     log("✅ OpenWifiMap search successful. Found location: ${locationResult.latitude}, ${locationResult.longitude}")
-                    return@withContext locationResult
+                    addResult(locationResult)
+                } else {
+                    log("ℹ️ OpenWifiMap search completed but no results found")
                 }
-
-                log("ℹ️ OpenWifiMap search completed but no results found")
-                null
             } catch (e: Exception) {
                 log("❌ OpenWifiMap search error: ${e.message}")
                 Log.e(TAG, "OpenWifiMap search error", e)
-                LocationResult(module = "openwifimap", error = e.message)
             }
         }
 
-    private suspend fun searchFreifunkCarte(ssid: String): LocationResult? =
+    private suspend fun searchFreifunkCarte(ssid: String) =
         withContext(Dispatchers.IO) {
             try {
                 log("Starting Freifunk-Karte search for SSID: $ssid")
 
                 val url = URL("https://www.freifunk-karte.de/data.php")
-
 
                 val connection = (url.openConnection() as HttpsURLConnection).apply {
                     connectTimeout = 10000
@@ -587,7 +613,6 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                 }
 
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                log("DEBUG: Freifunk-Karte response received")
 
                 val jsonResponse = JSONObject(response)
                 val routers = jsonResponse.getJSONArray("allTheRouters")
@@ -603,16 +628,15 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                             vendor = router.optString("community")
                         )
                         log("✅ Freifunk-Karte search successful. Found location: ${locationResult.latitude}, ${locationResult.longitude}")
-                        return@withContext locationResult
+                        addResult(locationResult)
+                        return@withContext
                     }
                 }
 
                 log("ℹ️ Freifunk-Karte search completed but no results found")
-                null
             } catch (e: Exception) {
                 log("❌ Freifunk-Karte search error: ${e.message}")
                 Log.e(TAG, "Freifunk-Karte search error", e)
-                LocationResult(module = "freifunk-karte", error = e.message)
             }
         }
 

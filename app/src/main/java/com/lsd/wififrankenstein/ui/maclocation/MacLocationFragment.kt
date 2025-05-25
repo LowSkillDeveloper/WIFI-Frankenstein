@@ -1,6 +1,8 @@
 package com.lsd.wififrankenstein.ui.maclocation
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.text.InputFilter
@@ -9,9 +11,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.snackbar.Snackbar
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentMacLocationBinding
@@ -21,6 +26,7 @@ import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import androidx.core.net.toUri
 
 class MacLocationFragment : Fragment() {
 
@@ -82,7 +88,7 @@ class MacLocationFragment : Fragment() {
         }
 
         map.controller.apply {
-            setZoom(3.0)
+            setZoom(2.0)
             setCenter(GeoPoint(0.0, 0.0))
         }
 
@@ -92,6 +98,10 @@ class MacLocationFragment : Fragment() {
     private fun setupObservers() {
         viewModel.searchResults.observe(viewLifecycleOwner) { results ->
             updateMap(results)
+        }
+
+        viewModel.newResult.observe(viewLifecycleOwner) { result ->
+            addResultCard(result)
         }
 
         viewModel.logMessages.observe(viewLifecycleOwner) { logMessages ->
@@ -107,8 +117,70 @@ class MacLocationFragment : Fragment() {
         }
     }
 
-    private fun setupListeners() {
+    private fun addResultCard(result: MacLocationViewModel.LocationResult) {
+        if (result.latitude == null || result.longitude == null) return
 
+        val cardView = LayoutInflater.from(requireContext()).inflate(
+            R.layout.item_location_result_card,
+            binding.resultsContainer,
+            false
+        ) as MaterialCardView
+
+        val moduleText = cardView.findViewById<TextView>(R.id.moduleText)
+        val macAddressText = cardView.findViewById<TextView>(R.id.macAddressText)
+        val ssidText = cardView.findViewById<TextView>(R.id.ssidText)
+        val coordinatesText = cardView.findViewById<TextView>(R.id.coordinatesText)
+        val coordinatesWarningText = cardView.findViewById<TextView>(R.id.coordinatesWarningText)
+        val openMapsButton = cardView.findViewById<MaterialButton>(R.id.openMapsButton)
+
+        moduleText.text = getString(R.string.source_format, result.module.uppercase())
+
+        if (result.bssid != null) {
+            macAddressText.text = result.bssid
+            macAddressText.visibility = View.VISIBLE
+        } else {
+            macAddressText.visibility = View.GONE
+        }
+
+        if (result.ssid != null && result.ssid.isNotEmpty()) {
+            ssidText.text = result.ssid
+            ssidText.visibility = View.VISIBLE
+        } else {
+            ssidText.visibility = View.GONE
+        }
+
+        coordinatesText.text = getString(R.string.coordinates) + ": ${String.format("%.6f, %.6f", result.latitude, result.longitude)}"
+
+        val latStr = String.format("%.1f", result.latitude)
+        val lonStr = String.format("%.1f", result.longitude)
+        if ((latStr == "-180.0" && lonStr == "0.0") ||
+            (latStr == "-180.0" && lonStr == "-180.0") ||
+            (result.latitude == -180.0 && result.longitude == 0.0) ||
+            (result.latitude == -180.0 && result.longitude == -180.0)) {
+            coordinatesWarningText.text = getString(R.string.coordinates_may_be_incorrect)
+            coordinatesWarningText.visibility = View.VISIBLE
+        } else {
+            coordinatesWarningText.visibility = View.GONE
+        }
+
+        openMapsButton.setOnClickListener {
+            val label = result.bssid ?: result.ssid ?: "WiFi Location"
+            val uri = Uri.parse("geo:${result.latitude},${result.longitude}?q=${result.latitude},${result.longitude}(${Uri.encode(label)})")
+            val intent = Intent(Intent.ACTION_VIEW, uri)
+
+            if (intent.resolveActivity(requireContext().packageManager) != null) {
+                startActivity(Intent.createChooser(intent, getString(R.string.open_map)))
+            } else {
+                val browserUri = Uri.parse("https://maps.google.com/maps?q=${result.latitude},${result.longitude}")
+                val browserIntent = Intent(Intent.ACTION_VIEW, browserUri)
+                startActivity(browserIntent)
+            }
+        }
+
+        binding.resultsContainer.addView(cardView)
+    }
+
+    private fun setupListeners() {
         binding.searchTypeGroup.setOnCheckedChangeListener { _, checkedId ->
             when (checkedId) {
                 R.id.search_mac -> {
@@ -136,6 +208,8 @@ class MacLocationFragment : Fragment() {
                 return@setOnClickListener
             }
 
+            binding.resultsContainer.removeAllViews()
+
             val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(binding.inputQuery.windowToken, 0)
 
@@ -147,9 +221,6 @@ class MacLocationFragment : Fragment() {
 
             viewModel.search(MacLocationViewModel.SearchType(searchType, query))
         }
-
-        binding.map.setMultiTouchControls(true)
-        binding.map.controller.setZoom(3.0)
 
         binding.settingsHeader.setOnClickListener {
             val isVisible = binding.settingsContent.isVisible
@@ -194,8 +265,25 @@ class MacLocationFragment : Fragment() {
         }
 
         if (points.isNotEmpty()) {
-            val boundingBox = BoundingBox.fromGeoPoints(points)
-            map.zoomToBoundingBox(boundingBox, true, 50)
+            if (points.size == 1) {
+                map.controller.apply {
+                    setZoom(15.0)
+                    setCenter(points[0])
+                }
+            } else {
+                val boundingBox = BoundingBox.fromGeoPoints(points)
+                val expandedBox = BoundingBox(
+                    boundingBox.latNorth + 0.01,
+                    boundingBox.lonEast + 0.01,
+                    boundingBox.latSouth - 0.01,
+                    boundingBox.lonWest - 0.01
+                )
+                map.zoomToBoundingBox(expandedBox, true, 100)
+
+                if (map.zoomLevelDouble > 18.0) {
+                    map.controller.setZoom(15.0)
+                }
+            }
         }
 
         map.invalidate()

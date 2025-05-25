@@ -713,8 +713,7 @@
     <string name="no_results_found">Результатів не знайдено</string>
     <string name="choose_map_app">Виберіть застосунок для карт</string>
     <string name="timetxt">Час</string>
-
-
+    <string name="coordinates_may_be_incorrect">⚠️ Координати можуть бути неточними</string>
 
 
 </resources>

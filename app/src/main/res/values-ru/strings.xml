@@ -714,6 +714,7 @@
     <string name="no_results_found">Результаты не найдены</string>
     <string name="choose_map_app">Выберите приложение для карт</string>
     <string name="timetxt">Время</string>
+    <string name="coordinates_may_be_incorrect">"⚠️ Координаты могут быть неточными "</string>
 
 
 </resources>
