@@ -4,6 +4,19 @@
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Kotlin](https://img.shields.io/badge/kotlin-2.0-purple)
 
+
+
+- 📱 **Download the application:**  
+  [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/latest](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/latest)
+
+- 🛠️ **Download scripts for converting SQL 3WiFi to SQLite 3Wifi:**  
+  [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SQL_3WIFi_to_SQLite_converter_python](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SQL_3WIFi_to_SQLite_converter_python)
+
+- 📂 **Example of the SmartLinkDB file:**  
+  [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SmartLinkDB-Example](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SmartLinkDB-Example)
+
+
+
 ## 📱 Overview
 
 **WiFi Frankenstein** is a comprehensive WiFi pentesting and database management application for Android. This application serves as the successor to the original 3WiFi Locator, offering significant improvements and new features for WiFi network analysis, mapping, and database management.
