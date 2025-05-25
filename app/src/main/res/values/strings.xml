@@ -698,5 +698,6 @@
     <string name="get_request_single_only">GET request is only available for single search</string>
     <string name="selected_request_type">Selected request type: %s</string>
     <string name="request_type">Request Type</string>
+    <string name="clear">Clear</string>
 
 </resources>

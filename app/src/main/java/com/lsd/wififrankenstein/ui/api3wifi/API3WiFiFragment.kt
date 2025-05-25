@@ -1,5 +1,6 @@
 package com.lsd.wififrankenstein.ui.api3wifi
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -51,6 +52,23 @@ class API3WiFiFragment : Fragment() {
         setupMethodSpinner()
         setupRequestTypeChips()
         setupExecuteButton()
+        setupResponseButtons()
+    }
+
+    private fun setupResponseButtons() {
+        binding.copyResponseButton.setOnClickListener {
+            val text = binding.responseText.text.toString()
+            if (text.isNotEmpty()) {
+                val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("API Response", text)
+                clipboard.setPrimaryClip(clip)
+                showError(getString(R.string.copied_to_clipboard))
+            }
+        }
+
+        binding.clearResponseButton.setOnClickListener {
+            binding.responseText.text = ""
+        }
     }
 
     private fun setupModeSwitch() {
@@ -257,7 +275,7 @@ class API3WiFiFragment : Fragment() {
         binding.methodParamsContainer.removeAllViews()
         currentMethodParams?.clear()
         currentMethodParams = null
-        binding.responseText.text = null
+        binding.responseText.text = ""
         binding.requestTypeInfo.visibility = View.GONE
     }
 
@@ -341,7 +359,7 @@ class API3WiFiFragment : Fragment() {
         }
 
         viewModel.requestResult.observe(viewLifecycleOwner) { result ->
-            binding.responseText.setText(result)
+            binding.responseText.text = result
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->

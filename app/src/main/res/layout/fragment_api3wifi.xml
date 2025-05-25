@@ -194,23 +194,56 @@
                         android:text="@string/response"
                         android:textAppearance="?attr/textAppearanceSubtitle1"/>
 
-                    <com.google.android.material.textfield.TextInputLayout
+                    <ScrollView
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp">
+                        android:layout_height="300dp"
+                        android:layout_marginTop="8dp"
+                        android:fillViewport="false"
+                        android:scrollbars="vertical|horizontal">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/responseText"
+                        <HorizontalScrollView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:minLines="3"
-                            android:maxLines="10"
-                            android:gravity="top"
-                            android:inputType="textMultiLine"
-                            android:focusable="false"
-                            android:textIsSelectable="true"/>
+                            android:fillViewport="false">
 
-                    </com.google.android.material.textfield.TextInputLayout>
+                            <TextView
+                                android:id="@+id/responseText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:padding="8dp"
+                                android:textSize="12sp"
+                                android:fontFamily="monospace"
+                                android:textIsSelectable="true"
+                                android:focusable="true"
+                                android:focusableInTouchMode="true"/>
+
+                        </HorizontalScrollView>
+
+                    </ScrollView>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="8dp">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/copyResponseButton"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/copy"
+                            app:icon="@drawable/ic_content_copy"/>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/clearResponseButton"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/clear"
+                            app:icon="@drawable/ic_delete"/>
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
