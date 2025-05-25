@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
@@ -71,6 +72,73 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    fun executeSimpleRequestWithRetry(serverUrl: String, request: API3WiFiRequest) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                createNetwork(serverUrl)
+
+                var finalResponse = ""
+                var postSuccessful = false
+
+                try {
+                    val postResponse = withContext(Dispatchers.IO) {
+                        network?.executeRequest(request, RequestType.POST_JSON)
+                            ?: throw Exception("Network not initialized")
+                    }
+
+                    if (isSuccessfulResponse(postResponse)) {
+                        postSuccessful = true
+                        finalResponse = formatJsonResponse(postResponse)
+                    } else {
+                        finalResponse = "${getApplication<Application>().getString(R.string.post_request_failed)}\n" +
+                                "${getApplication<Application>().getString(R.string.separator_line)}\n" +
+                                formatJsonResponse(postResponse) + "\n\n"
+                    }
+                } catch (e: Exception) {
+                    finalResponse = "${getApplication<Application>().getString(R.string.post_request_failed)}\n" +
+                            "${getApplication<Application>().getString(R.string.separator_line)}\n" +
+                            "Error: ${e.message}\n\n"
+                }
+
+                if (!postSuccessful) {
+                    finalResponse += "${getApplication<Application>().getString(R.string.retry_with_get)}\n" +
+                            "${getApplication<Application>().getString(R.string.separator_line)}\n\n"
+
+                    try {
+                        val getResponse = withContext(Dispatchers.IO) {
+                            network?.executeRequest(request, RequestType.GET)
+                                ?: throw Exception("Network not initialized")
+                        }
+
+                        finalResponse += "${getApplication<Application>().getString(R.string.get_request_response)}\n" +
+                                "${getApplication<Application>().getString(R.string.separator_line)}\n" +
+                                formatJsonResponse(getResponse)
+                    } catch (e: Exception) {
+                        finalResponse += "${getApplication<Application>().getString(R.string.get_request_response)}\n" +
+                                "${getApplication<Application>().getString(R.string.separator_line)}\n" +
+                                "Error: ${e.message}"
+                    }
+                }
+
+                _requestResult.value = finalResponse
+            } catch (e: Exception) {
+                _requestResult.value = "Error: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    private fun isSuccessfulResponse(jsonString: String): Boolean {
+        return try {
+            val json = JSONObject(jsonString)
+            json.optBoolean("result", false)
+        } catch (_: Exception) {
+            false
         }
     }
 

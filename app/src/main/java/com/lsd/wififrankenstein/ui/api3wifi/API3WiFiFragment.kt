@@ -204,7 +204,7 @@ class API3WiFiFragment : Fragment() {
             )
         }
 
-        viewModel.executeRequest(server.path, request, API3WiFiViewModel.RequestType.POST_JSON)
+        viewModel.executeSimpleRequestWithRetry(server.path, request)
     }
 
     private fun setupServerSpinner() {
@@ -373,31 +373,45 @@ class API3WiFiFragment : Fragment() {
     private fun parseAndDisplayResults(jsonResponse: String) {
         binding.resultsCardsContainer.removeAllViews()
 
-        try {
-            val json = JSONObject(jsonResponse)
+        val responses = jsonResponse.split(getString(R.string.separator_line))
+        var foundValidJson = false
 
-            if (!json.optBoolean("result", false)) {
-                val errorMessage = json.optString("error", getString(R.string.unknown_error))
-                addErrorCard(errorMessage)
-                return
+        for (response in responses) {
+            val trimmedResponse = response.trim()
+            if (trimmedResponse.isEmpty() || trimmedResponse.startsWith("POST request failed") ||
+                trimmedResponse.startsWith("Retrying with GET") || trimmedResponse.startsWith("GET request response")) {
+                continue
             }
 
-            val data = json.optJSONObject("data") ?: return
+            try {
+                val json = JSONObject(trimmedResponse)
 
-            data.keys().forEach { bssid ->
-                val networks = data.optJSONArray(bssid) ?: return@forEach
-
-                for (i in 0 until networks.length()) {
-                    val network = networks.optJSONObject(i) ?: continue
-                    addNetworkCard(network)
+                if (!json.optBoolean("result", false)) {
+                    val errorMessage = json.optString("error", getString(R.string.unknown_error))
+                    if (!foundValidJson) {
+                        addErrorCard(errorMessage)
+                    }
+                    continue
                 }
-            }
 
-            if (binding.resultsCardsContainer.isEmpty()) {
-                addNoResultsCard()
-            }
+                foundValidJson = true
+                val data = json.optJSONObject("data") ?: continue
 
-        } catch (_: Exception) {
+                data.keys().forEach { bssid ->
+                    val networks = data.optJSONArray(bssid) ?: return@forEach
+
+                    for (i in 0 until networks.length()) {
+                        val network = networks.optJSONObject(i) ?: continue
+                        addNetworkCard(network)
+                    }
+                }
+            } catch (_: Exception) {
+                continue
+            }
+        }
+
+        if (binding.resultsCardsContainer.isEmpty() && !foundValidJson) {
+            addNoResultsCard()
         }
     }
 

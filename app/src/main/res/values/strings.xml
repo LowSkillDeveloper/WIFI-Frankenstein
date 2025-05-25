@@ -713,5 +713,10 @@
     <string name="choose_map_app">Choose a map application</string>
     <string name="timetxt">Time</string>
 
+    <string name="retry_with_get" translatable="false">Retrying with GET request due to POST failure</string>
+    <string name="post_request_failed" translatable="false">POST request failed, response:</string>
+    <string name="get_request_response" translatable="false">GET request response:</string>
+    <string name="separator_line" translatable="false">════════════════════════════════════════</string>
+
 
 </resources>
