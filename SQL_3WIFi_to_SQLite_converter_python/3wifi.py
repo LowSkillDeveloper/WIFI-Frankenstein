@@ -554,19 +554,29 @@ def create_indices(db_file, option):
     
     if option == 1:
         print("Creating full indices (this may take some time)...")
+        # Geo indices
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_quadkey_full ON geo(quadkey, latitude, longitude, BSSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_coords_bssid ON geo(latitude, longitude, BSSID);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude);")
         
+        # Base indices
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_BSSID ON base (BSSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_ESSID ON base (ESSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_ESSID_lower ON base (LOWER(ESSID));")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_WPSPIN ON base (WPSPIN);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_WiFiKey ON base (WiFiKey);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_composite ON base (BSSID, ESSID, WiFiKey, WPSPIN);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_bssid_essid ON base (BSSID, ESSID);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_ESSID ON base (ESSID COLLATE NOCASE);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_wpspin ON base(WPSPIN);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_wifikey ON base(WiFiKey COLLATE NOCASE);")
         
     elif option == 2:
+        print("Creating basic indices...")
+        # Geo indices
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude);")
+        
+        # Base indices
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_BSSID ON base (BSSID);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_ESSID ON base (ESSID COLLATE NOCASE);")
+        
+    elif option == 3:
         print("Skipping index creation as per user choice.")
     else:
         print("Invalid option selected for index creation.")
@@ -933,15 +943,23 @@ def show_indexing_menu():
     """Show indexing options menu"""
     menu = """
 ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
-║                                Anti3WiFi & 3WiFi Database Converter                               ║
+║                                   Anti3WiFi & 3WiFi Database Converter                            ║
 ║                                    Indexing Options                                               ║
 ╠═══════════════════════════════════════════════════════════════════════════════════════════════════╣
-║  1. Create with full indexing (Recommended - Better performance, larger file size)                ║
-║  2. Create without indexing (Smaller file size, slower queries)                                   ║
-║  3. Exit                                                                                          ║
+║  1. Full indexing (Best performance, largest file size)                                           ║
+║     - All geo indexes (BSSID, latitude, longitude)                                                ║
+║     - All nets indexes (BSSID, ESSID, WPSPIN, WiFiKey)                                            ║
+║                                                                                                   ║
+║  2. Basic indexing (Good performance, moderate file size)                                         ║
+║     - All geo indexes (BSSID, latitude, longitude)                                                ║
+║     - Basic nets indexes (BSSID, ESSID)                                                           ║
+║                                                                                                   ║
+║  3. No indexing (Smallest file size, slowest queries)                                             ║
+║                                                                                                   ║
+║  4. Exit                                                                                          ║
 ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-Choose an option (1-3): """
+Choose an option (1-4): """
     return input(menu)
 
 def show_archive_menu():
@@ -1038,9 +1056,9 @@ def get_user_preferences():
     
     while True:
         indexing_choice = show_indexing_menu()
-        if indexing_choice == '3':
+        if indexing_choice == '4':
             return None
-        elif indexing_choice in ['1', '2']:
+        elif indexing_choice in ['1', '2', '3']:
             preferences['indexing'] = int(indexing_choice)
             break
         else:
@@ -1133,7 +1151,12 @@ def display_summary(preferences):
     print("CONVERSION SUMMARY - ANTI3WIFI")
     print("="*80)
     
-    print(f"Indexing: {'Full indexing' if preferences['indexing'] == 1 else 'No indexing'}")
+    indexing_types = {
+        1: 'Full indexing (includes WiFiKey & WPSPIN)',
+        2: 'Basic indexing (BSSID & ESSID only)',
+        3: 'No indexing'
+    }
+    print(f"Indexing: {indexing_types[preferences['indexing']]}")
     
     if preferences['create_archive']:
         print(f"Archive: Yes")

@@ -311,19 +311,26 @@ def parse_values(values_str):
 
 def create_indices(cursor, option):
     if option == 1:  # Полная индексация
+        print("\nCreating full indexes...")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_quadkey_full ON geo(quadkey, latitude, longitude, BSSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_coords_bssid ON geo(latitude, longitude, BSSID);")
-        
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_nets_BSSID ON nets (BSSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_nets_ESSID ON nets (ESSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_nets_ESSID_lower ON nets (LOWER(ESSID));")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_nets_WPSPIN ON nets (WPSPIN);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_nets_WiFiKey ON nets (WiFiKey);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_nets_composite ON nets (BSSID, ESSID, WiFiKey, WPSPIN);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_nets_bssid_essid ON nets (BSSID, ESSID);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_nets_ESSID ON nets (ESSID COLLATE NOCASE);")
+        cursor.execute("CREATE INDEX idx_nets_wpspin ON nets(WPSPIN);")
+        cursor.execute("CREATE INDEX idx_nets_wifikey ON nets(WiFiKey COLLATE NOCASE);")
+        print("Full indexing completed.")
         
-    elif option == 2:  # Без индексации
+    elif option == 2:  # Базовая индексация
+        print("\nCreating basic indexes...")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_nets_BSSID ON nets (BSSID);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_nets_ESSID ON nets (ESSID COLLATE NOCASE);")
+        print("Basic indexing completed.")
+        
+    elif option == 3:  # Без индексации
         print("Skipping index creation as per user choice.")
     else:
         print("Invalid option selected for index creation.")
@@ -950,12 +957,20 @@ def show_indexing_menu():
 ║                                   WiFi Database Converter                                         ║
 ║                                    Indexing Options                                               ║
 ╠═══════════════════════════════════════════════════════════════════════════════════════════════════╣
-║  1. Create with full indexing (Recommended - Better performance, larger file size)                ║
-║  2. Create without indexing (Smaller file size, slower queries)                                   ║
-║  3. Exit                                                                                          ║
+║  1. Full indexing (Best performance, largest file size)                                           ║
+║     - All geo indexes (BSSID, latitude, longitude)                                                ║
+║     - All nets indexes (BSSID, ESSID, WPSPIN, WiFiKey)                                            ║
+║                                                                                                   ║
+║  2. Basic indexing (Good performance, moderate file size)                                         ║
+║     - All geo indexes (BSSID, latitude, longitude)                                                ║
+║     - Basic nets indexes (BSSID, ESSID)                                                           ║
+║                                                                                                   ║
+║  3. No indexing (Smallest file size, slowest queries)                                             ║
+║                                                                                                   ║
+║  4. Exit                                                                                          ║
 ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-Choose an option (1-3): """
+Choose an option (1-4): """
     return input(menu)
 
 def show_archive_menu():
@@ -1053,9 +1068,9 @@ def get_user_preferences():
     while True:
         # Шаг 1: Выбор индексации
         indexing_choice = show_indexing_menu()
-        if indexing_choice == '3':
+        if indexing_choice == '4':
             return None
-        elif indexing_choice in ['1', '2']:
+        elif indexing_choice in ['1', '2', '3']:
             preferences['indexing'] = int(indexing_choice)
             break
         else:
@@ -1153,7 +1168,12 @@ def display_summary(preferences):
     print("CONVERSION SUMMARY")
     print("="*80)
     
-    print(f"Indexing: {'Full indexing' if preferences['indexing'] == 1 else 'No indexing'}")
+    indexing_types = {
+        1: 'Full indexing (All indexes)',
+        2: 'Basic indexing (Essential indexes)',
+        3: 'No indexing'
+    }
+    print(f"Indexing: {indexing_types[preferences['indexing']]}")
     
     if preferences['create_archive']:
         print(f"Archive: Yes")
