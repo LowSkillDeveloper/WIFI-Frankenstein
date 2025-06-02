@@ -9,6 +9,14 @@ android {
     namespace = "com.lsd.wififrankenstein"
     compileSdk = 36
 
+
+    packaging {
+        resources {
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/LICENSE-notice.md"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.lsd.wififrankenstein"
         minSdk = 21
