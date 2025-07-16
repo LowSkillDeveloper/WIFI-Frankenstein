@@ -21,8 +21,14 @@ import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.util.DatabaseIndices
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.osmdroid.util.BoundingBox
+import java.util.Collections
 
 class WiFiMapViewModel(application: Application) : AndroidViewModel(application) {
     private val TAG = "WiFiMapViewModel"
@@ -66,15 +72,24 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     private var lastUpdateTime = 0L
     private val MIN_UPDATE_INTERVAL = 100L
 
+    private var currentLoadingJob: Job? = null
+    private val maxPointsPerZoom = mapOf(
+        18.0 to 50000,
+        17.0 to 40000,
+        16.0 to 30000,
+        15.0 to 20000,
+        14.0 to 15000,
+        13.0 to 10000,
+        12.0 to 8000,
+        11.0 to 6000,
+        10.0 to 4000
+    )
+
     fun getMinZoomForMarkers(): Double {
-        val maxRestriction = 14.0
-
-        val minRestriction = 3.0
-
+        val maxRestriction = 12.0
+        val minRestriction = 1.0
         val zoomSetting = settingsPrefs.getFloat("map_marker_visibility_zoom", 13f)
-
         val maxSetting = 18f
-
         val ratio = zoomSetting / maxSetting
         return minRestriction + ratio * (maxRestriction - minRestriction)
     }
@@ -260,195 +275,196 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             return
         }
 
-        viewModelScope.launch {
-            _loadingProgress.postValue(0)
-            val allPoints = mutableListOf<NetworkPoint>()
+        currentLoadingJob?.cancel()
 
-            val currentBox = listOf(
-                boundingBox.latSouth,
-                boundingBox.latNorth,
-                boundingBox.lonWest,
-                boundingBox.lonEast
-            )
+        currentLoadingJob = viewModelScope.launch {
+            try {
+                _loadingProgress.postValue(0)
 
-            val cachedPoints = mutableListOf<NetworkPoint>()
-            pointsCache.forEach { (cacheKey, points) ->
-                val cachedBox = cacheKey.split(",").map { it.toDouble() }
-                if (boundingBoxesIntersect(currentBox, cachedBox)) {
-                    cachedPoints.addAll(points.filter { point ->
-                        point.latitude in boundingBox.latSouth..boundingBox.latNorth &&
-                                point.longitude in boundingBox.lonWest..boundingBox.lonEast &&
-                                selectedDatabases.any { it.id == point.databaseId }
-                    })
-                }
-            }
+                val allPoints = withContext(Dispatchers.IO) {
+                    val points = Collections.synchronizedList(mutableListOf<NetworkPoint>())
+                    val totalDatabases = selectedDatabases.size
 
-            val cachedDatabaseIds = cachedPoints.map { it.databaseId }.toSet()
-            val databasesToLoad = selectedDatabases.filter { db ->
-                db.id !in cachedDatabaseIds
-            }
+                    selectedDatabases.mapIndexed { index, database ->
+                        async {
+                            if (!isActive) return@async
 
-            allPoints.addAll(cachedPoints)
-            Log.d(TAG, "Using ${cachedPoints.size} cached points")
+                            try {
+                                Log.d(TAG, "Loading database: ${database.id}, type: ${database.dbType}")
+                                val dbPoints = loadPointsFromDatabase(database, boundingBox)
 
-            databasesToLoad.forEachIndexed { index, database ->
-                try {
-                    Log.d(TAG, "Loading uncached database: ${database.id}, type: ${database.dbType}")
-
-                    _loadingProgress.postValue((index * 100) / databasesToLoad.size)
-
-                    val points = when (database.dbType) {
-                        DbType.LOCAL_APP_DB -> {
-
-                            Log.d(TAG, "Getting points from local database")
-                            val dbHelper = LocalAppDbHelper(getApplication())
-                            val localPoints = dbHelper.getPointsInBounds(
-                                boundingBox.latSouth,
-                                boundingBox.latNorth,
-                                boundingBox.lonWest,
-                                boundingBox.lonEast
-                            )
-
-                            localPoints.map { network ->
-                                val macDecimal = try {
-                                    network.macAddress.replace(":", "").replace("-", "").toLongOrNull(16)
-                                        ?: network.macAddress.toLongOrNull()
-                                        ?: -1L
-                                } catch (_: Exception) {
-                                    -1L
-                                }
-
-                                Triple(macDecimal, network.latitude ?: 0.0, network.longitude ?: 0.0)
-                            }.filter { it.first != -1L }
-                        }
-                        DbType.SQLITE_FILE_CUSTOM -> {
-                            if (database.directPath.isNullOrEmpty()) {
-                                Log.e(TAG, "Direct path is null for database ${database.id}")
-                                _error.postValue(getApplication<Application>().getString(R.string.directpath_missing))
-                                return@forEachIndexed
-                            }
-
-                            Log.d(TAG, "Using external indexes for database: ${database.id}")
-                            externalIndexManager.getPointsInBoundingBox(database.id, boundingBox)
-                        }
-                        DbType.SQLITE_FILE_3WIFI -> {
-                            val helper = getHelper(database) as? SQLite3WiFiHelper
-                                ?: return@forEachIndexed
-
-                            val db = helper.database
-
-                            if (db != null) {
-                                val dbType = DatabaseTypeUtils.determineDbType(db)
-                                Log.d(TAG, "3WiFi database type: $dbType")
-
-                                val indices = DatabaseIndices.getAvailableIndices(db)
-                                Log.d(TAG, "Available indices: $indices")
-
-                                val hasGeoIndexes = when (dbType) {
-                                    DatabaseTypeUtils.WiFiDbType.TYPE_NETS,
-                                    DatabaseTypeUtils.WiFiDbType.TYPE_BASE -> {
-                                        indices.contains(DatabaseIndices.GEO_COORDS_BSSID) ||
-                                                indices.contains(DatabaseIndices.GEO_QUADKEY_FULL)
-                                    }
-                                    else -> false
-                                }
-
-                                if (hasGeoIndexes) {
-                                    Log.d(TAG, "Using optimized geo indices for query")
-                                } else {
-                                    Log.d(TAG, "No optimized geo indices found, using standard query")
-                                }
-                            }
-
-                            helper.getPointsInBoundingBox(boundingBox)
-                        }
-                        else -> {
-                            val helper = getHelper(database)
-                            Log.d(TAG, "Using helper ${helper.javaClass.simpleName} for database: ${database.id}")
-
-                            when (helper) {
-                                is SQLite3WiFiHelper -> {
-                                    Log.d(TAG, "Getting points from SQLite3WiFiHelper")
-                                    helper.getPointsInBoundingBox(boundingBox)
-                                }
-                                is SQLiteCustomHelper -> {
-                                    if (database.tableName == null || database.columnMap == null) {
-                                        Log.e(TAG, "Table name or column map is null for database ${database.id}")
-                                        _error.postValue(getApplication<Application>().getString(R.string.column_mapping_missing))
-                                        return@forEachIndexed
-                                    }
-
-                                    Log.d(TAG, "Getting points from SQLiteCustomHelper directly")
-                                    helper.getPointsInBoundingBox(
-                                        boundingBox,
-                                        database.tableName,
-                                        database.columnMap
+                                val networkPoints = dbPoints.map { (bssidDecimal, lat, lon) ->
+                                    NetworkPoint(
+                                        latitude = lat,
+                                        longitude = lon,
+                                        bssidDecimal = bssidDecimal,
+                                        source = database.type,
+                                        databaseId = database.id,
+                                        color = databaseColors[database.id] ?: Color.GRAY
                                     )
                                 }
-                                else -> {
-                                    Log.e(TAG, "Unknown helper type: ${helper.javaClass.name}")
-                                    null
-                                }
-                            } ?: emptyList()
+
+                                points.addAll(networkPoints)
+
+                                val progress = ((index + 1) * 40) / totalDatabases
+                                _loadingProgress.postValue(progress)
+
+                                Log.d(TAG, "Loaded ${networkPoints.size} points from ${database.id}")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error loading points from database ${database.id}", e)
+                            }
+                        }
+                    }.awaitAll()
+
+                    points.toList()
+                }
+
+                if (!isActive) return@launch
+
+                Log.d(TAG, "Total points loaded: ${allPoints.size}")
+                _loadingProgress.postValue(50)
+
+                if (allPoints.isNotEmpty()) {
+                    val clusteredPoints = withContext(Dispatchers.Default) {
+                        if (!isActive) return@withContext emptyList()
+
+                        val mapCenter = Pair(
+                            (boundingBox.latNorth + boundingBox.latSouth) / 2,
+                            (boundingBox.lonEast + boundingBox.lonWest) / 2
+                        )
+
+                        val clusters = getClusterManager().createAdaptiveClusters(allPoints, zoom, mapCenter)
+                        Log.d(TAG, "Created ${clusters.size} adaptive clusters from ${allPoints.size} points")
+
+                        clusters.map { clusterItem ->
+                            if (clusterItem.size == 1) {
+                                clusterItem.points.first()
+                            } else {
+                                val dominantDatabaseId = clusterItem.points
+                                    .groupBy { it.databaseId }
+                                    .maxByOrNull { it.value.size }
+                                    ?.key ?: clusterItem.points.first().databaseId
+
+                                NetworkPoint(
+                                    latitude = clusterItem.centerLatitude,
+                                    longitude = clusterItem.centerLongitude,
+                                    bssidDecimal = -1L,
+                                    source = "Cluster",
+                                    databaseId = dominantDatabaseId,
+                                    essid = "Cluster (${clusterItem.size} points)",
+                                    color = databaseColors[dominantDatabaseId] ?: Color.GRAY
+                                )
+                            }
                         }
                     }
 
-                    Log.d(TAG, "Retrieved ${points.size} points for database: ${database.id}")
+                    if (!isActive) return@launch
 
-                    val networkPoints = points.map { (bssidDecimal, lat, lon) ->
-                        NetworkPoint(
-                            latitude = lat,
-                            longitude = lon,
-                            bssidDecimal = bssidDecimal,
-                            source = database.type,
-                            databaseId = database.id,
-                            color = databaseColors[database.id] ?: Color.GRAY
-                        )
-                    }
+                    _loadingProgress.postValue(90)
+                    _points.postValue(clusteredPoints)
+                } else {
+                    _points.postValue(emptyList())
+                }
 
-                    val cacheKey = createCacheKey(boundingBox)
-                    pointsCache[cacheKey] = networkPoints
+                _loadingProgress.postValue(100)
 
-                    allPoints.addAll(networkPoints)
-                    Log.d(TAG, "Added ${networkPoints.size} points to allPoints. Total now: ${allPoints.size}")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error loading points from database ${database.id}", e)
+            } catch (e: Exception) {
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e(TAG, "Error loading points", e)
                     _error.postValue(getApplication<Application>().getString(
                         R.string.database_error,
                         e.localizedMessage ?: "Unknown error"
                     ))
                 }
             }
-            _loadingProgress.postValue(100)
+        }
+    }
 
-            val maxMarkerDensity = settingsPrefs.getInt("map_max_marker_density", 2000)
-            val clusters = getClusterManager().createClusters(allPoints, zoom, maxMarkerDensity)
-            Log.d(TAG, "Created ${clusters.size} clusters from ${allPoints.size} points")
+    private suspend fun loadPointsFromDatabase(
+        database: DbItem,
+        boundingBox: BoundingBox
+    ): List<Triple<Long, Double, Double>> = withContext(Dispatchers.IO) {
+        val cacheKey = "${database.id}_${createCacheKey(boundingBox)}"
 
-            val pointsToShow = clusters.map { cluster ->
-                if (cluster.size == 1) {
-                    cluster.points.first()
+        pointsCache[cacheKey]?.let { cachedPoints ->
+            Log.d(TAG, "Using ${cachedPoints.size} cached points for database ${database.id}")
+            return@withContext cachedPoints.map {
+                Triple(it.bssidDecimal, it.latitude, it.longitude)
+            }
+        }
+
+        val points = when (database.dbType) {
+            DbType.LOCAL_APP_DB -> {
+                Log.d(TAG, "Getting points from local database")
+                val dbHelper = LocalAppDbHelper(getApplication())
+                val localPoints = dbHelper.getPointsInBounds(
+                    boundingBox.latSouth,
+                    boundingBox.latNorth,
+                    boundingBox.lonWest,
+                    boundingBox.lonEast
+                )
+
+                localPoints.map { network ->
+                    val macDecimal = try {
+                        network.macAddress.replace(":", "").replace("-", "").toLongOrNull(16)
+                            ?: network.macAddress.toLongOrNull()
+                            ?: -1L
+                    } catch (_: Exception) {
+                        -1L
+                    }
+
+                    Triple(macDecimal, network.latitude ?: 0.0, network.longitude ?: 0.0)
+                }.filter { it.first != -1L }
+            }
+            DbType.SQLITE_FILE_CUSTOM -> {
+                if (database.directPath.isNullOrEmpty()) {
+                    Log.e(TAG, "Direct path is null for database ${database.id}")
+                    emptyList()
                 } else {
-                    val dominantDatabase = cluster.points
-                        .groupBy { it.databaseId }
-                        .maxByOrNull { it.value.size }
-                        ?.key ?: cluster.points.first().databaseId
-
-                    NetworkPoint(
-                        latitude = cluster.centerLatitude,
-                        longitude = cluster.centerLongitude,
-                        bssidDecimal = -1L,
-                        source = "Cluster",
-                        databaseId = dominantDatabase,
-                        essid = "Cluster (${cluster.size} points)",
-                        color = databaseColors[dominantDatabase] ?: Color.GRAY
-                    )
+                    Log.d(TAG, "Using external indexes for database: ${database.id}")
+                    externalIndexManager.getPointsInBoundingBox(database.id, boundingBox)
                 }
             }
-
-            Log.d(TAG, "Posting final clusters/points count: ${pointsToShow.size}")
-            _points.postValue(pointsToShow)
+            else -> {
+                val helper = getHelper(database)
+                when (helper) {
+                    is SQLite3WiFiHelper -> {
+                        helper.getPointsInBoundingBox(boundingBox)
+                    }
+                    is SQLiteCustomHelper -> {
+                        if (database.tableName == null || database.columnMap == null) {
+                            Log.e(TAG, "Table name or column map is null for database ${database.id}")
+                            emptyList()
+                        } else {
+                            helper.getPointsInBoundingBox(
+                                boundingBox,
+                                database.tableName,
+                                database.columnMap
+                            ) ?: emptyList()
+                        }
+                    }
+                    else -> {
+                        Log.e(TAG, "Unknown helper type: ${helper.javaClass.name}")
+                        emptyList()
+                    }
+                }
+            }
         }
+
+        if (points.isNotEmpty()) {
+            val networkPoints = points.map { (bssid, lat, lon) ->
+                NetworkPoint(
+                    latitude = lat,
+                    longitude = lon,
+                    bssidDecimal = bssid,
+                    source = database.type,
+                    databaseId = database.id
+                )
+            }
+            pointsCache[cacheKey] = networkPoints
+        }
+
+        points
     }
 
     suspend fun createLocalDbIndexes() {

@@ -71,7 +71,6 @@ class SettingsFragment : Fragment() {
         setupDeveloperSettings()
 
 
-        // Первые две карточки всегда развернуты по умолчанию
         binding.layoutDbSettingsContent.visibility = View.VISIBLE
         binding.layoutAppSettingsContent.visibility = View.VISIBLE
     }
@@ -129,6 +128,10 @@ class SettingsFragment : Fragment() {
         textViewMaxClusterSizeValue.text = viewModel.getMaxClusterSize().toString()
         textViewMarkerVisibilityZoomValue.text = getString(R.string.zoom_level_value, viewModel.getMarkerVisibilityZoom().toInt())
         textViewMaxMarkerDensityValue.text = viewModel.getMaxMarkerDensity().toString()
+
+
+        sliderMarkerVisibilityZoom.valueFrom = 1f
+        sliderMarkerVisibilityZoom.valueTo = 18f
 
         sliderClusterAggressiveness.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {

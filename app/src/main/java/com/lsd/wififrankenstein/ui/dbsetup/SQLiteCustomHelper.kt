@@ -44,6 +44,23 @@ class SQLiteCustomHelper(
         }
     }
 
+    fun getRecommendedIndexLevel(tableName: String): String {
+        return try {
+            val recordCount = _database?.rawQuery("SELECT COUNT(*) FROM $tableName", null)?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getLong(0) else 0L
+            } ?: 0L
+
+            when {
+                recordCount < 50_000 -> "NONE"
+                recordCount < 500_000 -> "BASIC"
+                else -> "FULL"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting recommended index level", e)
+            "BASIC"
+        }
+    }
+
     suspend fun getPointsInBoundingBox(
         bounds: BoundingBox,
         tableName: String,
@@ -55,28 +72,8 @@ class SQLiteCustomHelper(
                 val lonColumn = columnMap["longitude"] ?: return@withContext null
                 val macColumn = columnMap["mac"] ?: return@withContext null
 
-                val hasIndexes = _database?.rawQuery(
-                    "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND (name LIKE '%coords%' OR name LIKE '%mac%')",
-                    arrayOf(tableName)
-                )?.use { cursor ->
-                    cursor.count > 0
-                } == true
-
-                val query = if (hasIndexes) {
-                    """
-                    SELECT $macColumn, $latColumn, $lonColumn 
-                    FROM $tableName 
-                    WHERE $latColumn BETWEEN ? AND ?
-                    AND $lonColumn BETWEEN ? AND ?
-                    """
-                } else {
-                    """
-                    SELECT $macColumn, $latColumn, $lonColumn 
-                    FROM $tableName 
-                    WHERE $latColumn >= ? AND $latColumn <= ?
-                    AND $lonColumn >= ? AND $lonColumn <= ?
-                    """
-                }
+                val query = getOptimalQuery(tableName, columnMap, bounds)
+                if (query.isEmpty()) return@withContext null
 
                 _database?.rawQuery(query, arrayOf(
                     bounds.latSouth.toString(),
@@ -110,6 +107,80 @@ class SQLiteCustomHelper(
             } catch (e: Exception) {
                 Log.e("SQLiteCustomHelper", "Error getting points", e)
                 null
+            }
+        }
+    }
+
+    fun getCustomIndexLevel(): String {
+        return try {
+            val hasEssidIndex = _database?.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND sql LIKE '%essid%'",
+                null
+            )?.use { it.count > 0 } ?: false
+
+            val hasPasswordIndex = _database?.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND sql LIKE '%password%' OR sql LIKE '%wifi_pass%'",
+                null
+            )?.use { it.count > 0 } ?: false
+
+            val hasWpsIndex = _database?.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND sql LIKE '%wps%'",
+                null
+            )?.use { it.count > 0 } ?: false
+
+            when {
+                hasEssidIndex && hasPasswordIndex && hasWpsIndex -> "FULL"
+                hasEssidIndex -> "BASIC"
+                else -> "NONE"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error determining custom index level", e)
+            "NONE"
+        }
+    }
+
+    fun getOptimalQuery(
+        tableName: String,
+        columnMap: Map<String, String>,
+        bounds: BoundingBox
+    ): String {
+        val latColumn = columnMap["latitude"] ?: return ""
+        val lonColumn = columnMap["longitude"] ?: return ""
+        val macColumn = columnMap["mac"] ?: return ""
+
+        val indexLevel = getCustomIndexLevel()
+
+        return when (indexLevel) {
+            "FULL", "BASIC" -> {
+                val hasCoordsIndex = _database?.rawQuery(
+                    "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql LIKE '%$latColumn%'",
+                    arrayOf(tableName)
+                )?.use { it.count > 0 } ?: false
+
+                if (hasCoordsIndex) {
+                    """
+                SELECT $macColumn, $latColumn, $lonColumn 
+                FROM $tableName 
+                WHERE $latColumn >= ? AND $latColumn <= ?
+                AND $lonColumn >= ? AND $lonColumn <= ?
+                ORDER BY $latColumn, $lonColumn
+                """
+                } else {
+                    """
+                SELECT $macColumn, $latColumn, $lonColumn 
+                FROM $tableName 
+                WHERE $latColumn >= ? AND $latColumn <= ?
+                AND $lonColumn >= ? AND $lonColumn <= ?
+                """
+                }
+            }
+            else -> {
+                """
+            SELECT $macColumn, $latColumn, $lonColumn 
+            FROM $tableName 
+            WHERE $latColumn >= ? AND $latColumn <= ?
+            AND $lonColumn >= ? AND $lonColumn <= ?
+            """
             }
         }
     }
@@ -363,9 +434,22 @@ class SQLiteCustomHelper(
             val essidColumn = columnMap["essid"] ?: return@withContext emptyList()
             val chunkedEssids = validEssids.chunked(500)
 
+            val hasEssidIndex = _database?.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql LIKE '%$essidColumn%'",
+                arrayOf(tableName)
+            )?.use { cursor ->
+                cursor.count > 0
+            } ?: false
+
+            Log.d("SQLiteCustomHelper", "ESSID search - Has index on $essidColumn: $hasEssidIndex")
+
             chunkedEssids.flatMap { chunk ->
                 val placeholders = chunk.joinToString(",") { "?" }
-                val query = "SELECT * FROM $tableName WHERE $essidColumn IN ($placeholders)"
+                val query = if (hasEssidIndex) {
+                    "SELECT * FROM $tableName WHERE $essidColumn IN ($placeholders)"
+                } else {
+                    "SELECT * FROM $tableName WHERE $essidColumn IN ($placeholders)"
+                }
 
                 _database?.rawQuery(query, chunk.toTypedArray())?.use { cursor ->
                     buildList {

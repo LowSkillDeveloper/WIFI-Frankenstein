@@ -67,7 +67,6 @@ class WelcomePermissionsFragment : Fragment() {
             requestStoragePermission()
         }
 
-        // Обновляем UI на основе текущих значений в ViewModel
         welcomeViewModel.locationPermissionGranted.observe(viewLifecycleOwner) { granted ->
             updateLocationPermissionUI(granted)
         }
@@ -76,7 +75,6 @@ class WelcomePermissionsFragment : Fragment() {
             updateStoragePermissionUI(granted)
         }
 
-        // Также проверяем текущее состояние разрешений
         updateLocationPermissionUI(hasLocationPermission())
         updateStoragePermissionUI(hasStoragePermission())
 

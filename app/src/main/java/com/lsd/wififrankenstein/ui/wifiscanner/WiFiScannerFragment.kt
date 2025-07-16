@@ -420,7 +420,7 @@ class WiFiScannerFragment : Fragment() {
 
     private fun startWifiScan() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // For Android 11 (API 30) and above
+            // For Android 11+
             if (ContextCompat.checkSelfPermission(
                     requireContext(),
                     Manifest.permission.ACCESS_FINE_LOCATION

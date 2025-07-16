@@ -7,11 +7,13 @@ import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
 import android.util.Log
 import com.lsd.wififrankenstein.util.DatabaseIndices
+import com.lsd.wififrankenstein.util.DatabaseOptimizer
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.osmdroid.util.BoundingBox
 import java.io.File
 import java.io.FileOutputStream
@@ -41,14 +43,16 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     private val resultsCache = Collections.synchronizedMap(
         object : LinkedHashMap<String, Map<String, Any?>>(100, 0.75f, true) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Map<String, Any?>?>): Boolean {
-                return size > 1000 // размер временного кэша
+                return size > 1000
             }
         }
     )
 
     private fun openDatabaseFromDirectPath(): SQLiteDatabase {
         return try {
-            SQLiteDatabase.openDatabase(directPath!!, null, SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
+            val db = SQLiteDatabase.openDatabase(directPath!!, null, SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
+            DatabaseOptimizer.optimizeDatabase(db)
+            db
         } catch (e: Exception) {
             Log.w("SQLite3WiFiHelper", "Failed to open database using direct path: $directPath. Falling back to URI method.", e)
             openDatabaseFromUri()
@@ -136,63 +140,48 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     suspend fun getPointsInBoundingBox(bounds: BoundingBox): List<Triple<Long, Double, Double>> {
         Log.d(TAG, "Starting getPointsInBoundingBox with bounds: $bounds")
         return withContext(Dispatchers.IO) {
-            databaseLock.withLock {
-                try {
-                    Log.d(TAG, "Acquired database lock")
+            val points = ArrayList<Triple<Long, Double, Double>>(50000)
 
-                    val indices = DatabaseIndices.getAvailableIndices(database!!)
-                    Log.d(TAG, "Available indices: $indices")
+            try {
+                val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
+                Log.d(TAG, "Index level: $indexLevel")
 
-                    val geoIndex = if (indices.contains(DatabaseIndices.GEO_COORDS_BSSID)) {
-                        "INDEXED BY ${DatabaseIndices.GEO_COORDS_BSSID}"
-                    } else if (indices.contains(DatabaseIndices.GEO_QUADKEY_FULL)) {
-                        "INDEXED BY ${DatabaseIndices.GEO_QUADKEY_FULL}"
-                    } else if (indices.contains(DatabaseIndices.GEO_BSSID)) {
-                        "INDEXED BY ${DatabaseIndices.GEO_BSSID}"
-                    } else {
-                        ""
-                    }
+                val query = DatabaseIndices.getOptimalGeoQuery(indexLevel)
 
-                    val query = """
-                    SELECT BSSID, latitude, longitude 
-                    FROM geo $geoIndex
-                    WHERE latitude BETWEEN ? AND ?
-                    AND longitude BETWEEN ? AND ?
-                """.trimIndent()
+                Log.d(TAG, "Executing query with bounds: lat(${bounds.latSouth}-${bounds.latNorth}), lon(${bounds.lonWest}-${bounds.lonEast})")
 
-                    Log.d(TAG, "Executing query with bounds: lat(${bounds.latSouth}-${bounds.latNorth}), lon(${bounds.lonWest}-${bounds.lonEast})")
-                    Log.d(TAG, "Using index: $geoIndex")
+                database?.rawQuery(query, arrayOf(
+                    bounds.latSouth.toString(),
+                    bounds.latNorth.toString(),
+                    bounds.lonWest.toString(),
+                    bounds.lonEast.toString()
+                ))?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val bssidIndex = cursor.getColumnIndex("BSSID")
+                        val latIndex = cursor.getColumnIndex("latitude")
+                        val lonIndex = cursor.getColumnIndex("longitude")
 
-                    database?.rawQuery(query, arrayOf(
-                        bounds.latSouth.toString(),
-                        bounds.latNorth.toString(),
-                        bounds.lonWest.toString(),
-                        bounds.lonEast.toString()
-                    ))?.use { cursor ->
-                        buildList {
-                            if (cursor.moveToFirst()) {
-                                do {
-                                    val bssid = cursor.getLong(0)
-                                    val lat = cursor.getDouble(1)
-                                    val lon = cursor.getDouble(2)
-                                    add(Triple(bssid, lat, lon))
-                                } while (cursor.moveToNext())
+                        do {
+                            val bssid = cursor.getLong(bssidIndex)
+                            val lat = cursor.getDouble(latIndex)
+                            val lon = cursor.getDouble(lonIndex)
+                            points.add(Triple(bssid, lat, lon))
+
+                            if (points.size % 10000 == 0) {
+                                yield()
                             }
-                            Log.d(TAG, "Retrieved $size points from database")
-                        }
-                    } ?: run {
-                        Log.w(TAG, "Database or cursor is null")
-                        emptyList()
+                        } while (cursor.moveToNext())
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error getting points in bounding box", e)
-                    emptyList()
-                } finally {
-                    Log.d(TAG, "Releasing database lock")
+                    Log.d(TAG, "Retrieved ${points.size} points from database")
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting points in bounding box", e)
             }
+
+            points
         }
     }
+
 
     private fun saveCachedLastModified(cachedFile: File, lastModified: Long) {
         val metadataFile = File(cachedFile.parentFile, "${cachedFile.name}.metadata")
@@ -281,29 +270,16 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         val tableName = DatabaseTypeUtils.getMainTableName(database!!)
         if (tableName == "unknown") return emptyList()
 
-        val chunkedBssids = decimalBSSIDs.chunked(500)
+        val chunkedBssids = decimalBSSIDs.chunked(100)
+        Log.d(TAG, "Searching for ${decimalBSSIDs.size} BSSIDs in ${chunkedBssids.size} chunks")
 
-        val indices = DatabaseIndices.getAvailableIndices(database!!)
-        Log.d(TAG, "Available indices for BSSID search: $indices")
+        val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
 
-        val compositeIndex = if (tableName == "nets")
-            DatabaseIndices.NETS_COMPOSITE
-        else
-            DatabaseIndices.BASE_COMPOSITE
-
-        val query = if (indices.contains(compositeIndex)) {
-            """
-        SELECT n.*, g.latitude, g.longitude
-        FROM $tableName n INDEXED BY $compositeIndex
-        LEFT JOIN geo g ON n.BSSID = g.BSSID
-        WHERE n.BSSID IN (${chunkedBssids[0].joinToString(",") { "?" }})
-        """
-        } else {
-            buildBssidQuery(chunkedBssids[0].map { it.toString() }, indices, tableName)
-        }
+        val placeholders = chunkedBssids[0].joinToString(",") { "?" }
+        val baseQuery = DatabaseIndices.getOptimalBssidQuery(indexLevel, tableName, true)
+        val query = baseQuery.replace("(?)", "($placeholders)")
 
         Log.d(TAG, "Using query: $query")
-
         return chunkedBssids.flatMap { chunk ->
             database?.rawQuery(query, chunk.map { it.toString() }.toTypedArray())?.use { cursor ->
                 buildList {
@@ -331,90 +307,66 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         }
     }
 
-    private fun buildBssidQuery(bssids: List<String>, indices: Set<String>, tableName: String): String {
+    private fun buildBssidQuery(bssids: List<String>, indexLevel: DatabaseIndices.IndexLevel, tableName: String): String {
+        val placeholders = bssids.joinToString(",") { "?" }
+
         return when {
-            indices.contains(DatabaseIndices.GEO_COORDS_BSSID) -> {
+            indexLevel >= DatabaseIndices.IndexLevel.BASIC -> {
                 """
-            SELECT n.*, g.latitude, g.longitude
-            FROM $tableName n
-            LEFT JOIN geo g INDEXED BY ${DatabaseIndices.GEO_COORDS_BSSID}
-            ON n.BSSID = g.BSSID
-            WHERE n.BSSID IN (${bssids.joinToString(",") { "?" }})
-            """
-            }
-            tableName == "nets" && indices.contains(DatabaseIndices.NETS_BSSID) -> {
-                """
-            SELECT n.*, g.latitude, g.longitude
-            FROM $tableName n INDEXED BY ${DatabaseIndices.NETS_BSSID}
-            LEFT JOIN geo g ON n.BSSID = g.BSSID
-            WHERE n.BSSID IN (${bssids.joinToString(",") { "?" }})
-            """
-            }
-            tableName == "base" && indices.contains(DatabaseIndices.BASE_BSSID) -> {
-                """
-            SELECT n.*, g.latitude, g.longitude
-            FROM $tableName n INDEXED BY ${DatabaseIndices.BASE_BSSID}
-            LEFT JOIN geo g ON n.BSSID = g.BSSID
-            WHERE n.BSSID IN (${bssids.joinToString(",") { "?" }})
-            """
+    SELECT n.*, g.latitude, g.longitude
+    FROM $tableName n
+    LEFT JOIN geo g ON n.BSSID = g.BSSID
+    WHERE n.BSSID IN ($placeholders)
+    """
             }
             else -> {
                 """
-            SELECT n.*, g.latitude, g.longitude
-            FROM $tableName n
-            LEFT JOIN geo g ON n.BSSID = g.BSSID
-            WHERE n.BSSID IN (${bssids.joinToString(",") { "?" }})
-            """
+                SELECT n.*, g.latitude, g.longitude
+                FROM $tableName n
+                LEFT JOIN geo g ON n.BSSID = g.BSSID
+                WHERE n.BSSID IN ($placeholders)
+                """
             }
         }
     }
 
-    private fun buildEssidQuery(essids: List<String>, indices: Set<String>, tableName: String): String {
-        Log.d(TAG, "Building ESSID query with indices: $indices")
+    private suspend fun loadGeoDataForResults(results: List<Map<String, Any?>>): List<Map<String, Any?>> {
+        if (results.isEmpty()) return results
 
-        return when {
-            tableName == "nets" && indices.contains(DatabaseIndices.NETS_ESSID_LOWER) -> {
-                """
-            SELECT n.*, g.latitude, g.longitude
-            FROM $tableName n INDEXED BY ${DatabaseIndices.NETS_ESSID_LOWER}
-            LEFT JOIN geo g ON n.BSSID = g.BSSID
-            WHERE LOWER(n.ESSID) IN (${essids.joinToString(",") { "?" }})
-            """
+        val bssids = results.mapNotNull { it["BSSID"] as? Long }.distinct()
+        if (bssids.isEmpty()) return results
+
+        val geoData = mutableMapOf<Long, Pair<Double?, Double?>>()
+
+        bssids.chunked(100).forEach { chunk ->
+            val placeholders = chunk.joinToString(",") { "?" }
+            val query = """
+            SELECT BSSID, latitude, longitude
+            FROM geo
+            WHERE BSSID IN ($placeholders)
+        """
+
+            database?.rawQuery(query, chunk.map { it.toString() }.toTypedArray())?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    val bssid = cursor.getLong(0)
+                    val lat = if (cursor.isNull(1)) null else cursor.getDouble(1)
+                    val lon = if (cursor.isNull(2)) null else cursor.getDouble(2)
+                    geoData[bssid] = Pair(lat, lon)
+                }
             }
-            tableName == "nets" && indices.contains(DatabaseIndices.NETS_ESSID) -> {
-                """
-            SELECT n.*, g.latitude, g.longitude
-            FROM $tableName n INDEXED BY ${DatabaseIndices.NETS_ESSID}
-            LEFT JOIN geo g ON n.BSSID = g.BSSID
-            WHERE n.ESSID IN (${essids.joinToString(",") { "?" }})
-            """
+        }
+
+        return results.map { result ->
+            val bssid = result["BSSID"] as? Long
+            if (bssid != null && geoData.containsKey(bssid)) {
+                val (lat, lon) = geoData[bssid]!!
+                result.toMutableMap().apply {
+                    put("latitude", lat)
+                    put("longitude", lon)
+                }
+            } else {
+                result
             }
-            tableName == "base" && indices.contains(DatabaseIndices.BASE_ESSID_LOWER) -> {
-                """
-            SELECT n.*, g.latitude, g.longitude
-            FROM $tableName n INDEXED BY ${DatabaseIndices.BASE_ESSID_LOWER}
-            LEFT JOIN geo g ON n.BSSID = g.BSSID
-            WHERE LOWER(n.ESSID) IN (${essids.joinToString(",") { "?" }})
-            """
-            }
-            tableName == "base" && indices.contains(DatabaseIndices.BASE_ESSID) -> {
-                """
-            SELECT n.*, g.latitude, g.longitude
-            FROM $tableName n INDEXED BY ${DatabaseIndices.BASE_ESSID}
-            LEFT JOIN geo g ON n.BSSID = g.BSSID
-            WHERE n.ESSID IN (${essids.joinToString(",") { "?" }})
-            """
-            }
-            else -> {
-                """
-            SELECT n.*, g.latitude, g.longitude
-            FROM $tableName n
-            LEFT JOIN geo g ON n.BSSID = g.BSSID
-            WHERE n.ESSID IN (${essids.joinToString(",") { "?" }})
-            """
-            }
-        }.also { query ->
-            Log.d(TAG, "Generated ESSID query: $query")
         }
     }
 
@@ -427,15 +379,20 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                 val tableName = DatabaseTypeUtils.getMainTableName(database!!)
                 if (tableName == "unknown") return@withContext emptyList()
 
-                val chunkedEssids = validEssids.chunked(500)
-                val indices = DatabaseIndices.getAvailableIndices(database!!)
-                Log.d(TAG, "Available indices for ESSID search: $indices")
+                val chunkedEssids = validEssids.chunked(50)
+                val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
+                Log.d(TAG, "Index level for ESSID search: $indexLevel")
 
                 chunkedEssids.flatMap { chunk ->
-                    val query = buildEssidQuery(chunk, indices, tableName)
-                    Log.d(TAG, "Using optimized ESSID query: $query")
+                    val placeholders = chunk.joinToString(",") { "?" }
+                    val baseQuery = DatabaseIndices.getOptimalEssidQuery(indexLevel, tableName, true)
+                    val query = baseQuery.replace("(?)", "($placeholders)")
+                    Log.d(TAG, "Using ESSID query: $query")
+                    Log.d(TAG, "Searching for ${chunk.size} ESSIDs")
 
-                    database?.rawQuery(query, chunk.toTypedArray())?.use { cursor ->
+                    val startTime = System.currentTimeMillis()
+
+                    val results = database?.rawQuery(query, chunk.toTypedArray())?.use { cursor ->
                         buildList {
                             while (cursor.moveToNext()) {
                                 val result = mutableMapOf<String, Any?>()
@@ -455,6 +412,19 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                             }
                         }
                     } ?: emptyList()
+
+                    val queryTime = System.currentTimeMillis() - startTime
+                    Log.d(TAG, "ESSID query completed in ${queryTime}ms, found ${results.size} results")
+
+                    if (results.isNotEmpty()) {
+                        val geoStartTime = System.currentTimeMillis()
+                        val resultsWithGeo = loadGeoDataForResults(results)
+                        val geoTime = System.currentTimeMillis() - geoStartTime
+                        Log.d(TAG, "Geo data loaded in ${geoTime}ms")
+                        resultsWithGeo
+                    } else {
+                        results
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error searching networks by ESSID", e)
@@ -467,152 +437,147 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         filters: Set<String>,
         wholeWords: Boolean
     ): List<Map<String, Any?>> {
-        val indices = DatabaseIndices.getAvailableIndices(database!!)
-        Log.d(TAG, "Available indices: $indices")
+        val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
+        Log.d(TAG, "Index level: $indexLevel")
 
         val tableName = if (getTableNames().contains("nets")) "nets" else "base"
         val args = mutableListOf<String>()
 
-        if (filters == setOf("ESSID")) {
-            if (tableName == "nets") {
-                if (indices.contains(DatabaseIndices.NETS_ESSID_LOWER)) {
-                    Log.d(TAG, "Trying NETS_ESSID_LOWER index")
-                    val sql = """
-                    SELECT DISTINCT n.*, g.latitude, g.longitude 
-                    FROM $tableName n INDEXED BY ${DatabaseIndices.NETS_ESSID_LOWER}
-                    LEFT JOIN geo g ON n.BSSID = g.BSSID
-                    WHERE LOWER(n.ESSID) LIKE LOWER(?)
-                """.trimIndent()
-
-                    tryQuery(sql, arrayOf(if (wholeWords) query else "%$query%"))?.use { cursor ->
-                        val results = cursor.toSearchResults()
-                        if (results.isNotEmpty()) {
-                            return results
+        if (filters.size == 1) {
+            when (filters.first()) {
+                "ESSID" -> {
+                    if (indexLevel >= DatabaseIndices.IndexLevel.BASIC) {
+                        val essidIndex = if (tableName == "nets") DatabaseIndices.NETS_ESSID else DatabaseIndices.BASE_ESSID
+                        val sql = if (wholeWords) {
+                            """
+                        SELECT DISTINCT n.*, g.latitude, g.longitude 
+                        FROM $tableName n INDEXED BY $essidIndex
+                        LEFT JOIN geo g ON n.BSSID = g.BSSID
+                        WHERE n.ESSID = ? COLLATE NOCASE
+                        """.trimIndent()
+                        } else {
+                            """
+                        SELECT DISTINCT n.*, g.latitude, g.longitude 
+                        FROM $tableName n INDEXED BY $essidIndex
+                        LEFT JOIN geo g ON n.BSSID = g.BSSID
+                        WHERE n.ESSID LIKE ? ESCAPE '\\'
+                        """.trimIndent()
                         }
+
+                        val searchArg = if (wholeWords) query else "%${query.replace("%", "\\%").replace("_", "\\_")}%"
+
+                        return database?.rawQuery(sql, arrayOf(searchArg))?.use { cursor ->
+                            cursor.toSearchResults()
+                        } ?: emptyList()
                     }
                 }
-
-                if (indices.contains(DatabaseIndices.NETS_ESSID)) {
-                    Log.d(TAG, "Trying NETS_ESSID index")
-                    val sql = """
-                    SELECT DISTINCT n.*, g.latitude, g.longitude 
-                    FROM $tableName n INDEXED BY ${DatabaseIndices.NETS_ESSID}
-                    LEFT JOIN geo g ON n.BSSID = g.BSSID
-                    WHERE UPPER(n.ESSID) LIKE UPPER(?)
-                """.trimIndent()
-
-                    tryQuery(sql, arrayOf(if (wholeWords) query else "%$query%"))?.use { cursor ->
-                        val results = cursor.toSearchResults()
-                        if (results.isNotEmpty()) {
-                            return results
+                "WiFiKey" -> {
+                    if (indexLevel == DatabaseIndices.IndexLevel.FULL) {
+                        val wifiKeyIndex = if (tableName == "nets") DatabaseIndices.NETS_WIFIKEY else DatabaseIndices.BASE_WIFIKEY
+                        val sql = if (wholeWords) {
+                            """
+                        SELECT DISTINCT n.*, g.latitude, g.longitude 
+                        FROM $tableName n INDEXED BY $wifiKeyIndex
+                        LEFT JOIN geo g ON n.BSSID = g.BSSID
+                        WHERE n.WiFiKey = ? COLLATE NOCASE
+                        """.trimIndent()
+                        } else {
+                            """
+                        SELECT DISTINCT n.*, g.latitude, g.longitude 
+                        FROM $tableName n INDEXED BY $wifiKeyIndex
+                        LEFT JOIN geo g ON n.BSSID = g.BSSID
+                        WHERE n.WiFiKey LIKE ? ESCAPE '\\'
+                        """.trimIndent()
                         }
+
+                        val searchArg = if (wholeWords) query else "%${query.replace("%", "\\%").replace("_", "\\_")}%"
+
+                        return database?.rawQuery(sql, arrayOf(searchArg))?.use { cursor ->
+                            cursor.toSearchResults()
+                        } ?: emptyList()
                     }
                 }
-            }
-            else {
-                if (indices.contains(DatabaseIndices.BASE_ESSID_LOWER)) {
-                    Log.d(TAG, "Trying BASE_ESSID_LOWER index")
-                    val sql = """
-                    SELECT DISTINCT n.*, g.latitude, g.longitude 
-                    FROM $tableName n INDEXED BY ${DatabaseIndices.BASE_ESSID_LOWER}
-                    LEFT JOIN geo g ON n.BSSID = g.BSSID
-                    WHERE LOWER(n.ESSID) LIKE LOWER(?)
-                """.trimIndent()
+                "WPSPIN" -> {
+                    if (indexLevel == DatabaseIndices.IndexLevel.FULL) {
+                        val wpsPinIndex = if (tableName == "nets") DatabaseIndices.NETS_WPSPIN else DatabaseIndices.BASE_WPSPIN
+                        val sql = """
+                        SELECT DISTINCT n.*, g.latitude, g.longitude 
+                        FROM $tableName n INDEXED BY $wpsPinIndex
+                        LEFT JOIN geo g ON n.BSSID = g.BSSID
+                        WHERE n.WPSPIN = ?
+                    """.trimIndent()
 
-                    tryQuery(sql, arrayOf(if (wholeWords) query else "%$query%"))?.use { cursor ->
-                        val results = cursor.toSearchResults()
-                        if (results.isNotEmpty()) {
-                            return results
-                        }
+                        return database?.rawQuery(sql, arrayOf(query))?.use { cursor ->
+                            cursor.toSearchResults()
+                        } ?: emptyList()
                     }
                 }
-
-                if (indices.contains(DatabaseIndices.BASE_ESSID)) {
-                    Log.d(TAG, "Trying BASE_ESSID index")
-                    val sql = """
-                    SELECT DISTINCT n.*, g.latitude, g.longitude 
-                    FROM $tableName n INDEXED BY ${DatabaseIndices.BASE_ESSID}
-                    LEFT JOIN geo g ON n.BSSID = g.BSSID
-                    WHERE UPPER(n.ESSID) LIKE UPPER(?)
-                """.trimIndent()
-
-                    tryQuery(sql, arrayOf(if (wholeWords) query else "%$query%"))?.use { cursor ->
-                        val results = cursor.toSearchResults()
-                        if (results.isNotEmpty()) {
-                            return results
+                "BSSID" -> {
+                    val macValue = if (query.contains(":") || query.contains("-")) {
+                        try {
+                            query.replace(":", "").replace("-", "").toLong(16).toString()
+                        } catch (_: Exception) {
+                            null
                         }
-                    }
-                }
-            }
+                    } else query.toLongOrNull()?.toString()
 
-            Log.d(TAG, "Using fallback search without index")
-            val sql = """
-            SELECT DISTINCT n.*, g.latitude, g.longitude 
-            FROM $tableName n
-            LEFT JOIN geo g ON n.BSSID = g.BSSID
-            WHERE UPPER(n.ESSID) LIKE UPPER(?)
-        """.trimIndent()
+                    if (macValue != null && indexLevel >= DatabaseIndices.IndexLevel.BASIC) {
+                        val bssidIndex = if (tableName == "nets") DatabaseIndices.NETS_BSSID else DatabaseIndices.BASE_BSSID
+                        val sql = """
+                        SELECT DISTINCT n.*, g.latitude, g.longitude 
+                        FROM $tableName n INDEXED BY $bssidIndex
+                        LEFT JOIN geo g INDEXED BY ${DatabaseIndices.GEO_BSSID} ON n.BSSID = g.BSSID
+                        WHERE n.BSSID = ?
+                    """.trimIndent()
 
-            return database?.rawQuery(sql, arrayOf(if (wholeWords) query else "%$query%"))?.use { cursor ->
-                cursor.toSearchResults()
-            } ?: emptyList()
-        }
-
-        if (filters == setOf("BSSID")) {
-            val macValue = if (query.contains(":") || query.contains("-")) {
-                try {
-                    query.replace(":", "").replace("-", "").toLong(16).toString()
-                } catch (_: Exception) {
-                    null
-                }
-            } else query.toLongOrNull()?.toString()
-
-            if (macValue != null) {
-                if (tableName == "nets" && indices.contains(DatabaseIndices.NETS_BSSID)) {
-                    Log.d(TAG, "Using NETS_BSSID index for exact match")
-                    val sql = """
-                    SELECT DISTINCT n.*, g.latitude, g.longitude 
-                    FROM $tableName n INDEXED BY ${DatabaseIndices.NETS_BSSID}
-                    LEFT JOIN geo g ON n.BSSID = g.BSSID
-                    WHERE n.BSSID = ?
-                """.trimIndent()
-
-                    tryQuery(sql, arrayOf(macValue))?.use { cursor ->
-                        val results = cursor.toSearchResults()
-                        if (results.isNotEmpty()) {
-                            return results
-                        }
-                    }
-                } else if (tableName == "base" && indices.contains(DatabaseIndices.BASE_BSSID)) {
-                    Log.d(TAG, "Using BASE_BSSID index for exact match")
-                    val sql = """
-                    SELECT DISTINCT n.*, g.latitude, g.longitude 
-                    FROM $tableName n INDEXED BY ${DatabaseIndices.BASE_BSSID}
-                    LEFT JOIN geo g ON n.BSSID = g.BSSID
-                    WHERE n.BSSID = ?
-                """.trimIndent()
-
-                    tryQuery(sql, arrayOf(macValue))?.use { cursor ->
-                        val results = cursor.toSearchResults()
-                        if (results.isNotEmpty()) {
-                            return results
-                        }
+                        return database?.rawQuery(sql, arrayOf(macValue))?.use { cursor ->
+                            cursor.toSearchResults()
+                        } ?: emptyList()
                     }
                 }
             }
         }
 
-        val whereConditions = buildWhereConditions(filters, query, wholeWords, args)
+        val sql = DatabaseIndices.getOptimalSearchQuery(indexLevel, tableName, filters, wholeWords)
 
-        val sql = """
-        SELECT DISTINCT n.*, g.latitude, g.longitude
-        FROM $tableName n
-        LEFT JOIN geo g ON n.BSSID = g.BSSID
-        WHERE $whereConditions
-        ORDER BY n.BSSID
-    """.trimIndent()
+        filters.forEach { field ->
+            when (field) {
+                "BSSID" -> {
+                    val decimalBssid = if (query.contains(":") || query.contains("-")) {
+                        try {
+                            val decimal = query.replace(":", "").replace("-", "").toLong(16)
+                            args.add(decimal.toString())
+                            true
+                        } catch (_: Exception) {
+                            false
+                        }
+                    } else query.toLongOrNull() != null
 
-        Log.d(TAG, "Using fallback query: $sql")
+                    if (!decimalBssid) {
+                        args.add(if (wholeWords) query else "%$query%")
+                    }
+                }
+                "ESSID" -> {
+                    if (wholeWords) {
+                        args.add(query)
+                    } else {
+                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                    }
+                }
+                "WiFiKey" -> {
+                    if (wholeWords) {
+                        args.add(query)
+                    } else {
+                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                    }
+                }
+                "WPSPIN" -> {
+                    args.add(query)
+                }
+            }
+        }
+
+        Log.d(TAG, "Using query: $sql")
         Log.d(TAG, "Args: ${args.joinToString()}")
 
         return database?.rawQuery(sql, args.toTypedArray())?.use { cursor ->
@@ -648,12 +613,30 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                     }
                 }
                 "ESSID" -> {
-                    conditions.add("LOWER(n.ESSID) LIKE LOWER(?)")
-                    args.add(if (wholeWords) query else "%$query%")
+                    if (wholeWords) {
+                        conditions.add("n.ESSID = ? COLLATE NOCASE")
+                        args.add(query)
+                    } else {
+                        conditions.add("n.ESSID LIKE ? ESCAPE '\\'")
+                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                    }
+                }
+                "WiFiKey" -> {
+                    if (wholeWords) {
+                        conditions.add("n.WiFiKey = ? COLLATE NOCASE")
+                        args.add(query)
+                    } else {
+                        conditions.add("n.WiFiKey LIKE ? ESCAPE '\\'")
+                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                    }
+                }
+                "WPSPIN" -> {
+                    conditions.add("n.WPSPIN = ?")
+                    args.add(query)
                 }
                 else -> {
-                    conditions.add("LOWER($field) LIKE LOWER(?)")
-                    args.add(if (wholeWords) query else "%$query%")
+                    conditions.add("$field LIKE ? ESCAPE '\\'")
+                    args.add(if (wholeWords) query else "%${query.replace("%", "\\%").replace("_", "\\_")}%")
                 }
             }
         }
@@ -750,5 +733,4 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     fun clearCache() {
         resultsCache.clear()
     }
-
 }

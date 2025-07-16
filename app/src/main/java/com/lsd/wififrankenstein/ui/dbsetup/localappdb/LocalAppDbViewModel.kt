@@ -27,6 +27,11 @@ class LocalAppDbViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun getIndexingLevel(): String {
+        val dbHelper = LocalAppDbHelper(getApplication())
+        return dbHelper.getIndexLevel()
+    }
+
     fun getAllRecords(): List<WifiNetwork> {
         return dbHelper.getAllRecords()
     }

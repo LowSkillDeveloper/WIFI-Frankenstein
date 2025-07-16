@@ -171,7 +171,6 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
             context.startActivity(Intent.createChooser(mapIntent,
                 context.getString(R.string.map_choose_app)))
         } else {
-            // If Google Maps not installed, try to open in browser
             val browserUri = Uri.parse("https://maps.google.com/maps?q=$lat,$lon")
             val browserIntent = Intent(Intent.ACTION_VIEW, browserUri)
             context.startActivity(browserIntent)

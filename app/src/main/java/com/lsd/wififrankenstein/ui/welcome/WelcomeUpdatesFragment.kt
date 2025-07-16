@@ -117,7 +117,6 @@ class WelcomeUpdatesFragment : Fragment() {
                 binding.progressBarUpdates.progress = 100
                 isUpdating = false
 
-                // Handle file updates
                 if (status.fileUpdates.any { it.needsUpdate }) {
                     binding.textViewUpdateStatus.text = getString(R.string.updates_available)
                     updatesAdapter.submitList(status.fileUpdates)
@@ -127,7 +126,6 @@ class WelcomeUpdatesFragment : Fragment() {
                     binding.recyclerViewUpdates.visibility = View.GONE
                 }
 
-                // Handle app updates
                 status.appUpdate?.let { appUpdate ->
                     binding.textViewAppVersion.text = getString(R.string.current_version, appUpdate.currentVersion)
 

@@ -117,7 +117,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
         _clusterAggressiveness.value = prefs.getFloat("map_cluster_aggressiveness", 0.4f)
         _maxClusterSize.value = prefs.getInt("map_max_cluster_size", 5000)
-        _markerVisibilityZoom.value = prefs.getFloat("map_marker_visibility_zoom", 13f)
+        _markerVisibilityZoom.value = prefs.getFloat("map_marker_visibility_zoom", 8f)
         _maxMarkerDensity.value = prefs.getInt("map_max_marker_density", 3000)
         _preventClusterMerge.value = prefs.getBoolean("map_prevent_cluster_merge", false)
         _forcePointSeparation.value = prefs.getBoolean("map_force_point_separation", true)
@@ -157,7 +157,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _maxClusterSize.value = value
     }
 
-    fun getMarkerVisibilityZoom() = _markerVisibilityZoom.value ?: 0f
+    fun getMarkerVisibilityZoom() = _markerVisibilityZoom.value ?: 8f
     fun setMarkerVisibilityZoom(value: Float) {
         prefs.edit { putFloat("map_marker_visibility_zoom", value) }
         _markerVisibilityZoom.value = value

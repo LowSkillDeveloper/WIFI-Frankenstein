@@ -242,6 +242,24 @@ class WiFiScannerViewModel(
     ) {
         try {
             initializeSQLite3WiFiHelper(db.path.toUri(), db.directPath)
+            if (sqlite3WiFiHelper == null || sqlite3WiFiHelper?.database == null) {
+                Log.e("WiFiScannerViewModel", "SQLite3WiFiHelper or database is null")
+                return
+            }
+
+            val dbType = DatabaseTypeUtils.determineDbType(sqlite3WiFiHelper!!.database!!)
+            val tableName = when (dbType) {
+                DatabaseTypeUtils.WiFiDbType.TYPE_NETS -> "nets"
+                DatabaseTypeUtils.WiFiDbType.TYPE_BASE -> "base"
+                else -> {
+                    Log.e("WiFiScannerViewModel", "Unknown database type, cannot search")
+                    return
+                }
+            }
+
+            val indexLevel = DatabaseIndices.determineIndexLevel(sqlite3WiFiHelper!!.database!!)
+            Log.d("WiFiScannerViewModel", "ESSID search - Index level: $indexLevel, table: $tableName")
+
             val essids = networks.map { it.SSID.takeIf { ssid -> ssid.isNotBlank() }
                 ?: getApplication<Application>().getString(R.string.no_ssid) }
             val networkInfoList = sqlite3WiFiHelper?.searchNetworksByESSIDsAsync(essids) ?: emptyList()
@@ -322,8 +340,25 @@ class WiFiScannerViewModel(
 
             Log.d("WiFiScannerViewModel", "Database type: $dbType, using table: $tableName")
 
-            val indices = DatabaseIndices.getAvailableIndices(sqlite3WiFiHelper!!.database!!)
-            Log.d("WiFiScannerViewModel", "Available indices: $indices")
+            val indexLevel = DatabaseIndices.determineIndexLevel(sqlite3WiFiHelper!!.database!!)
+            Log.d("WiFiScannerViewModel", "Index level: $indexLevel")
+            when (indexLevel) {
+                DatabaseIndices.IndexLevel.NONE -> {
+                    Log.w("WiFiScannerViewModel", "No indexes available - search performance will be significantly degraded")
+                }
+                DatabaseIndices.IndexLevel.BASIC -> {
+                    Log.d("WiFiScannerViewModel", "Basic indexes available - good search performance")
+                }
+                DatabaseIndices.IndexLevel.FULL -> {
+                    Log.d("WiFiScannerViewModel", "Full indexes available - optimal search performance")
+                }
+            }
+
+            when (indexLevel) {
+                DatabaseIndices.IndexLevel.FULL -> Log.d("WiFiScannerViewModel", "Using full optimized indices")
+                DatabaseIndices.IndexLevel.BASIC -> Log.d("WiFiScannerViewModel", "Using basic optimized indices")
+                DatabaseIndices.IndexLevel.NONE -> Log.d("WiFiScannerViewModel", "No indices available, using standard query")
+            }
 
             val networkInfoList = withContext(Dispatchers.IO) {
                 if (_searchByMac.value == true) {

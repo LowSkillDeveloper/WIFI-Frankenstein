@@ -188,7 +188,7 @@ class API3WiFiHelper(
                 elapsedTime
             } catch (e: Exception) {
                 Log.e("API3WiFiHelper", "Ping error", e)
-                -1L // Indicate that the ping failed
+                -1L
             }
         }
     }
@@ -293,12 +293,11 @@ class API3WiFiHelper(
                     else -> {
                         val errorBody = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: "No error body"
                         Log.e("API3WiFiHelper", "HTTP error: $responseCode. Body: $errorBody")
-                        // Continue to the next URL
                     }
                 }
             } catch (e: Exception) {
                 Log.e("API3WiFiHelper", "Error sending request to $url", e)
-                // Continue to the next URL
+
             }
         }
 

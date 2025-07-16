@@ -91,8 +91,8 @@ class DatabaseFinderPagingSource(
                             SQLite3WiFiHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
                                 val db = helper.database
                                 if (db != null) {
-                                    val indices = DatabaseIndices.getAvailableIndices(db)
-                                    Log.d(TAG, "Available indices: $indices")
+                                    val indexLevel = DatabaseIndices.determineIndexLevel(db)
+                                    Log.d(TAG, "Index level: $indexLevel")
 
                                     val dbType = DatabaseTypeUtils.determineDbType(db)
                                     val searchTable = when (dbType) {
@@ -117,6 +117,17 @@ class DatabaseFinderPagingSource(
                                     }.toSet()
 
                                     Log.d(TAG, "3WiFi search fields: ${searchFields.joinToString()}")
+                                    if ((searchFields.contains("WiFiKey") || searchFields.contains("WPSPIN")) &&
+                                        indexLevel < DatabaseIndices.IndexLevel.FULL) {
+                                        Log.w(TAG, "Search includes WiFiKey/WPSPIN but database doesn't have FULL indexes - search may be slow")
+                                    }
+                                    if (searchFields.contains("WiFiKey") || searchFields.contains("WPSPIN")) {
+                                        if (indexLevel < DatabaseIndices.IndexLevel.FULL) {
+                                            Log.w(TAG, "Database doesn't have FULL indexes, search for WiFiKey/WPSPIN may be slow")
+                                        }
+                                    }
+                                    Log.d(TAG, "Using index level $indexLevel for optimization")
+
                                     val searchStartTime = System.currentTimeMillis()
                                     val dbResults = helper.searchNetworksByBSSIDAndFields(
                                         query,
@@ -125,7 +136,6 @@ class DatabaseFinderPagingSource(
                                     )
                                     Log.d(TAG, "3WiFi search completed in ${System.currentTimeMillis() - searchStartTime}ms")
                                     Log.d(TAG, "3WiFi found results: ${dbResults.size}")
-                                    Log.d(TAG, "3WiFi results: $dbResults")
 
                                     dbResults.map { result ->
                                         SearchResult(
@@ -136,9 +146,7 @@ class DatabaseFinderPagingSource(
                                             source = dbItem.path,
                                             latitude = result["latitude"] as? Double ?: (result["latitude"] as? String)?.toDoubleOrNull() ?: (result["lat"] as? Double) ?: (result["lat"] as? String)?.toDoubleOrNull(),
                                             longitude = result["longitude"] as? Double ?: (result["longitude"] as? String)?.toDoubleOrNull() ?: (result["lon"] as? Double) ?: (result["lon"] as? String)?.toDoubleOrNull()
-                                        ).also {
-                                            Log.d(TAG, "Mapped 3WiFi result: $it")
-                                        }
+                                        )
                                     }
                                 } else {
                                     Log.e(TAG, "Database is null, cannot search")
@@ -163,7 +171,6 @@ class DatabaseFinderPagingSource(
                                     }.toSet()
 
                                     Log.d(TAG, "Custom DB search fields using column map: ${searchFields.joinToString()}")
-                                    System.currentTimeMillis()
                                     val dbResults = helper.searchNetworksByBSSIDAndFields(
                                         tableName,
                                         columnMap,
@@ -207,7 +214,6 @@ class DatabaseFinderPagingSource(
 
                             Log.d(TAG, "Local DB search fields: ${searchFields.joinToString()}")
                             val localDbHelper = LocalAppDbHelper(context)
-                            System.currentTimeMillis()
 
                             val dbResults = localDbHelper.searchRecordsWithFilters(
                                 query,
@@ -242,7 +248,6 @@ class DatabaseFinderPagingSource(
                                 val bssids = listOf(query)
                                 Log.d(TAG, "API BSSIDs to search: $bssids")
 
-                                System.currentTimeMillis()
                                 val apiResults = apiHelper.searchNetworksByBSSIDs(bssids)
                                 Log.d(TAG, "API found results: ${apiResults.size}")
                                 Log.d(TAG, "API results: $apiResults")
@@ -295,4 +300,3 @@ class DatabaseFinderPagingSource(
         }
     }
 }
-

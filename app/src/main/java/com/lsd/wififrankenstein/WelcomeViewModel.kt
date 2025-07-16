@@ -32,7 +32,6 @@ class WelcomeViewModel(application: Application) : AndroidViewModel(application)
     val storagePermissionGranted: LiveData<Boolean> = _storagePermissionGranted
 
     init {
-        // Инициализируем LiveData безопасно
         viewModelScope.launch(Dispatchers.Main) {
             val locationPermission = withContext(Dispatchers.IO) {
                 sharedPreferences.getBoolean("location_permission_granted", false)

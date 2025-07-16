@@ -49,6 +49,7 @@ import com.opencsv.CSVReader
 import com.opencsv.CSVWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -139,7 +140,36 @@ class DbSetupFragment : Fragment() {
 
     private fun setupLocalDbCard() {
         binding.switchEnableIndexing.setOnCheckedChangeListener { _, isChecked ->
-            localAppDbViewModel.toggleIndexing(isChecked)
+            if (isChecked) {
+                val indexLevels = arrayOf(
+                    getString(R.string.index_level_full_option),
+                    getString(R.string.index_level_basic_option)
+                )
+
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.select_index_level)
+                    .setItems(indexLevels) { _, which ->
+                        val level = when (which) {
+                            0 -> "FULL"
+                            1 -> "BASIC"
+                            else -> "BASIC"
+                        }
+
+                        requireContext().getSharedPreferences("index_preferences", Context.MODE_PRIVATE)
+                            .edit {
+                                putString("local_db_index_level", level)
+                            }
+
+                        localAppDbViewModel.toggleIndexing(true)
+                    }
+                    .setNegativeButton(R.string.cancel) { _, _ ->
+                        binding.switchEnableIndexing.isChecked = false
+                    }
+                    .setCancelable(false)
+                    .show()
+            } else {
+                localAppDbViewModel.toggleIndexing(false)
+            }
         }
 
         binding.buttonClearLocalDb.setOnClickListener {
@@ -534,6 +564,8 @@ class DbSetupFragment : Fragment() {
             updateDbSizes()
             viewModel.checkAndUpdateDatabases()
             viewModel.updateAllDbIndexStatuses()
+            delay(200)
+            dbListAdapter.notifyDataSetChanged()
         }
     }
 
@@ -670,34 +702,62 @@ class DbSetupFragment : Fragment() {
     }
 
     private fun showIndexingProgressDialog(dbItem: DbItem) {
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.indexing_in_progress)
-            .setView(R.layout.dialog_indexing_progress)
-            .setCancelable(false)
-            .create()
+        val indexLevels = arrayOf(
+            getString(R.string.index_level_full_option),
+            getString(R.string.index_level_basic_option),
+            getString(R.string.index_level_none_option)
+        )
 
-        dialog.show()
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.select_index_level)
+            .setItems(indexLevels) { _, which ->
+                val level = when (which) {
+                    0 -> "FULL"
+                    1 -> "BASIC"
+                    2 -> "NONE"
+                    else -> "BASIC"
+                }
 
-        val progressBar = dialog.findViewById<ProgressBar>(R.id.progressBar)
+                requireContext().getSharedPreferences("index_preferences", Context.MODE_PRIVATE)
+                    .edit {
+                        putString("custom_db_index_level", level)
+                    }
 
-        viewModel.indexingProgress.observe(viewLifecycleOwner) { (id, progress) ->
-            if (id == dbItem.id) {
-                progressBar?.progress = progress
-                if (progress >= 100) {
+                if (level == "NONE") {
+                    Toast.makeText(context, R.string.db_added_without_indexes, Toast.LENGTH_SHORT).show()
+                    return@setItems
+                }
+
+                val dialog = MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.indexing_in_progress)
+                    .setView(R.layout.dialog_indexing_progress)
+                    .setCancelable(false)
+                    .create()
+
+                dialog.show()
+
+                val progressBar = dialog.findViewById<ProgressBar>(R.id.progressBar)
+
+                viewModel.indexingProgress.observe(viewLifecycleOwner) { (id, progress) ->
+                    if (id == dbItem.id) {
+                        progressBar?.progress = progress
+                        if (progress >= 100) {
+                            dialog.dismiss()
+                            Toast.makeText(context, R.string.indexing_complete, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+
+                lifecycleScope.launch {
+                    val result = viewModel.createDbIndexes(dbItem)
                     dialog.dismiss()
-                    Toast.makeText(context, R.string.indexing_complete, Toast.LENGTH_SHORT).show()
+
+                    if (!result) {
+                        Toast.makeText(context, R.string.indexing_failed, Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
-        }
-
-        lifecycleScope.launch {
-            val result = viewModel.createDbIndexes(dbItem)
-            dialog.dismiss()
-
-            if (!result) {
-                Toast.makeText(context, R.string.indexing_failed, Toast.LENGTH_SHORT).show()
-            }
-        }
+            .show()
     }
 
     private fun setupButtons() {

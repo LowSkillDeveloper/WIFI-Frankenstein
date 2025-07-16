@@ -33,7 +33,6 @@ class MapLegendAdapter : RecyclerView.Adapter<MapLegendAdapter.ViewHolder>() {
             setColor(color)
         }
         holder.colorView.background = shape
-        // Используем имя файла вместо типа
         holder.nameText.text = formatSourcePath(dbItem.path)
     }
 

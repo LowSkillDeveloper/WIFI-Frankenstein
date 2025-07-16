@@ -27,6 +27,21 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         const val COLUMN_LONGITUDE = "longitude"
     }
 
+    private fun hasIndex(indexName: String): Boolean {
+        return readableDatabase.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
+            arrayOf(indexName)
+        ).use { it.count > 0 }
+    }
+
+    fun getIndexLevel(): String {
+        return when {
+            hasIndex("idx_wifi_network_password") && hasIndex("idx_wifi_network_wps") -> "FULL"
+            hasIndex("idx_wifi_network_mac") && hasIndex("idx_wifi_network_name") -> "BASIC"
+            else -> "NONE"
+        }
+    }
+
     override fun onCreate(db: SQLiteDatabase) {
         val createTableSQL = """
             CREATE TABLE $TABLE_NAME (
@@ -47,14 +62,24 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     }
 
     fun getPointsInBounds(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double): List<WifiNetwork> {
-        return readableDatabase.query(
-            TABLE_NAME,
-            null,
-            "$COLUMN_LATITUDE BETWEEN ? AND ? AND $COLUMN_LONGITUDE BETWEEN ? AND ?",
-            arrayOf(minLat.toString(), maxLat.toString(), minLon.toString(), maxLon.toString()),
-            null,
-            null,
-            null
+        val indexLevel = getIndexLevel()
+
+        val query = when (indexLevel) {
+            "FULL", "BASIC" -> {
+                "SELECT * FROM $TABLE_NAME " +
+                        "WHERE $COLUMN_LATITUDE BETWEEN ? AND ? " +
+                        "AND $COLUMN_LONGITUDE BETWEEN ? AND ?"
+            }
+            else -> {
+                "SELECT * FROM $TABLE_NAME " +
+                        "WHERE $COLUMN_LATITUDE BETWEEN ? AND ? " +
+                        "AND $COLUMN_LONGITUDE BETWEEN ? AND ?"
+            }
+        }
+
+        return readableDatabase.rawQuery(
+            query,
+            arrayOf(minLat.toString(), maxLat.toString(), minLon.toString(), maxLon.toString())
         ).use { cursor ->
             val networks = mutableListOf<WifiNetwork>()
             while (cursor.moveToNext()) {
@@ -96,6 +121,82 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         return records
     }
 
+    fun searchRecordsOptimized(
+        query: String,
+        searchFields: Set<String>,
+        limit: Int = 100
+    ): List<WifiNetwork> {
+        val indexLevel = getIndexLevel()
+        val conditions = mutableListOf<String>()
+        val args = mutableListOf<String>()
+
+        if ("name" in searchFields) {
+            conditions.add("$COLUMN_WIFI_NAME LIKE ?")
+            args.add("%$query%")
+        }
+
+        if ("mac" in searchFields) {
+            conditions.add("$COLUMN_MAC_ADDRESS LIKE ?")
+            args.add("%$query%")
+        }
+
+        if ("password" in searchFields) {
+            conditions.add("$COLUMN_WIFI_PASSWORD LIKE ?")
+            args.add("%$query%")
+        }
+
+        if ("wps" in searchFields) {
+            conditions.add("$COLUMN_WPS_CODE LIKE ?")
+            args.add("%$query%")
+        }
+
+        if (conditions.isEmpty()) {
+            return emptyList()
+        }
+
+        val whereClause = conditions.joinToString(" OR ")
+
+        val queryBuilder = StringBuilder("SELECT * FROM $TABLE_NAME")
+
+        if (indexLevel != "NONE" && searchFields.size == 1) {
+            when (searchFields.first()) {
+                "name" -> if (hasIndex("idx_wifi_network_name")) {
+                    queryBuilder.append(" INDEXED BY idx_wifi_network_name")
+                }
+                "mac" -> if (hasIndex("idx_wifi_network_mac")) {
+                    queryBuilder.append(" INDEXED BY idx_wifi_network_mac")
+                }
+                "password" -> if (indexLevel == "FULL" && hasIndex("idx_wifi_network_password")) {
+                    queryBuilder.append(" INDEXED BY idx_wifi_network_password")
+                }
+                "wps" -> if (indexLevel == "FULL" && hasIndex("idx_wifi_network_wps")) {
+                    queryBuilder.append(" INDEXED BY idx_wifi_network_wps")
+                }
+            }
+        }
+
+        queryBuilder.append(" WHERE $whereClause LIMIT $limit")
+
+        return readableDatabase.rawQuery(queryBuilder.toString(), args.toTypedArray()).use { cursor ->
+            val results = mutableListOf<WifiNetwork>()
+            while (cursor.moveToNext()) {
+                results.add(
+                    WifiNetwork(
+                        id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID)),
+                        wifiName = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_WIFI_NAME)),
+                        macAddress = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MAC_ADDRESS)),
+                        wifiPassword = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_WIFI_PASSWORD)),
+                        wpsCode = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_WPS_CODE)),
+                        adminPanel = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_ADMIN_PANEL)),
+                        latitude = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_LATITUDE)),
+                        longitude = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_LONGITUDE))
+                    )
+                )
+            }
+            results
+        }
+    }
+
     fun importRecords(records: List<WifiNetwork>) {
         writableDatabase.transaction {
             try {
@@ -121,31 +222,38 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         val validEssids = essids.filter { it.isNotBlank() }
         if (validEssids.isEmpty()) return results
 
-        val placeholders = validEssids.joinToString(",") { "?" }
-        val selection = "$COLUMN_WIFI_NAME IN ($placeholders)"
+        val indexLevel = getIndexLevel()
+        val hasNameIndex = hasIndex("idx_wifi_network_name")
 
-        readableDatabase.query(
-            TABLE_NAME,
-            null,
-            selection,
-            validEssids.toTypedArray(),
-            null,
-            null,
-            null
-        ).use { cursor ->
-            while (cursor.moveToNext()) {
-                results.add(
-                    WifiNetwork(
-                        id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID)),
-                        wifiName = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_WIFI_NAME)),
-                        macAddress = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MAC_ADDRESS)),
-                        wifiPassword = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_WIFI_PASSWORD)),
-                        wpsCode = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_WPS_CODE)),
-                        adminPanel = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_ADMIN_PANEL)),
-                        latitude = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_LATITUDE)),
-                        longitude = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_LONGITUDE))
+        val chunkedEssids = validEssids.chunked(500)
+
+        chunkedEssids.forEach { chunk ->
+            val placeholders = chunk.joinToString(",") { "?" }
+
+            val query = when {
+                indexLevel != "NONE" && hasNameIndex -> {
+                    "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_name WHERE $COLUMN_WIFI_NAME IN ($placeholders) COLLATE NOCASE"
+                }
+                else -> {
+                    "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_NAME IN ($placeholders) COLLATE NOCASE"
+                }
+            }
+
+            readableDatabase.rawQuery(query, chunk.toTypedArray()).use { cursor ->
+                while (cursor.moveToNext()) {
+                    results.add(
+                        WifiNetwork(
+                            id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID)),
+                            wifiName = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_WIFI_NAME)),
+                            macAddress = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MAC_ADDRESS)),
+                            wifiPassword = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_WIFI_PASSWORD)),
+                            wpsCode = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_WPS_CODE)),
+                            adminPanel = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_ADMIN_PANEL)),
+                            latitude = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_LATITUDE)),
+                            longitude = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_LONGITUDE))
+                        )
                     )
-                )
+                }
             }
         }
 
@@ -347,13 +455,26 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     }
 
     fun enableIndexing() {
-        writableDatabase.execSQL("CREATE INDEX IF NOT EXISTS idx_wifiname ON $TABLE_NAME ($COLUMN_WIFI_NAME)")
-        writableDatabase.execSQL("CREATE INDEX IF NOT EXISTS idx_macaddress ON $TABLE_NAME ($COLUMN_MAC_ADDRESS)")
+        writableDatabase.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_name ON $TABLE_NAME ($COLUMN_WIFI_NAME COLLATE NOCASE)")
+        writableDatabase.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_mac ON $TABLE_NAME ($COLUMN_MAC_ADDRESS)")
+        writableDatabase.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_coords ON $TABLE_NAME ($COLUMN_LATITUDE, $COLUMN_LONGITUDE)")
+        writableDatabase.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_password ON $TABLE_NAME ($COLUMN_WIFI_PASSWORD COLLATE NOCASE)")
+        writableDatabase.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_wps ON $TABLE_NAME ($COLUMN_WPS_CODE)")
     }
 
     fun disableIndexing() {
-        writableDatabase.execSQL("DROP INDEX IF EXISTS idx_wifiname")
-        writableDatabase.execSQL("DROP INDEX IF EXISTS idx_macaddress")
+        writableDatabase.execSQL("DROP INDEX IF EXISTS idx_wifi_network_name")
+        writableDatabase.execSQL("DROP INDEX IF EXISTS idx_wifi_network_mac")
+        writableDatabase.execSQL("DROP INDEX IF EXISTS idx_wifi_network_coords")
+        writableDatabase.execSQL("DROP INDEX IF EXISTS idx_wifi_network_password")
+        writableDatabase.execSQL("DROP INDEX IF EXISTS idx_wifi_network_wps")
+    }
+
+    fun hasIndexes(): Boolean {
+        return readableDatabase.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND name IN (?, ?, ?)",
+            arrayOf(TABLE_NAME, "idx_wifi_network_mac", "idx_wifi_network_name", "idx_wifi_network_coords")
+        ).use { it.count >= 3 }
     }
 
     fun optimizeDatabase() {
@@ -369,13 +490,6 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
                 GROUP BY $COLUMN_WIFI_NAME, $COLUMN_MAC_ADDRESS, $COLUMN_WIFI_PASSWORD, $COLUMN_WPS_CODE, $COLUMN_ADMIN_PANEL, $COLUMN_LATITUDE, $COLUMN_LONGITUDE
             )
         """.trimIndent())
-    }
-
-    fun hasIndexes(): Boolean {
-        return readableDatabase.rawQuery(
-            "SELECT name FROM sqlite_master WHERE type='index' AND (name='idx_wifiname' OR name='idx_macaddress')",
-            null
-        ).use { it.count == 2 }
     }
 
     fun restoreDatabaseFromUri(uri: Uri) {

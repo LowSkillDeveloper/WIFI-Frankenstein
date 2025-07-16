@@ -9,6 +9,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
+import com.lsd.wififrankenstein.util.DatabaseIndices
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -53,7 +54,13 @@ class WiFi3DetailLoader(
                         }
                     }
 
-                    val query = "SELECT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
+                    val indexLevel = DatabaseIndices.determineIndexLevel(db)
+                    val query = if (indexLevel >= DatabaseIndices.IndexLevel.BASIC) {
+                        "SELECT n.*, g.latitude, g.longitude FROM $tableName n INDEXED BY ${if (tableName == "nets") DatabaseIndices.NETS_BSSID else DatabaseIndices.BASE_BSSID} LEFT JOIN geo g INDEXED BY ${DatabaseIndices.GEO_BSSID} ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
+                    } else {
+                        "SELECT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
+                    }
+
                     db.rawQuery(query, arrayOf(decimalBssid.toString())).use { cursor ->
                         if (cursor.moveToFirst()) {
                             val result = cursorToMap(cursor)
@@ -159,7 +166,7 @@ class LocalAppDetailLoader(
     }.flowOn(Dispatchers.IO)
 }
 
-// Для ApiDetailLoader:
+
 class ApiDetailLoader(
     private val context: Context,
     private val dbItem: DbItem,

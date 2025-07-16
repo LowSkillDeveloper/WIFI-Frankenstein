@@ -1,5 +1,6 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
+import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.Color
@@ -40,6 +41,9 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.overlay.Marker
+import androidx.core.content.edit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class WiFiMapFragment : Fragment() {
     private val TAG = "WiFiMapFragment"
@@ -55,6 +59,7 @@ class WiFiMapFragment : Fragment() {
     private var isLegendExpanded = true
     private var updateJob: Job? = null
     private var isClustersPreventMerged = false
+    private lateinit var canvasOverlay: MapCanvasOverlay
 
     private var currentIndexingDb: DbItem? = null
 
@@ -160,8 +165,28 @@ class WiFiMapFragment : Fragment() {
                 controller.setCenter(GeoPoint(DEFAULT_LAT, DEFAULT_LON))
             }
 
+            canvasOverlay = MapCanvasOverlay { point ->
+                if (point.bssidDecimal == -1L) {
+                    controller.animateTo(
+                        GeoPoint(point.latitude, point.longitude),
+                        zoomLevelDouble + 1.0,
+                        400L
+                    )
+                } else {
+                    if (point.isDataLoaded) {
+                        showNetworkInfo(point)
+                    } else {
+                        lifecycleScope.launch {
+                            viewModel.loadPointInfo(point)
+                        }
+                    }
+                }
+            }
+
+            overlays.add(canvasOverlay)
+
             var lastUpdate = 0L
-            val updateInterval = 100L
+            val updateInterval = 200L
 
             addMapListener(object : MapListener {
                 override fun onScroll(event: ScrollEvent): Boolean {
@@ -246,11 +271,44 @@ class WiFiMapFragment : Fragment() {
     private fun showCreateIndexesDialog(dbItem: DbItem) {
         Log.d(TAG, "Showing create indexes dialog for ${dbItem.id}")
         currentIndexingDb = dbItem
+
+        val indexLevels = arrayOf(
+            getString(R.string.index_level_full_option),
+            getString(R.string.index_level_basic_option),
+            getString(R.string.index_level_none_option)
+        )
+
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.create_indexes_title)
+            .setTitle(R.string.select_index_level)
             .setMessage(R.string.create_indexes_message)
-            .setPositiveButton(R.string.yes) { _, _ ->
-                Log.d(TAG, "User chose to create indexes for ${dbItem.id}")
+            .setItems(indexLevels) { _, which ->
+                val level = when (which) {
+                    0 -> "FULL"
+                    1 -> "BASIC"
+                    2 -> "NONE"
+                    else -> "BASIC"
+                }
+
+                val prefKey = if (dbItem.dbType == DbType.LOCAL_APP_DB) {
+                    "local_db_index_level"
+                } else {
+                    "custom_db_index_level"
+                }
+
+                requireContext().getSharedPreferences("index_preferences", Context.MODE_PRIVATE)
+                    .edit {
+                        putString(prefKey, level)
+                    }
+
+                if (level == "NONE") {
+                    Log.d(TAG, "User chose no indexing for ${dbItem.id}")
+                    selectedDatabases.remove(dbItem)
+                    databaseAdapter.notifyDataSetChanged()
+                    currentIndexingDb = null
+                    return@setItems
+                }
+
+                Log.d(TAG, "User chose to create $level indexes for ${dbItem.id}")
                 showIndexingProgress()
                 lifecycleScope.launch {
                     if (dbItem.dbType == DbType.LOCAL_APP_DB) {
@@ -260,8 +318,8 @@ class WiFiMapFragment : Fragment() {
                     }
                 }
             }
-            .setNegativeButton(R.string.no) { _, _ ->
-                Log.d(TAG, "User declined to create indexes for ${dbItem.id}")
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                Log.d(TAG, "User cancelled index creation for ${dbItem.id}")
                 selectedDatabases.remove(dbItem)
                 databaseAdapter.notifyDataSetChanged()
                 currentIndexingDb = null
@@ -337,7 +395,15 @@ class WiFiMapFragment : Fragment() {
             Log.d(TAG, "Loading progress updated: $count")
             binding.loadingIndicator.isIndeterminate = false
             binding.loadingIndicator.progress = count
-            binding.textViewProgress.text = getString(R.string.loading_points_progress, count)
+            when {
+                count < 50 -> binding.textViewProgress.text = getString(R.string.loading_points_progress, count)
+                count < 75 -> binding.textViewProgress.text = getString(R.string.clustering_points)
+                count < 100 -> binding.textViewProgress.text = getString(R.string.rendering_markers)
+                else -> {
+                    binding.loadingIndicator.visibility = View.GONE
+                    binding.textViewProgress.visibility = View.GONE
+                }
+            }
         }
 
         viewModel.points.observe(viewLifecycleOwner) { points ->
@@ -390,26 +456,28 @@ class WiFiMapFragment : Fragment() {
 
     private fun updateVisiblePoints() {
         val zoom = binding.map.zoomLevelDouble
-        if (zoom < viewModel.getMinZoomForMarkers()) {
+        val minZoom = viewModel.getMinZoomForMarkers()
+
+        if (zoom < minZoom) {
             clearMarkers()
             binding.textViewProgress.text = getString(R.string.zoom_in_message)
+            binding.textViewProgress.visibility = View.VISIBLE
             return
         }
-
 
         if (selectedDatabases.isEmpty()) {
             clearMarkers()
             binding.textViewProgress.text = getString(R.string.select_database_message)
+            binding.textViewProgress.visibility = View.VISIBLE
             return
         }
 
+        binding.textViewProgress.visibility = View.GONE
         val boundingBox = binding.map.boundingBox ?: return
 
         updateJob?.cancel()
 
         updateJob = lifecycleScope.launch {
-            delay(200)
-
             val currentColors = selectedDatabases.associate { database ->
                 database.id to getColorForDatabase(database.id)
             }
@@ -424,52 +492,13 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun updateMarkers(visiblePoints: List<NetworkPoint>) {
-        Log.d(TAG, "Updating markers with ${visiblePoints.size} visible points")
+        Log.d(TAG, "Updating canvas overlay with ${visiblePoints.size} visible points")
 
-        val currentMarkers = markers.associateByTo(HashMap()) { marker ->
-            if (marker.snippet != null) {
-                marker.snippet.toLong()
-            } else {
-                "${marker.position.latitude},${marker.position.longitude}".hashCode().toLong()
-            }
+        lifecycleScope.launch(Dispatchers.Main) {
+            canvasOverlay.updatePoints(visiblePoints)
+            binding.map.invalidate()
+            updateLegend()
         }
-
-        val newKeys = visiblePoints.mapTo(HashSet()) { point ->
-            if (point.bssidDecimal == -1L) {
-                "${point.latitude},${point.longitude}".hashCode().toLong()
-            } else {
-                point.bssidDecimal
-            }
-        }
-
-        markers.removeAll { marker ->
-            val key = if (marker.snippet != null) {
-                marker.snippet.toLong()
-            } else {
-                "${marker.position.latitude},${marker.position.longitude}".hashCode().toLong()
-            }
-            if (!newKeys.contains(key)) {
-                binding.map.overlays.remove(marker)
-                true
-            } else {
-                false
-            }
-        }
-
-        visiblePoints.forEach { point ->
-            val key = if (point.bssidDecimal == -1L) {
-                "${point.latitude},${point.longitude}".hashCode().toLong()
-            } else {
-                point.bssidDecimal
-            }
-
-            if (!currentMarkers.containsKey(key)) {
-                addMarkerForPoint(point)
-            }
-        }
-
-        binding.map.invalidate()
-        updateLegend()
     }
 
     private fun setupCollapsibleCards() {
@@ -545,13 +574,22 @@ class WiFiMapFragment : Fragment() {
         val countText = point.essid?.substringBetween("(", " points)") ?: "0"
         val count = countText.toIntOrNull() ?: 0
 
-        val baseSize = 80
-        val size = when {
-            count > 1000 -> baseSize * 2
-            count > 500 -> (baseSize * 1.75).toInt()
-            count > 100 -> (baseSize * 1.5).toInt()
-            count > 50 -> (baseSize * 1.25).toInt()
-            else -> baseSize
+        val isMultiPointCluster = count > 1
+
+        val baseSize = if (isMultiPointCluster) 280 else 120
+        val size = if (isMultiPointCluster) {
+            when {
+                count >= 100000 -> (baseSize * 3).toInt()
+                count >= 50000 -> (baseSize * 2.5).toInt()
+                count >= 20000 -> (baseSize * 2.25).toInt()
+                count >= 10000 -> (baseSize * 2).toInt()
+                count >= 5000 -> (baseSize * 1.75).toInt()
+                count >= 2000 -> (baseSize * 1.5).toInt()
+                count >= 1000 -> (baseSize * 1.25).toInt()
+                else -> baseSize
+            }
+        } else {
+            120
         }
 
         val bitmap = createBitmap(size, size)
@@ -563,17 +601,25 @@ class WiFiMapFragment : Fragment() {
             isAntiAlias = true
         }
 
-
         canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
 
         paint.apply {
             color = Color.WHITE
-            textSize = size / 3f
+            textSize = if (isMultiPointCluster) size.toFloat() / 4f else size.toFloat() / 3f
             textAlign = Paint.Align.CENTER
         }
 
+        val displayText = if (isMultiPointCluster) {
+            when {
+                count >= 1000000 -> "${count / 1000000}M"
+                count >= 1000 -> "${count / 1000}k"
+                else -> countText
+            }
+        } else {
+            "1"
+        }
 
-        canvas.drawText(countText, size / 2f, size / 2f + 8f, paint)
+        canvas.drawText(displayText, size.toFloat() / 2f, size.toFloat() / 2f + 8f, paint)
 
         return bitmap.toDrawable(binding.root.resources)
     }
@@ -640,8 +686,7 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun clearMarkers() {
-        markers.forEach { binding.map.overlays.remove(it) }
-        markers.clear()
+        canvasOverlay.updatePoints(emptyList())
         binding.map.invalidate()
         binding.legendCard.visibility = View.GONE
     }

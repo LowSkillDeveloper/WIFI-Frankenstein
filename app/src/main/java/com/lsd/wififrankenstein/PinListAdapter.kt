@@ -82,7 +82,6 @@ class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiff
             PopupMenu(view.context, view).apply {
                 menuInflater.inflate(R.menu.pin_actions, menu)
 
-                // Проверяем включены ли root функции
                 val prefs = view.context.getSharedPreferences("settings", Context.MODE_PRIVATE)
                 val isRootEnabled = prefs.getBoolean("enable_root", false)
                 menu.findItem(R.id.action_connect_wps_root).isVisible = isRootEnabled

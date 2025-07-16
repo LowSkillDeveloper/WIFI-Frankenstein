@@ -161,26 +161,51 @@ class ExternalIndexManager(private val context: Context) {
 
                 progressCallback(30)
 
-                Log.d(TAG, "Creating index for MAC column")
-                indexDb.execSQL("CREATE INDEX idx_mac ON indexed_data (mac)")
+                val prefs = context.getSharedPreferences("index_preferences", Context.MODE_PRIVATE)
+                val indexLevel = prefs.getString("custom_db_index_level", "BASIC") ?: "BASIC"
+
+                Log.d(TAG, "Creating indexes with level: $indexLevel")
+
+                indexDb.execSQL("CREATE INDEX idx_custom_mac ON indexed_data (mac)")
+                progressCallback(40)
+
+                indexDb.execSQL("CREATE INDEX idx_custom_latitude ON indexed_data (latitude)")
+                progressCallback(50)
+
+                indexDb.execSQL("CREATE INDEX idx_custom_longitude ON indexed_data (longitude)")
                 progressCallback(60)
 
-                Log.d(TAG, "Creating index for coordinates")
-                indexDb.execSQL("CREATE INDEX idx_coords ON indexed_data (latitude, longitude)")
-                progressCallback(75)
+                when (indexLevel) {
+                    "FULL" -> {
+                        // Создаем все индексы для FULL уровня
+                        if (essidCol != null) {
+                            Log.d(TAG, "Creating ESSID index (FULL)")
+                            indexDb.execSQL("CREATE INDEX idx_custom_essid ON indexed_data (essid COLLATE NOCASE)")
+                            progressCallback(70)
+                        }
 
-                Log.d(TAG, "Creating composite index")
-                indexDb.execSQL("CREATE INDEX idx_composite ON indexed_data (mac, latitude, longitude)")
-                progressCallback(90)
+                        if (passCol != null) {
+                            Log.d(TAG, "Creating password index (FULL)")
+                            indexDb.execSQL("CREATE INDEX idx_custom_password ON indexed_data (password COLLATE NOCASE)")
+                            progressCallback(80)
+                        }
 
-                if (essidCol != null) {
-                    Log.d(TAG, "Creating ESSID index")
-                    indexDb.execSQL("CREATE INDEX idx_essid ON indexed_data (essid)")
-                }
-
-                if (wpsCol != null) {
-                    Log.d(TAG, "Creating WPS PIN index")
-                    indexDb.execSQL("CREATE INDEX idx_wpspin ON indexed_data (wpspin)")
+                        if (wpsCol != null) {
+                            Log.d(TAG, "Creating WPS PIN index (FULL)")
+                            indexDb.execSQL("CREATE INDEX idx_custom_wpspin ON indexed_data (wpspin)")
+                            progressCallback(85)
+                        }
+                    }
+                    "BASIC" -> {
+                        if (essidCol != null) {
+                            Log.d(TAG, "Creating ESSID index (BASIC)")
+                            indexDb.execSQL("CREATE INDEX idx_custom_essid ON indexed_data (essid COLLATE NOCASE)")
+                            progressCallback(70)
+                        }
+                    }
+                    "NONE" -> {
+                        Log.d(TAG, "Skipping additional indexes (NONE level)")
+                    }
                 }
 
                 indexDb.execSQL("DETACH DATABASE maindb")
@@ -191,7 +216,7 @@ class ExternalIndexManager(private val context: Context) {
                 saveDbHash(dbId, newHash)
                 progressCallback(100)
 
-                Log.d(TAG, "External indexes created successfully for $dbId")
+                Log.d(TAG, "External indexes created successfully for $dbId with level: $indexLevel")
                 return@withContext true
             } finally {
                 indexDb.close()
@@ -245,12 +270,27 @@ class ExternalIndexManager(private val context: Context) {
             )
 
             try {
-                val query = """
+                val indexLevel = getIndexLevel(dbId)
+
+                val query = when (indexLevel) {
+                    "FULL", "BASIC" -> {
+                        """
+                    SELECT mac, latitude, longitude 
+                    FROM indexed_data 
+                    INDEXED BY idx_custom_latitude
+                    WHERE latitude BETWEEN ? AND ?
+                    AND longitude BETWEEN ? AND ?
+                    """.trimIndent()
+                    }
+                    else -> {
+                        """
                     SELECT mac, latitude, longitude 
                     FROM indexed_data 
                     WHERE latitude BETWEEN ? AND ?
                     AND longitude BETWEEN ? AND ?
-                """.trimIndent()
+                    """.trimIndent()
+                    }
+                }
 
                 indexDb.rawQuery(query, arrayOf(
                     bounds.latSouth.toString(),
@@ -280,6 +320,40 @@ class ExternalIndexManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Error querying points from external index", e)
             emptyList()
+        }
+    }
+
+    fun getIndexLevel(dbId: String): String {
+        try {
+            val indexDbPath = getIndexDbPath(dbId)
+            if (!File(indexDbPath).exists()) return "NONE"
+
+            val indexDb = SQLiteDatabase.openDatabase(
+                indexDbPath, null, SQLiteDatabase.OPEN_READONLY
+            )
+
+            return try {
+                val hasEssidIndex = indexDb.rawQuery(
+                    "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_custom_essid'",
+                    null
+                ).use { it.count > 0 }
+
+                val hasPasswordIndex = indexDb.rawQuery(
+                    "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_custom_password'",
+                    null
+                ).use { it.count > 0 }
+
+                when {
+                    hasEssidIndex && hasPasswordIndex -> "FULL"
+                    hasEssidIndex -> "BASIC"
+                    else -> "NONE"
+                }
+            } finally {
+                indexDb.close()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting index level", e)
+            return "NONE"
         }
     }
 

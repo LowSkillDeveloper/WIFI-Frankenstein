@@ -1,5 +1,6 @@
 package com.lsd.wififrankenstein.ui.dbsetup.localappdb
 
+import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 
@@ -8,7 +9,15 @@ class LocalDbPagingSource(private val dbHelper: LocalAppDbHelper) : PagingSource
     override suspend fun load(params: LoadParams<Long>): LoadResult<Long, WifiNetwork> {
         val position = params.key ?: 0
         return try {
-            val records = dbHelper.getRecords(position, params.loadSize)
+            val indexLevel = dbHelper.getIndexLevel()
+            Log.d("LocalDbPagingSource", "Loading with index level: $indexLevel")
+
+            val records = if (indexLevel != "NONE") {
+                dbHelper.getRecords(position, params.loadSize)
+            } else {
+                dbHelper.getRecords(position, params.loadSize)
+            }
+
             LoadResult.Page(
                 data = records,
                 prevKey = if (position == 0L) null else position - params.loadSize,

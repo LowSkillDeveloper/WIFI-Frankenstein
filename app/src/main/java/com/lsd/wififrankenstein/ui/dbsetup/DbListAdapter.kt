@@ -50,19 +50,23 @@ class DbListAdapter(
 
             when (item.dbType) {
                 DbType.SQLITE_FILE_CUSTOM -> {
-
                     binding.textViewIndexStatusLabel.visibility = View.VISIBLE
                     binding.textViewIndexStatus.visibility = View.VISIBLE
                     binding.buttonManageIndexes.visibility = View.VISIBLE
 
-                    if (item.isIndexed) {
-                        binding.textViewIndexStatus.text = binding.root.context.getString(R.string.indexed)
-                        binding.textViewIndexStatus.setTextColor(ContextCompat.getColor(binding.root.context, R.color.success_green))
-                        binding.buttonManageIndexes.text = binding.root.context.getString(R.string.delete_indexes)
-                    } else {
-                        binding.textViewIndexStatus.text = binding.root.context.getString(R.string.not_indexed)
-                        binding.textViewIndexStatus.setTextColor(ContextCompat.getColor(binding.root.context, R.color.error_red))
-                        binding.buttonManageIndexes.text = binding.root.context.getString(R.string.index_database)
+                    binding.textViewIndexStatus.text = binding.root.context.getString(R.string.checking_indexes)
+                    binding.textViewIndexStatus.setTextColor(ContextCompat.getColor(binding.root.context, android.R.color.darker_gray))
+
+                    binding.root.post {
+                        if (item.isIndexed) {
+                            binding.textViewIndexStatus.text = binding.root.context.getString(R.string.basic_indices_available)
+                            binding.textViewIndexStatus.setTextColor(ContextCompat.getColor(binding.root.context, R.color.success_green))
+                            binding.buttonManageIndexes.text = binding.root.context.getString(R.string.delete_indexes)
+                        } else {
+                            binding.textViewIndexStatus.text = binding.root.context.getString(R.string.no_indices_available)
+                            binding.textViewIndexStatus.setTextColor(ContextCompat.getColor(binding.root.context, R.color.error_red))
+                            binding.buttonManageIndexes.text = binding.root.context.getString(R.string.index_database)
+                        }
                     }
                 }
                 DbType.SQLITE_FILE_3WIFI -> {
@@ -70,12 +74,17 @@ class DbListAdapter(
                     binding.textViewIndexStatus.visibility = View.VISIBLE
                     binding.buttonManageIndexes.visibility = View.GONE
 
-                    if (item.isIndexed) {
-                        binding.textViewIndexStatus.text = binding.root.context.getString(R.string.indexed)
-                        binding.textViewIndexStatus.setTextColor(ContextCompat.getColor(binding.root.context, R.color.success_green))
-                    } else {
-                        binding.textViewIndexStatus.text = binding.root.context.getString(R.string.not_indexed)
-                        binding.textViewIndexStatus.setTextColor(ContextCompat.getColor(binding.root.context, R.color.error_red))
+                    binding.textViewIndexStatus.text = binding.root.context.getString(R.string.checking_indexes)
+                    binding.textViewIndexStatus.setTextColor(ContextCompat.getColor(binding.root.context, android.R.color.darker_gray))
+
+                    binding.root.post {
+                        if (item.isIndexed) {
+                            binding.textViewIndexStatus.text = binding.root.context.getString(R.string.basic_indices_available)
+                            binding.textViewIndexStatus.setTextColor(ContextCompat.getColor(binding.root.context, R.color.success_green))
+                        } else {
+                            binding.textViewIndexStatus.text = binding.root.context.getString(R.string.no_indices_available)
+                            binding.textViewIndexStatus.setTextColor(ContextCompat.getColor(binding.root.context, R.color.error_red))
+                        }
                     }
                 }
                 else -> {

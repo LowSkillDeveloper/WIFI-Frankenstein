@@ -96,7 +96,6 @@ class MainActivity : AppCompatActivity() {
                         put("hasSystemUpdates", status.fileUpdates.any { it.needsUpdate })
                         put("hasDbUpdates", status.dbUpdates.any { it.needsUpdate })
                         put("hasAnyUpdates", status.hasUpdates)
-                        // Add the new version number
                         status.appUpdate?.let {
                             put("newVersion", it.newVersion)
                         }
