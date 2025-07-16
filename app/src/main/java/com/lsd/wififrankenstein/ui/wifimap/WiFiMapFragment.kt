@@ -390,8 +390,26 @@ class WiFiMapFragment : Fragment() {
     private fun updateVisiblePoints() {
         val zoom = binding.map.zoomLevelDouble
         val minZoom = viewModel.getMinZoomForMarkers()
+        val boundingBox = binding.map.boundingBox
+
+        Log.d(TAG, "=== MAP UPDATE DEBUG ===")
+        Log.d(TAG, "Current zoom: $zoom")
+        Log.d(TAG, "Min zoom for markers: $minZoom")
+        Log.d(TAG, "Bounding box: $boundingBox")
+        Log.d(TAG, "Selected databases: ${selectedDatabases.size}")
+
+        val zoomCategory = when {
+            zoom >= 16 -> "CLOSE (≥16) - NO LIMITS"
+            zoom >= 14 -> "MEDIUM (14-15) - 50k points"
+            zoom >= 12 -> "CITY (12-13) - 30k points"
+            zoom >= 10 -> "REGIONAL (10-11) - 20k points"
+            zoom >= 8 -> "AREA (8-9) - 15k points"
+            else -> "COUNTRY (<8) - 10k points"
+        }
+        Log.d(TAG, "Zoom category: $zoomCategory")
 
         if (zoom < minZoom) {
+            Log.d(TAG, "Zoom too low, clearing markers")
             clearMarkers()
             binding.textViewProgress.text = getString(R.string.zoom_in_message)
             binding.textViewProgress.visibility = View.VISIBLE
@@ -399,14 +417,19 @@ class WiFiMapFragment : Fragment() {
         }
 
         if (selectedDatabases.isEmpty()) {
+            Log.d(TAG, "No databases selected")
             clearMarkers()
             binding.textViewProgress.text = getString(R.string.select_database_message)
             binding.textViewProgress.visibility = View.VISIBLE
             return
         }
 
+        if (boundingBox == null) {
+            Log.d(TAG, "Bounding box is null")
+            return
+        }
+
         binding.textViewProgress.visibility = View.GONE
-        val boundingBox = binding.map.boundingBox ?: return
 
         updateJob?.cancel()
 
