@@ -399,9 +399,7 @@ class WiFiMapFragment : Fragment() {
         Log.d(TAG, "Selected databases: ${selectedDatabases.size}")
 
         val zoomCategory = when {
-            zoom >= 16 -> "CLOSE (≥16) - NO LIMITS"
-            zoom >= 14 -> "MEDIUM (14-15) - 50k points"
-            zoom >= 12 -> "CITY (12-13) - 30k points"
+            zoom >= 12 -> "CITY+ (≥12) - NO LIMITS"
             zoom >= 10 -> "REGIONAL (10-11) - 20k points"
             zoom >= 8 -> "AREA (8-9) - 15k points"
             else -> "COUNTRY (<8) - 10k points"
