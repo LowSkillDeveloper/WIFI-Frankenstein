@@ -71,12 +71,15 @@ class WiFiMapFragment : Fragment() {
         Color.YELLOW,
         Color.MAGENTA,
         Color.CYAN,
-        Color.rgb(255, 165, 0), // Orange
-        Color.rgb(128, 0, 128), // Purple
-        Color.rgb(165, 42, 42), // Brown
-        Color.rgb(255, 192, 203) // Pink
+        Color.rgb(255, 165, 0),
+        Color.rgb(128, 0, 128),
+        Color.rgb(165, 42, 42),
+        Color.rgb(255, 192, 203)
     )
     private var nextColorIndex = 0
+
+    private var lastMapUpdateTime = 0L
+    private val MAP_UPDATE_DEBOUNCE_MS = 300L
 
     companion object {
         private const val DEFAULT_ZOOM = 5.0
@@ -107,7 +110,6 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun setupToggleClusterButton() {
-
         isClustersPreventMerged = viewModel.getPreventClusterMerge()
         updateFabIcon()
 
@@ -124,23 +126,9 @@ class WiFiMapFragment : Fragment() {
             Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
 
             clearMarkers()
-            binding.map.boundingBox?.let { bounds ->
-                val currentColors = selectedDatabases.associate { database ->
-                    database.id to getColorForDatabase(database.id)
-                }
-
-                lifecycleScope.launch {
-                    viewModel.loadPointsInBoundingBox(
-                        bounds,
-                        binding.map.zoomLevelDouble,
-                        selectedDatabases,
-                        currentColors
-                    )
-                }
-            }
+            scheduleMapUpdate()
         }
     }
-
 
     private fun updateFabIcon() {
         if (isClustersPreventMerged) {
@@ -185,28 +173,29 @@ class WiFiMapFragment : Fragment() {
 
             overlays.add(canvasOverlay)
 
-            var lastUpdate = 0L
-            val updateInterval = 200L
-
             addMapListener(object : MapListener {
                 override fun onScroll(event: ScrollEvent): Boolean {
-                    val currentTime = System.currentTimeMillis()
-                    if (currentTime - lastUpdate > updateInterval) {
-                        updateVisiblePoints()
-                        lastUpdate = currentTime
-                    }
+                    scheduleMapUpdate()
                     return true
                 }
 
                 override fun onZoom(event: ZoomEvent): Boolean {
-                    val currentTime = System.currentTimeMillis()
-                    if (currentTime - lastUpdate > updateInterval) {
-                        updateVisiblePoints()
-                        lastUpdate = currentTime
-                    }
+                    scheduleMapUpdate()
                     return true
                 }
             })
+        }
+    }
+
+    private fun scheduleMapUpdate() {
+        val currentTime = System.currentTimeMillis()
+        lastMapUpdateTime = currentTime
+
+        lifecycleScope.launch {
+            delay(MAP_UPDATE_DEBOUNCE_MS)
+            if (lastMapUpdateTime == currentTime) {
+                updateVisiblePoints()
+            }
         }
     }
 
@@ -219,20 +208,7 @@ class WiFiMapFragment : Fragment() {
                 {
                     viewModel.clearCache()
                     clearMarkers()
-                    binding.map.boundingBox?.let { bounds ->
-                        val currentColors = selectedDatabases.associate { database ->
-                            database.id to getColorForDatabase(database.id)
-                        }
-
-                        lifecycleScope.launch {
-                            viewModel.loadPointsInBoundingBox(
-                                bounds,
-                                binding.map.zoomLevelDouble,
-                                selectedDatabases,
-                                currentColors
-                            )
-                        }
-                    }
+                    scheduleMapUpdate()
                 },
                 viewModel
             )
@@ -246,21 +222,7 @@ class WiFiMapFragment : Fragment() {
                 {
                     viewModel.clearCache()
                     clearMarkers()
-                    binding.map.boundingBox?.let { bounds ->
-
-                        val currentColors = selectedDatabases.associate { database ->
-                            database.id to getColorForDatabase(database.id)
-                        }
-
-                        lifecycleScope.launch {
-                            viewModel.loadPointsInBoundingBox(
-                                bounds,
-                                binding.map.zoomLevelDouble,
-                                selectedDatabases,
-                                currentColors
-                            )
-                        }
-                    }
+                    scheduleMapUpdate()
                 },
                 viewModel
             )
@@ -339,7 +301,6 @@ class WiFiMapFragment : Fragment() {
             .show()
     }
 
-
     private fun updateIndexingProgress(progress: Int) {
         Log.d(TAG, "Updating indexing progress: $progress%")
         val progressBar = indexingDialog?.findViewById<ProgressBar>(R.id.progressBar)
@@ -360,22 +321,7 @@ class WiFiMapFragment : Fragment() {
                 databaseAdapter.notifyDataSetChanged()
 
                 clearMarkers()
-                binding.map.boundingBox?.let { bounds ->
-                    val currentColors = selectedDatabases.associate { database ->
-                        database.id to getColorForDatabase(database.id)
-                    }
-
-                    Log.d(TAG, "Reloading points after indexing")
-                    lifecycleScope.launch {
-                        viewModel.resetState()
-                        viewModel.loadPointsInBoundingBox(
-                            bounds,
-                            binding.map.zoomLevelDouble,
-                            selectedDatabases,
-                            currentColors
-                        )
-                    }
-                }
+                scheduleMapUpdate()
             } ?: Log.e(TAG, "currentIndexingDb is null after indexing completion")
 
             currentIndexingDb = null
@@ -417,20 +363,7 @@ class WiFiMapFragment : Fragment() {
             dbItem?.let {
                 selectedDatabases.add(it)
                 databaseAdapter.notifyDataSetChanged()
-                binding.map.boundingBox?.let { bounds ->
-                    val currentColors = selectedDatabases.associate { database ->
-                        database.id to getColorForDatabase(database.id)
-                    }
-
-                    lifecycleScope.launch {
-                        viewModel.loadPointsInBoundingBox(
-                            bounds,
-                            binding.map.zoomLevelDouble,
-                            selectedDatabases,
-                            currentColors
-                        )
-                    }
-                }
+                scheduleMapUpdate()
             }
         }
 
@@ -496,7 +429,7 @@ class WiFiMapFragment : Fragment() {
 
         lifecycleScope.launch(Dispatchers.Main) {
             canvasOverlay.updatePoints(visiblePoints)
-            binding.map.invalidate()
+            binding.map.postInvalidate()
             updateLegend()
         }
     }
@@ -531,7 +464,6 @@ class WiFiMapFragment : Fragment() {
                 position = GeoPoint(point.displayLatitude, point.displayLongitude)
 
                 if (point.bssidDecimal == -1L) {
-
                     title = point.essid
                     icon = getClusterIcon(point)
                     setOnMarkerClickListener { _, _ ->
@@ -543,7 +475,6 @@ class WiFiMapFragment : Fragment() {
                         true
                     }
                 } else {
-
                     snippet = point.bssidDecimal.toString()
                     title = point.bssidDecimal.toString()
                     icon = getMarkerIcon()?.apply {
@@ -687,7 +618,7 @@ class WiFiMapFragment : Fragment() {
 
     private fun clearMarkers() {
         canvasOverlay.updatePoints(emptyList())
-        binding.map.invalidate()
+        binding.map.postInvalidate()
         binding.legendCard.visibility = View.GONE
     }
 
@@ -696,19 +627,15 @@ class WiFiMapFragment : Fragment() {
         Log.d(TAG, "onStart: Checking databases")
     }
 
-
     override fun onResume() {
         super.onResume()
         binding.map.onResume()
 
-
         checkDatabaseValidity()
-
 
         if (DbSetupViewModel.needDataRefresh) {
             Log.d(TAG, "Data refresh needed, reloading available databases")
             lifecycleScope.launch {
-
                 DbSetupViewModel.needDataRefresh = false
 
                 viewModel.reloadAvailableDatabases()
@@ -723,7 +650,6 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun checkDatabaseValidity() {
-
         val availableDatabases = viewModel.availableDatabases.value ?: emptyList()
         val availableIds = availableDatabases.map { it.id }.toSet()
 

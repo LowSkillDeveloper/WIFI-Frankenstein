@@ -27,6 +27,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.osmdroid.util.BoundingBox
 import java.util.Collections
 
@@ -291,9 +292,13 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                             try {
                                 Log.d(TAG, "Loading database: ${database.id}, type: ${database.dbType}")
-                                val dbPoints = loadPointsFromDatabase(database, boundingBox)
+                                val dbPoints = loadPointsFromDatabase(database, boundingBox, zoom)
 
-                                val networkPoints = dbPoints.map { (bssidDecimal, lat, lon) ->
+                                val networkPoints = dbPoints.mapIndexed { pointIndex, (bssidDecimal, lat, lon) ->
+                                    if (pointIndex % 500 == 0) {
+                                        yield()
+                                    }
+
                                     NetworkPoint(
                                         latitude = lat,
                                         longitude = lon,
@@ -333,10 +338,18 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             (boundingBox.lonEast + boundingBox.lonWest) / 2
                         )
 
+                        _loadingProgress.postValue(60)
+
                         val clusters = getClusterManager().createAdaptiveClusters(allPoints, zoom, mapCenter)
                         Log.d(TAG, "Created ${clusters.size} adaptive clusters from ${allPoints.size} points")
 
-                        clusters.map { clusterItem ->
+                        _loadingProgress.postValue(75)
+
+                        clusters.mapIndexed { index, clusterItem ->
+                            if (index % 1000 == 0) {
+                                yield()
+                            }
+
                             if (clusterItem.size == 1) {
                                 clusterItem.points.first()
                             } else {
@@ -380,15 +393,33 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private fun getMaxPointsForZoom(zoom: Double): Int {
+        return when {
+            zoom >= 16.0 -> Int.MAX_VALUE
+            zoom >= 14.0 -> 50000
+            zoom >= 12.0 -> 30000
+            zoom >= 10.0 -> 20000
+            zoom >= 8.0 -> 15000
+            else -> 10000
+        }
+    }
+
     private suspend fun loadPointsFromDatabase(
         database: DbItem,
-        boundingBox: BoundingBox
+        boundingBox: BoundingBox,
+        zoom: Double
     ): List<Triple<Long, Double, Double>> = withContext(Dispatchers.IO) {
         val cacheKey = "${database.id}_${createCacheKey(boundingBox)}"
+        val maxPoints = getMaxPointsForZoom(zoom)
 
         pointsCache[cacheKey]?.let { cachedPoints ->
             Log.d(TAG, "Using ${cachedPoints.size} cached points for database ${database.id}")
-            return@withContext cachedPoints.map {
+            val limitedPoints = if (zoom < 16.0 && cachedPoints.size > maxPoints) {
+                cachedPoints.take(maxPoints)
+            } else {
+                cachedPoints
+            }
+            return@withContext limitedPoints.map {
                 Triple(it.bssidDecimal, it.latitude, it.longitude)
             }
         }
@@ -404,7 +435,11 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     boundingBox.lonEast
                 )
 
-                localPoints.map { network ->
+                localPoints.mapIndexed { index, network ->
+                    if (index % 1000 == 0) {
+                        yield()
+                    }
+
                     val macDecimal = try {
                         network.macAddress.replace(":", "").replace("-", "").toLongOrNull(16)
                             ?: network.macAddress.toLongOrNull()
@@ -414,7 +449,13 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     }
 
                     Triple(macDecimal, network.latitude ?: 0.0, network.longitude ?: 0.0)
-                }.filter { it.first != -1L }
+                }.filter { it.first != -1L }.let { resultPoints ->
+                    if (zoom < 16.0 && resultPoints.size > maxPoints) {
+                        resultPoints.take(maxPoints)
+                    } else {
+                        resultPoints
+                    }
+                }
             }
             DbType.SQLITE_FILE_CUSTOM -> {
                 if (database.directPath.isNullOrEmpty()) {
@@ -422,25 +463,40 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     emptyList()
                 } else {
                     Log.d(TAG, "Using external indexes for database: ${database.id}")
-                    externalIndexManager.getPointsInBoundingBox(database.id, boundingBox)
+                    val allPoints = externalIndexManager.getPointsInBoundingBox(database.id, boundingBox)
+                    if (zoom < 16.0 && allPoints.size > maxPoints) {
+                        allPoints.take(maxPoints)
+                    } else {
+                        allPoints
+                    }
                 }
             }
             else -> {
                 val helper = getHelper(database)
                 when (helper) {
                     is SQLite3WiFiHelper -> {
-                        helper.getPointsInBoundingBox(boundingBox)
+                        val allPoints = helper.getPointsInBoundingBox(boundingBox)
+                        if (zoom < 16.0 && allPoints.size > maxPoints) {
+                            allPoints.take(maxPoints)
+                        } else {
+                            allPoints
+                        }
                     }
                     is SQLiteCustomHelper -> {
                         if (database.tableName == null || database.columnMap == null) {
                             Log.e(TAG, "Table name or column map is null for database ${database.id}")
                             emptyList()
                         } else {
-                            helper.getPointsInBoundingBox(
+                            val allPoints = helper.getPointsInBoundingBox(
                                 boundingBox,
                                 database.tableName,
                                 database.columnMap
                             ) ?: emptyList()
+                            if (zoom < 16.0 && allPoints.size > maxPoints) {
+                                allPoints.take(maxPoints)
+                            } else {
+                                allPoints
+                            }
                         }
                     }
                     else -> {
@@ -452,7 +508,10 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         }
 
         if (points.isNotEmpty()) {
-            val networkPoints = points.map { (bssid, lat, lon) ->
+            val networkPoints = points.mapIndexed { index, (bssid, lat, lon) ->
+                if (index % 1000 == 0) {
+                    yield()
+                }
                 NetworkPoint(
                     latitude = lat,
                     longitude = lon,
