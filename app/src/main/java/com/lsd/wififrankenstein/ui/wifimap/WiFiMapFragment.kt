@@ -61,6 +61,9 @@ class WiFiMapFragment : Fragment() {
     private var isClustersPreventMerged = false
     private lateinit var canvasOverlay: MapCanvasOverlay
 
+    private lateinit var userLocationManager: UserLocationManager
+    private var userLocationMarker: Marker? = null
+
     private var currentIndexingDb: DbItem? = null
 
     private val databaseColors = mutableMapOf<String, Int>()
@@ -105,6 +108,8 @@ class WiFiMapFragment : Fragment() {
         setupCollapsibleCards()
         observeViewModel()
         setupToggleClusterButton()
+        setupLocationButton()
+        setupUserLocation()
 
         return binding.root
     }
@@ -230,6 +235,43 @@ class WiFiMapFragment : Fragment() {
         }
     }
 
+    private fun setupLocationButton() {
+        binding.fabLocation.setOnClickListener {
+            userLocationManager.requestSingleLocationUpdate()
+        }
+    }
+
+    private fun setupUserLocation() {
+        userLocationManager = UserLocationManager(requireContext())
+
+        userLocationManager.userLocation.observe(viewLifecycleOwner) { location ->
+            location?.let {
+                updateUserLocationMarker(it) }
+        }
+
+        userLocationManager.locationError.observe(viewLifecycleOwner) { error ->
+            Snackbar.make(binding.root, error, Snackbar.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateUserLocationMarker(location: GeoPoint) {
+        userLocationMarker?.let { marker ->
+            binding.map.overlays.remove(marker)
+        }
+
+        userLocationMarker = Marker(binding.map).apply {
+            position = location
+            icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_location)?.apply {
+                setTint(ContextCompat.getColor(requireContext(), R.color.blue_500))
+            }
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+        }
+
+        binding.map.overlays.add(userLocationMarker)
+        binding.map.controller.animateTo(location)
+        binding.map.invalidate()
+    }
+
     private fun showCreateIndexesDialog(dbItem: DbItem) {
         Log.d(TAG, "Showing create indexes dialog for ${dbItem.id}")
         currentIndexingDb = dbItem
@@ -339,14 +381,19 @@ class WiFiMapFragment : Fragment() {
     private fun observeViewModel() {
         viewModel.loadingProgress.observe(viewLifecycleOwner) { count ->
             Log.d(TAG, "Loading progress updated: $count")
-            binding.loadingIndicator.isIndeterminate = false
-            binding.loadingIndicator.progress = count
             when {
-                count < 50 -> binding.textViewProgress.text = getString(R.string.loading_points_progress, count)
-                count < 75 -> binding.textViewProgress.text = getString(R.string.clustering_points)
-                count < 100 -> binding.textViewProgress.text = getString(R.string.rendering_markers)
+                count < 100 -> {
+                    binding.progressBar.visibility = View.VISIBLE
+                    binding.progressBar.isIndeterminate = true
+                    binding.textViewProgress.visibility = View.VISIBLE
+                    binding.textViewProgress.text = when {
+                        count < 50 -> getString(R.string.loading_points_progress, count)
+                        count < 75 -> getString(R.string.clustering_points)
+                        else -> getString(R.string.rendering_markers)
+                    }
+                }
                 else -> {
-                    binding.loadingIndicator.visibility = View.GONE
+                    binding.progressBar.visibility = View.GONE
                     binding.textViewProgress.visibility = View.GONE
                 }
             }
@@ -409,6 +456,7 @@ class WiFiMapFragment : Fragment() {
         if (zoom < minZoom) {
             Log.d(TAG, "Zoom too low, clearing markers")
             clearMarkers()
+            binding.progressBar.visibility = View.GONE
             binding.textViewProgress.text = getString(R.string.zoom_in_message)
             binding.textViewProgress.visibility = View.VISIBLE
             return
@@ -417,10 +465,14 @@ class WiFiMapFragment : Fragment() {
         if (selectedDatabases.isEmpty()) {
             Log.d(TAG, "No databases selected")
             clearMarkers()
+            binding.progressBar.visibility = View.GONE
             binding.textViewProgress.text = getString(R.string.select_database_message)
             binding.textViewProgress.visibility = View.VISIBLE
             return
         }
+
+        binding.textViewProgress.visibility = View.GONE
+        binding.progressBar.visibility = View.VISIBLE
 
         if (boundingBox == null) {
             Log.d(TAG, "Bounding box is null")
@@ -452,6 +504,9 @@ class WiFiMapFragment : Fragment() {
             canvasOverlay.updatePoints(visiblePoints)
             binding.map.postInvalidate()
             updateLegend()
+
+            binding.progressBar.visibility = View.GONE
+            binding.textViewProgress.visibility = View.GONE
         }
     }
 
@@ -651,6 +706,7 @@ class WiFiMapFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         binding.map.onResume()
+        userLocationManager.startLocationUpdates()
 
         checkDatabaseValidity()
 
@@ -688,6 +744,7 @@ class WiFiMapFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         binding.map.onPause()
+        userLocationManager.stopLocationUpdates()
     }
 
     override fun onDestroyView() {

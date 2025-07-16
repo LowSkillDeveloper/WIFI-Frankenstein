@@ -70,8 +70,21 @@
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
         android:contentDescription="@string/toggle_clusters"
-        app:srcCompat="@drawable/ic_layers"
         app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@drawable/ic_layers"
+        app:layout_constraintBottom_toTopOf="@id/filterCard" />
+
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabLocation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:src="@drawable/ic_location"
+        app:backgroundTint="?attr/colorPrimary"
+        app:tint="?attr/colorOnPrimary"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/filterCard" />
 
     <com.google.android.material.card.MaterialCardView
@@ -121,12 +134,24 @@
                 android:layout_height="wrap_content"
                 android:padding="8dp"/>
 
+            <ProgressBar
+                android:id="@+id/progressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="8dp"
+                android:indeterminate="true"
+                android:visibility="gone" />
+
             <TextView
                 android:id="@+id/textViewProgress"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="8dp"
-                android:visibility="gone"/>
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="@string/select_database_message"
+                android:textColor="?attr/colorOnSurface"
+                android:visibility="gone" />
 
         </LinearLayout>
 
