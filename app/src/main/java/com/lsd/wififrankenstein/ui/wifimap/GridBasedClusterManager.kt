@@ -102,19 +102,29 @@ class GridBasedClusterManager(
             zoomLevel >= 14 -> 0.00016
             zoomLevel >= 13 -> 0.00032
             zoomLevel >= 12 -> 0.00064
-            zoomLevel >= 11 -> 0.00128
-            zoomLevel >= 10 -> 0.00256
-            zoomLevel >= 9 -> 0.00512
-            zoomLevel >= 8 -> 0.01024
-            zoomLevel >= 7 -> 0.02048
-            zoomLevel >= 6 -> 0.04096
-            zoomLevel >= 5 -> 0.08192
-            zoomLevel >= 4 -> 0.16384
-            zoomLevel >= 3 -> 0.32768
-            else -> 0.65536
+            zoomLevel >= 11 -> 0.00512
+            zoomLevel >= 10 -> 0.01024
+            zoomLevel >= 9 -> 0.02048
+            zoomLevel >= 8 -> 0.04096
+            zoomLevel >= 7 -> 0.08192
+            zoomLevel >= 6 -> 0.16384
+            zoomLevel >= 5 -> 0.32768
+            zoomLevel >= 4 -> 0.65536
+            zoomLevel >= 3 -> 1.31072
+            else -> 2.62144
         }
 
-        return baseSize * clusterAggressiveness.coerceIn(0.1f, 10.0f)
+        val aggressivenessFactor = when {
+            zoomLevel <= 6 -> clusterAggressiveness * 5.0f
+            zoomLevel <= 8 -> clusterAggressiveness * 4.0f
+            zoomLevel <= 10 -> clusterAggressiveness * 3.0f
+            zoomLevel <= 12 -> clusterAggressiveness * 2.0f
+            zoomLevel <= 13 -> clusterAggressiveness * 1.7f
+            zoomLevel <= 15 -> clusterAggressiveness * 1.3f
+            else -> clusterAggressiveness
+        }
+
+        return baseSize * aggressivenessFactor.coerceIn(0.1f, 50.0f)
     }
 
     fun createAdaptiveClusters(
