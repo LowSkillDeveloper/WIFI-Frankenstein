@@ -395,7 +395,7 @@ class WiFiMapFragment : Fragment() {
                     binding.progressBar.isIndeterminate = true
                     binding.textViewProgress.visibility = View.VISIBLE
                     binding.textViewProgress.text = when {
-                        count < 50 -> getString(R.string.loading_points_progress, count)
+                        count < 50 -> getString(R.string.loading_points_progress)
                         count < 75 -> getString(R.string.clustering_points)
                         else -> getString(R.string.rendering_markers)
                     }
