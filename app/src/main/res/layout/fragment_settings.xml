@@ -817,6 +817,20 @@
                         android:text="@string/marker_visibility_zoom_info"
                         android:textAppearance="?attr/textAppearanceCaption" />
 
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchUseGridClustering"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/use_grid_clustering"
+                        android:checked="true" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/use_grid_clustering_desc"
+                        android:textAppearance="?attr/textAppearanceCaption" />
+
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"

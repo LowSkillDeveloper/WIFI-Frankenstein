@@ -196,7 +196,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 if (database.directPath.isNullOrEmpty()) {
                     emptyList()
                 } else {
-                    val sqlLimit = if (willBeLimited) maxPoints else Int.MAX_VALUE
+                    if (willBeLimited) maxPoints else Int.MAX_VALUE
                     externalIndexManager.getPointsInBoundingBox(database.id, boundingBox)
                 }
             }
@@ -204,12 +204,12 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 val helper = getHelper(database)
                 when (helper) {
                     is SQLite3WiFiHelper -> {
-                        val sqlLimit = if (willBeLimited) maxPoints else Int.MAX_VALUE
+                        if (willBeLimited) maxPoints else Int.MAX_VALUE
                         helper.getPointsInBoundingBox(boundingBox)
                     }
                     is SQLiteCustomHelper -> {
                         if (database.tableName != null && database.columnMap != null) {
-                            val sqlLimit = if (willBeLimited) maxPoints else Int.MAX_VALUE
+                            if (willBeLimited) maxPoints else Int.MAX_VALUE
                             helper.getPointsInBoundingBox(
                                 boundingBox,
                                 database.tableName,
@@ -295,12 +295,12 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         clusterManager = getClusterManager()
     }
 
-    private fun getClusterManager(): MarkerClusterManager {
+    private fun getClusterManager(): GridBasedClusterManager {
         val maxClusterSize = settingsPrefs.getInt("map_max_cluster_size", 1000)
         val clusterAggressiveness = settingsPrefs.getFloat("map_cluster_aggressiveness", 1.0f)
         val preventMerge = settingsPrefs.getBoolean("map_prevent_cluster_merge", false)
         val forceSeparation = settingsPrefs.getBoolean("map_force_point_separation", true)
-        return MarkerClusterManager(maxClusterSize, clusterAggressiveness, preventMerge, forceSeparation)
+        return GridBasedClusterManager(maxClusterSize, clusterAggressiveness, preventMerge, forceSeparation)
     }
 
     private fun createCacheKey(boundingBox: BoundingBox): String {
@@ -733,7 +733,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     emptyList()
                 } else {
                     Log.d(TAG, "Using external indexes for database: ${database.id}")
-                    val sqlLimit = if (willBeLimited) maxPoints else Int.MAX_VALUE
+                    if (willBeLimited) maxPoints else Int.MAX_VALUE
                     val allPoints = externalIndexManager.getPointsInBoundingBox(database.id, boundingBox)
                     Log.d(TAG, "External index returned ${allPoints.size} points for ${database.id}")
                     allPoints
@@ -744,7 +744,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 when (helper) {
                     is SQLite3WiFiHelper -> {
                         Log.d(TAG, "Using SQLite3WiFiHelper for ${database.id}")
-                        val sqlLimit = if (willBeLimited) maxPoints else Int.MAX_VALUE
+                        if (willBeLimited) maxPoints else Int.MAX_VALUE
                         val allPoints = helper.getPointsInBoundingBox(boundingBox)
                         Log.d(TAG, "SQLite3WiFiHelper returned ${allPoints.size} points for ${database.id}")
                         allPoints
@@ -755,7 +755,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             emptyList()
                         } else {
                             Log.d(TAG, "Using SQLiteCustomHelper for ${database.id}")
-                            val sqlLimit = if (willBeLimited) maxPoints else Int.MAX_VALUE
+                            if (willBeLimited) maxPoints else Int.MAX_VALUE
                             val allPoints = helper.getPointsInBoundingBox(
                                 boundingBox,
                                 database.tableName,

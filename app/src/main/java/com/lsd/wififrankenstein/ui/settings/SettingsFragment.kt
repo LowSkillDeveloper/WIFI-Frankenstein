@@ -129,6 +129,11 @@ class SettingsFragment : Fragment() {
         textViewMarkerVisibilityZoomValue.text = getString(R.string.zoom_level_value, viewModel.getMarkerVisibilityZoom().toInt())
         textViewMaxMarkerDensityValue.text = viewModel.getMaxMarkerDensity().toString()
 
+        binding.switchUseGridClustering.isChecked = viewModel.getUseGridClustering()
+        binding.switchUseGridClustering.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setUseGridClustering(isChecked)
+        }
+
 
         sliderMarkerVisibilityZoom.valueFrom = 1f
         sliderMarkerVisibilityZoom.valueTo = 18f
@@ -526,6 +531,10 @@ class SettingsFragment : Fragment() {
                 else -> R.id.radioButtonSystemTheme
             }
             binding.radioGroupTheme.check(radioButtonId)
+        }
+
+        viewModel.useGridClustering.observe(viewLifecycleOwner) { useGrid ->
+            binding.switchUseGridClustering.isChecked = useGrid
         }
 
         viewModel.forcePointSeparation.observe(viewLifecycleOwner) { value ->

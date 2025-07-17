@@ -31,6 +31,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _currentColorTheme = MutableLiveData<String>()
     val currentColorTheme: LiveData<String> = _currentColorTheme
 
+    private val _useGridClustering = MutableLiveData<Boolean>()
+    val useGridClustering: LiveData<Boolean> = _useGridClustering
+
     private val _themeChanged = MutableLiveData<Boolean>()
     val themeChanged: LiveData<Boolean> = _themeChanged
 
@@ -121,6 +124,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _maxMarkerDensity.value = prefs.getInt("map_max_marker_density", 3000)
         _preventClusterMerge.value = prefs.getBoolean("map_prevent_cluster_merge", false)
         _forcePointSeparation.value = prefs.getBoolean("map_force_point_separation", true)
+        _useGridClustering.value = prefs.getBoolean("map_use_grid_clustering", true)
 
         _maxPointsPerRequest.value = api3WiFiPrefs.getInt("maxPointsPerRequest", 99)
         _requestDelay.value = api3WiFiPrefs.getLong("requestDelay", 1000)
@@ -131,6 +135,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _ignoreSSLCertificate.value = api3WiFiPrefs.getBoolean("ignoreSSLCertificate", false)
         _includeAppIdentifier.value = api3WiFiPrefs.getBoolean("includeAppIdentifier", true)
         _showWipFeatures.value = prefs.getBoolean("show_wip_features", false)
+    }
+
+    fun getUseGridClustering() = _useGridClustering.value != false
+    fun setUseGridClustering(value: Boolean) {
+        prefs.edit { putBoolean("map_use_grid_clustering", value) }
+        _useGridClustering.value = value
     }
 
     fun getForcePointSeparation() = _forcePointSeparation.value != false
