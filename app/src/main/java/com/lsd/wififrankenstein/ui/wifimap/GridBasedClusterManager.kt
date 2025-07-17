@@ -99,9 +99,9 @@ class GridBasedClusterManager(
             zoomLevel >= 17 -> 0.00002
             zoomLevel >= 16 -> 0.00004
             zoomLevel >= 15 -> 0.00008
-            zoomLevel >= 14 -> 0.00016
-            zoomLevel >= 13 -> 0.00032
-            zoomLevel >= 12 -> 0.00064
+            zoomLevel >= 14 -> 0.00032
+            zoomLevel >= 13 -> 0.00128
+            zoomLevel >= 12 -> 0.00256
             zoomLevel >= 11 -> 0.00512
             zoomLevel >= 10 -> 0.01024
             zoomLevel >= 9 -> 0.02048
@@ -115,12 +115,13 @@ class GridBasedClusterManager(
         }
 
         val aggressivenessFactor = when {
-            zoomLevel <= 6 -> clusterAggressiveness * 5.0f
-            zoomLevel <= 8 -> clusterAggressiveness * 4.0f
-            zoomLevel <= 10 -> clusterAggressiveness * 3.0f
-            zoomLevel <= 12 -> clusterAggressiveness * 2.0f
-            zoomLevel <= 13 -> clusterAggressiveness * 1.7f
-            zoomLevel <= 15 -> clusterAggressiveness * 1.3f
+            zoomLevel <= 6 -> clusterAggressiveness * 6.0f
+            zoomLevel <= 8 -> clusterAggressiveness * 5.5f
+            zoomLevel <= 10 -> clusterAggressiveness * 4.5f
+            zoomLevel <= 12 -> clusterAggressiveness * 4.0f
+            zoomLevel <= 13 -> clusterAggressiveness * 3.5f
+            zoomLevel <= 15 -> clusterAggressiveness * 3.0f
+            zoomLevel <= 16 -> clusterAggressiveness * 2.5f
             else -> clusterAggressiveness
         }
 
