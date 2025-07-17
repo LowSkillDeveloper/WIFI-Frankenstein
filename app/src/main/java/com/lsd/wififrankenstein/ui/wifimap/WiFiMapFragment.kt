@@ -237,7 +237,11 @@ class WiFiMapFragment : Fragment() {
 
     private fun setupLocationButton() {
         binding.fabLocation.setOnClickListener {
-            userLocationManager.requestSingleLocationUpdate()
+            userLocationMarker?.let { marker ->
+                binding.map.controller.animateTo(marker.position, 18.0, 400L)
+            } ?: run {
+                userLocationManager.requestSingleLocationUpdate()
+            }
         }
     }
 
@@ -246,7 +250,12 @@ class WiFiMapFragment : Fragment() {
 
         userLocationManager.userLocation.observe(viewLifecycleOwner) { location ->
             location?.let {
-                updateUserLocationMarker(it) }
+                updateUserLocationMarker(it)
+
+                if (userLocationMarker == null) {
+                    binding.map.controller.animateTo(it, 18.0, 400L)
+                }
+            }
         }
 
         userLocationManager.locationError.observe(viewLifecycleOwner) { error ->
@@ -268,7 +277,6 @@ class WiFiMapFragment : Fragment() {
         }
 
         binding.map.overlays.add(userLocationMarker)
-        binding.map.controller.animateTo(location)
         binding.map.invalidate()
     }
 
