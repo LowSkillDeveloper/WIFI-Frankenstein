@@ -1,7 +1,7 @@
 <resources>
 
     <string name="app_name" translatable="false">WIFI Frankenstein</string>
-    <string name="app_identifier" translatable="false">WIFIFrankenstein-1.0-official</string>
+    <string name="app_identifier" translatable="false">WIFIFrankenstein-1.1-official</string>
 
     <string name="include_app_identifier">Include App Identifier</string>
     <string name="app_identifier_description">Send app identifier with requests</string>
@@ -359,7 +359,6 @@
     <string name="select_databases">Select databases to show points from</string>
     <string name="network_info">Network Information</string>
     <string name="map_legend">Legend</string>
-    <string name="loading_points_progress">Loaded %1$d points</string>
 
 
     <string name="wifi_map_settings">WiFi Map Settings</string>
@@ -719,4 +718,5 @@
     <string name="separator_line" translatable="false">════════════════════════════════════════</string>
     <string name="coordinates_may_be_incorrect">⚠️ Coordinates may be incorrect</string>
 
+    <string name="loading_points_progress">Loading points</string>
 </resources>
