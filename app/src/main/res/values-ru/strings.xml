@@ -696,6 +696,9 @@
     <string name="rendering_markers">Отрисовка маркеров…</string>
     <string name="max_points_per_cluster">Максимум точек в кластере</string>
     <string name="loading_points_progress">Загрузка точек</string>
+    <string name="server_url">URL сервера</string>
+    <string name="test_results">Результаты теста</string>
+    <string name="action_settings">Настройки</string>
 
 
 </resources>

@@ -692,23 +692,19 @@
 
     <string name="basic_indices_available">Basic indices available</string>
     <string name="no_indices_available">No indices available</string>
-
     <string name="checking_indexes">Checking indexes…</string>
-
     <string name="select_index_level">Select indexing level</string>
     <string name="index_level_full_option">Full indexing (best performance, largest size)</string>
     <string name="index_level_basic_option">Basic indexing (good performance, moderate size)</string>
     <string name="index_level_none_option">No indexing (slow performance, smallest size)</string>
     <string name="db_added_without_indexes">Database added without indexes</string>
-
     <string name="clustering_points">Clustering points…</string>
     <string name="rendering_markers">Rendering markers…</string>
-
-
     <string name="max_points_per_cluster">Maximum points in a cluster</string>
     <string name="max_points_per_cluster_info">Limits the number of points in a single cluster</string>
-
     <string name="loading_points_progress">Loading points…</string>
-
+    <string name="server_url">Server URL</string>
+    <string name="test_results">Test Results</string>
+    <string name="action_settings">Settings</string>
 
 </resources>

@@ -694,6 +694,8 @@
     <string name="clustering_points">Кластеризація точок…</string>
     <string name="rendering_markers">Відображення маркерів…</string>
     <string name="max_points_per_cluster">Максимум точок у кластері</string>
-
+    <string name="server_url">URL сервера</string>
+    <string name="test_results">Результати тесту</string>
+    <string name="action_settings">Налаштування</string>
 
 </resources>
