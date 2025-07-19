@@ -682,12 +682,12 @@
                         android:text="@string/max_cluster_size_info"
                         android:textAppearance="?attr/textAppearanceCaption" />
 
-                    <!-- Слайдер плотности маркеров -->
+                    <!-- Максимальный размер кластера в точках -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:text="@string/marker_density"
+                        android:text="@string/max_points_per_cluster"
                         android:textAppearance="?attr/textAppearanceBody1" />
 
                     <LinearLayout
@@ -697,40 +697,34 @@
                         android:gravity="center_vertical">
 
                         <TextView
+                            android:id="@+id/textViewMaxPointsPerClusterValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/sparse"
-                            android:textAppearance="?attr/textAppearanceCaption" />
-
-                        <com.google.android.material.slider.Slider
-                            android:id="@+id/sliderMaxMarkerDensity"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:valueFrom="500"
-                            android:valueTo="5000"
-                            android:value="3000"
-                            android:stepSize="500" />
+                            android:text="5000"
+                            android:textAppearance="?attr/textAppearanceBody2" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/dense"
+                            android:layout_marginStart="4dp"
+                            android:text="@string/points"
                             android:textAppearance="?attr/textAppearanceCaption" />
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/sliderMaxPointsPerCluster"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:valueFrom="1000"
+                            android:valueTo="10000"
+                            android:value="5000"
+                            android:stepSize="500" />
                     </LinearLayout>
 
                     <TextView
-                        android:id="@+id/textViewMaxMarkerDensityValue"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:text="2000" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/marker_density_info"
+                        android:text="@string/max_points_per_cluster_info"
                         android:textAppearance="?attr/textAppearanceCaption" />
 
 
@@ -739,19 +733,6 @@
                         android:layout_height="1dp"
                         android:layout_marginVertical="8dp"
                         android:background="?android:attr/listDivider" />
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/switchPreventClusterMerge"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/prevent_cluster_merge" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/prevent_cluster_merge_desc"
-                        android:textAppearance="?attr/textAppearanceCaption" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/switchForcePointSeparation"
@@ -815,20 +796,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/marker_visibility_zoom_info"
-                        android:textAppearance="?attr/textAppearanceCaption" />
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/switchUseGridClustering"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/use_grid_clustering"
-                        android:checked="true" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/use_grid_clustering_desc"
                         android:textAppearance="?attr/textAppearanceCaption" />
 
                     <View

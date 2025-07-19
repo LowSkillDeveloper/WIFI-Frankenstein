@@ -40,10 +40,10 @@ class SettingsFragment : Fragment() {
     private lateinit var sliderClusterAggressiveness: Slider
     private lateinit var sliderMaxClusterSize: Slider
     private lateinit var sliderMarkerVisibilityZoom: Slider
-    private lateinit var sliderMaxMarkerDensity: Slider
+    private lateinit var sliderMaxPointsPerCluster: Slider
     private lateinit var textViewMaxClusterSizeValue: TextView
     private lateinit var textViewMarkerVisibilityZoomValue: TextView
-    private lateinit var textViewMaxMarkerDensityValue: TextView
+    private lateinit var textViewMaxPointsPerClusterValue: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -114,25 +114,27 @@ class SettingsFragment : Fragment() {
         sliderClusterAggressiveness = binding.sliderClusterAggressiveness
         sliderMaxClusterSize = binding.sliderMaxClusterSize
         sliderMarkerVisibilityZoom = binding.sliderMarkerVisibilityZoom
-        sliderMaxMarkerDensity = binding.sliderMaxMarkerDensity
+        sliderMaxPointsPerCluster = binding.sliderMaxPointsPerCluster
 
         textViewMaxClusterSizeValue = binding.textViewMaxClusterSizeValue
         textViewMarkerVisibilityZoomValue = binding.textViewMarkerVisibilityZoomValue
-        textViewMaxMarkerDensityValue = binding.textViewMaxMarkerDensityValue
+        textViewMaxPointsPerClusterValue = binding.textViewMaxPointsPerClusterValue
 
         sliderClusterAggressiveness.value = viewModel.getClusterAggressiveness()
         sliderMaxClusterSize.value = viewModel.getMaxClusterSize().toFloat()
         sliderMarkerVisibilityZoom.value = viewModel.getMarkerVisibilityZoom()
-        sliderMaxMarkerDensity.value = viewModel.getMaxMarkerDensity().toFloat()
+        sliderMaxPointsPerCluster.value = viewModel.getMaxClusterSize().toFloat()
 
         textViewMaxClusterSizeValue.text = viewModel.getMaxClusterSize().toString()
         textViewMarkerVisibilityZoomValue.text = getString(R.string.zoom_level_value, viewModel.getMarkerVisibilityZoom().toInt())
-        textViewMaxMarkerDensityValue.text = viewModel.getMaxMarkerDensity().toString()
+        textViewMaxPointsPerClusterValue.text = viewModel.getMaxClusterSize().toString()
 
-        binding.switchUseGridClustering.isChecked = viewModel.getUseGridClustering()
-        binding.switchUseGridClustering.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setUseGridClustering(isChecked)
-        }
+        val currentMaxClusterSize = viewModel.getMaxClusterSize()
+        val roundedValue = ((currentMaxClusterSize + 250) / 500) * 500
+        val finalValue = if (roundedValue < 1000) 1000 else if (roundedValue > 10000) 10000 else roundedValue
+
+        sliderMaxPointsPerCluster.value = finalValue.toFloat()
+        textViewMaxPointsPerClusterValue.text = finalValue.toString()
 
 
         sliderMarkerVisibilityZoom.valueFrom = 1f
@@ -164,16 +166,12 @@ class SettingsFragment : Fragment() {
             }
         }
 
-        binding.switchPreventClusterMerge.isChecked = viewModel.getPreventClusterMerge()
-        binding.switchPreventClusterMerge.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setPreventClusterMerge(isChecked)
-        }
 
-        sliderMaxMarkerDensity.addOnChangeListener { _, value, fromUser ->
+        sliderMaxPointsPerCluster.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 val intValue = value.toInt()
-                viewModel.setMaxMarkerDensity(intValue)
-                textViewMaxMarkerDensityValue.text = intValue.toString()
+                viewModel.setMaxClusterSize(intValue)
+                textViewMaxPointsPerClusterValue.text = intValue.toString()
             }
         }
     }
@@ -533,10 +531,6 @@ class SettingsFragment : Fragment() {
             binding.radioGroupTheme.check(radioButtonId)
         }
 
-        viewModel.useGridClustering.observe(viewLifecycleOwner) { useGrid ->
-            binding.switchUseGridClustering.isChecked = useGrid
-        }
-
         viewModel.forcePointSeparation.observe(viewLifecycleOwner) { value ->
             binding.switchForcePointSeparation.isChecked = value
         }
@@ -561,15 +555,6 @@ class SettingsFragment : Fragment() {
                 sliderMarkerVisibilityZoom.value = value
                 if (::textViewMarkerVisibilityZoomValue.isInitialized) {
                     textViewMarkerVisibilityZoomValue.text = getString(R.string.zoom_level_value, value.toInt())
-                }
-            }
-        }
-
-        viewModel.maxMarkerDensity.observe(viewLifecycleOwner) { value ->
-            if (::sliderMaxMarkerDensity.isInitialized && sliderMaxMarkerDensity.value != value.toFloat()) {
-                sliderMaxMarkerDensity.value = value.toFloat()
-                if (::textViewMaxMarkerDensityValue.isInitialized) {
-                    textViewMaxMarkerDensityValue.text = value.toString()
                 }
             }
         }

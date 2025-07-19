@@ -31,9 +31,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _currentColorTheme = MutableLiveData<String>()
     val currentColorTheme: LiveData<String> = _currentColorTheme
 
-    private val _useGridClustering = MutableLiveData<Boolean>()
-    val useGridClustering: LiveData<Boolean> = _useGridClustering
-
     private val _themeChanged = MutableLiveData<Boolean>()
     val themeChanged: LiveData<Boolean> = _themeChanged
 
@@ -98,9 +95,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val markerVisibilityZoom: LiveData<Float> = _markerVisibilityZoom
 
     private val _maxMarkerDensity = MutableLiveData<Int>()
-    val maxMarkerDensity: LiveData<Int> = _maxMarkerDensity
 
-    private val _preventClusterMerge = MutableLiveData<Boolean>()
 
     private val _forcePointSeparation = MutableLiveData<Boolean>()
     val forcePointSeparation: LiveData<Boolean> = _forcePointSeparation
@@ -119,12 +114,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _usePostMethod.value = api3WiFiPrefs.getBoolean("usePostMethod", false)
 
         _clusterAggressiveness.value = prefs.getFloat("map_cluster_aggressiveness", 0.4f)
-        _maxClusterSize.value = prefs.getInt("map_max_cluster_size", 5000)
+        val savedValue = prefs.getInt("map_max_cluster_size", 5000)
+        val roundedValue = ((savedValue + 250) / 500) * 500
+        _maxClusterSize.value = if (roundedValue < 1000) 1000 else if (roundedValue > 10000) 10000 else roundedValue
         _markerVisibilityZoom.value = prefs.getFloat("map_marker_visibility_zoom", 8f)
         _maxMarkerDensity.value = prefs.getInt("map_max_marker_density", 3000)
-        _preventClusterMerge.value = prefs.getBoolean("map_prevent_cluster_merge", false)
         _forcePointSeparation.value = prefs.getBoolean("map_force_point_separation", true)
-        _useGridClustering.value = prefs.getBoolean("map_use_grid_clustering", true)
 
         _maxPointsPerRequest.value = api3WiFiPrefs.getInt("maxPointsPerRequest", 99)
         _requestDelay.value = api3WiFiPrefs.getLong("requestDelay", 1000)
@@ -137,22 +132,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _showWipFeatures.value = prefs.getBoolean("show_wip_features", false)
     }
 
-    fun getUseGridClustering() = _useGridClustering.value != false
-    fun setUseGridClustering(value: Boolean) {
-        prefs.edit { putBoolean("map_use_grid_clustering", value) }
-        _useGridClustering.value = value
-    }
-
     fun getForcePointSeparation() = _forcePointSeparation.value != false
     fun setForcePointSeparation(value: Boolean) {
         prefs.edit { putBoolean("map_force_point_separation", value) }
         _forcePointSeparation.value = value
-    }
-
-    fun getPreventClusterMerge() = _preventClusterMerge.value == true
-    fun setPreventClusterMerge(value: Boolean) {
-        prefs.edit { putBoolean("map_prevent_cluster_merge", value) }
-        _preventClusterMerge.value = value
     }
 
     fun getClusterAggressiveness() = _clusterAggressiveness.value ?: 1.0f
@@ -161,7 +144,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _clusterAggressiveness.value = value
     }
 
-    fun getMaxClusterSize() = _maxClusterSize.value ?: 1000
+    fun getMaxClusterSize(): Int {
+        val value = _maxClusterSize.value ?: 5000
+        val roundedValue = ((value + 250) / 500) * 500
+        return if (roundedValue < 1000) 1000 else if (roundedValue > 10000) 10000 else roundedValue
+    }
     fun setMaxClusterSize(value: Int) {
         prefs.edit { putInt("map_max_cluster_size", value) }
         _maxClusterSize.value = value
@@ -171,12 +158,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setMarkerVisibilityZoom(value: Float) {
         prefs.edit { putFloat("map_marker_visibility_zoom", value) }
         _markerVisibilityZoom.value = value
-    }
-
-    fun getMaxMarkerDensity() = _maxMarkerDensity.value ?: 2000
-    fun setMaxMarkerDensity(value: Int) {
-        prefs.edit { putInt("map_max_marker_density", value) }
-        _maxMarkerDensity.value = value
     }
 
     fun getIncludeAppIdentifier() = _includeAppIdentifier.value != false
