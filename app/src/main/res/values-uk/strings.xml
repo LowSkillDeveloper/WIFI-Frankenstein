@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">WIFI Frankenstein</string>
-
-    <string name="app_identifier">WIFIFrankenstein-1.0-official</string>
 
     <string name="include_app_identifier">Включити ідентифікатор додатку</string>
     <string name="app_identifier_description">Надсилати ідентифікатор додатку із запитами</string>
-    <string name="nav_header_title">WIFI Франкенштейн</string>
     <string name="nav_header_subtitle">Нове покоління 3Wifi Локатора</string>
     <string name="nav_header_desc">Заголовок навігації</string>
     <string name="db_type_sqlite_3wifi">SQLite файл (тип 3WiFi)</string>
@@ -16,7 +12,7 @@
     <string name="unknown_ssid">Невідомий SSID</string>
     <string name="menu_wifi_scanner">WiFi Сканер</string>
     <string name="menu_database_finder">Локальний пошук по базі даних</string>
-    <string name="menu_wifi_map">WiFi Карта</string>
+    <string name="menu_wifi_map">WiFi Мапа</string>
     <string name="menu_updates">Оновлення</string>
     <string name="menu_settings">Налаштування</string>
     <string name="menu_about">Про додаток</string>
@@ -296,9 +292,6 @@
     <string name="wps_pin_not_available">WPS PIN недоступний</string>
 
     <string name="toast_no_data_to_save">Немає даних про мережу для збереження</string>
-    <string name="toast_network_stored">Профіль мережі успішно збережено</string>
-    <string name="toast_failed_to_store">Не вдалося зберегти профіль мережі</string>
-    <string name="toast_wifi_disabled">WiFi вимкнено</string>
 
     <string name="connect_wps_root_menu">Підключитися з використанням WPS (ROOT)</string>
     <string name="root_wps_not_implemented">Підключення ROOT WPS ще не реалізовано</string>
@@ -319,7 +312,6 @@
     <string name="update_banner_app">Доступне оновлення додатку до версії %1$s</string>
     <string name="update_banner_system">Доступні системні оновлення</string>
     <string name="update_banner_multiple">Доступно кілька оновлень</string>
-    <string name="update_banner_databases">Доступні оновлення баз даних</string>
     <string name="update_banner_smartlink_db">Доступні оновлення баз даних</string>
     <string name="update_banner_app_and_smartlink">Доступне оновлення додатку до %1$s та оновлення баз даних</string>
     <string name="update_banner_system_and_smartlink">Доступні системні оновлення та оновлення баз даних</string>
@@ -360,7 +352,8 @@
     <string name="select_databases">Виберіть бази даних для відображення точок</string>
     <string name="network_info">Інформація про мережу</string>
     <string name="map_legend">Легенда</string>
-    <string name="loading_points_progress">Завантажено %1$d точок</string>
+    <string name="max_points_per_cluster_info">Обмежує кількість точок в одному кластері</string>
+    <string name="loading_points_progress">Завантаження точок…</string>
 
 
     <string name="wifi_map_settings">Налаштування WiFi карти</string>
@@ -386,9 +379,6 @@
     <!-- API 3WiFi Method Params -->
     <string name="exclude_wifi_clients">Виключити клієнтів Wi-Fi</string>
     <string name="invalid_bssid_format">Неправильний формат BSSID</string>
-    <string name="invalid_latitude">Широта повинна бути від -90 до 90</string>
-    <string name="invalid_longitude">Довгота повинна бути від -180 до 180</string>
-    <string name="invalid_radius">Радіус повинен бути від 0.001 до 25</string>
 
     <!-- API 3WiFi Fragment -->
     <string name="select_server_error">Будь ласка, виберіть сервер</string>
@@ -455,10 +445,6 @@
     <string name="everything_up_to_date">Все оновлено!</string>
 
 
-    <string name="server_url">URL сервера</string>
-    <string name="test_results">Результати тесту</string>
-    <string name="action_settings">Налаштування</string>
-
     <string name="local_database">Локальна база даних</string>
     <string name="enable_indexing">Увімкнути індексування</string>
     <string name="indexing_info">Увімкнення індексування прискорить пошук у великих базах даних, але сповільнить додавання нових мереж.</string>
@@ -502,7 +488,6 @@
     <string name="search_by_mac">Пошук за BSSID</string>
     <string name="search_by_ssid">Пошук за ESSID</string>
 
-    <string name="create_indexes_title">Створення індексів</string>
     <string name="create_indexes_message">Для підвищення продуктивності рекомендується створити індекси для цієї бази даних. Створити зараз?</string>
     <string name="creating_indexes">Створення індексів…</string>
     <string name="indexing_failed">Створення індексів не вдалося</string>
@@ -518,7 +503,6 @@
     <string name="database_removed">Базу даних видалено</string>
 
     <!-- DB Indexing -->
-    <string name="indexed">Індексовано</string>
     <string name="not_indexed">Не індексовано</string>
     <string name="index_database">Індексувати</string>
     <string name="delete_indexes">Видалити індекси</string>
@@ -562,19 +546,12 @@
     <string name="aggressive">Агресивний</string>
     <string name="points">точок</string>
     <string name="zoom_level_value">Рівень масштабу: %1$d</string>
-    <string name="marker_density">Щільність маркерів</string>
-    <string name="marker_density_info">Максимальна кількість маркерів для відображення. Менші значення покращують продуктивність.</string>
-    <string name="sparse">Розріджений</string>
-    <string name="dense">Щільний</string>
 
     <string name="show_at_any_zoom">Завжди</string>
     <string name="only_when_close">Тільки при наближенні</string>
 
     <string name="marker_visibility_zoom">Видимість маркерів</string>
     <string name="marker_visibility_zoom_info">Вказує, наскільки близько потрібно наблизити карту, щоб побачити маркери. Низькі значення дозволяють бачити маркери навіть при віддаленні.</string>
-
-    <string name="prevent_cluster_merge">Запобігати злиттю кластерів</string>
-    <string name="prevent_cluster_merge_desc">Запобігає злиттю кластерів при віддаленні</string>
 
     <string name="force_point_separation">Розділяти точки, що перекриваються</string>
     <string name="force_point_separation_desc">Застосовувати зміщення до точок з однаковими координатами</string>
@@ -629,8 +606,6 @@
     <string name="selected_databases">Вибрані бази даних</string>
     <string name="download_completed">Завантаження завершено</string>
 
-    <string name="update_banner_system_and_db">Доступні оновлення системних файлів і баз даних</string>
-
     <!-- Permission strings -->
     <string name="permissions_required">Необхідні дозволи</string>
     <string name="permissions_description">Наступні дозволи необхідні для правильної роботи додатку:</string>
@@ -640,7 +615,6 @@
     <string name="storage_permission_description">Цей дозвіл потрібен для роботи з базами даних. Без нього індексування баз даних буде неможливе, і файли будуть кешуватися всередині додатку, що призведе до подвійного споживання пам\'яті.</string>
     <string name="request_permission">Запитати дозвіл</string>
     <string name="permission_granted">Дозвіл надано</string>
-    <string name="permission_not_granted">Дозвіл не надано</string>
     <string name="location_icon">Іконка місцезнаходження</string>
     <string name="storage_icon">Іконка сховища</string>
     <string name="permission_status">Статус дозволу</string>
@@ -687,19 +661,14 @@
     <string name="error_merging_parts">Помилка об’єднання частин: %1$s</string>
 
     <string name="advanced_mode">Розширений режим</string>
-    <string name="simple_mode_hint">Простий пошук у базі даних</string>
     <string name="search_networks">Пошук мереж</string>
     <string name="enter_mac_address">MAC-адреса (наприклад: 01:23:45:67:89:AB)</string>
     <string name="enter_network_name">Назва мережі (ESSID)</string>
-    <string name="no_results">Результатів не знайдено</string>
     <string name="error_empty_input">Введіть MAC-адресу або назву мережі</string>
-    <string name="invalid_input">Неправильний формат введення</string>
     <string name="bssid_required">Потрібен BSSID</string>
-    <string name="search_by_essid">Пошук за назвою</string>
     <string name="get_request_single_only">GET-запит доступний лише для одиночного пошуку</string>
     <string name="selected_request_type">Вибрано тип запиту: %s</string>
     <string name="request_type">Тип запиту</string>
-    <string name="copy_response">Копіювати</string>
     <string name="clear">Очистити</string>
     <string name="show_raw">Показати JSON</string>
     <string name="hide_raw">Приховати JSON</string>
@@ -714,6 +683,17 @@
     <string name="choose_map_app">Виберіть застосунок для карт</string>
     <string name="timetxt">Час</string>
     <string name="coordinates_may_be_incorrect">⚠️ Координати можуть бути неточними</string>
+    <string name="basic_indices_available">Доступні базові індекси</string>
+    <string name="no_indices_available">Індекси недоступні</string>
+    <string name="checking_indexes">Перевірка індексів…</string>
+    <string name="select_index_level">Оберіть рівень індексації</string>
+    <string name="index_level_full_option">Повна індексація (найкраща продуктивність, великий розмір)</string>
+    <string name="index_level_basic_option">Базова індексація (гарна продуктивність, середній розмір)</string>
+    <string name="index_level_none_option">Без індексації (повільна продуктивність, мінімальний розмір)</string>
+    <string name="db_added_without_indexes">Базу даних додано без індексів</string>
+    <string name="clustering_points">Кластеризація точок…</string>
+    <string name="rendering_markers">Відображення маркерів…</string>
+    <string name="max_points_per_cluster">Максимум точок у кластері</string>
 
 
 </resources>
