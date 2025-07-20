@@ -239,7 +239,7 @@ class DatabaseFinderPagingSource(
                                     bssid = network.macAddress,
                                     password = network.wifiPassword,
                                     wpsPin = network.wpsCode,
-                                    source = "Local Database",
+                                    source = "local_db",
                                     latitude = if (network.latitude != 0.0) network.latitude else null,
                                     longitude = if (network.longitude != 0.0) network.longitude else null
                                 ).also {
