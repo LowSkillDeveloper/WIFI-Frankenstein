@@ -105,11 +105,16 @@ class CustomDbDetailLoader(
                 return@flow
             }
 
+            if (columnMap == null) {
+                emit(mapOf("error" to "Column mapping not defined"))
+                return@flow
+            }
+
             SQLiteCustomHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
                 val db = helper.database
                 if (db != null) {
                     val cleanMac = bssid.replace("[^a-fA-F0-9]".toRegex(), "")
-                    val macColumn = columnMap?.get("mac") ?: "bssid"
+                    val macColumn = columnMap["mac"] ?: "bssid"
 
                     val query = """
                         SELECT * FROM $tableName WHERE 
@@ -120,7 +125,49 @@ class CustomDbDetailLoader(
 
                     db.rawQuery(query, arrayOf(bssid, bssid.uppercase(), cleanMac.uppercase())).use { cursor ->
                         if (cursor.moveToFirst()) {
-                            emit(cursorToMap(cursor))
+                            val result = cursorToMap(cursor)
+
+                            val normalizedResult = mutableMapOf<String, Any?>()
+
+                            columnMap["mac"]?.let { macField ->
+                                normalizedResult["BSSID"] = result[macField]
+                            }
+
+                            columnMap["essid"]?.let { essidField ->
+                                normalizedResult["ESSID"] = result[essidField]
+                            }
+
+                            columnMap["wifi_pass"]?.let { passField ->
+                                normalizedResult["WiFiKey"] = result[passField]
+                            }
+
+                            columnMap["wps_pin"]?.let { wpsField ->
+                                normalizedResult["WPSPIN"] = result[wpsField]
+                            }
+
+                            columnMap["latitude"]?.let { latField ->
+                                normalizedResult["latitude"] = result[latField]
+                            }
+
+                            columnMap["longitude"]?.let { lonField ->
+                                normalizedResult["longitude"] = result[lonField]
+                            }
+
+                            columnMap["security_type"]?.let { secField ->
+                                normalizedResult["capabilities"] = result[secField]
+                            }
+
+                            columnMap["timestamp"]?.let { timeField ->
+                                normalizedResult["time"] = result[timeField]
+                            }
+
+                            result.forEach { (key, value) ->
+                                if (!normalizedResult.containsKey(key)) {
+                                    normalizedResult[key] = value
+                                }
+                            }
+
+                            emit(normalizedResult)
                         } else {
                             emit(mapOf("message" to "No detailed data found"))
                         }

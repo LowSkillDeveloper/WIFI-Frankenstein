@@ -242,22 +242,85 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     suspend fun searchNetworksByBSSIDsAsync(bssids: List<String>): List<Map<String, Any?>> =
         withContext(Dispatchers.IO) {
             try {
-                val (cachedBssids, uncachedBssids) = bssids.partition { resultsCache.containsKey(it) }
+                val decimalBSSIDs = mutableMapOf<String, Long>()
 
-                val cachedResults = cachedBssids.mapNotNull { resultsCache[it] }
-
-                val newResults = if (uncachedBssids.isNotEmpty()) {
-                    searchUncachedBSSIDs(uncachedBssids)
-                } else {
-                    emptyList()
+                bssids.forEach { bssid ->
+                    val decimal = convertMacToDecimal(bssid)
+                    if (decimal != -1L) {
+                        decimalBSSIDs[bssid] = decimal
+                    }
                 }
 
-                (cachedResults + newResults).distinctBy { it["BSSID"] }
+                if (decimalBSSIDs.isEmpty()) return@withContext emptyList()
+
+                val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+                if (tableName == "unknown") return@withContext emptyList()
+
+                val chunkedBssids = decimalBSSIDs.values.toList().chunked(100)
+                Log.d(TAG, "Searching for ${decimalBSSIDs.size} BSSIDs in ${chunkedBssids.size} chunks")
+
+                val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
+
+                chunkedBssids.flatMap { chunk ->
+                    val placeholders = chunk.joinToString(",") { "?" }
+                    val baseQuery = DatabaseIndices.getOptimalBssidQuery(indexLevel, tableName, true)
+                    val query = baseQuery.replace("(?)", "($placeholders)")
+
+                    Log.d(TAG, "Using query: $query")
+                    database?.rawQuery(query, chunk.map { it.toString() }.toTypedArray())?.use { cursor ->
+                        buildList {
+                            while (cursor.moveToNext()) {
+                                val result = mutableMapOf<String, Any?>()
+                                for (i in 0 until cursor.columnCount) {
+                                    val columnName = cursor.getColumnName(i)
+                                    result[columnName] = when (cursor.getType(i)) {
+                                        Cursor.FIELD_TYPE_INTEGER -> cursor.getLong(i)
+                                        Cursor.FIELD_TYPE_FLOAT -> cursor.getFloat(i)
+                                        else -> cursor.getString(i)
+                                    }
+                                }
+
+                                if (result["BSSID"] is Long) {
+                                    val bssid = decimalToMac(result["BSSID"] as Long)
+                                    result["BSSID"] = bssid
+                                    resultsCache[bssid] = result
+                                }
+
+                                add(result)
+                            }
+                        }
+                    } ?: emptyList()
+                }
             } catch (e: Exception) {
-                Log.e("SQLite3WiFiHelper", "Error searching networks", e)
+                Log.e(TAG, "Error in searchNetworksByBSSIDsAsync: ${e.message}", e)
                 emptyList()
             }
         }
+
+    private fun convertMacToDecimal(mac: String): Long {
+        return try {
+            val formats = generateMacFormats(mac)
+
+            for (format in formats) {
+                if (format.matches("[0-9]+".toRegex())) {
+                    val decimal = format.toLongOrNull()
+                    if (decimal != null) return decimal
+                }
+
+                val cleanMac = format.replace("[^a-fA-F0-9]".toRegex(), "")
+                if (cleanMac.length == 12) {
+                    val decimal = cleanMac.toLongOrNull(16)
+                    if (decimal != null) return decimal
+                }
+            }
+
+            Log.e(TAG, "Could not convert MAC to decimal: $mac")
+            -1L
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting MAC to decimal: $mac", e)
+            -1L
+        }
+    }
 
     private fun searchUncachedBSSIDs(bssids: List<String>): List<Map<String, Any?>> {
         val decimalBSSIDs = bssids.mapNotNull { bssid ->
@@ -416,15 +479,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                     val queryTime = System.currentTimeMillis() - startTime
                     Log.d(TAG, "ESSID query completed in ${queryTime}ms, found ${results.size} results")
 
-                    if (results.isNotEmpty()) {
-                        val geoStartTime = System.currentTimeMillis()
-                        val resultsWithGeo = loadGeoDataForResults(results)
-                        val geoTime = System.currentTimeMillis() - geoStartTime
-                        Log.d(TAG, "Geo data loaded in ${geoTime}ms")
-                        resultsWithGeo
-                    } else {
-                        results
-                    }
+                    results
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error searching networks by ESSID", e)
@@ -441,146 +496,121 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         Log.d(TAG, "Index level: $indexLevel")
 
         val tableName = if (getTableNames().contains("nets")) "nets" else "base"
-        val args = mutableListOf<String>()
-
-        if (filters.size == 1) {
-            when (filters.first()) {
-                "ESSID" -> {
-                    if (indexLevel >= DatabaseIndices.IndexLevel.BASIC) {
-                        val essidIndex = if (tableName == "nets") DatabaseIndices.NETS_ESSID else DatabaseIndices.BASE_ESSID
-                        val sql = if (wholeWords) {
-                            """
-                        SELECT DISTINCT n.*, g.latitude, g.longitude 
-                        FROM $tableName n INDEXED BY $essidIndex
-                        LEFT JOIN geo g ON n.BSSID = g.BSSID
-                        WHERE n.ESSID = ? COLLATE NOCASE
-                        """.trimIndent()
-                        } else {
-                            """
-                        SELECT DISTINCT n.*, g.latitude, g.longitude 
-                        FROM $tableName n INDEXED BY $essidIndex
-                        LEFT JOIN geo g ON n.BSSID = g.BSSID
-                        WHERE n.ESSID LIKE ?
-                        """.trimIndent()
-                        }
-
-                        val searchArg = if (wholeWords) query else "%$query%"
-
-                        return database?.rawQuery(sql, arrayOf(searchArg))?.use { cursor ->
-                            cursor.toSearchResults()
-                        } ?: emptyList()
-                    }
-                }
-                "WiFiKey" -> {
-                    if (indexLevel == DatabaseIndices.IndexLevel.FULL) {
-                        val wifiKeyIndex = if (tableName == "nets") DatabaseIndices.NETS_WIFIKEY else DatabaseIndices.BASE_WIFIKEY
-                        val sql = if (wholeWords) {
-                            """
-                        SELECT DISTINCT n.*, g.latitude, g.longitude 
-                        FROM $tableName n INDEXED BY $wifiKeyIndex
-                        LEFT JOIN geo g ON n.BSSID = g.BSSID
-                        WHERE n.WiFiKey = ? COLLATE NOCASE
-                        """.trimIndent()
-                        } else {
-                            """
-                        SELECT DISTINCT n.*, g.latitude, g.longitude 
-                        FROM $tableName n INDEXED BY $wifiKeyIndex
-                        LEFT JOIN geo g ON n.BSSID = g.BSSID
-                        WHERE n.WiFiKey LIKE ?
-                        """.trimIndent()
-                        }
-
-                        val searchArg = if (wholeWords) query else "%$query%"
-
-                        return database?.rawQuery(sql, arrayOf(searchArg))?.use { cursor ->
-                            cursor.toSearchResults()
-                        } ?: emptyList()
-                    }
-                }
-                "WPSPIN" -> {
-                    if (indexLevel == DatabaseIndices.IndexLevel.FULL) {
-                        val wpsPinIndex = if (tableName == "nets") DatabaseIndices.NETS_WPSPIN else DatabaseIndices.BASE_WPSPIN
-                        val sql = """
-                        SELECT DISTINCT n.*, g.latitude, g.longitude 
-                        FROM $tableName n INDEXED BY $wpsPinIndex
-                        LEFT JOIN geo g ON n.BSSID = g.BSSID
-                        WHERE n.WPSPIN = ?
-                    """.trimIndent()
-
-                        return database?.rawQuery(sql, arrayOf(query))?.use { cursor ->
-                            cursor.toSearchResults()
-                        } ?: emptyList()
-                    }
-                }
-                "BSSID" -> {
-                    val macValue = if (query.contains(":") || query.contains("-")) {
-                        try {
-                            query.replace(":", "").replace("-", "").toLong(16).toString()
-                        } catch (_: Exception) {
-                            null
-                        }
-                    } else query.toLongOrNull()?.toString()
-
-                    if (macValue != null && indexLevel >= DatabaseIndices.IndexLevel.BASIC) {
-                        val bssidIndex = if (tableName == "nets") DatabaseIndices.NETS_BSSID else DatabaseIndices.BASE_BSSID
-                        val sql = """
-                        SELECT DISTINCT n.*, g.latitude, g.longitude 
-                        FROM $tableName n INDEXED BY $bssidIndex
-                        LEFT JOIN geo g INDEXED BY ${DatabaseIndices.GEO_BSSID} ON n.BSSID = g.BSSID
-                        WHERE n.BSSID = ?
-                    """.trimIndent()
-
-                        return database?.rawQuery(sql, arrayOf(macValue))?.use { cursor ->
-                            cursor.toSearchResults()
-                        } ?: emptyList()
-                    }
-                }
-            }
-        }
-
-        val sql = DatabaseIndices.getOptimalSearchQuery(indexLevel, tableName, filters, wholeWords)
+        val allResults = mutableSetOf<Map<String, Any?>>()
 
         filters.forEach { field ->
-            when (field) {
-                "BSSID" -> {
-                    val decimalBssid = if (query.contains(":") || query.contains("-")) {
-                        try {
-                            val decimal = query.replace(":", "").replace("-", "").toLong(16)
-                            args.add(decimal.toString())
-                            true
-                        } catch (_: Exception) {
-                            false
-                        }
-                    } else query.toLongOrNull() != null
+            val fieldResults = when (field) {
+                "BSSID" -> searchByBssid(query, indexLevel, tableName)
+                "ESSID" -> searchByEssid(query, indexLevel, tableName, wholeWords)
+                "WiFiKey" -> searchByWifiKey(query, indexLevel, tableName, wholeWords)
+                "WPSPIN" -> searchByWpsPin(query, indexLevel, tableName)
+                else -> emptyList()
+            }
+            allResults.addAll(fieldResults)
+        }
 
-                    if (!decimalBssid) {
-                        args.add(if (wholeWords) query else "%$query%")
-                    }
-                }
-                "ESSID" -> {
-                    if (wholeWords) {
-                        args.add(query)
-                    } else {
-                        args.add("%$query%")
-                    }
-                }
-                "WiFiKey" -> {
-                    if (wholeWords) {
-                        args.add(query)
-                    } else {
-                        args.add("%$query%")
-                    }
-                }
-                "WPSPIN" -> {
-                    args.add(query)
+        return allResults.distinctBy { "${it["BSSID"]}-${it["ESSID"]}" }
+    }
+
+    private fun searchByBssid(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String): List<Map<String, Any?>> {
+        val possibleFormats = generateMacFormats(query)
+        val results = mutableListOf<Map<String, Any?>>()
+
+        Log.d(TAG, "BSSID search - Original query: $query")
+        Log.d(TAG, "BSSID search - Generated formats: $possibleFormats")
+
+        possibleFormats.forEach { format ->
+            val decimalValue = macToDecimal(format)
+            if (decimalValue != -1L) {
+                val sql = DatabaseIndices.getOptimalBssidSearchQuery(indexLevel, tableName)
+                Log.d(TAG, "BSSID search - Using query: $sql with decimal: $decimalValue")
+
+                database?.rawQuery(sql, arrayOf(decimalValue.toString()))?.use { cursor ->
+                    results.addAll(cursor.toSearchResults())
                 }
             }
         }
 
-        Log.d(TAG, "Using query: $sql")
-        Log.d(TAG, "Args: ${args.joinToString()}")
+        if (results.isEmpty() && !query.matches("[0-9]+".toRegex())) {
+            val fallbackSql = DatabaseIndices.getOptimalBssidFallbackQuery(indexLevel, tableName)
+            Log.d(TAG, "BSSID search - Using fallback query: $fallbackSql")
 
-        return database?.rawQuery(sql, args.toTypedArray())?.use { cursor ->
+            database?.rawQuery(fallbackSql, arrayOf("%$query%"))?.use { cursor ->
+                results.addAll(cursor.toSearchResults())
+            }
+        }
+
+        Log.d(TAG, "BSSID search - Found ${results.size} results")
+        return results
+    }
+
+    private fun generateMacFormats(input: String): List<String> {
+        val cleanInput = input.replace("[^a-fA-F0-9]".toRegex(), "").uppercase()
+
+        return when {
+            input.matches("[0-9]+".toRegex()) -> listOf(input)
+
+            input.matches("([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})".toRegex()) -> {
+                listOf(
+                    input,
+                    input.replace(":", "").replace("-", ""),
+                    input.replace(":", "").replace("-", "").toLongOrNull(16)?.toString() ?: ""
+                ).filter { it.isNotEmpty() }
+            }
+
+            input.matches("[0-9A-Fa-f]{12}".toRegex()) -> {
+                listOf(
+                    input,
+                    input.toLongOrNull(16)?.toString() ?: "",
+                    input.replace("(.{2})".toRegex(), "$1:").dropLast(1),
+                    input.replace("(.{2})".toRegex(), "$1-").dropLast(1)
+                ).filter { it.isNotEmpty() }
+            }
+
+            cleanInput.length == 12 -> {
+                listOf(
+                    cleanInput,
+                    cleanInput.toLongOrNull(16)?.toString() ?: "",
+                    cleanInput.replace("(.{2})".toRegex(), "$1:").dropLast(1),
+                    cleanInput.replace("(.{2})".toRegex(), "$1-").dropLast(1)
+                ).filter { it.isNotEmpty() }
+            }
+
+            else -> listOf(input, cleanInput).filter { it.isNotEmpty() }
+        }
+    }
+
+    private fun searchByEssid(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
+        val searchValue = if (wholeWords) query else "%$query%"
+        val sql = DatabaseIndices.getOptimalEssidSearchQuery(indexLevel, tableName, wholeWords)
+
+        Log.d(TAG, "ESSID search - Using query: $sql")
+        Log.d(TAG, "ESSID search - Search value: $searchValue")
+
+        return database?.rawQuery(sql, arrayOf(searchValue))?.use { cursor ->
+            cursor.toSearchResults()
+        } ?: emptyList()
+    }
+
+    private fun searchByWifiKey(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
+        val searchValue = if (wholeWords) query else "%$query%"
+        val sql = DatabaseIndices.getOptimalWifiKeySearchQuery(indexLevel, tableName, wholeWords)
+
+        Log.d(TAG, "WiFiKey search - Using query: $sql")
+        Log.d(TAG, "WiFiKey search - Search value: $searchValue")
+
+        return database?.rawQuery(sql, arrayOf(searchValue))?.use { cursor ->
+            cursor.toSearchResults()
+        } ?: emptyList()
+    }
+
+    private fun searchByWpsPin(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String): List<Map<String, Any?>> {
+        val sql = DatabaseIndices.getOptimalWpsPinSearchQuery(indexLevel, tableName)
+
+        Log.d(TAG, "WPSPIN search - Using query: $sql")
+        Log.d(TAG, "WPSPIN search - Search value: $query")
+
+        return database?.rawQuery(sql, arrayOf(query))?.use { cursor ->
             cursor.toSearchResults()
         } ?: emptyList()
     }

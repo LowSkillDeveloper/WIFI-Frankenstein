@@ -247,21 +247,9 @@ class WiFiScannerViewModel(
                 return
             }
 
-            val dbType = DatabaseTypeUtils.determineDbType(sqlite3WiFiHelper!!.database!!)
-            val tableName = when (dbType) {
-                DatabaseTypeUtils.WiFiDbType.TYPE_NETS -> "nets"
-                DatabaseTypeUtils.WiFiDbType.TYPE_BASE -> "base"
-                else -> {
-                    Log.e("WiFiScannerViewModel", "Unknown database type, cannot search")
-                    return
-                }
-            }
-
-            val indexLevel = DatabaseIndices.determineIndexLevel(sqlite3WiFiHelper!!.database!!)
-            Log.d("WiFiScannerViewModel", "ESSID search - Index level: $indexLevel, table: $tableName")
-
             val essids = networks.map { it.SSID.takeIf { ssid -> ssid.isNotBlank() }
                 ?: getApplication<Application>().getString(R.string.no_ssid) }
+
             val networkInfoList = sqlite3WiFiHelper?.searchNetworksByESSIDsAsync(essids) ?: emptyList()
 
             networkInfoList.forEach { networkInfo ->
@@ -297,11 +285,32 @@ class WiFiScannerViewModel(
                 essids = essids
             ) ?: emptyList()
 
+            val columnMap = db.columnMap ?: return
+            val macField = columnMap["mac"] ?: "mac"
+            val essidField = columnMap["essid"] ?: "essid"
+            val passwordField = columnMap["wifi_pass"] ?: "wifi_pass"
+            val wpsPinField = columnMap["wps_pin"] ?: "wps_pin"
+            val latField = columnMap["latitude"] ?: "latitude"
+            val lonField = columnMap["longitude"] ?: "longitude"
+            val secField = columnMap["security_type"] ?: "security_type"
+            val timeField = columnMap["timestamp"] ?: "timestamp"
+
             networkInfoList.forEach { networkInfo ->
-                val essid = networkInfo["essid"] as? String ?: return@forEach
+                val essid = networkInfo[essidField] as? String ?: return@forEach
                 val matchingNetworks = networks.filter { it.SSID == essid }
                 matchingNetworks.forEach { network ->
-                    val newResult = NetworkDatabaseResult(network, networkInfo, db.path)
+                    val normalizedInfo = mapOf(
+                        "BSSID" to networkInfo[macField]?.toString(),
+                        "ESSID" to essid,
+                        "WiFiKey" to networkInfo[passwordField]?.toString(),
+                        "WPSPIN" to networkInfo[wpsPinField]?.toString(),
+                        "lat" to (networkInfo[latField] as? Double ?: networkInfo[latField]?.toString()?.toDoubleOrNull()),
+                        "lon" to (networkInfo[lonField] as? Double ?: networkInfo[lonField]?.toString()?.toDoubleOrNull()),
+                        "time" to networkInfo[timeField]?.toString(),
+                        "sec" to networkInfo[secField]?.toString()
+                    )
+
+                    val newResult = NetworkDatabaseResult(network, normalizedInfo, db.path)
                     val bssid = network.BSSID.lowercase(Locale.ROOT)
                     if (!isDuplicate(results, newResult)) {
                         results.getOrPut(bssid) { mutableListOf() }.add(newResult)
@@ -328,49 +337,13 @@ class WiFiScannerViewModel(
                 return
             }
 
-            val dbType = DatabaseTypeUtils.determineDbType(sqlite3WiFiHelper!!.database!!)
-            val tableName = when (dbType) {
-                DatabaseTypeUtils.WiFiDbType.TYPE_NETS -> "nets"
-                DatabaseTypeUtils.WiFiDbType.TYPE_BASE -> "base"
-                else -> {
-                    Log.e("WiFiScannerViewModel", "Unknown database type, cannot search")
-                    return
-                }
-            }
-
-            Log.d("WiFiScannerViewModel", "Database type: $dbType, using table: $tableName")
-
             val indexLevel = DatabaseIndices.determineIndexLevel(sqlite3WiFiHelper!!.database!!)
             Log.d("WiFiScannerViewModel", "Index level: $indexLevel")
-            when (indexLevel) {
-                DatabaseIndices.IndexLevel.NONE -> {
-                    Log.w("WiFiScannerViewModel", "No indexes available - search performance will be significantly degraded")
-                }
-                DatabaseIndices.IndexLevel.BASIC -> {
-                    Log.d("WiFiScannerViewModel", "Basic indexes available - good search performance")
-                }
-                DatabaseIndices.IndexLevel.FULL -> {
-                    Log.d("WiFiScannerViewModel", "Full indexes available - optimal search performance")
-                }
-            }
-
-            when (indexLevel) {
-                DatabaseIndices.IndexLevel.FULL -> Log.d("WiFiScannerViewModel", "Using full optimized indices")
-                DatabaseIndices.IndexLevel.BASIC -> Log.d("WiFiScannerViewModel", "Using basic optimized indices")
-                DatabaseIndices.IndexLevel.NONE -> Log.d("WiFiScannerViewModel", "No indices available, using standard query")
-            }
 
             val networkInfoList = withContext(Dispatchers.IO) {
                 if (_searchByMac.value == true) {
-                    val decimalBssids = networks.mapNotNull { network ->
-                        val bssid = network.BSSID.replace(":", "").replace("-", "")
-                        try {
-                            bssid.toLong(16)
-                        } catch (_: NumberFormatException) {
-                            null
-                        }
-                    }
-                    sqlite3WiFiHelper?.searchNetworksByBSSIDsAsync(decimalBssids.map { it.toString() })
+                    val bssids = networks.map { it.BSSID }
+                    sqlite3WiFiHelper?.searchNetworksByBSSIDsAsync(bssids)
                 } else {
                     val essids = networks.map { it.SSID.takeIf { ssid -> ssid.isNotBlank() }
                         ?: getApplication<Application>().getString(R.string.no_ssid) }
@@ -384,6 +357,7 @@ class WiFiScannerViewModel(
             _error.postValue(getApplication<Application>().getString(R.string.error_database_access, e.message))
         }
     }
+
 
     private suspend fun processCustomDatabaseAsync(db: DbItem, networks: List<ScanResult>, results: MutableMap<String, MutableList<NetworkDatabaseResult>>) {
         try {
@@ -403,6 +377,16 @@ class WiFiScannerViewModel(
 
             Log.d("WiFiScannerViewModel", "Found results in custom DB: $networkInfoMap")
 
+            val columnMap = db.columnMap ?: return
+            val macField = columnMap["mac"] ?: "mac"
+            val essidField = columnMap["essid"] ?: "essid"
+            val passwordField = columnMap["wifi_pass"] ?: "wifi_pass"
+            val wpsPinField = columnMap["wps_pin"] ?: "wps_pin"
+            val latField = columnMap["latitude"] ?: "latitude"
+            val lonField = columnMap["longitude"] ?: "longitude"
+            val secField = columnMap["security_type"] ?: "security_type"
+            val timeField = columnMap["timestamp"] ?: "timestamp"
+
             networkInfoMap.forEach { (dbBssid, networkInfo) ->
                 val matchingNetworks = networks.filter { network ->
                     network.BSSID.equals(dbBssid, ignoreCase = true) ||
@@ -412,13 +396,13 @@ class WiFiScannerViewModel(
                 matchingNetworks.forEach { network ->
                     val normalizedInfo = mapOf(
                         "BSSID" to dbBssid,
-                        "ESSID" to (networkInfo["essid"])?.toString(),
-                        "WiFiKey" to (networkInfo["wifi_pass"])?.toString(),
-                        "WPSPIN" to (networkInfo["wps_pin"])?.toString(),
-                        "lat" to (networkInfo["latitude"] ?: networkInfo["lat"])?.toString()?.toDoubleOrNull(),
-                        "lon" to (networkInfo["longitude"] ?: networkInfo["lon"])?.toString()?.toDoubleOrNull(),
-                        "time" to (networkInfo["timestamp"])?.toString(),
-                        "sec" to (networkInfo["security_type"])?.toString()
+                        "ESSID" to networkInfo[essidField]?.toString(),
+                        "WiFiKey" to networkInfo[passwordField]?.toString(),
+                        "WPSPIN" to networkInfo[wpsPinField]?.toString(),
+                        "lat" to (networkInfo[latField] as? Double ?: networkInfo[latField]?.toString()?.toDoubleOrNull()),
+                        "lon" to (networkInfo[lonField] as? Double ?: networkInfo[lonField]?.toString()?.toDoubleOrNull()),
+                        "time" to networkInfo[timeField]?.toString(),
+                        "sec" to networkInfo[secField]?.toString()
                     )
 
                     val newResult = NetworkDatabaseResult(network, normalizedInfo, db.path)
@@ -474,7 +458,13 @@ class WiFiScannerViewModel(
             if (searchByMac) {
                 networks.forEach { network ->
                     val bssid = network.BSSID.lowercase(Locale.ROOT)
-                    val localNetworks = localAppDbHelper.searchRecords(bssid)
+                    val localNetworks = localAppDbHelper.searchRecordsWithFiltersOptimized(
+                        bssid,
+                        filterByName = false,
+                        filterByMac = true,
+                        filterByPassword = false,
+                        filterByWps = false
+                    )
                     processLocalResults(network, localNetworks, results)
                 }
             } else {

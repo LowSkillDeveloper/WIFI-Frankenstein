@@ -27,7 +27,7 @@ class LocalDbViewerViewModel(application: Application) : AndroidViewModel(applic
                 Log.w("LocalDbViewerViewModel", "Search may be slow - no indexes available for password/WPS search")
             }
 
-            val results = dbHelper.searchRecordsWithFilters(query, filterByName, filterByMac, filterByPassword, filterByWps)
+            val results = dbHelper.searchRecordsWithFiltersOptimized(query, filterByName, filterByMac, filterByPassword, filterByWps)
             _searchResults.postValue(results)
         }
     }

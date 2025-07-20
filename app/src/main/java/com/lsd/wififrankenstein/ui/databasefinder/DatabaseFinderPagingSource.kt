@@ -182,14 +182,21 @@ class DatabaseFinderPagingSource(
                                     Log.d(TAG, "Custom DB results: $dbResults")
 
                                     dbResults.map { result ->
+                                        val macField = columnMap["mac"] ?: "mac"
+                                        val essidField = columnMap["essid"] ?: "essid"
+                                        val passwordField = columnMap["wifi_pass"] ?: "wifi_pass"
+                                        val wpsPinField = columnMap["wps_pin"] ?: "wps_pin"
+                                        val latField = columnMap["latitude"] ?: "latitude"
+                                        val lonField = columnMap["longitude"] ?: "longitude"
+
                                         SearchResult(
-                                            ssid = result["essid"] as? String ?: "",
-                                            bssid = result["mac"]?.toString() ?: "",
-                                            password = result["wifi_pass"] as? String,
-                                            wpsPin = result["wps_pin"]?.toString(),
+                                            ssid = result[essidField] as? String ?: "",
+                                            bssid = result[macField]?.toString() ?: "",
+                                            password = result[passwordField] as? String,
+                                            wpsPin = result[wpsPinField]?.toString(),
                                             source = dbItem.path,
-                                            latitude = result["latitude"] as? Double ?: (result["latitude"] as? String)?.toDoubleOrNull() ?: (result["lat"] as? Double) ?: (result["lat"] as? String)?.toDoubleOrNull(),
-                                            longitude = result["longitude"] as? Double ?: (result["longitude"] as? String)?.toDoubleOrNull() ?: (result["lon"] as? Double) ?: (result["lon"] as? String)?.toDoubleOrNull()
+                                            latitude = result[latField] as? Double ?: (result[latField] as? String)?.toDoubleOrNull(),
+                                            longitude = result[lonField] as? Double ?: (result[lonField] as? String)?.toDoubleOrNull()
                                         ).also {
                                             Log.d(TAG, "Mapped to SearchResult: $it")
                                         }
@@ -215,7 +222,7 @@ class DatabaseFinderPagingSource(
                             Log.d(TAG, "Local DB search fields: ${searchFields.joinToString()}")
                             val localDbHelper = LocalAppDbHelper(context)
 
-                            val dbResults = localDbHelper.searchRecordsWithFilters(
+                            val dbResults = localDbHelper.searchRecordsWithFiltersOptimized(
                                 query,
                                 searchFields.contains("name"),
                                 searchFields.contains("mac"),

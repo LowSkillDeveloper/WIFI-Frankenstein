@@ -128,6 +128,118 @@ object DatabaseIndices {
         }
     }
 
+
+    fun getOptimalBssidSearchQuery(indexLevel: IndexLevel, tableName: String): String {
+        val bssidIndex = when (tableName) {
+            "nets" -> NETS_BSSID
+            "base" -> BASE_BSSID
+            else -> ""
+        }
+
+        return when {
+            indexLevel >= IndexLevel.BASIC -> {
+                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                        "FROM $tableName n INDEXED BY $bssidIndex " +
+                        "LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                        "WHERE n.BSSID = ?"
+            }
+            else -> {
+                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                        "FROM $tableName n " +
+                        "LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                        "WHERE n.BSSID = ?"
+            }
+        }
+    }
+
+    fun getOptimalBssidFallbackQuery(indexLevel: IndexLevel, tableName: String): String {
+        return "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                "FROM $tableName n " +
+                "LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                "WHERE CAST(n.BSSID AS TEXT) LIKE ?"
+    }
+
+    fun getOptimalEssidSearchQuery(indexLevel: IndexLevel, tableName: String, wholeWords: Boolean): String {
+        val essidIndex = when (tableName) {
+            "nets" -> NETS_ESSID
+            "base" -> BASE_ESSID
+            else -> ""
+        }
+
+        val essidCondition = if (wholeWords) {
+            "n.ESSID = ? COLLATE NOCASE"
+        } else {
+            "n.ESSID LIKE ? ESCAPE '\\'"
+        }
+
+        return when {
+            indexLevel >= IndexLevel.BASIC -> {
+                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                        "FROM $tableName n INDEXED BY $essidIndex " +
+                        "LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                        "WHERE $essidCondition"
+            }
+            else -> {
+                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                        "FROM $tableName n " +
+                        "LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                        "WHERE $essidCondition"
+            }
+        }
+    }
+
+    fun getOptimalWifiKeySearchQuery(indexLevel: IndexLevel, tableName: String, wholeWords: Boolean): String {
+        val wifiKeyIndex = when (tableName) {
+            "nets" -> NETS_WIFIKEY
+            "base" -> BASE_WIFIKEY
+            else -> ""
+        }
+
+        val wifiKeyCondition = if (wholeWords) {
+            "n.WiFiKey = ? COLLATE NOCASE"
+        } else {
+            "n.WiFiKey LIKE ? ESCAPE '\\'"
+        }
+
+        return when {
+            indexLevel == IndexLevel.FULL -> {
+                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                        "FROM $tableName n INDEXED BY $wifiKeyIndex " +
+                        "LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                        "WHERE $wifiKeyCondition"
+            }
+            else -> {
+                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                        "FROM $tableName n " +
+                        "LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                        "WHERE $wifiKeyCondition"
+            }
+        }
+    }
+
+    fun getOptimalWpsPinSearchQuery(indexLevel: IndexLevel, tableName: String): String {
+        val wpsPinIndex = when (tableName) {
+            "nets" -> NETS_WPSPIN
+            "base" -> BASE_WPSPIN
+            else -> ""
+        }
+
+        return when {
+            indexLevel == IndexLevel.FULL -> {
+                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                        "FROM $tableName n INDEXED BY $wpsPinIndex " +
+                        "LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                        "WHERE n.WPSPIN = ?"
+            }
+            else -> {
+                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                        "FROM $tableName n " +
+                        "LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                        "WHERE n.WPSPIN = ?"
+            }
+        }
+    }
+
     fun getOptimalEssidQuery(indexLevel: IndexLevel, tableName: String, joinGeo: Boolean = true): String {
         val essidIndex = when (tableName) {
             "nets" -> NETS_ESSID
