@@ -11,7 +11,7 @@
     <string name="db_type_smartlink">SmartLinkDB</string>
     <string name="unknown_ssid">Невідомий SSID</string>
     <string name="menu_wifi_scanner">WiFi Сканер</string>
-    <string name="menu_database_finder">Локальний пошук по базі даних</string>
+    <string name="menu_database_finder">Пошук по базам даних</string>
     <string name="menu_wifi_map">WiFi Мапа</string>
     <string name="menu_updates">Оновлення</string>
     <string name="menu_settings">Налаштування</string>

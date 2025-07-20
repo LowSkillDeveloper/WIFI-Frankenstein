@@ -14,7 +14,7 @@
     <string name="db_type_smartlink">SmartLinkDB</string>
     <string name="unknown_ssid">Unknown SSID</string>
     <string name="menu_wifi_scanner">WiFi Scanner</string>
-    <string name="menu_database_finder">Local Database Query</string>
+    <string name="menu_database_finder">Databases Query</string>
     <string name="menu_wifi_map">WiFi Map</string>
     <string name="menu_updates">Updates</string>
     <string name="menu_settings">Settings</string>
