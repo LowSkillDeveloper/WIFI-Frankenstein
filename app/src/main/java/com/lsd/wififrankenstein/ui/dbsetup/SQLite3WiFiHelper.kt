@@ -460,11 +460,11 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                         SELECT DISTINCT n.*, g.latitude, g.longitude 
                         FROM $tableName n INDEXED BY $essidIndex
                         LEFT JOIN geo g ON n.BSSID = g.BSSID
-                        WHERE n.ESSID LIKE ? ESCAPE '\\'
+                        WHERE n.ESSID LIKE ?
                         """.trimIndent()
                         }
 
-                        val searchArg = if (wholeWords) query else "%${query.replace("%", "\\%").replace("_", "\\_")}%"
+                        val searchArg = if (wholeWords) query else "%$query%"
 
                         return database?.rawQuery(sql, arrayOf(searchArg))?.use { cursor ->
                             cursor.toSearchResults()
@@ -486,11 +486,11 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                         SELECT DISTINCT n.*, g.latitude, g.longitude 
                         FROM $tableName n INDEXED BY $wifiKeyIndex
                         LEFT JOIN geo g ON n.BSSID = g.BSSID
-                        WHERE n.WiFiKey LIKE ? ESCAPE '\\'
+                        WHERE n.WiFiKey LIKE ?
                         """.trimIndent()
                         }
 
-                        val searchArg = if (wholeWords) query else "%${query.replace("%", "\\%").replace("_", "\\_")}%"
+                        val searchArg = if (wholeWords) query else "%$query%"
 
                         return database?.rawQuery(sql, arrayOf(searchArg))?.use { cursor ->
                             cursor.toSearchResults()
@@ -561,14 +561,14 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                     if (wholeWords) {
                         args.add(query)
                     } else {
-                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                        args.add("%$query%")
                     }
                 }
                 "WiFiKey" -> {
                     if (wholeWords) {
                         args.add(query)
                     } else {
-                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                        args.add("%$query%")
                     }
                 }
                 "WPSPIN" -> {
@@ -617,8 +617,8 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                         conditions.add("n.ESSID = ? COLLATE NOCASE")
                         args.add(query)
                     } else {
-                        conditions.add("n.ESSID LIKE ? ESCAPE '\\'")
-                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                        conditions.add("n.ESSID LIKE ?")
+                        args.add("%$query%")
                     }
                 }
                 "WiFiKey" -> {
@@ -626,8 +626,8 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                         conditions.add("n.WiFiKey = ? COLLATE NOCASE")
                         args.add(query)
                     } else {
-                        conditions.add("n.WiFiKey LIKE ? ESCAPE '\\'")
-                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                        conditions.add("n.WiFiKey LIKE ?")
+                        args.add("%$query%")
                     }
                 }
                 "WPSPIN" -> {
@@ -635,8 +635,8 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                     args.add(query)
                 }
                 else -> {
-                    conditions.add("$field LIKE ? ESCAPE '\\'")
-                    args.add(if (wholeWords) query else "%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                    conditions.add("$field LIKE ?")
+                    args.add(if (wholeWords) query else "%$query%")
                 }
             }
         }
