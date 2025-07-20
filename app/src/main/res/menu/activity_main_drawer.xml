@@ -16,6 +16,12 @@
             android:id="@+id/nav_database_finder"
             android:icon="@drawable/ic_storage"
             android:title="@string/menu_database_finder" />
+
+        <item
+            android:id="@+id/nav_in_app_database"
+            android:icon="@drawable/ic_database"
+            android:title="@string/menu_in_app_database" />
+
         <item
             android:id="@+id/nav_api_query"
             android:icon="@drawable/outline_arrow_upload_ready_24"
