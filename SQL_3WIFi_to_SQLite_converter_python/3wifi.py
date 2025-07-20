@@ -5,17 +5,14 @@ from datetime import timedelta
 import sqlite3
 import re
 from tqdm import tqdm
-import logging
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from importlib.metadata import distribution, PackageNotFoundError
+import multiprocessing
 import os
-import csv
-import io
 import zipfile
 import threading
 from pathlib import Path
-
-# Настройка логирования
-logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+import glob
 
 def check_and_install_dependencies():
     required_packages = {'tqdm': 'tqdm'}
@@ -37,8 +34,72 @@ def check_and_install_dependencies():
         subprocess.call([python] + sys.argv)
         sys.exit()
 
+def find_sql_files():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    patterns = ['geo.sql', 'base.sql', 'input.sql', '*.sql']
+    found_files = {}
+    
+    for pattern in patterns:
+        files = glob.glob(os.path.join(script_dir, pattern))
+        for f in files:
+            basename = os.path.basename(f)
+            if basename not in found_files:
+                found_files[basename] = f
+    
+    return found_files
+
+def select_sql_files():
+    sql_files = find_sql_files()
+    
+    if not sql_files:
+        print("\nNo SQL files found in the script directory!")
+        print("Please place your SQL files in the same directory as this script.")
+        return None, None
+    
+    file_list = list(sql_files.keys())
+    
+    print("\nAvailable SQL files:")
+    for i, file in enumerate(file_list, 1):
+        print(f"  {i}. {file}")
+
+    geo_file = None
+    if 'geo.sql' in sql_files:
+        geo_file = 'geo.sql'
+        print(f"\nAutomatically selected geo.sql for geo table")
+    else:
+        while True:
+            try:
+                choice = input(f"\nSelect file for 'geo' table (1-{len(file_list)}): ").strip()
+                if choice.isdigit():
+                    idx = int(choice) - 1
+                    if 0 <= idx < len(file_list):
+                        geo_file = file_list[idx]
+                        break
+                print("Invalid choice. Please try again.")
+            except (ValueError, KeyboardInterrupt):
+                return None, None
+
+    base_file = None
+    if 'base.sql' in sql_files:
+        base_file = 'base.sql'
+        print(f"Automatically selected base.sql for base table")
+    else:
+        while True:
+            try:
+                choice = input(f"\nSelect file for 'base' table (1-{len(file_list)}): ").strip()
+                if choice.isdigit():
+                    idx = int(choice) - 1
+                    if 0 <= idx < len(file_list):
+                        base_file = file_list[idx]
+                        break
+                print("Invalid choice. Please try again.")
+            except (ValueError, KeyboardInterrupt):
+                return None, None
+    
+    return geo_file, base_file
+
 def check_archiver_availability():
-    """Check what archive tools are available"""
     available_tools = {'python': True}
     
     try:
@@ -49,598 +110,28 @@ def check_archiver_availability():
     
     return available_tools
 
-def clean_sql_content(sql_content, table_name):
-    """Pre-process the SQL content to fix common issues before parsing"""
-    fixed_content = sql_content
-    fixed_content = fixed_content.replace("\\'", "''")
+def create_archive_python(db_file, archive_options):
+    archive_format = archive_options['format']
+    compression_level = archive_options['compression']
+    split_archive = archive_options['split']
     
-    pattern = rf"INSERT (?:IGNORE )?INTO `{table_name}`\s*\([^)]+\)\s*VALUES\s*"
-    matches = re.findall(pattern, fixed_content)
+    print(f"\nCreating {archive_format.upper()} archive using Python libraries...")
     
-    for match in matches:
-        if not re.search(r"VALUES\s*\(", match):
-            fixed_content = fixed_content.replace(match, match + "(")
+    base_name = os.path.splitext(db_file)[0]
     
-    return fixed_content
-
-def parse_values(values_str):
-    """Enhanced parser for SQL values with better handling of complex cases"""
-    logging.debug(f"Parsing values string: {values_str}")
-    
-    if values_str.startswith("((("):
-        opening_count = 0
-        for char in values_str:
-            if char == '(':
-                opening_count += 1
-            else:
-                break
-        
-        if opening_count > 1:
-            values_str = "(" + values_str[opening_count:]
-    
-    if values_str.startswith("(") and values_str.endswith(")"):
-        values_str = values_str[1:-1]
-    
-    csv_reader = csv.reader([values_str], delimiter=',', quotechar="'", escapechar='\\', doublequote=True)
     try:
-        raw_values = next(csv_reader)
-    except Exception as e:
-        logging.error(f"CSV parsing failed: {e}. Falling back to manual parsing")
-        values = []
-        current_value = ''
-        inside_quotes = False
-        escape = False
-        
-        for i, char in enumerate(values_str):
-            if char == "'" and not escape:
-                inside_quotes = not inside_quotes
-                current_value += char
-            elif char == "\\" and inside_quotes:
-                escape = not escape
-                current_value += char
-            elif char == "," and not inside_quotes:
-                if i > 0 and values_str[i-1] == ')' and values_str[i-2] == "'":
-                    current_value += char
-                else:
-                    values.append(current_value.strip())
-                    current_value = ''
-            else:
-                current_value += char
-                escape = False
-
-        if current_value:
-            values.append(current_value.strip())
-        
-        raw_values = values
-    
-    parsed_values = []
-    for value in raw_values:
-        value = value.strip()
-        if value == 'NULL':
-            parsed_values.append(None)
-        elif value.startswith("b'") and value.endswith("'"):
-            if value == "b'0'":
-                parsed_values.append(0)
-            else:
-                try:
-                    parsed_values.append(value[2:-1].encode('utf-8').decode('unicode_escape'))
-                except:
-                    parsed_values.append(value[2:-1])
-        elif value.startswith("'") and value.endswith("'"):
-            inner_value = value[1:-1]
-            inner_value = inner_value.replace("''", "'")
-            parsed_values.append(inner_value)
-        elif re.match(r'\d{4}-\d{2}-\d{2}(\s+\d{2}:\d{2}:\d{2})?', value):
-            parsed_values.append(value)
+        if archive_format == 'zip':
+            return create_zip_python(db_file, base_name, compression_level, split_archive)
         else:
-            try:
-                if '.' in value or 'e' in value.lower():
-                    parsed_values.append(float(value.replace(',', '')))
-                else:
-                    int_val = int(value.replace(',', ''))
-                    if int_val > 9223372036854775807 or int_val < -9223372036854775808:
-                        parsed_values.append(str(int_val))
-                    else:
-                        parsed_values.append(int_val)
-            except (ValueError, TypeError):
-                parsed_values.append(value)
-    
-    logging.debug(f"Parsed values: {parsed_values}")
-    return parsed_values
-
-def extract_insert_statements(sql_content, table_name):
-    """Extract all INSERT statements for a given table with better multi-line support"""
-    sql_content = sql_content.replace('\r\n', '\n').replace('\r', '\n')
-    pattern = rf"INSERT (?:IGNORE )?INTO `{table_name}`.*?VALUES\s*(.*?);(?=\s*INSERT|$)"
-    matches = re.findall(pattern, sql_content, re.DOTALL | re.IGNORECASE)
-    return matches
-
-def read_sql_file(sql_file, table_name):
-    """Improved function to read and parse SQL file for a given table"""
-    with open(sql_file, 'r', encoding='utf-8') as file:
-        sql_content = file.read()
-    
-    logging.debug(f"Read SQL content from {sql_file} for table {table_name}")
-    
-    sql_content = clean_sql_content(sql_content, table_name)
-    insert_statements = extract_insert_statements(sql_content, table_name)
-    
-    all_values = []
-    for statement in tqdm(insert_statements, desc=f"Parsing SQL file for table {table_name}"):
-        values_pattern = r'\(([^()]*(?:\([^)]*\)[^()]*)*)\)'
-        value_sets = re.findall(values_pattern, statement, re.DOTALL)
-        
-        for value_set in value_sets:
-            value_set = f"({value_set.strip()})"
-            try:
-                values = parse_values(value_set)
-                logging.debug(f"Parsed values: {values}")
-                all_values.append(values)
-            except Exception as e:
-                logging.error(f"Failed to parse value set: {value_set[:100]}... Error: {e}")
-    
-    return all_values
-
-def validate_and_normalize_record(values, num_columns, table_name):
-    """Validate and normalize a record before insertion"""
-    for i, value in enumerate(values):
-        if isinstance(value, int):
-            if value > 9223372036854775807 or value < -9223372036854775808:
-                values[i] = str(value)
-    
-    if len(values) > num_columns:
-        return values[:num_columns], "truncated"
-    
-    if len(values) < num_columns:
-        expanded_values = list(values)
-        expanded_values.extend([None] * (num_columns - len(expanded_values)))
-        
-        if table_name == 'base' and num_columns > 1:
-            expanded_values[0] = None
-        
-        return expanded_values, "expanded"
-    
-    return values, "normal"
-
-def execute_inserts(db_file, table_name, values_list, num_columns, error_file):
-    """Enhanced function to insert data with better error handling and recovery"""
-    conn = sqlite3.connect(db_file)
-    cursor = conn.cursor()
-    
-    cursor.execute("PRAGMA journal_mode=WAL")
-    cursor.execute("PRAGMA synchronous=NORMAL")
-    cursor.execute("PRAGMA cache_size=10000")
-    cursor.execute("PRAGMA temp_store=MEMORY")
-    cursor.execute("PRAGMA foreign_keys=OFF")
-    
-    processed_records = 0
-    error_records = 0
-    fixed_records = 0
-    batch_size = 5000
-    
-    failed_records = []
-    
-    with open(error_file, 'w', encoding='utf-8') as err_file:
-        batch = []
-        record_statuses = []
-        
-        for values in tqdm(values_list, desc=f"Inserting data into {table_name}"):
-            logging.debug(f"Processing record with {len(values)} values")
+            print(f"Unsupported format for Python libraries: {archive_format}")
+            print("Only ZIP format is supported with Python built-in libraries.")
+            return False
             
-            normalized_values, status = validate_and_normalize_record(values, num_columns, table_name)
-            
-            if status != "normal":
-                if status == "expanded":
-                    fixed_records += 1
-                    err_file.write(f"Fixed in {table_name}: Expanded from {len(values)} to {num_columns} columns\n")
-                    err_file.write(f"Original: {', '.join([str(v) if v is not None else 'NULL' for v in values])}\n\n")
-                else:
-                    err_file.write(f"Fixed in {table_name}: Truncated from {len(values)} to {num_columns} columns\n")
-                    err_file.write(f"Original: {', '.join([str(v) if v is not None else 'NULL' for v in values[:100]])}\n\n")
-                    fixed_records += 1
-            
-            batch.append(normalized_values)
-            record_statuses.append(status)
-            
-            if len(batch) >= batch_size:
-                placeholders = ', '.join(['?'] * num_columns)
-                sql = f'INSERT OR IGNORE INTO {table_name} VALUES ({placeholders})'
-                
-                try:
-                    cursor.executemany(sql, batch)
-                    conn.commit()
-                    
-                    for status in record_statuses:
-                        if status == "normal":
-                            processed_records += 1
-                        else:
-                            fixed_records += 1
-                    
-                    batch = []
-                    record_statuses = []
-                except sqlite3.Error as e:
-                    err_file.write(f"Batch insert error: {str(e)}\n")
-                    for i, record in enumerate(batch):
-                        try:
-                            cursor.execute(sql, record)
-                            if record_statuses[i] == "normal":
-                                processed_records += 1
-                            else:
-                                fixed_records += 1
-                        except sqlite3.Error as inner_e:
-                            error_msg = f"Individual insert error: {str(inner_e)}"
-                            record_str = f"Values: {', '.join([str(v) if v is not None else 'NULL' for v in record])}"
-                            err_file.write(f"{error_msg}\n{record_str}\n\n")
-                            
-                            failed_records.append({
-                                'error': str(inner_e),
-                                'record': record,
-                                'index': error_records
-                            })
-                            
-                            error_records += 1
-                    
-                    conn.commit()
-                    batch = []
-                    record_statuses = []
-        
-        if batch:
-            placeholders = ', '.join(['?'] * num_columns)
-            sql = f'INSERT OR IGNORE INTO {table_name} VALUES ({placeholders})'
-            
-            try:
-                cursor.executemany(sql, batch)
-                conn.commit()
-                
-                for status in record_statuses:
-                    if status == "normal":
-                        processed_records += 1
-                    else:
-                        fixed_records += 1
-            except sqlite3.Error as e:
-                err_file.write(f"Final batch insert error: {str(e)}\n")
-                for i, record in enumerate(batch):
-                    try:
-                        cursor.execute(sql, record)
-                        if record_statuses[i] == "normal":
-                            processed_records += 1
-                        else:
-                            fixed_records += 1
-                    except sqlite3.Error as inner_e:
-                        error_msg = f"Individual insert error: {str(inner_e)}"
-                        record_str = f"Values: {', '.join([str(v) if v is not None else 'NULL' for v in record])}"
-                        err_file.write(f"{error_msg}\n{record_str}\n\n")
-                        
-                        failed_records.append({
-                            'error': str(inner_e),
-                            'record': record,
-                            'index': error_records
-                        })
-                        
-                        error_records += 1
-                
-                conn.commit()
-    
-    conn.close()
-    
-    with open(error_file, 'a', encoding='utf-8') as err_file:
-        if failed_records:
-            err_file.write(f"\n\n{'='*50}\nFAILED RECORDS ({len(failed_records)})\n{'='*50}\n")
-            for i, failed in enumerate(failed_records):
-                err_file.write(f"Failed Record #{i+1}:\n")
-                err_file.write(f"Error: {failed['error']}\n")
-                err_file.write(f"Values: {', '.join([str(v) if v is not None else 'NULL' for v in failed['record']])}\n\n")
-    
-        err_file.write(f"\n\n{'='*50}\nSUMMARY\n{'='*50}\n")
-        err_file.write(f"Total records processed: {processed_records + fixed_records}\n")
-        err_file.write(f"Total normal records: {processed_records}\n")
-        err_file.write(f"Total fixed records: {fixed_records}\n")
-        err_file.write(f"Total failed records: {error_records}\n")
-    
-    logging.debug(f"Finished inserting data into {table_name}")
-    return processed_records, fixed_records, error_records
-
-def fix_incomplete_line(line, num_columns, table_name):
-    """Enhanced function to fix incomplete lines with more intelligent inference"""
-    if line.startswith("(((") and ")" in line:
-        opening_count = 0
-        for char in line:
-            if char == '(':
-                opening_count += 1
-            else:
-                break
-        
-        if opening_count > 1:
-            line = "(" + line[opening_count:]
-    
-    if not line.startswith("(") and ("'" in line or "," in line):
-        field_count = 1
-        in_quotes = False
-        escape = False
-        
-        for char in line:
-            if char == "'" and not escape:
-                in_quotes = not in_quotes
-            elif char == "\\" and in_quotes:
-                escape = True
-            elif char == "," and not in_quotes:
-                field_count += 1
-            else:
-                if escape:
-                    escape = False
-        
-        if not line.startswith("("):
-            line = "(" + line
-        
-        if not line.endswith(")"):
-            line = line + ")"
-        
-        missing_fields = num_columns - field_count
-        if missing_fields > 0:
-            if table_name == 'base' and missing_fields > 0:
-                parts = line.split(",", 1)
-                if len(parts) > 1:
-                    line = "(NULL," + parts[1]
-                    missing_fields -= 1
-            
-            if missing_fields > 0:
-                prefix = "NULL," * missing_fields
-                line = "(" + prefix + line[1:]
-    
-    return line
-
-def process_error_log(db_file, error_log_file, table_name, num_columns):
-    """Enhanced function to process error logs with better recovery strategies"""
-    print(f"\nProcessing error log entries for {table_name}...")
-    
-    conn = sqlite3.connect(db_file)
-    cursor = conn.cursor()
-    
-    if not os.path.exists(error_log_file) or os.path.getsize(error_log_file) == 0:
-        print(f"No error log file found or it's empty: {error_log_file}")
-        return 0
-    
-    with open(error_log_file, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    pattern = re.compile(r"Error in " + re.escape(table_name) + r": Invalid column count:.*?\nLine: (.*?)(?=\n\n|$)", re.DOTALL)
-    error_lines = pattern.findall(content)
-    
-    quote_pattern = re.compile(r"Error in " + re.escape(table_name) + r".*?'.*?'.*?\nLine: (.*?)(?=\n\n|$)", re.DOTALL)
-    quote_error_lines = quote_pattern.findall(content)
-    
-    failed_pattern = re.compile(r"Failed Record #\d+:\nError:.*?\nValues: (.*?)(?=\n\nFailed Record|$)", re.DOTALL)
-    failed_error_lines = failed_pattern.findall(content)
-    
-    error_lines.extend(quote_error_lines)
-    error_lines.extend(failed_error_lines)
-    
-    error_lines = list(set(error_lines))
-    
-    fixed_count = 0
-    failed_lines = []
-    
-    for error_line in error_lines:
-        try:
-            error_line = error_line.strip()
-            
-            fixed_line = fix_incomplete_line(error_line, num_columns, table_name)
-            
-            try:
-                values = parse_values(fixed_line)
-            except Exception as e:
-                logging.error(f"Parse error: {e} for line: {fixed_line[:100]}...")
-                if "'" in fixed_line:
-                    fixed_line = fixed_line.replace("''", "'").replace("\\'", "'")
-                    values = parse_values(fixed_line)
-                else:
-                    raise e
-            
-            for i, val in enumerate(values):
-                if isinstance(val, int) and (val > 2147483647 or val < -2147483648):
-                    values[i] = str(val)
-            
-            normalized_values, _ = validate_and_normalize_record(values, num_columns, table_name)
-            
-            placeholders = ', '.join(['?' for _ in range(num_columns)])
-            cursor.execute(f"INSERT OR IGNORE INTO {table_name} VALUES ({placeholders})", normalized_values)
-            fixed_count += 1
-            
-        except Exception as e:
-            logging.error(f"Error processing line from error log: {str(e)}\nLine: {error_line[:100]}...")
-            failed_lines.append(error_line)
-    
-    for line in failed_lines:
-        try:
-            values = [None] * num_columns
-            
-            fields = []
-            current = ""
-            in_quotes = False
-            
-            for char in line:
-                if char == "'" and (len(current) == 0 or current[-1] != '\\'):
-                    in_quotes = not in_quotes
-                    current += char
-                elif char == ',' and not in_quotes:
-                    fields.append(current)
-                    current = ""
-                else:
-                    current += char
-            
-            if current:
-                fields.append(current)
-            
-            for i, field in enumerate(fields):
-                if i >= num_columns:
-                    break
-                
-                field = field.strip()
-                if field == 'NULL':
-                    values[i] = None
-                elif field.startswith("'") and field.endswith("'"):
-                    values[i] = field[1:-1].replace("''", "'")
-                elif field.isdigit():
-                    if len(field) > 9:
-                        values[i] = field
-                    else:
-                        values[i] = int(field)
-            
-            if table_name == 'base' and num_columns > 1:
-                values[0] = None
-            
-            placeholders = ', '.join(['?' for _ in range(num_columns)])
-            cursor.execute(f"INSERT OR IGNORE INTO {table_name} VALUES ({placeholders})", values)
-            fixed_count += 1
-            
-        except Exception as e:
-            logging.error(f"Final attempt failed for line: {str(e)}\nLine: {line[:100]}...")
-    
-    conn.commit()
-    conn.close()
-    
-    print(f"Fixed {fixed_count} entries from the error log for {table_name}")
-    return fixed_count
-
-def create_tables(db_file):
-    """Create database tables if they don't exist"""
-    conn = sqlite3.connect(db_file)
-    cursor = conn.cursor()
-    
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS geo (
-        BSSID INTEGER,
-        latitude FLOAT,
-        longitude FLOAT,
-        quadkey INTEGER
-    )
-    ''')
-    
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS base (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        time TIMESTAMP,
-        cmtid INTEGER,
-        IP INTEGER,
-        Port INTEGER,
-        Authorization TEXT,
-        name TEXT,
-        RadioOff INTEGER NOT NULL DEFAULT 0,
-        Hidden INTEGER NOT NULL DEFAULT 0,
-        NoBSSID INTEGER NOT NULL,
-        BSSID INTEGER NOT NULL,
-        ESSID TEXT,
-        Security INTEGER,
-        WiFiKey TEXT NOT NULL,
-        WPSPIN INTEGER NOT NULL,
-        LANIP INTEGER,
-        LANMask INTEGER,
-        WANIP INTEGER,
-        WANMask INTEGER,
-        WANGateway INTEGER,
-        DNS1 INTEGER,
-        DNS2 INTEGER,
-        DNS3 INTEGER
-    )
-    ''')
-    
-    conn.commit()
-    conn.close()
-
-def create_indices(db_file, option):
-    """Create indices for better query performance"""
-    conn = sqlite3.connect(db_file)
-    cursor = conn.cursor()
-    
-    if option == 1:
-        print("Creating full indices (this may take some time)...")
-        # Geo indices
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude);")
-        
-        # Base indices
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_BSSID ON base (BSSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_ESSID ON base (ESSID COLLATE NOCASE);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_wpspin ON base(WPSPIN);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_wifikey ON base(WiFiKey COLLATE NOCASE);")
-        
-    elif option == 2:
-        print("Creating basic indices...")
-        # Geo indices
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude);")
-        
-        # Base indices
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_BSSID ON base (BSSID);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_ESSID ON base (ESSID COLLATE NOCASE);")
-        
-    elif option == 3:
-        print("Skipping index creation as per user choice.")
-    else:
-        print("Invalid option selected for index creation.")
-    
-    conn.commit()
-    conn.close()
-
-def optimize_and_vacuum(db_file):
-    """Optimize the database and vacuum it to reduce size with enhanced retry logic"""
-    print("\nOptimizing and vacuuming database...")
-    max_attempts = 5
-    attempt = 0
-    
-    while attempt < max_attempts:
-        try:
-            if attempt > 0:
-                wait_time = 3 * (attempt + 1)
-                print(f"Waiting {wait_time} seconds before next attempt...")
-                time.sleep(wait_time)
-            
-            with sqlite3.connect(db_file, isolation_level=None, timeout=60) as conn:
-                cursor = conn.cursor()
-                
-                print("Running ANALYZE...")
-                cursor.execute("ANALYZE")
-                conn.commit()
-                
-                print("Running PRAGMA optimize...")
-                cursor.execute("PRAGMA optimize")
-                conn.commit()
-                
-                print("Running VACUUM (this may take some time)...")
-                cursor.execute("VACUUM")
-                conn.commit()
-                
-                cursor.close()
-                return True
-                
-        except sqlite3.OperationalError as e:
-            attempt += 1
-            print(f"Optimization attempt {attempt}/{max_attempts} failed: {str(e)}")
-            
-            if attempt < max_attempts:
-                try:
-                    with sqlite3.connect(db_file, timeout=10) as temp_conn:
-                        temp_conn.execute("PRAGMA wal_checkpoint(FULL);")
-                except Exception as checkpoint_error:
-                    print(f"Checkpoint failed: {str(checkpoint_error)}")
-                
-                time.sleep(2)
-            else:
-                print("\nCould not optimize database after multiple attempts.")
-                print("The database is still usable, but not optimized.")
-                return False
-
-def get_file_size_gb(file_path):
-    """Get file size in GB"""
-    if os.path.exists(file_path):
-        size_bytes = os.path.getsize(file_path)
-        return size_bytes / (1024 ** 3)
-    return 0
+    except Exception as e:
+        print(f"Error creating archive with Python: {str(e)}")
+        return False
 
 def create_zip_python(db_file, base_name, compression_level, split_archive):
-    """Create ZIP archive using Python's zipfile with progress bar"""
     
     if compression_level == 'maximum':
         compress_level = 9
@@ -677,7 +168,6 @@ def create_zip_python(db_file, base_name, compression_level, split_archive):
         return create_split_zip_python_with_progress(db_file, base_name, compress_type, compress_level, split_archive['parts'])
 
 def create_split_zip_python_with_progress(db_file, base_name, compress_type, compress_level, num_parts):
-    """Create split ZIP archive using Python with progress tracking"""
     
     file_size = os.path.getsize(db_file)
     temp_zip = f"{base_name}_temp.zip"
@@ -705,14 +195,12 @@ def create_split_zip_python_with_progress(db_file, base_name, compress_type, com
     
     part_size = compressed_size // num_parts
     remainder = compressed_size % num_parts
-    
     parts_created = 0
     
     with open(temp_zip, 'rb') as source:
         with tqdm(total=compressed_size, desc="Splitting", unit="B", unit_scale=True, unit_divisor=1024) as pbar:
             for part_num in range(1, num_parts + 1):
                 part_name = f"{base_name}.zip.{part_num:03d}"
-                
                 current_part_size = part_size + (remainder if part_num == num_parts else 0)
                 
                 with open(part_name, 'wb') as part_file:
@@ -746,10 +234,8 @@ def create_split_zip_python_with_progress(db_file, base_name, compress_type, com
     return True
 
 def split_large_file(file_path, base_name, extension, num_parts):
-    """Split large file into specified number of parts"""
     
     file_size = os.path.getsize(file_path)
-    
     print(f"Splitting archive into {num_parts} parts...")
     
     part_size = file_size // num_parts
@@ -759,7 +245,6 @@ def split_large_file(file_path, base_name, extension, num_parts):
     with open(file_path, 'rb') as source:
         for part_num in range(1, num_parts + 1):
             part_name = f"{base_name}{extension}.{part_num:03d}"
-            
             current_part_size = part_size + (remainder if part_num == num_parts else 0)
             
             with open(part_name, 'wb') as part_file:
@@ -775,12 +260,10 @@ def split_large_file(file_path, base_name, extension, num_parts):
             print(f"Created part {parts_created}: {part_name} ({written / (1024**3):.2f} GB)")
     
     os.remove(file_path)
-    
     print(f"Archive split into {parts_created} parts")
     return True
 
 def show_compression_stats(original_file, compressed_file):
-    """Show compression statistics"""
     original_size = get_file_size_gb(original_file)
     compressed_size = get_file_size_gb(compressed_file)
     compression_ratio = (1 - compressed_size / original_size) * 100 if original_size > 0 else 0
@@ -792,30 +275,670 @@ def show_compression_stats(original_file, compressed_file):
     
     return True
 
-def create_archive_python(db_file, archive_options):
-    """Create archive using Python built-in libraries"""
-    archive_format = archive_options['format']
-    compression_level = archive_options['compression']
-    split_archive = archive_options['split']
+def find_insert_blocks(content):
+    insert_blocks = []
+
+    patterns = [
+        r'INSERT\s+INTO\s+`?(\w+)`?\s*\([^)]+\)\s*VALUES',
+        r'INSERT\s+IGNORE\s+INTO\s+`?(\w+)`?\s*\([^)]+\)\s*VALUES',
+        r'INSERT\s+INTO\s+`?(\w+)`?\s+VALUES',
+        r'INSERT\s+IGNORE\s+INTO\s+`?(\w+)`?\s+VALUES'
+    ]
     
-    print(f"\nCreating {archive_format.upper()} archive using Python libraries...")
+    for pattern in patterns:
+        for match in re.finditer(pattern, content, re.IGNORECASE):
+            start_pos = match.start()
+            table_name = match.group(1)
+            
+            next_insert = content.find('INSERT INTO', start_pos + 1)
+            if next_insert == -1:
+                next_insert = content.find('INSERT IGNORE INTO', start_pos + 1)
+            
+            if next_insert == -1:
+                end_pos = len(content)
+            else:
+                end_pos = next_insert
+            
+            insert_block = content[start_pos:end_pos].strip()
+            insert_block = re.sub(r'[;\s]+$', ';', insert_block)
+
+            if not any(existing_table == table_name and existing_block == insert_block 
+                      for existing_table, existing_block in insert_blocks):
+                insert_blocks.append((table_name, insert_block))
     
-    base_name = os.path.splitext(db_file)[0]
+    print(f"Found INSERT patterns in file:")
+    if not insert_blocks:
+        general_pattern = r'INSERT\s+(?:IGNORE\s+)?INTO\s+(\w+)'
+        general_matches = re.findall(general_pattern, content, re.IGNORECASE)
+        if general_matches:
+            print(f"  Found INSERT statements for tables: {set(general_matches)}")
+            for table in set(general_matches):
+                table_pattern = rf'INSERT\s+(?:IGNORE\s+)?INTO\s+`?{re.escape(table)}`?.*?VALUES.*?;'
+                table_matches = re.findall(table_pattern, content, re.IGNORECASE | re.DOTALL)
+                if table_matches:
+                    for match in table_matches:
+                        insert_blocks.append((table, match))
+                        print(f"  Added block for table '{table}' (length: {len(match)} chars)")
+        else:
+            print("  No INSERT statements found at all")
+            print(f"  File starts with: {content[:500]}")
+    else:
+        for table_name, block in insert_blocks:
+            print(f"  Table '{table_name}': {len(block)} characters")
+    
+    return insert_blocks
+
+def parse_insert_block(insert_block):
+    table_match = re.search(r'INSERT\s+(?:IGNORE\s+)?INTO\s+`?(\w+)`?', insert_block, re.IGNORECASE)
+    if not table_match:
+        return None, None, None
+        
+    table_name = table_match.group(1)
+    
+    values_match = re.search(r'VALUES\s*(.+)', insert_block, re.IGNORECASE | re.DOTALL)
+    if not values_match:
+        return None, None, None
+        
+    values_text = values_match.group(1).strip()
+    if values_text.endswith(';'):
+        values_text = values_text[:-1]
+    
+    values_text = re.sub(r'/\*.*?\*/', '', values_text, flags=re.DOTALL)
+    values_text = re.sub(r'!\d+.*?\*/', '', values_text)
+    
+    all_values = parse_heidi_values(values_text)
+    
+    if all_values:
+        num_columns = len(all_values[0])
+        if table_name.lower() == 'geo':
+            columns = ['BSSID', 'latitude', 'longitude', 'quadkey'][:num_columns]
+        elif table_name.lower() == 'base':
+            columns = ['id', 'time', 'cmtid', 'IP', 'Port', 'Authorization', 'name', 
+                      'RadioOff', 'Hidden', 'NoBSSID', 'BSSID', 'ESSID', 'Security', 
+                      'WiFiKey', 'WPSPIN', 'LANIP', 'LANMask', 'WANIP', 'WANMask', 
+                      'WANGateway', 'DNS1', 'DNS2', 'DNS3'][:num_columns]
+        else:
+            columns = [f'col_{i}' for i in range(num_columns)]
+    else:
+        columns = []
+    
+    return table_name, columns, all_values
+
+def parse_heidi_values(values_text):
+    all_values = []
+    
+    values_text = values_text.strip()
+    
+    if values_text.endswith(';'):
+        values_text = values_text[:-1].strip()
+
+    row_pattern = r'\),\s*\('
+
+    parts = re.split(row_pattern, values_text)
+    
+    for i, part in enumerate(parts):
+        row_text = part.strip()
+
+        if i == 0:
+            if row_text.startswith('('):
+                row_text = row_text[1:]
+        elif i == len(parts) - 1:
+            if row_text.endswith(')'):
+                row_text = row_text[:-1]
+        
+        row_text = row_text.strip()
+
+        if not row_text:
+            continue
+            
+        try:
+            row_values = parse_csv_row(row_text)
+            if row_values:
+                all_values.append(row_values)
+        except Exception as e:
+            print(f"Error parsing row: {row_text[:100]}... Error: {str(e)}")
+            continue
+    
+    return all_values
+
+def parse_csv_row(row_text):
+    values = []
+    current_value = []
+    in_string = False
+    string_char = None
+    escape_next = False
+    
+    i = 0
+    while i < len(row_text):
+        char = row_text[i]
+        
+        if escape_next:
+            current_value.append(char)
+            escape_next = False
+            i += 1
+            continue
+            
+        if char == '\\' and in_string:
+            escape_next = True
+            i += 1
+            continue
+            
+        if not in_string:
+            if char in ("'", '"'):
+                in_string = True
+                string_char = char
+            elif char == ',':
+                val_str = ''.join(current_value).strip()
+                values.append(process_value(val_str))
+                current_value = []
+            else:
+                current_value.append(char)
+        else:
+            if char == string_char:
+                in_string = False
+                string_char = None
+            else:
+                current_value.append(char)
+        
+        i += 1
+    
+    if current_value:
+        val_str = ''.join(current_value).strip()
+        values.append(process_value(val_str))
+    
+    return values
+
+def parse_multiple_values(values_text):
+    all_values = []
+    
+    i = 0
+    while i < len(values_text):
+        while i < len(values_text) and values_text[i] in ' \t\n\r':
+            i += 1
+            
+        if i >= len(values_text):
+            break
+            
+        if values_text[i] == '(':
+            row_start = i
+            i += 1
+            paren_count = 1
+            in_string = False
+            string_char = None
+            escape_next = False
+            
+            while i < len(values_text) and paren_count > 0:
+                char = values_text[i]
+                
+                if escape_next:
+                    escape_next = False
+                    i += 1
+                    continue
+                    
+                if char == '\\' and in_string:
+                    escape_next = True
+                    i += 1
+                    continue
+                    
+                if not in_string:
+                    if char in ["'", '"']:
+                        in_string = True
+                        string_char = char
+                    elif char == '(':
+                        paren_count += 1
+                    elif char == ')':
+                        paren_count -= 1
+                else:
+                    if char == string_char and not escape_next:
+                        in_string = False
+                        string_char = None
+                        
+                i += 1
+            
+            if paren_count == 0:
+                row_content = values_text[row_start+1:i-1]
+                row_values = parse_csv_row(row_content)
+                all_values.append(row_values)
+            
+            while i < len(values_text) and values_text[i] in ', \t\n\r':
+                i += 1
+        else:
+            i += 1
+            
+    return all_values
+
+def parse_row_values(row_content):
+    values = []
+    current_value = []
+    in_string = False
+    escape_next = False
+    string_char = None
+
+    i = 0
+    while i < len(row_content):
+        char = row_content[i]
+
+        if escape_next:
+            if char == 'n':
+                current_value.append('\n')
+            elif char == 't':
+                current_value.append('\t')
+            elif char == 'r':
+                current_value.append('\r')
+            elif char == '\\':
+                current_value.append('\\')
+            elif char == "'":
+                current_value.append("'")
+            elif char == '"':
+                current_value.append('"')
+            else:
+                current_value.append(char)
+            escape_next = False
+            i += 1
+            continue
+
+        if char == '\\':
+            if in_string:
+                escape_next = True
+            else:
+                current_value.append(char)
+            i += 1
+            continue
+
+        if not in_string:
+            if char in ("'", '"'):
+                in_string = True
+                string_char = char
+            elif char == ',':
+                val_str = ''.join(current_value).strip()
+                values.append(process_value(val_str))
+                current_value = []
+            else:
+                current_value.append(char)
+        else:
+            if char == string_char:
+                in_string = False
+                string_char = None
+            else:
+                current_value.append(char)
+        i += 1
+
+    val_str = ''.join(current_value).strip()
+    values.append(process_value(val_str))
+
+    return values
+
+def process_value(val):
+    if not val:
+        return None
+        
+    val = val.strip()
+    
+    if val.upper() == 'NULL':
+        return None
+    
+    if val == '<empty>':
+        return ''
+
+    if val.startswith("b'") and val.endswith("'"):
+        bin_val = val[2:-1]
+        if bin_val == '0': 
+            return 0
+        elif bin_val == '1': 
+            return 1
+        else:
+            return bin_val
+    elif val.startswith('b"') and val.endswith('"'):
+        bin_val = val[2:-1]
+        if bin_val == '0': 
+            return 0
+        elif bin_val == '1': 
+            return 1
+        else:
+            return bin_val
+
+    if val.upper() == 'TRUE':
+        return 1
+    if val.upper() == 'FALSE':
+        return 0
+
+    if (val.startswith("'") and val.endswith("'")) or (val.startswith('"') and val.endswith('"')):
+        inner_val = val[1:-1]
+        inner_val = inner_val.replace("''", "'").replace('\\"', '"')
+        return inner_val
+
+    if re.match(r'\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}', val):
+        return val
+
+    try:
+        if '.' in val or 'e' in val.lower():
+            return float(val)
+        else:
+            num = int(val)
+            if num > 9223372036854775807 or num < -9223372036854775808:
+                return str(num)
+            return num
+    except ValueError:
+        pass
+
+    return val
+
+def create_indices(cursor, option):
+    if option == 1:
+        print("\nCreating full indexes...")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_BSSID ON base (BSSID);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_ESSID ON base (ESSID COLLATE NOCASE);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_wpspin ON base(WPSPIN);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_wifikey ON base(WiFiKey COLLATE NOCASE);")
+        print("Full indexing completed.")
+        
+    elif option == 2:
+        print("\nCreating basic indexes...")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_BSSID ON base (BSSID);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_base_ESSID ON base (ESSID COLLATE NOCASE);")
+        print("Basic indexing completed.")
+        
+    elif option == 3:
+        print("Skipping index creation as per user choice.")
+    else:
+        print("Invalid option selected for index creation.")
+
+def process_insert_block_data(block_data):
+    try:
+        table_name, insert_block, num_columns, error_file = block_data
+        
+        parsed_table, columns, values = parse_insert_block(insert_block)
+        
+        if not parsed_table or not columns or not values:
+            return [], []
+        
+        valid_rows = []
+        errors = []
+        
+        for row_idx, row in enumerate(values):
+            cleaned_row = []
+            for val in row:
+                if isinstance(val, str):
+                    val = val.strip()
+                    if val.startswith('('):
+                        val = val[1:]
+                    if val.endswith(')'):
+                        val = val[:-1]
+                    val = process_value(val)
+                cleaned_row.append(val)
+            
+            if len(cleaned_row) == num_columns:
+                valid_rows.append(cleaned_row)
+            else:
+                errors.append((str(cleaned_row), f"Invalid column count: expected {num_columns}, got {len(cleaned_row)}"))
+                if len(errors) <= 5:
+                    print(f"Debug - Row {row_idx}: expected {num_columns} cols, got {len(cleaned_row)}")
+                    print(f"  Raw row: {row}")
+                    print(f"  Cleaned: {cleaned_row}")
+
+        if errors:
+            with open(error_file, 'a', encoding='utf-8') as err_file:
+                for error_line, error_msg in errors:
+                    err_file.write(f"Error in {table_name}: {error_msg}\nLine: {error_line}\n\n")
+        
+        return valid_rows, errors
+        
+    except Exception as e:
+        print(f"Error processing INSERT block: {str(e)}")
+        return [], []
+
+def execute_inserts(db_file, sql_file, table_name, num_columns, error_file):
+    print(f"\nProcessing {table_name} table...")
+    
+    print("Reading SQL file...")
+    try:
+        with open(sql_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except UnicodeDecodeError:
+        try:
+            with open(sql_file, 'r', encoding='latin1') as f:
+                content = f.read()
+        except UnicodeDecodeError:
+            with open(sql_file, 'r', encoding='cp1251') as f:
+                content = f.read()
+    
+    print(f"File size: {len(content):,} characters")
+
+    values_pattern = r'\([^)]+\),'
+    estimated_rows = len(re.findall(values_pattern, content))
+    print(f"Estimated rows in source file: {estimated_rows:,}")
+
+    lines = content.split('\n')[:10]
+    print("First 10 lines of file:")
+    for i, line in enumerate(lines, 1):
+        print(f"  {i}: {line[:100]}{'...' if len(line) > 100 else ''}")
+    
+    print("Cleaning MySQL comments...")
+    content = re.sub(r'/\*!\d+\s+SET[^*]+\*/', '', content)
+    content = re.sub(r'/\*!\d+\s+(.+?)\s+\*/', r'\1', content)
+    content = re.sub(r'^--.*', '', content, flags=re.MULTILINE)
+    
+    print("Finding INSERT blocks...")
+    insert_blocks = find_insert_blocks(content)
+    
+    table_blocks = [(name, block) for name, block in insert_blocks if name.lower() == table_name.lower()]
+    
+    if not table_blocks:
+        print(f"No INSERT blocks found for table {table_name}")
+        print(f"Available tables in SQL file: {list(set(name for name, _ in insert_blocks))}")
+        
+        table_mentions = re.findall(rf'\b{re.escape(table_name)}\b', content, re.IGNORECASE)
+        print(f"Table '{table_name}' mentioned {len(table_mentions)} times in file")
+        
+        if table_mentions:
+            manual_pattern = rf'INSERT\s+(?:IGNORE\s+)?INTO\s+`?{re.escape(table_name)}`?.*?;'
+            manual_matches = re.findall(manual_pattern, content, re.IGNORECASE | re.DOTALL)
+            if manual_matches:
+                print(f"Found {len(manual_matches)} INSERT statements using manual extraction")
+                table_blocks = [(table_name, match) for match in manual_matches]
+        
+        if not table_blocks:
+            return 0, 0
+    
+    print(f"Found {len(table_blocks)} INSERT blocks for table {table_name}")
+    
+    num_processes = max(1, multiprocessing.cpu_count() - 1)
+    print(f"Using {num_processes} processes for parallel processing...")
+    
+    conn = sqlite3.connect(db_file, timeout=60)
+    cursor = conn.cursor()
+    
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.execute("PRAGMA cache_size=10000")
+    cursor.execute("PRAGMA temp_store=MEMORY")
+    cursor.execute("PRAGMA foreign_keys=OFF")
+    
+    processed_records = 0
+    error_records = 0
+    batch_size = 5000
     
     try:
-        if archive_format == 'zip':
-            return create_zip_python(db_file, base_name, compression_level, split_archive)
-        else:
-            print(f"Unsupported format for Python libraries: {archive_format}")
-            print("Only ZIP format is supported with Python built-in libraries.")
-            return False
+        block_data_list = []
+        for table_name_block, insert_block in table_blocks:
+            block_data_list.append((table_name_block, insert_block, num_columns, error_file))
+        
+        if not block_data_list:
+            print("No data blocks to process")
+            return 0, 0
+        
+        with ProcessPoolExecutor(max_workers=num_processes) as executor:
+            futures = [executor.submit(process_insert_block_data, block_data) for block_data in block_data_list]
             
-    except Exception as e:
-        print(f"Error creating archive with Python: {str(e)}")
-        return False
+            all_valid_rows = []
+            with tqdm(total=len(futures), desc=f"Processing {table_name} blocks", unit="block") as pbar:
+                for future in as_completed(futures):
+                    try:
+                        valid_rows, errors = future.result()
+                        error_records += len(errors)
+                        all_valid_rows.extend(valid_rows)
+                        pbar.update(1)
+                    except Exception as e:
+                        print(f"Error processing block: {str(e)}")
+                        pbar.update(1)
+        
+        print(f"Total valid rows extracted: {len(all_valid_rows):,}")
+        print(f"Comparison: Estimated {estimated_rows:,} vs Extracted {len(all_valid_rows):,}")
+        
+        if all_valid_rows:
+            placeholders = ', '.join(['?'] * num_columns)
+            sql = f'INSERT OR REPLACE INTO {table_name} VALUES ({placeholders})'
+            
+            print(f"Inserting data into database...")
+            with tqdm(total=len(all_valid_rows), desc=f"Inserting {table_name} data", unit="row") as pbar:
+                for i in range(0, len(all_valid_rows), batch_size):
+                    batch = all_valid_rows[i:i+batch_size]
+                    
+                    try:
+                        cursor.executemany(sql, batch)
+                        conn.commit()
+                        processed_records += len(batch)
+                        pbar.update(len(batch))
+                        
+                    except sqlite3.Error as e:
+                        print(f"\nDatabase error with batch starting at row {i}: {str(e)}")
+                        for j, record in enumerate(batch):
+                            try:
+                                cursor.execute(sql, record)
+                                conn.commit()
+                                processed_records += 1
+                            except sqlite3.Error as single_error:
+                                error_records += 1
+                                with open(error_file, 'a', encoding='utf-8') as err_file:
+                                    err_file.write(f"Single insert error at row {i+j}: {str(single_error)}\n")
+                                    err_file.write(f"Failed record: {record}\n\n")
+                        pbar.update(len(batch))
+        else:
+            print("No valid rows found to insert")
+    
+    finally:
+        conn.close()
+        verification_conn = sqlite3.connect(db_file)
+        verification_cursor = verification_conn.cursor()
+        verification_cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+        actual_count = verification_cursor.fetchone()[0]
+        verification_conn.close()
+        
+        with open(error_file, 'a', encoding='utf-8') as err_file:
+            err_file.write(f"\n\n{'='*50}\nSUMMARY for {table_name}\n{'='*50}\n")
+            err_file.write(f"Estimated rows in source: {estimated_rows}\n")
+            err_file.write(f"Total valid rows extracted: {len(all_valid_rows) if 'all_valid_rows' in locals() else 0}\n")
+            err_file.write(f"Total failed records: {error_records}\n")
+            err_file.write(f"Total successfully processed records: {processed_records}\n")
+            err_file.write(f"Actual records in database: {actual_count}\n")
+            
+        print(f"Verification: {actual_count:,} records actually inserted into {table_name} table")
+        
+    return processed_records, error_records
+
+def optimize_and_vacuum(db_file):
+    print("\nOptimizing and vacuuming database...")
+    max_attempts = 5
+    attempt = 0
+    
+    while attempt < max_attempts:
+        try:
+            if attempt > 0:
+                wait_time = 3 * (attempt + 1)
+                print(f"Waiting {wait_time} seconds before next attempt...")
+                time.sleep(wait_time)
+            
+            with sqlite3.connect(db_file, isolation_level=None, timeout=30) as conn:
+                cursor = conn.cursor()
+                
+                print("Running ANALYZE...")
+                cursor.execute("ANALYZE")
+                conn.commit()
+                
+                print("Running PRAGMA optimize...")
+                cursor.execute("PRAGMA optimize")
+                conn.commit()
+                
+                print("Running VACUUM...")
+                cursor.execute("VACUUM")
+                conn.commit()
+                
+                cursor.close()
+                return True
+                
+        except sqlite3.OperationalError as e:
+            attempt += 1
+            print(f"Optimization attempt {attempt}/{max_attempts} failed: {str(e)}")
+            
+            if attempt < max_attempts:
+                force_close_connections(db_file)
+            else:
+                print("\nCould not optimize database after multiple attempts.")
+                print("The database is still usable, but not optimized.")
+                return False
+
+def force_close_connections(db_file):
+    time.sleep(2)
+
+def create_tables(cursor):
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS geo (
+        BSSID INTEGER,
+        latitude FLOAT,
+        longitude FLOAT,
+        quadkey INTEGER
+    )
+    ''')
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS base (
+        id INTEGER PRIMARY KEY,
+        time TIMESTAMP,
+        cmtid INTEGER,
+        IP INTEGER,
+        Port INTEGER,
+        Authorization TEXT,
+        name TEXT,
+        RadioOff INTEGER NOT NULL DEFAULT 0,
+        Hidden INTEGER NOT NULL DEFAULT 0,
+        NoBSSID INTEGER NOT NULL,
+        BSSID INTEGER NOT NULL,
+        ESSID TEXT,
+        Security INTEGER,
+        WiFiKey TEXT NOT NULL DEFAULT '',
+        WPSPIN INTEGER NOT NULL,
+        LANIP INTEGER,
+        LANMask INTEGER,
+        WANIP INTEGER,
+        WANMask INTEGER,
+        WANGateway INTEGER,
+        DNS1 INTEGER,
+        DNS2 INTEGER,
+        DNS3 INTEGER
+    )
+    ''')
+
+def get_file_size_gb(file_path):
+    if os.path.exists(file_path):
+        size_bytes = os.path.getsize(file_path)
+        return size_bytes / (1024 ** 3)
+    return 0
+
+def create_archive(db_file, archive_options):
+    available_tools = check_archiver_availability()
+    
+    if available_tools.get('7z') and archive_options['format'] == '7z':
+        return create_archive_7z(db_file, archive_options)
+    
+    return create_archive_python(db_file, archive_options)
 
 def create_archive_7z(db_file, archive_options):
-    """Create archive using 7z with progress monitoring"""
     archive_format = archive_options['format']
     compression_level = archive_options['compression']
     split_archive = archive_options['split']
@@ -922,37 +1045,27 @@ def create_archive_7z(db_file, archive_options):
         return False
 
 def split_zip_archive_manual(archive_name, num_parts):
-    """Split ZIP archive manually into specified number of parts"""
     try:
         base_name = os.path.splitext(archive_name)[0]
         return split_large_file(archive_name, base_name, ".zip", num_parts)
+            
     except Exception as e:
         print(f"Error splitting archive: {str(e)}")
         return False
 
-def create_archive(db_file, archive_options):
-    """Create archive based on options and available tools"""
-    available_tools = check_archiver_availability()
-    
-    if available_tools.get('7z') and archive_options['format'] == '7z':
-        return create_archive_7z(db_file, archive_options)
-    
-    return create_archive_python(db_file, archive_options)
-
 def show_indexing_menu():
-    """Show indexing options menu"""
     menu = """
 ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
-║                                   Anti3WiFi & 3WiFi Database Converter                            ║
+║                                   SQL to SQLite Database Converter                                ║
 ║                                    Indexing Options                                               ║
 ╠═══════════════════════════════════════════════════════════════════════════════════════════════════╣
 ║  1. Full indexing (Best performance, largest file size)                                           ║
 ║     - All geo indexes (BSSID, latitude, longitude)                                                ║
-║     - All nets indexes (BSSID, ESSID, WPSPIN, WiFiKey)                                            ║
+║     - All base indexes (BSSID, ESSID, WPSPIN, WiFiKey)                                            ║
 ║                                                                                                   ║
 ║  2. Basic indexing (Good performance, moderate file size)                                         ║
 ║     - All geo indexes (BSSID, latitude, longitude)                                                ║
-║     - Basic nets indexes (BSSID, ESSID)                                                           ║
+║     - Basic base indexes (BSSID, ESSID)                                                           ║
 ║                                                                                                   ║
 ║  3. No indexing (Smallest file size, slowest queries)                                             ║
 ║                                                                                                   ║
@@ -963,7 +1076,6 @@ Choose an option (1-4): """
     return input(menu)
 
 def show_archive_menu():
-    """Show archive options menu"""
     menu = """
 ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
 ║                                     Archive Options                                               ║
@@ -977,7 +1089,6 @@ Choose an option (1-3): """
     return input(menu)
 
 def show_split_menu():
-    """Show split archive menu"""
     menu = """
 ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
 ║                                   Split Archive Options                                           ║
@@ -991,7 +1102,6 @@ Choose an option (1-3): """
     return input(menu)
 
 def show_parts_menu():
-    """Show number of parts menu"""
     menu = """
 ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
 ║                                 Number of Archive Parts                                           ║
@@ -1007,7 +1117,6 @@ Choose number of parts (2-6): """
     return input(menu)
 
 def show_format_menu():
-    """Show archive format menu"""
     available_tools = check_archiver_availability()
     
     if available_tools.get('7z'):
@@ -1016,7 +1125,7 @@ def show_format_menu():
 ║                                  Archive Format Options                                           ║
 ╠═══════════════════════════════════════════════════════════════════════════════════════════════════╣
 ║  1. 7Z format (requires 7-Zip)                                                                    ║
-║  2. ZIP format                                                                                    ║
+║  2. ZIP format (Universal)                                                                        ║
 ║  3. Back to previous menu                                                                         ║
 ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
 
@@ -1029,7 +1138,7 @@ Choose an option (1-3): """
 ║  1. ZIP format                                                                                    ║
 ║  2. Back to previous menu                                                                         ║
 ║                                                                                                   ║
-║  Note: 7-Zip not found. Install 7-Zip for 7Z format with better compression.                      ║
+║  Note: 7-Zip not found. Install 7-Zip for 7Z format.                                              ║
 ╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
 
 Choose an option (1-2): """
@@ -1037,7 +1146,6 @@ Choose an option (1-2): """
     return input(menu)
 
 def show_compression_menu():
-    """Show compression level menu"""
     menu = """
 ╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
 ║                                 Compression Level Options                                         ║
@@ -1051,7 +1159,6 @@ Choose an option (1-3): """
     return input(menu)
 
 def get_user_preferences():
-    """Get all user preferences through menu navigation"""
     preferences = {}
     
     while True:
@@ -1080,7 +1187,6 @@ def get_user_preferences():
     available_tools = check_archiver_availability()
     if not available_tools.get('7z'):
         print("\nNote: 7-Zip not found. Using Python built-in compression libraries.")
-        print("For better compression ratios, consider installing 7-Zip.")
         time.sleep(2)
     
     while True:
@@ -1146,14 +1252,13 @@ def get_user_preferences():
     return preferences
 
 def display_summary(preferences):
-    """Display summary of user choices"""
     print("\n" + "="*80)
-    print("CONVERSION SUMMARY - ANTI3WIFI")
+    print("CONVERSION SUMMARY")
     print("="*80)
     
     indexing_types = {
-        1: 'Full indexing (includes WiFiKey & WPSPIN)',
-        2: 'Basic indexing (BSSID & ESSID only)',
+        1: 'Full indexing (All indexes)',
+        2: 'Basic indexing (Essential indexes)',
         3: 'No indexing'
     }
     print(f"Indexing: {indexing_types[preferences['indexing']]}")
@@ -1186,10 +1291,23 @@ def main():
     sqlite3.connect(':memory:', timeout=60).close()
 
     print("╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗")
-    print("║                             Anti3WiFi & 3WiFi Database Converter v2                               ║")
+    print("║                             Anti3WiFi & 3WiFi Database Converter v3                               ║")
     print("║                               SQL to SQLite for WIFI Frankenstein                                 ║")
     print("╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝")
 
+    geo_file, base_file = None, None
+
+    if os.path.exists('geo.sql') and os.path.exists('base.sql'):
+        geo_file, base_file = 'geo.sql', 'base.sql'
+        print(f"\nAutomatically detected: geo.sql and base.sql")
+    else:
+        print("\nRequired files: geo.sql and base.sql not found.")
+        geo_file, base_file = select_sql_files()
+        if geo_file is None or base_file is None:
+            print("Required SQL files not selected. Exiting...")
+            return
+        print(f"Using files: {geo_file} (geo table), {base_file} (base table)")
+    
     while True:
         preferences = get_user_preferences()
         
@@ -1202,60 +1320,23 @@ def main():
         
         start_time = time.time()
         db_file = 'anti3wifi.db'
-        geo_sql_file = 'geo.sql'
-        base_sql_file = 'base.sql'
         error_file_geo = 'errors_geo.txt'
         error_file_base = 'errors_base.txt'
 
-        missing_files = []
-        if not os.path.exists(geo_sql_file):
-            missing_files.append(geo_sql_file)
-        if not os.path.exists(base_sql_file):
-            missing_files.append(base_sql_file)
-        
-        if missing_files:
-            print(f"\nError: Missing required files: {', '.join(missing_files)}")
-            print("Please make sure geo.sql and base.sql files are in the same directory as this script.")
-            continue
-
         print(f"\nStarting conversion process...")
-        print(f"Source files: {geo_sql_file}, {base_sql_file}")
+        print(f"Source files: {geo_file}, {base_file}")
         print(f"Target database: {db_file}")
 
-        print("Creating database tables...")
-        create_tables(db_file)
+        with sqlite3.connect(db_file) as conn:
+            cursor = conn.cursor()
+            create_tables(cursor)
 
-        print("\nProcessing 'geo' table...")
-        geo_values = read_sql_file(geo_sql_file, 'geo')
-        records_geo, fixed_geo, errors_geo = execute_inserts(db_file, 'geo', geo_values, 4, error_file_geo)
-        
-        print("\nProcessing 'base' table...")
-        base_values = read_sql_file(base_sql_file, 'base')
-        records_base, fixed_base, errors_base = execute_inserts(db_file, 'base', base_values, 23, error_file_base)
+        records_geo, errors_geo = execute_inserts(db_file, geo_file, 'geo', 4, error_file_geo)
+        records_base, errors_base = execute_inserts(db_file, base_file, 'base', 23, error_file_base)
 
-        if os.path.exists(error_file_geo) and os.path.getsize(error_file_geo) > 0:
-            recovered_geo = process_error_log(db_file, error_file_geo, 'geo', 4)
-            if recovered_geo > 0:
-                print(f"Recovered {recovered_geo} additional records for 'geo' table")
-                fixed_geo += recovered_geo
-                errors_geo -= recovered_geo if errors_geo >= recovered_geo else errors_geo
-
-        if os.path.exists(error_file_base) and os.path.getsize(error_file_base) > 0:
-            recovered_base = process_error_log(db_file, error_file_base, 'base', 23)
-            if recovered_base > 0:
-                print(f"Recovered {recovered_base} additional records for 'base' table")
-                fixed_base += recovered_base
-                errors_base -= recovered_base if errors_base >= recovered_base else errors_base
-
-        if errors_geo > 0:
-            print(f"\nFailed records for 'geo' table: {errors_geo}")
-            print(f"See details in {error_file_geo} in the FAILED RECORDS section")
-        
-        if errors_base > 0:
-            print(f"\nFailed records for 'base' table: {errors_base}")
-            print(f"See details in {error_file_base} in the FAILED RECORDS section")
-
-        create_indices(db_file, preferences['indexing'])
+        with sqlite3.connect(db_file) as conn:
+            cursor = conn.cursor()
+            create_indices(cursor, preferences['indexing'])
 
         optimize_and_vacuum(db_file)
         
@@ -1263,15 +1344,20 @@ def main():
         duration = end_time - start_time
         
         print(f"\n" + "="*80)
-        print("DATABASE CONVERSION COMPLETED - ANTI3WIFI")
+        print("DATABASE CONVERSION COMPLETED")
         print("="*80)
         print(f"Total processing time: {timedelta(seconds=int(duration))}")
         print(f"Records processed:")
-        print(f"  - Geo table: {records_geo:,} normal, {fixed_geo:,} fixed, {errors_geo:,} errors")
-        print(f"  - Base table: {records_base:,} normal, {fixed_base:,} fixed, {errors_base:,} errors")
+        print(f"  - Geo table: {records_geo:,} records (Errors: {errors_geo:,})")
+        print(f"  - Base table: {records_base:,} records (Errors: {errors_base:,})")
         print(f"Database file: {db_file}")
         print(f"Database size: {get_file_size_gb(db_file):.2f} GB")
         
+        if errors_geo > 0:
+            print(f"Geo errors logged to: {error_file_geo}")
+        if errors_base > 0:
+            print(f"Base errors logged to: {error_file_base}")
+
         if preferences['create_archive']:
             archive_options = {
                 'format': preferences['format'],
@@ -1290,16 +1376,8 @@ def main():
                 print("Archive creation failed!")
         
         print("="*80)
-        
-        while True:
-            another = input("\nWould you like to process another file? (y/n): ").lower().strip()
-            if another in ['n', 'no']:
-                print("Thank you for using Anti3WiFi Database Converter!")
-                return
-            elif another in ['y', 'yes']:
-                break
-            else:
-                print("Please enter 'y' for yes or 'n' for no.")
+        print("Conversion completed successfully!")
+        break
 
 if __name__ == "__main__":
     main()
