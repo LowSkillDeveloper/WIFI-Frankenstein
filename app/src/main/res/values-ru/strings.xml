@@ -699,6 +699,7 @@
     <string name="server_url">URL сервера</string>
     <string name="test_results">Результаты теста</string>
     <string name="action_settings">Настройки</string>
+    <string name="create_indexes">Создать индексы</string>
 
 
 </resources>

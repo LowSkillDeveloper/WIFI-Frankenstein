@@ -290,11 +290,16 @@ class WiFiMapFragment : Fragment() {
             getString(R.string.index_level_none_option)
         )
 
+        var selectedLevel = 1
+
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.select_index_level)
             .setMessage(R.string.create_indexes_message)
-            .setItems(indexLevels) { _, which ->
-                val level = when (which) {
+            .setSingleChoiceItems(indexLevels, selectedLevel) { _, which ->
+                selectedLevel = which
+            }
+            .setPositiveButton(R.string.create_indexes) { _, _ ->
+                val level = when (selectedLevel) {
                     0 -> "FULL"
                     1 -> "BASIC"
                     2 -> "NONE"
@@ -317,7 +322,7 @@ class WiFiMapFragment : Fragment() {
                     selectedDatabases.remove(dbItem)
                     databaseAdapter.notifyDataSetChanged()
                     currentIndexingDb = null
-                    return@setItems
+                    return@setPositiveButton
                 }
 
                 Log.d(TAG, "User chose to create $level indexes for ${dbItem.id}")
