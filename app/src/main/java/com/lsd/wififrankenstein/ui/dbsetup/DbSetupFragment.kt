@@ -138,35 +138,39 @@ class DbSetupFragment : Fragment() {
         }
     }
 
+    private fun showIndexLevelSelectionDialog() {
+        val indexLevels = arrayOf(
+            getString(R.string.index_level_full_option),
+            getString(R.string.index_level_basic_option)
+        )
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.select_index_level)
+            .setItems(indexLevels) { _, which ->
+                val level = when (which) {
+                    0 -> "FULL"
+                    1 -> "BASIC"
+                    else -> "BASIC"
+                }
+                localAppDbViewModel.toggleIndexing(true, level)
+            }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                binding.switchEnableIndexing.isChecked = false
+            }
+            .setOnCancelListener {
+                binding.switchEnableIndexing.isChecked = false
+            }
+            .show()
+    }
+
     private fun setupLocalDbCard() {
         binding.switchEnableIndexing.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                val indexLevels = arrayOf(
-                    getString(R.string.index_level_full_option),
-                    getString(R.string.index_level_basic_option)
-                )
-
-                MaterialAlertDialogBuilder(requireContext())
-                    .setTitle(R.string.select_index_level)
-                    .setItems(indexLevels) { _, which ->
-                        val level = when (which) {
-                            0 -> "FULL"
-                            1 -> "BASIC"
-                            else -> "BASIC"
-                        }
-
-                        requireContext().getSharedPreferences("index_preferences", Context.MODE_PRIVATE)
-                            .edit {
-                                putString("local_db_index_level", level)
-                            }
-
-                        localAppDbViewModel.toggleIndexing(true)
-                    }
-                    .setNegativeButton(R.string.cancel) { _, _ ->
-                        binding.switchEnableIndexing.isChecked = false
-                    }
-                    .setCancelable(false)
-                    .show()
+                if (localAppDbViewModel.isIndexingConfigured()) {
+                    localAppDbViewModel.toggleIndexing(true)
+                } else {
+                    showIndexLevelSelectionDialog()
+                }
             } else {
                 localAppDbViewModel.toggleIndexing(false)
             }
