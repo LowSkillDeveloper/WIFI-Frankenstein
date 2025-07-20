@@ -701,5 +701,19 @@
     <string name="action_settings">Настройки</string>
     <string name="create_indexes">Создать индексы</string>
 
+    <string name="importing_data">Импорт данных…</string>
+    <string name="importing_large_amount">Импорт большого количества данных, подождите…</string>
+    <string name="import_complete">Импорт завершён</string>
+    <string name="import_error">Ошибка импорта: %1$s</string>
+    <string name="replace_database">Заменить базу данных</string>
+    <string name="update_existing_database">Обновить существующую базу</string>
+    <string name="select_import_type">Выберите тип импорта</string>
+
+    <string name="append_no_duplicates">Дополнить базу (без проверки дубликатов)</string>
+    <string name="append_check_duplicates">Дополнить базу (с проверкой дубликатов)</string>
+    <string name="checking_duplicates">Проверка дубликатов…</string>
+    <string name="optimizing_database">Оптимизация базы данных…</string>
+    <string name="import_stats">Импорт завершён\nОбработано: %1$d\nДобавлено: %2$d\nПропущено дубликатов: %3$d</string>
+
 
 </resources>

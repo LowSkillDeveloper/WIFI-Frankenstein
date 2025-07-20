@@ -699,4 +699,19 @@
     <string name="action_settings">Налаштування</string>
     <string name="create_indexes">Створити індекси</string>
 
+    <string name="importing_data">Імпорт даних…</string>
+    <string name="importing_large_amount">Імпортується велика кількість даних, зачекайте…</string>
+    <string name="import_complete">Імпорт завершено</string>
+    <string name="import_error">Помилка імпорту: %1$s</string>
+    <string name="replace_database">Замінити базу даних</string>
+    <string name="update_existing_database">Оновити наявну базу</string>
+    <string name="select_import_type">Оберіть тип імпорту</string>
+
+    <string name="append_no_duplicates">Доповнити базу (без перевірки на дублікати)</string>
+    <string name="append_check_duplicates">Доповнити базу (з перевіркою на дублікати)</string>
+    <string name="checking_duplicates">Перевірка на дублікати…</string>
+    <string name="optimizing_database">Оптимізація бази даних…</string>
+    <string name="import_stats">Імпорт завершено\nОброблено: %1$d\nДодано: %2$d\nПропущено дублікатів: %3$d</string>
+
+
 </resources>

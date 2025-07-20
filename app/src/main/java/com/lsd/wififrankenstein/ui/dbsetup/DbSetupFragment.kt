@@ -47,8 +47,11 @@ import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
 import com.opencsv.CSVReader
 import com.opencsv.CSVWriter
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -59,6 +62,7 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.isActive
 
 class DbSetupFragment : Fragment() {
 
@@ -425,9 +429,231 @@ class DbSetupFragment : Fragment() {
         }
     }
 
-    private fun importFromRouterScan() {
-        // Заглушка
-        showSnackbar(getString(R.string.routerscan_import_not_implemented))
+    private fun importFromRouterScan(uri: Uri) {
+        if (!isAdded) return
+
+        showRouterScanImportTypeDialog(uri)
+    }
+
+    private fun showRouterScanImportTypeDialog(uri: Uri) {
+        if (!isAdded) return
+
+        val options = arrayOf(
+            getString(R.string.replace_database),
+            getString(R.string.append_no_duplicates),
+            getString(R.string.append_check_duplicates)
+        )
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.select_import_type)
+            .setItems(options) { _, which ->
+                if (!isAdded) return@setItems
+
+                val importType = when (which) {
+                    0 -> "replace"
+                    1 -> "append_no_duplicates"
+                    2 -> "append_check_duplicates"
+                    else -> "append_no_duplicates"
+                }
+
+                showRouterScanImportProgress(uri, importType)
+            }
+            .show()
+    }
+
+    private fun showRouterScanImportProgress(uri: Uri, importType: String) {
+        if (!isAdded) return
+
+        val context = context ?: return
+
+        val progressDialog = MaterialAlertDialogBuilder(context)
+            .setView(R.layout.dialog_import_progress)
+            .setCancelable(false)
+            .show()
+
+        val progressText = progressDialog.findViewById<TextView>(R.id.textViewImportProgress)
+        val progressBar = progressDialog.findViewById<ProgressBar>(R.id.progressBarImport)
+
+        progressText?.text = getString(R.string.importing_data)
+        progressBar?.progress = 0
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val networksToAdd = mutableListOf<WifiNetwork>()
+                var processedLines = 0
+                var totalLines = 0
+
+                withContext(Dispatchers.Main) {
+                    progressText?.text = "Анализ файла..."
+                    progressBar?.progress = 2
+                }
+
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { reader ->
+                    reader.lineSequence().forEach { _ -> totalLines++ }
+                }
+
+                withContext(Dispatchers.Main) {
+                    progressText?.text = "Парсинг $totalLines строк..."
+                    progressBar?.progress = 5
+                }
+
+                val parseJobs = mutableListOf<Deferred<List<WifiNetwork>>>()
+                val chunkSize = 10000
+
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { reader ->
+                    val allLines = reader.readLines()
+
+                    allLines.chunked(chunkSize).forEachIndexed { chunkIndex, linesChunk ->
+                        val job = async {
+                            val chunkNetworks = mutableListOf<WifiNetwork>()
+                            linesChunk.forEach { line ->
+                                if (!isActive) return@forEach
+                                parseRouterScanLine(line, importType)?.let { network ->
+                                    chunkNetworks.add(network)
+                                }
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                if (isAdded && progressDialog.isShowing) {
+                                    processedLines += linesChunk.size
+                                    val progress = 5 + (processedLines * 10) / totalLines
+                                    progressBar?.progress = progress
+                                    progressText?.text = "Парсинг: $processedLines/$totalLines"
+                                }
+                            }
+
+                            chunkNetworks
+                        }
+                        parseJobs.add(job)
+                    }
+                }
+
+                parseJobs.awaitAll().forEach { chunk ->
+                    networksToAdd.addAll(chunk)
+                }
+
+                withContext(Dispatchers.Main) {
+                    progressBar?.progress = 15
+                    progressText?.text = "Найдено ${networksToAdd.size} записей для импорта"
+                }
+
+                val stats = localAppDbViewModel.importRecordsWithStats(
+                    networksToAdd,
+                    importType
+                ) { message, progress ->
+                    launch(Dispatchers.Main) {
+                        if (isAdded && progressDialog.isShowing) {
+                            progressText?.text = message
+                            progressBar?.progress = progress
+                        }
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    if (isAdded) {
+                        progressDialog.dismiss()
+                        updateLocalDbStats()
+
+                        val message = when (importType) {
+                            "append_check_duplicates" -> getString(R.string.import_stats,
+                                stats.totalProcessed, stats.inserted, stats.duplicates)
+                            "replace" -> "База заменена\nИмпортировано: ${stats.inserted} записей"
+                            else -> "Импорт завершён\nДобавлено: ${stats.inserted} записей"
+                        }
+
+                        showSnackbar(message)
+                    }
+                }
+
+            } catch (e: Exception) {
+                Log.e("RouterScanImport", "Import error", e)
+                withContext(Dispatchers.Main) {
+                    if (isAdded) {
+                        progressDialog.dismiss()
+                        showSnackbar("Ошибка импорта: ${e.message}")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun parseRouterScanLine(line: String, importType: String): WifiNetwork? {
+        if (line.trim().isEmpty() || line.startsWith("#")) return null
+
+        val parts = line.split("\t")
+
+        if (parts.size >= 9) {
+            try {
+                val bssid = if (parts.size > 8) parts[8].trim() else ""
+                val essid = if (parts.size > 9) parts[9].trim() else ""
+                val wifiKey = if (parts.size > 11) parts[11].trim() else ""
+                val wpsPin = if (parts.size > 12) parts[12].trim() else ""
+                val adminCredentials = if (parts.size > 4) parts[4].trim() else ""
+
+                var latitude: Double? = null
+                var longitude: Double? = null
+
+                if (parts.size >= 14) {
+                    try {
+                        for (i in (parts.size - 5) until (parts.size - 1)) {
+                            if (i >= 0 && i + 1 < parts.size) {
+                                val latStr = parts[i].trim()
+                                val lonStr = parts[i + 1].trim()
+
+                                if (latStr.matches(Regex("^\\d{1,2}\\.\\d+$")) &&
+                                    lonStr.matches(Regex("^\\d{1,3}\\.\\d+$"))) {
+                                    val lat = latStr.toDoubleOrNull()
+                                    val lon = lonStr.toDoubleOrNull()
+
+                                    if (lat != null && lon != null &&
+                                        lat >= -90.0 && lat <= 90.0 &&
+                                        lon >= -180.0 && lon <= 180.0 &&
+                                        lat != 0.0 && lon != 0.0) {
+                                        latitude = lat
+                                        longitude = lon
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                    }
+                }
+
+                if (essid.isNotEmpty() || bssid.isNotEmpty()) {
+                    val cleanBssid = bssid.uppercase().replace("-", ":").trim()
+                    val cleanEssid = essid.trim()
+                    val cleanWifiKey = wifiKey.takeIf { it.isNotEmpty() && it != "0" && it != "-" && it.length > 1 }
+                    val cleanWpsPin = wpsPin.takeIf { it.isNotEmpty() && it != "0" && it != "-" && it.length >= 8 }
+                    val cleanAdminPanel = adminCredentials.takeIf {
+                        it.isNotEmpty() && it != ":" && it != "-" && !it.contains("0.0.0.0") && it.contains(":")
+                    }
+
+                    if (cleanBssid.isNotEmpty()) {
+                        if (!cleanBssid.matches(Regex("^([0-9A-F]{2}:){5}[0-9A-F]{2}$"))) {
+                            return null
+                        }
+                    }
+
+                    if (cleanEssid.isNotEmpty() || cleanBssid.isNotEmpty()) {
+                        return WifiNetwork(
+                            id = 0,
+                            wifiName = cleanEssid,
+                            macAddress = cleanBssid,
+                            wifiPassword = cleanWifiKey,
+                            wpsCode = cleanWpsPin,
+                            adminPanel = cleanAdminPanel,
+                            latitude = latitude,
+                            longitude = longitude
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d("RouterScanImport", "Error parsing line: $line", e)
+            }
+        }
+
+        return null
     }
 
     private fun selectBackupLocation() {
@@ -501,8 +727,7 @@ class DbSetupFragment : Fragment() {
                 }
                 REQUEST_IMPORT_ROUTERSCAN -> {
                     data?.data?.let { uri ->
-                        importFromRouterScan()
-                        reloadFragment()
+                        importFromRouterScan(uri)
                     }
                 }
             }

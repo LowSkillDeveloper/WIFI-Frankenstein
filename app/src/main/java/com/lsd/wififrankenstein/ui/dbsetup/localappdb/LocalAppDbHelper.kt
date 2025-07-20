@@ -608,6 +608,162 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         return results
     }
 
+    fun optimizeForBulkInsert() {
+        try {
+            writableDatabase.apply {
+                rawQuery("PRAGMA synchronous = OFF", null)?.close()
+                rawQuery("PRAGMA journal_mode = MEMORY", null)?.close()
+                rawQuery("PRAGMA cache_size = 50000", null)?.close()
+                rawQuery("PRAGMA temp_store = MEMORY", null)?.close()
+                rawQuery("PRAGMA count_changes = OFF", null)?.close()
+            }
+        } catch (e: Exception) {
+            Log.e("LocalAppDbHelper", "Error optimizing for bulk insert", e)
+        }
+    }
+
+    fun restoreNormalSettings() {
+        try {
+            writableDatabase.apply {
+                rawQuery("PRAGMA synchronous = NORMAL", null)?.close()
+                rawQuery("PRAGMA journal_mode = WAL", null)?.close()
+                rawQuery("PRAGMA cache_size = 10000", null)?.close()
+                rawQuery("PRAGMA count_changes = ON", null)?.close()
+            }
+        } catch (e: Exception) {
+            Log.e("LocalAppDbHelper", "Error restoring normal settings", e)
+        }
+    }
+
+    fun temporaryDropIndexes() {
+        try {
+            writableDatabase.apply {
+                execSQL("DROP INDEX IF EXISTS idx_wifi_network_name")
+                execSQL("DROP INDEX IF EXISTS idx_wifi_network_mac")
+                execSQL("DROP INDEX IF EXISTS idx_wifi_network_coords")
+                execSQL("DROP INDEX IF EXISTS idx_wifi_network_password")
+                execSQL("DROP INDEX IF EXISTS idx_wifi_network_wps")
+            }
+            Log.d("LocalAppDbHelper", "Indexes dropped for bulk insert")
+        } catch (e: Exception) {
+            Log.e("LocalAppDbHelper", "Error dropping indexes", e)
+        }
+    }
+
+    fun recreateIndexes() {
+        try {
+            writableDatabase.apply {
+                execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_name ON $TABLE_NAME ($COLUMN_WIFI_NAME COLLATE NOCASE)")
+                execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_mac ON $TABLE_NAME ($COLUMN_MAC_ADDRESS)")
+                execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_coords ON $TABLE_NAME ($COLUMN_LATITUDE, $COLUMN_LONGITUDE)")
+
+                val indexLevel = getIndexLevel()
+                if (indexLevel == "FULL") {
+                    execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_password ON $TABLE_NAME ($COLUMN_WIFI_PASSWORD COLLATE NOCASE)")
+                    execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_wps ON $TABLE_NAME ($COLUMN_WPS_CODE)")
+                }
+            }
+            Log.d("LocalAppDbHelper", "Indexes recreated after bulk insert")
+        } catch (e: Exception) {
+            Log.e("LocalAppDbHelper", "Error recreating indexes", e)
+        }
+    }
+
+
+    data class ImportStats(
+        val totalProcessed: Int,
+        val inserted: Int,
+        val duplicates: Int
+    )
+
+    fun getAllExistingKeys(): MutableSet<String> {
+        val existingKeys = mutableSetOf<String>()
+        try {
+            readableDatabase.rawQuery(
+                "SELECT $COLUMN_WIFI_NAME, $COLUMN_MAC_ADDRESS FROM $TABLE_NAME",
+                null
+            ).use { cursor ->
+                while (cursor.moveToNext()) {
+                    val name = cursor.getString(0) ?: ""
+                    val mac = cursor.getString(1) ?: ""
+                    existingKeys.add("$name|$mac")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("LocalAppDbHelper", "Error getting existing keys", e)
+        }
+        return existingKeys
+    }
+
+    fun bulkInsertOptimizedWithDuplicateCheck(
+        networks: List<WifiNetwork>,
+        existingKeys: Set<String>
+    ): Pair<Int, Int> {
+        var inserted = 0
+        var duplicates = 0
+
+        val uniqueNetworks = networks.filter { network ->
+            val key = "${network.wifiName}|${network.macAddress}"
+            if (existingKeys.contains(key)) {
+                duplicates++
+                false
+            } else {
+                true
+            }
+        }
+
+        if (uniqueNetworks.isNotEmpty()) {
+            inserted = bulkInsertBatch(uniqueNetworks)
+        }
+
+        return Pair(inserted, duplicates)
+    }
+
+    fun bulkInsertBatch(networks: List<WifiNetwork>): Int {
+        var inserted = 0
+
+        try {
+            writableDatabase.transaction {
+                networks.chunked(1000).forEach { batch ->
+                    batch.forEach { network ->
+                        try {
+                            val values = ContentValues().apply {
+                                put(COLUMN_WIFI_NAME, network.wifiName)
+                                put(COLUMN_MAC_ADDRESS, network.macAddress)
+                                put(COLUMN_WIFI_PASSWORD, network.wifiPassword)
+                                put(COLUMN_WPS_CODE, network.wpsCode)
+                                put(COLUMN_ADMIN_PANEL, network.adminPanel)
+                                put(COLUMN_LATITUDE, network.latitude)
+                                put(COLUMN_LONGITUDE, network.longitude)
+                            }
+
+                            val result = insert(TABLE_NAME, null, values)
+                            if (result != -1L) {
+                                inserted++
+                            }
+                        } catch (e: Exception) {
+                            Log.e("LocalAppDbHelper", "Error inserting record", e)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("LocalAppDbHelper", "Error in bulk insert batch", e)
+        }
+
+        return inserted
+    }
+
+    fun bulkInsertOptimized(networks: List<WifiNetwork>, checkDuplicates: Boolean = false): Pair<Int, Int> {
+        return if (checkDuplicates) {
+            val existingKeys = getAllExistingKeys()
+            bulkInsertOptimizedWithDuplicateCheck(networks, existingKeys)
+        } else {
+            val inserted = bulkInsertBatch(networks)
+            Pair(inserted, 0)
+        }
+    }
+
     private fun convertMacToDecimal(mac: String): String {
         return try {
             mac.replace(":", "").toLong(16).toString()

@@ -707,4 +707,24 @@
     <string name="test_results">Test Results</string>
     <string name="action_settings">Settings</string>
     <string name="create_indexes">Create Indexes</string>
+
+
+    <string name="importing_data">Importing data…</string>
+    <string name="importing_large_amount">Importing a large amount of data, please wait…</string>
+    <string name="import_complete">Import complete</string>
+    <string name="import_error">Import error: %1$s</string>
+    <string name="replace_database">Replace database</string>
+    <string name="update_existing_database">Update existing database</string>
+    <string name="select_import_type">Select import type</string>
+
+    <string name="append_no_duplicates">Append to database (no duplicate check)</string>
+    <string name="append_check_duplicates">Append to database (check for duplicates)</string>
+    <string name="checking_duplicates">Checking for duplicates…</string>
+    <string name="optimizing_database">Optimizing database…</string>
+    <string name="import_stats">Import complete\nProcessed: %1$d\nAdded: %2$d\nSkipped duplicates: %3$d</string>
+
+
+
+
+
 </resources>
