@@ -723,8 +723,6 @@
     <string name="optimizing_database">Optimizing database…</string>
     <string name="import_stats">Import complete\nProcessed: %1$d\nAdded: %2$d\nSkipped duplicates: %3$d</string>
 
-
-
     <string name="menu_in_app_database">In-App Database</string>
     <string name="database_statistics">Database Statistics</string>
     <string name="search_records">Search records</string>
@@ -746,5 +744,7 @@
     <string name="database_stats_format">Records: %,d | Size: %s</string>
     <string name="wps">WPS</string>
     <string name="location">Location</string>
+
+    <string name="delete_record_confirmation">Вы уверены, что хотите удалить эту запись?</string>
 
 </resources>

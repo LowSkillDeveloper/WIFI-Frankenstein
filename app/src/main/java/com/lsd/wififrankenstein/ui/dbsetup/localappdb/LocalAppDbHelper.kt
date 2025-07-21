@@ -43,6 +43,42 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         }
     }
 
+    fun importRecordsWithStats(records: List<WifiNetwork>, importType: String): ImportStats {
+        var inserted = 0
+        var duplicates = 0
+
+        writableDatabase.transaction {
+            records.forEach { record ->
+                val existing = readableDatabase.query(
+                    TABLE_NAME,
+                    arrayOf(COLUMN_ID),
+                    "$COLUMN_WIFI_NAME = ? AND $COLUMN_MAC_ADDRESS = ?",
+                    arrayOf(record.wifiName, record.macAddress),
+                    null, null, null
+                ).use { it.count > 0 }
+
+                if (existing) {
+                    duplicates++
+                } else {
+                    val values = ContentValues().apply {
+                        put(COLUMN_WIFI_NAME, record.wifiName)
+                        put(COLUMN_MAC_ADDRESS, record.macAddress)
+                        put(COLUMN_WIFI_PASSWORD, record.wifiPassword)
+                        put(COLUMN_WPS_CODE, record.wpsCode)
+                        put(COLUMN_ADMIN_PANEL, record.adminPanel)
+                        put(COLUMN_LATITUDE, record.latitude)
+                        put(COLUMN_LONGITUDE, record.longitude)
+                    }
+                    if (insert(TABLE_NAME, null, values) != -1L) {
+                        inserted++
+                    }
+                }
+            }
+        }
+
+        return ImportStats(records.size, inserted, duplicates)
+    }
+
     override fun onCreate(db: SQLiteDatabase) {
         val createTableSQL = """
             CREATE TABLE $TABLE_NAME (

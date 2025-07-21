@@ -2,6 +2,7 @@ package com.lsd.wififrankenstein.ui.inappdatabase
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,12 +13,16 @@ import androidx.lifecycle.lifecycleScope
 import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.BottomSheetDatabaseManagementBinding
 import com.lsd.wififrankenstein.databinding.FragmentInAppDatabaseBinding
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+
 
 class InAppDatabaseFragment : Fragment() {
 
@@ -25,6 +30,8 @@ class InAppDatabaseFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel: InAppDatabaseViewModel by viewModels()
     private lateinit var adapter: DatabaseRecordsAdapter
+
+    private var progressDialog: androidx.appcompat.app.AlertDialog? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentInAppDatabaseBinding.inflate(inflater, container, false)
@@ -42,9 +49,17 @@ class InAppDatabaseFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = DatabaseRecordsAdapter { record ->
-            viewModel.showRecordDetails(record)
-        }
+        adapter = DatabaseRecordsAdapter(
+            onItemClick = { record ->
+                viewModel.showRecordDetails(record)
+            },
+            onItemEdit = { record ->
+                showEditRecordDialog(record)
+            },
+            onItemDelete = { record ->
+                showDeleteConfirmation(record)
+            }
+        )
 
         binding.recyclerViewRecords.apply {
             layoutManager = LinearLayoutManager(context)
@@ -64,6 +79,79 @@ class InAppDatabaseFragment : Fragment() {
                 adapter.submitData(pagingData)
             }
         }
+    }
+
+    private fun showAddRecordDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_record, null)
+        setupRecordDialog(dialogView, null)
+    }
+
+    private fun showEditRecordDialog(record: WifiNetwork) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_record, null)
+        setupRecordDialog(dialogView, record)
+    }
+
+    private fun setupRecordDialog(dialogView: View, record: WifiNetwork?) {
+        val etWifiName = dialogView.findViewById<TextInputEditText>(R.id.etWifiName)
+        val etMacAddress = dialogView.findViewById<TextInputEditText>(R.id.etMacAddress)
+        val etPassword = dialogView.findViewById<TextInputEditText>(R.id.etPassword)
+        val etWpsPin = dialogView.findViewById<TextInputEditText>(R.id.etWpsPin)
+        val etAdminPanel = dialogView.findViewById<TextInputEditText>(R.id.etAdminPanel)
+        val etLatitude = dialogView.findViewById<TextInputEditText>(R.id.etLatitude)
+        val etLongitude = dialogView.findViewById<TextInputEditText>(R.id.etLongitude)
+
+        record?.let {
+            etWifiName.setText(it.wifiName)
+            etMacAddress.setText(it.macAddress)
+            etPassword.setText(it.wifiPassword)
+            etWpsPin.setText(it.wpsCode)
+            etAdminPanel.setText(it.adminPanel)
+            etLatitude.setText(it.latitude?.toString() ?: "")
+            etLongitude.setText(it.longitude?.toString() ?: "")
+        }
+
+        val title = if (record == null) R.string.add_new_record else R.string.edit_record
+        val positiveButton = if (record == null) R.string.add else R.string.update
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(title)
+            .setView(dialogView)
+            .setPositiveButton(positiveButton) { _, _ ->
+                val newRecord = WifiNetwork(
+                    id = record?.id ?: 0,
+                    wifiName = etWifiName.text.toString(),
+                    macAddress = etMacAddress.text.toString(),
+                    wifiPassword = etPassword.text.toString().takeIf { it.isNotBlank() },
+                    wpsCode = etWpsPin.text.toString().takeIf { it.isNotBlank() },
+                    adminPanel = etAdminPanel.text.toString().takeIf { it.isNotBlank() },
+                    latitude = etLatitude.text.toString().toDoubleOrNull(),
+                    longitude = etLongitude.text.toString().toDoubleOrNull()
+                )
+
+                if (record == null) {
+                    viewModel.addRecord(newRecord)
+                } else {
+                    viewModel.updateRecord(newRecord)
+                }
+                adapter.refresh()
+                updateStats()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showDeleteConfirmation(record: WifiNetwork) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.delete_record)
+            .setMessage(R.string.delete_record_confirmation)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                viewModel.deleteRecord(record)
+                adapter.refresh()
+                updateStats()
+                showSnackbar(getString(R.string.record_deleted))
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun setupSearch() {
@@ -91,6 +179,9 @@ class InAppDatabaseFragment : Fragment() {
         binding.fabManage.setOnClickListener {
             showManagementBottomSheet()
         }
+        binding.fabAdd.setOnClickListener {
+            showAddRecordDialog()
+        }
     }
 
     private fun setupSwipeRefresh() {
@@ -108,7 +199,7 @@ class InAppDatabaseFragment : Fragment() {
 
         bottomSheetBinding.switchIndexing.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                viewModel.enableIndexing()
+                showIndexLevelSelectionDialog()
             } else {
                 viewModel.disableIndexing()
             }
@@ -157,6 +248,30 @@ class InAppDatabaseFragment : Fragment() {
 
         bottomSheetDialog.show()
     }
+
+    private fun showIndexLevelSelectionDialog() {
+        val indexLevels = arrayOf(
+            getString(R.string.index_level_full_option),
+            getString(R.string.index_level_basic_option)
+        )
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.select_index_level)
+            .setItems(indexLevels) { _, which ->
+                val level = when (which) {
+                    0 -> "FULL"
+                    1 -> "BASIC"
+                    else -> "BASIC"
+                }
+                viewModel.enableIndexing(level)
+            }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                // Обновляем состояние switch обратно
+            }
+            .show()
+    }
+
+
 
     private fun showImportDialog() {
         val formats = arrayOf("JSON", "CSV", "TXT (RouterScan)")
@@ -255,22 +370,29 @@ class InAppDatabaseFragment : Fragment() {
                     showSnackbar(getString(R.string.export_successful))
                 }
                 REQUEST_IMPORT_JSON -> {
-                    viewModel.importFromJson(uri)
-                    adapter.refresh()
-                    updateStats()
-                    showSnackbar(getString(R.string.import_successful))
+                    showImportTypeDialog { importType ->
+                        showProgressDialog(getString(R.string.importing_data))
+                        viewModel.importFromJson(uri, importType) {
+                            hideProgressDialog()
+                            adapter.refresh()
+                            updateStats()
+                            showSnackbar(getString(R.string.import_successful))
+                        }
+                    }
                 }
                 REQUEST_IMPORT_CSV -> {
-                    viewModel.importFromCsv(uri)
-                    adapter.refresh()
-                    updateStats()
-                    showSnackbar(getString(R.string.import_successful))
+                    showImportTypeDialog { importType ->
+                        showProgressDialog(getString(R.string.importing_data))
+                        viewModel.importFromCsv(uri, importType) {
+                            hideProgressDialog()
+                            adapter.refresh()
+                            updateStats()
+                            showSnackbar(getString(R.string.import_successful))
+                        }
+                    }
                 }
                 REQUEST_IMPORT_ROUTERSCAN -> {
-                    viewModel.importFromRouterScan(uri)
-                    adapter.refresh()
-                    updateStats()
-                    showSnackbar(getString(R.string.import_successful))
+                    showRouterScanImportTypeDialog(uri)
                 }
                 REQUEST_BACKUP_DB -> {
                     viewModel.exportDatabase(uri)
@@ -284,6 +406,70 @@ class InAppDatabaseFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun showImportTypeDialog(onTypeSelected: (String) -> Unit) {
+        val options = arrayOf(
+            getString(R.string.replace_database),
+            getString(R.string.append_no_duplicates),
+            getString(R.string.append_check_duplicates)
+        )
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.select_import_type)
+            .setItems(options) { _, which ->
+                val importType = when (which) {
+                    0 -> "replace"
+                    1 -> "append_no_duplicates"
+                    2 -> "append_check_duplicates"
+                    else -> "append_no_duplicates"
+                }
+                onTypeSelected(importType)
+            }
+            .show()
+    }
+
+    private fun showRouterScanImportTypeDialog(uri: Uri) {
+        val options = arrayOf(
+            getString(R.string.replace_database),
+            getString(R.string.append_no_duplicates),
+            getString(R.string.append_check_duplicates)
+        )
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.select_import_type)
+            .setItems(options) { _, which ->
+                val importType = when (which) {
+                    0 -> "replace"
+                    1 -> "append_no_duplicates"
+                    2 -> "append_check_duplicates"
+                    else -> "append_no_duplicates"
+                }
+
+                showProgressDialog(getString(R.string.importing_data))
+                viewModel.importFromRouterScan(uri, importType) {
+                    hideProgressDialog()
+                    adapter.refresh()
+                    updateStats()
+                    showSnackbar(getString(R.string.import_successful))
+                }
+            }
+            .show()
+    }
+
+    private fun showProgressDialog(message: String) {
+        hideProgressDialog()
+
+        progressDialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(message)
+            .setCancelable(false)
+            .create()
+        progressDialog?.show()
+    }
+
+    private fun hideProgressDialog() {
+        progressDialog?.dismiss()
+        progressDialog = null
     }
 
     private fun observeViewModel() {

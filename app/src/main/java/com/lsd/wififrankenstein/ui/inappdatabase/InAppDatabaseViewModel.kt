@@ -2,6 +2,7 @@ package com.lsd.wififrankenstein.ui.inappdatabase
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 
 class InAppDatabaseViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -84,9 +86,10 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
         return dbHelper.hasIndexes()
     }
 
-    fun enableIndexing() {
+    fun enableIndexing(level: String = "BASIC") {
         viewModelScope.launch(Dispatchers.IO) {
-            dbHelper.enableIndexing("BASIC")
+            val dbHelper = LocalAppDbHelper(getApplication())
+            dbHelper.enableIndexing(level)
             updateStats()
         }
     }
@@ -108,6 +111,30 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
     fun removeDuplicates() {
         viewModelScope.launch(Dispatchers.IO) {
             dbHelper.removeDuplicates()
+            updateStats()
+        }
+    }
+
+    fun addRecord(record: WifiNetwork) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val dbHelper = LocalAppDbHelper(getApplication())
+            dbHelper.addRecord(record)
+            updateStats()
+        }
+    }
+
+    fun updateRecord(record: WifiNetwork) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val dbHelper = LocalAppDbHelper(getApplication())
+            dbHelper.updateRecord(record)
+            updateStats()
+        }
+    }
+
+    fun deleteRecord(record: WifiNetwork) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val dbHelper = LocalAppDbHelper(getApplication())
+            dbHelper.deleteRecord(record.id)
             updateStats()
         }
     }
@@ -151,24 +178,44 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    fun importFromJson(uri: Uri) {
+    fun importFromJson(uri: Uri, importType: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                if (importType == "replace") {
+                    val dbHelper = LocalAppDbHelper(getApplication())
+                    dbHelper.clearDatabase()
+                }
+
                 getApplication<Application>().contentResolver.openInputStream(uri)?.use { inputStream ->
                     val json = inputStream.reader().readText()
-                    val records = kotlinx.serialization.json.Json.decodeFromString<List<WifiNetwork>>(json)
-                    dbHelper.importRecords(records)
+                    val records = Json.decodeFromString<List<WifiNetwork>>(json)
+                    val dbHelper = LocalAppDbHelper(getApplication())
+
+                    if (importType == "append_check_duplicates") {
+                        val stats = dbHelper.importRecordsWithStats(records, importType)
+                        Log.d("Import", "Processed: ${stats.totalProcessed}, Inserted: ${stats.inserted}, Duplicates: ${stats.duplicates}")
+                    } else {
+                        dbHelper.importRecords(records)
+                    }
                     updateStats()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+            withContext(Dispatchers.Main) {
+                onComplete()
+            }
         }
     }
 
-    fun importFromCsv(uri: Uri) {
+    fun importFromCsv(uri: Uri, importType: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                if (importType == "replace") {
+                    val dbHelper = LocalAppDbHelper(getApplication())
+                    dbHelper.clearDatabase()
+                }
+
                 getApplication<Application>().contentResolver.openInputStream(uri)?.use { inputStream ->
                     val lines = inputStream.reader().readLines()
                     val records = lines.drop(1).mapNotNull { line ->
@@ -186,28 +233,54 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
                             )
                         } else null
                     }
-                    dbHelper.importRecords(records)
+
+                    val dbHelper = LocalAppDbHelper(getApplication())
+                    if (importType == "append_check_duplicates") {
+                        val stats = dbHelper.importRecordsWithStats(records, importType)
+                        Log.d("Import", "Processed: ${stats.totalProcessed}, Inserted: ${stats.inserted}, Duplicates: ${stats.duplicates}")
+                    } else {
+                        dbHelper.importRecords(records)
+                    }
                     updateStats()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+            withContext(Dispatchers.Main) {
+                onComplete()
+            }
         }
     }
 
-    fun importFromRouterScan(uri: Uri) {
+
+    fun importFromRouterScan(uri: Uri, importType: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                if (importType == "replace") {
+                    val dbHelper = LocalAppDbHelper(getApplication())
+                    dbHelper.clearDatabase()
+                }
+
                 getApplication<Application>().contentResolver.openInputStream(uri)?.use { inputStream ->
                     val lines = inputStream.reader().readLines()
                     val records = lines.mapNotNull { line ->
                         parseRouterScanLine(line)
                     }
-                    dbHelper.importRecords(records)
+
+                    val dbHelper = LocalAppDbHelper(getApplication())
+                    if (importType == "append_check_duplicates") {
+                        val stats = dbHelper.importRecordsWithStats(records, importType)
+                        Log.d("Import", "Processed: ${stats.totalProcessed}, Inserted: ${stats.inserted}, Duplicates: ${stats.duplicates}")
+                    } else {
+                        dbHelper.importRecords(records)
+                    }
                     updateStats()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+            withContext(Dispatchers.Main) {
+                onComplete()
             }
         }
     }

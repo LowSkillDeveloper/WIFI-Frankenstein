@@ -23,7 +23,9 @@ import com.lsd.wififrankenstein.databinding.ItemDatabaseRecordBinding
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
 
 class DatabaseRecordsAdapter(
-    private val onItemClick: (WifiNetwork) -> Unit
+    private val onItemClick: (WifiNetwork) -> Unit,
+    private val onItemEdit: ((WifiNetwork) -> Unit)? = null,
+    private val onItemDelete: ((WifiNetwork) -> Unit)? = null
 ) : PagingDataAdapter<WifiNetwork, DatabaseRecordsAdapter.ViewHolder>(WifiNetworkDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -62,9 +64,6 @@ class DatabaseRecordsAdapter(
                     textViewPassword.text = context.getString(R.string.password_format, wifiNetwork.wifiPassword)
                     textViewPassword.setTextColor(if (isValidPassword) getThemeTextColor(context) else Color.RED)
                     textViewPassword.visibility = View.VISIBLE
-                    textViewPassword.setOnClickListener {
-                        copyToClipboard(context, "Password", wifiNetwork.wifiPassword)
-                    }
                 } else {
                     textViewPassword.text = context.getString(R.string.password_not_available)
                     textViewPassword.setTextColor(Color.RED)
@@ -76,9 +75,6 @@ class DatabaseRecordsAdapter(
                     textViewWpsPin.text = context.getString(R.string.wps_pin_format, wifiNetwork.wpsCode)
                     textViewWpsPin.setTextColor(if (isValidWpsPin) getThemeTextColor(context) else Color.RED)
                     textViewWpsPin.visibility = View.VISIBLE
-                    textViewWpsPin.setOnClickListener {
-                        copyToClipboard(context, "WPS PIN", wifiNetwork.wpsCode)
-                    }
                 } else {
                     textViewWpsPin.text = context.getString(R.string.wps_pin_not_available)
                     textViewWpsPin.setTextColor(Color.RED)
@@ -119,6 +115,8 @@ class DatabaseRecordsAdapter(
             popup.menu.findItem(R.id.action_copy_wps)?.isVisible = !wifiNetwork.wpsCode.isNullOrBlank()
             popup.menu.findItem(R.id.action_copy_admin_panel)?.isVisible = !wifiNetwork.adminPanel.isNullOrBlank()
             popup.menu.findItem(R.id.action_show_location)?.isVisible = wifiNetwork.latitude != null && wifiNetwork.longitude != null && wifiNetwork.latitude != 0.0 && wifiNetwork.longitude != 0.0
+            popup.menu.findItem(R.id.action_edit)?.isVisible = onItemEdit != null
+            popup.menu.findItem(R.id.action_delete)?.isVisible = onItemDelete != null
 
             popup.setOnMenuItemClickListener { menuItem ->
                 when (menuItem.itemId) {
@@ -154,6 +152,14 @@ class DatabaseRecordsAdapter(
                     }
                     R.id.action_generate_wps -> {
                         openWpsGenerator(wifiNetwork.macAddress)
+                        true
+                    }
+                    R.id.action_edit -> {
+                        onItemEdit?.invoke(wifiNetwork)
+                        true
+                    }
+                    R.id.action_delete -> {
+                        onItemDelete?.invoke(wifiNetwork)
                         true
                     }
                     else -> false
