@@ -7,6 +7,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -20,9 +22,11 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.BottomSheetDatabaseManagementBinding
 import com.lsd.wififrankenstein.databinding.FragmentInAppDatabaseBinding
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-
+import kotlinx.coroutines.withContext
 
 class InAppDatabaseFragment : Fragment() {
 
@@ -32,6 +36,7 @@ class InAppDatabaseFragment : Fragment() {
     private lateinit var adapter: DatabaseRecordsAdapter
 
     private var progressDialog: androidx.appcompat.app.AlertDialog? = null
+    private var isBackupBeforeClear = false
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentInAppDatabaseBinding.inflate(inflater, container, false)
@@ -266,16 +271,13 @@ class InAppDatabaseFragment : Fragment() {
                 viewModel.enableIndexing(level)
             }
             .setNegativeButton(R.string.cancel) { _, _ ->
-                // Обновляем состояние switch обратно
             }
             .show()
     }
 
-
-
     private fun showImportDialog() {
         val formats = arrayOf("JSON", "CSV", "TXT (RouterScan)")
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.import_format)
             .setItems(formats) { _, which ->
                 when (which) {
@@ -289,7 +291,7 @@ class InAppDatabaseFragment : Fragment() {
 
     private fun showExportDialog() {
         val formats = arrayOf("JSON", "CSV")
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.export_format)
             .setItems(formats) { _, which ->
                 when (which) {
@@ -301,17 +303,35 @@ class InAppDatabaseFragment : Fragment() {
     }
 
     private fun showClearDatabaseDialog() {
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.warning)
             .setMessage(R.string.clear_database_warning)
             .setPositiveButton(R.string.yes) { _, _ ->
-                viewModel.clearDatabase()
-                adapter.refresh()
-                updateStats()
-                showSnackbar(getString(R.string.database_cleared))
+                showBackupBeforeClearDialog()
             }
             .setNegativeButton(R.string.no, null)
             .show()
+    }
+
+    private fun showBackupBeforeClearDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.backup)
+            .setMessage(R.string.backup_before_clear)
+            .setPositiveButton(R.string.yes) { _, _ ->
+                isBackupBeforeClear = true
+                selectBackupLocation()
+            }
+            .setNegativeButton(R.string.no) { _, _ ->
+                clearLocalDatabase()
+            }
+            .show()
+    }
+
+    private fun clearLocalDatabase() {
+        viewModel.clearDatabase()
+        adapter.refresh()
+        updateStats()
+        showSnackbar(getString(R.string.database_cleared))
     }
 
     private fun startFileCreation(fileName: String, mimeType: String, requestCode: Int) {
@@ -396,7 +416,13 @@ class InAppDatabaseFragment : Fragment() {
                 }
                 REQUEST_BACKUP_DB -> {
                     viewModel.exportDatabase(uri)
-                    showSnackbar(getString(R.string.database_backed_up))
+                    if (isBackupBeforeClear) {
+                        clearLocalDatabase()
+                        isBackupBeforeClear = false
+                        showSnackbar(getString(R.string.database_backed_up_and_cleared))
+                    } else {
+                        showSnackbar(getString(R.string.database_backed_up))
+                    }
                 }
                 REQUEST_RESTORE_DB -> {
                     viewModel.restoreDatabaseFromUri(uri)
@@ -446,15 +472,64 @@ class InAppDatabaseFragment : Fragment() {
                     else -> "append_no_duplicates"
                 }
 
-                showProgressDialog(getString(R.string.importing_data))
-                viewModel.importFromRouterScan(uri, importType) {
-                    hideProgressDialog()
-                    adapter.refresh()
-                    updateStats()
-                    showSnackbar(getString(R.string.import_successful))
-                }
+                showRouterScanImportProgress(uri, importType)
             }
             .show()
+    }
+
+    private fun showRouterScanImportProgress(uri: Uri, importType: String) {
+        if (!isAdded) return
+
+        val context = context ?: return
+
+        val progressDialog = MaterialAlertDialogBuilder(context)
+            .setView(R.layout.dialog_import_progress)
+            .setCancelable(false)
+            .show()
+
+        val progressText = progressDialog.findViewById<TextView>(R.id.textViewImportProgress)
+        val progressBar = progressDialog.findViewById<ProgressBar>(R.id.progressBarImport)
+
+        progressText?.text = getString(R.string.importing_data)
+        progressBar?.progress = 0
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val stats = viewModel.importFromRouterScanWithProgress(uri, importType) { message, progress ->
+                    launch(Dispatchers.Main) {
+                        if (isAdded && progressDialog.isShowing) {
+                            progressText?.text = message
+                            progressBar?.progress = progress
+                        }
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    if (isAdded) {
+                        progressDialog.dismiss()
+                        adapter.refresh()
+                        updateStats()
+
+                        val message = when (importType) {
+                            "append_check_duplicates" -> getString(R.string.import_stats,
+                                stats.totalProcessed, stats.inserted, stats.duplicates)
+                            "replace" -> getString(R.string.database_replaced_imported, stats.inserted)
+                            else -> getString(R.string.import_completed_added, stats.inserted)
+                        }
+
+                        showSnackbar(message)
+                    }
+                }
+
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    if (isAdded) {
+                        progressDialog.dismiss()
+                        showSnackbar(getString(R.string.import_error, e.message))
+                    }
+                }
+            }
+        }
     }
 
     private fun showProgressDialog(message: String) {

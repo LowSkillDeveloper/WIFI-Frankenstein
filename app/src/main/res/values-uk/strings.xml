@@ -713,5 +713,30 @@
     <string name="optimizing_database">Оптимізація бази даних…</string>
     <string name="import_stats">Імпорт завершено\nОброблено: %1$d\nДодано: %2$d\nПропущено дублікатів: %3$d</string>
 
+    <string name="menu_in_app_database">Вбудована база даних</string>
+    <string name="database_statistics">Статистика бази даних</string>
+    <string name="search_records">Пошук записів</string>
+    <string name="filter_name">Ім'я</string>
+    <string name="filter_mac">MAC</string>
+    <string name="filter_password">Пароль</string>
+    <string name="filter_wps">WPS</string>
+    <string name="manage_database">Керування</string>
+    <string name="no_records_found">Записи не знайдено</string>
+    <string name="no_records_description">База даних порожня або жоден запис не відповідає вашим критеріям пошуку</string>
+    <string name="database_management">Керування базою даних</string>
+    <string name="indexing_improves_search">Індексація покращує продуктивність пошуку</string>
+    <string name="database_operations">Операції з базою даних</string>
+    <string name="import_export">Імпорт та експорт</string>
+    <string name="import_data">Імпорт даних</string>
+    <string name="export_data">Експорт даних</string>
+    <string name="clear_database">Очистити базу даних</string>
+    <string name="indexing_status">Індексація: %s</string>
+    <string name="database_stats_format">Записів: %,d | Розмір: %s</string>
+    <string name="wps">WPS</string>
+    <string name="location">Місцезнаходження</string>
+    <string name="delete_record_confirmation">Ви впевнені, що хочете видалити цей запис?</string>
+    <string name="database_replaced_imported">Базу даних замінено\nІмпортовано: %d записів</string>
+    <string name="import_completed_added">Імпорт завершено\nДодано: %d записів</string>
+
 
 </resources>
