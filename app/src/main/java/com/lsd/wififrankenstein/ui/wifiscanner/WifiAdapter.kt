@@ -119,7 +119,7 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
                 ssidTextView.text = scanResult.SSID
                 bssidTextView.text = scanResult.BSSID
                 levelTextView.text = "${scanResult.level} dBm"
-                
+
                 val distance = calculateDistanceString(scanResult.frequency, scanResult.level, 1.0)
                 distanceTextView.text = distance
 
@@ -182,6 +182,46 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
                     }
                 } else {
                     binding.thirdInfoRow.visibility = View.GONE
+                }
+
+                val capabilities = networkDetails.advancedCapabilities
+                val hasRtt = capabilities.supportsRtt
+                val hasNtb = capabilities.supportsNtb
+                val hasTwt = capabilities.supportsTwt
+                val isUntrusted = capabilities.isUntrusted
+                val hasMld = capabilities.supportsMld
+
+                val hasFourthRowFeatures = hasRtt || hasNtb || hasTwt || isUntrusted || hasMld
+
+                if (hasFourthRowFeatures) {
+                    binding.fourthInfoRow.visibility = View.VISIBLE
+
+                    binding.rttInfo.visibility = if (hasRtt) View.VISIBLE else View.GONE
+                    if (hasRtt) {
+                        binding.rttInfo.text = itemView.context.getString(R.string.wifi_rtt_responder)
+                    }
+
+                    binding.ntbInfo.visibility = if (hasNtb) View.VISIBLE else View.GONE
+                    if (hasNtb) {
+                        binding.ntbInfo.text = itemView.context.getString(R.string.wifi_ntb_responder)
+                    }
+
+                    binding.twtInfo.visibility = if (hasTwt) View.VISIBLE else View.GONE
+                    if (hasTwt) {
+                        binding.twtInfo.text = itemView.context.getString(R.string.wifi_twt_responder)
+                    }
+
+                    binding.untrustedInfo.visibility = if (isUntrusted) View.VISIBLE else View.GONE
+                    if (isUntrusted) {
+                        binding.untrustedInfo.text = itemView.context.getString(R.string.wifi_untrusted)
+                    }
+
+                    binding.mldInfo.visibility = if (hasMld) View.VISIBLE else View.GONE
+                    if (hasMld) {
+                        binding.mldInfo.text = itemView.context.getString(R.string.wifi_mld_support)
+                    }
+                } else {
+                    binding.fourthInfoRow.visibility = View.GONE
                 }
 
                 val networkResults = databaseResults[scanResult.BSSID.lowercase(Locale.ROOT)]

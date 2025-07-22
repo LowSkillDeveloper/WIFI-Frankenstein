@@ -826,7 +826,11 @@
     <string name="security_type_passpoint_r1_r2">Passpoint R1/R2</string>
     <string name="security_type_passpoint_r3">Passpoint R3</string>
     <string name="security_type_dpp">DPP</string>
-
+    <string name="wifi_rtt_responder">RTT</string>
+    <string name="wifi_ntb_responder">NTB</string>
+    <string name="wifi_twt_responder">TWT</string>
+    <string name="wifi_untrusted">Untrusted</string>
+    <string name="wifi_mld_support">MLD</string>
 
 
 </resources>

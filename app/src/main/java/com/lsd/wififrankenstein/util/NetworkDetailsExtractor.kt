@@ -9,7 +9,8 @@ data class NetworkDetails(
     val bandwidth: NetworkBandwidth,
     val protocol: NetworkProtocol,
     val security: NetworkSecurityInfo,
-    val frequencyMhz: Int
+    val frequencyMhz: Int,
+    val advancedCapabilities: WiFiAdvancedCapabilities
 )
 
 object NetworkDetailsExtractor {
@@ -25,6 +26,7 @@ object NetworkDetailsExtractor {
         val protocol = NetworkProtocol.fromScanResult(scanResult)
         val securityTypes = SecurityType.fromScanResult(scanResult)
         val security = NetworkSecurityInfo(scanResult.capabilities, securityTypes)
+        val advancedCapabilities = WiFiAdvancedCapabilities.fromScanResult(scanResult)
 
         return NetworkDetails(
             channel = channel,
@@ -32,7 +34,8 @@ object NetworkDetailsExtractor {
             bandwidth = bandwidth,
             protocol = protocol,
             security = security,
-            frequencyMhz = scanResult.frequency
+            frequencyMhz = scanResult.frequency,
+            advancedCapabilities = advancedCapabilities
         )
     }
 }
