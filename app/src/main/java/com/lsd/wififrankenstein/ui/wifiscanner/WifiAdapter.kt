@@ -86,12 +86,6 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
 
         private val securityIcon = binding.securityIcon
         private val distanceTextView = binding.distanceTextView
-        private val channelChip = binding.channelChip
-        private val frequencyChip = binding.frequencyChip
-        private val bandwidthChip = binding.bandwidthChip
-        private val protocolChip = binding.protocolChip
-        private val securityChip = binding.securityChip
-        private val wpsChip = binding.wpsChip
 
         init {
             itemView.setOnClickListener { view ->
@@ -133,28 +127,28 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
                 // Set security icon
                 securityIcon.setImageResource(networkDetails.security.mainProtocol.iconRes)
 
-                // Setup chips
-                channelChip.text = itemView.context.getString(R.string.channel_format, networkDetails.channel)
-                frequencyChip.text = itemView.context.getString(networkDetails.frequencyBand.displayNameRes)
-                bandwidthChip.text = itemView.context.getString(networkDetails.bandwidth.displayNameRes)
+                // Setup info badges
+                binding.channelInfo.text = itemView.context.getString(R.string.channel_format, networkDetails.channel)
+                binding.frequencyInfo.text = itemView.context.getString(networkDetails.frequencyBand.displayNameRes)
+                binding.bandwidthInfo.text = itemView.context.getString(networkDetails.bandwidth.displayNameRes)
 
-                // Protocol chip
+// Protocol info
                 if (networkDetails.protocol != NetworkProtocol.UNKNOWN) {
-                    protocolChip.visibility = View.VISIBLE
-                    protocolChip.text = itemView.context.getString(networkDetails.protocol.shortNameRes)
+                    binding.protocolInfo.visibility = View.VISIBLE
+                    binding.protocolInfo.text = itemView.context.getString(networkDetails.protocol.shortNameRes)
                 } else {
-                    protocolChip.visibility = View.GONE
+                    binding.protocolInfo.visibility = View.GONE
                 }
 
-                // Security chip
-                securityChip.text = networkDetails.security.getSecurityString()
+// Security info
+                binding.securityInfo.text = networkDetails.security.getSecurityString()
 
-                // WPS chip
+// WPS info
                 if (networkDetails.security.hasWps) {
-                    wpsChip.visibility = View.VISIBLE
-                    wpsChip.text = "WPS"
+                    binding.wpsInfo.visibility = View.VISIBLE
+                    binding.wpsInfo.text = "WPS"
                 } else {
-                    wpsChip.visibility = View.GONE
+                    binding.wpsInfo.visibility = View.GONE
                 }
 
                 val networkResults = databaseResults[scanResult.BSSID.lowercase(Locale.ROOT)]
