@@ -48,5 +48,15 @@
     <color name="text_color_light">#DE000000</color>
     <color name="text_color_dark">#DEFFFFFF</color>
 
+    <color name="orange_500">#FF9800</color>
+    <color name="red_500">#F44336</color>
+    <color name="spectrum_color_1">#2196F3</color>
+    <color name="spectrum_color_2">#4CAF50</color>
+    <color name="spectrum_color_3">#FF9800</color>
+    <color name="spectrum_color_4">#9C27B0</color>
+    <color name="spectrum_color_5">#F44336</color>
 
+    <color name="text_primary">#DE000000</color>
+    <color name="text_secondary">#99000000</color>
+    <color name="grid_color">#42000000</color>
 </resources>

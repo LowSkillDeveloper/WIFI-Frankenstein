@@ -54,6 +54,7 @@ class MainActivity : AppCompatActivity() {
         appBarConfiguration = AppBarConfiguration(
             setOf(
                 R.id.nav_wifi_scanner,
+                R.id.nav_wifi_analysis,
                 R.id.nav_database_finder,
                 R.id.nav_wifi_map,
                 R.id.nav_settings,

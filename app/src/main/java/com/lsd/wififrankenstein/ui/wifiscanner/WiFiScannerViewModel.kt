@@ -97,22 +97,23 @@ class WiFiScannerViewModel(
         if (hasLocationPermission()) {
             viewModelScope.launch {
                 try {
-                    if (prefs.getBoolean("full_cleanup", false)) {
-                        clearData()
-                    }
-
                     _scanState.postValue(getApplication<Application>().getString(R.string.scanning_wifi))
 
                     val networks = withContext(Dispatchers.IO) {
                         if (isDummyNetworkModeEnabled()) {
                             createDummyNetworks()
                         } else {
-                            if (wifiManager.startScan()) wifiManager.scanResults.sortedByDescending { it.level } else null
+                            if (wifiManager.startScan()) {
+                                wifiManager.scanResults.sortedByDescending { it.level }
+                            } else {
+                                emptyList()
+                            }
                         }
                     }
 
-                    if (networks != null) {
+                    if (networks.isNotEmpty()) {
                         _wifiList.postValue(networks)
+                        _scanState.postValue("Scan completed successfully")
                     } else {
                         _scanState.postValue(getApplication<Application>().getString(R.string.failed_to_start_wifi_scan))
                     }

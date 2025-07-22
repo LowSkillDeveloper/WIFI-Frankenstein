@@ -30,6 +30,12 @@
         tools:layout="@layout/fragment_database_finder" />
 
     <fragment
+        android:id="@+id/nav_wifi_analysis"
+        android:name="com.lsd.wififrankenstein.ui.wifianalysis.WiFiAnalysisFragment"
+        android:label="@string/menu_wifi_analysis"
+        tools:layout="@layout/fragment_wifi_analysis" />
+
+    <fragment
         android:id="@+id/nav_in_app_database"
         android:name="com.lsd.wififrankenstein.ui.inappdatabase.InAppDatabaseFragment"
         android:label="@string/menu_in_app_database"

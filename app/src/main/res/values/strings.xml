@@ -254,8 +254,6 @@
     <string name="import_failed">Import failed: %s</string>
     <string name="import_database">Import Database</string>
 
-    <string name="routerscan_import_not_implemented">RouterScan import not yet implemented</string>
-
     <string name="clear_local_database">Clear Local Database</string>
     <string name="clear_database_warning">Are you sure you want to clear the local database? This action cannot be undone.</string>
     <string name="backup_before_clear">Do you want to backup the database before clearing?</string>
@@ -747,5 +745,40 @@
     <string name="delete_record_confirmation">Are you sure you want to delete this entry?</string>
     <string name="database_replaced_imported">Database replaced\nImported: %d records</string>
     <string name="import_completed_added">Import completed\nAdded: %d records</string>
+
+    <string name="menu_wifi_analysis">WiFi Analysis</string>
+    <string name="wifi_environment_analysis">WiFi Environment Analysis</string>
+    <string name="channel_usage">Channel Usage</string>
+    <string name="frequency_band_2ghz">2.4 GHz</string>
+    <string name="frequency_band_5ghz">5 GHz</string>
+    <string name="frequency_band_6ghz">6 GHz</string>
+    <string name="best_channels">Recommended Channels</string>
+    <string name="least_congested">Least congested</string>
+    <string name="no_interference">No interference</string>
+    <string name="light_usage">Light usage</string>
+    <string name="analysis_empty_state">No networks found</string>
+    <string name="analysis_empty_description">Scan for WiFi networks first to see analysis</string>
+    <string name="refresh_analysis">Refresh Analysis</string>
+    <string name="total_networks">Total networks: %d</string>
+    <string name="unique_channels">Unique channels: %d</string>
+    <string name="average_signal">Average signal: %d dBm</string>
+    <string name="frequency_mhz">%d MHz</string>
+    <string name="channel_load_percent">%d%%</string>
+    <string name="strong_signals_short">Strong: %d</string>
+    <string name="overlapping_short">Overlap: %d</string>
+    <string name="channel_with_frequency">Channel %1$d (%2$d MHz)</string>
+    <string name="score_percent">%d%%</string>
+    <string name="no_networks_on_channel">No networks</string>
+    <string name="no_channel_overlap">No overlap</string>
+    <string name="exclude_networks">Exclude network from stats</string>
+    <string name="wifi_spectrum">WiFi Spectrum</string>
+    <string name="access_points_count">%d AP</string>
+    <string name="no_wifi_data_available">No WiFi data available. Please scan for networks first.</string>
+    <string name="channel_width_format">%d MHz</string>
+    <string name="start_scan">Start Scan</string>
+
+    <string name="good_choice">Good choice</string>
+    <string name="acceptable">Acceptable</string>
+    <string name="channel_analysis_error">Channel analysis error</string>
 
 </resources>

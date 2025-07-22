@@ -35,6 +35,10 @@
             android:icon="@drawable/ic_location"
             android:title="@string/menu_mac_location" />
         <item
+            android:id="@+id/nav_wifi_analysis"
+            android:icon="@drawable/ic_wifi"
+            android:title="@string/menu_wifi_analysis" />
+        <item
             android:id="@+id/nav_updates"
             android:icon="@drawable/outline_archive_24"
             android:title="@string/menu_updates" />
