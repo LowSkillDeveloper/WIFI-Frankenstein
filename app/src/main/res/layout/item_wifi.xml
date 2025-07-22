@@ -171,7 +171,22 @@
                 android:textAppearance="?attr/textAppearanceCaption"
                 android:textSize="11sp"
                 android:textStyle="bold"
-                tools:text="WPA2" />
+                tools:text="WPA2/WPA3" />
+
+            <TextView
+                android:id="@+id/security_types_info"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/info_badge_background"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="PSK+SAE"
+                tools:visibility="visible" />
 
             <TextView
                 android:id="@+id/wps_info"
@@ -188,15 +203,72 @@
                 android:visibility="gone"
                 tools:text="WPS"
                 tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/adhoc_info"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/info_badge_background"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textColor="@color/red_500"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="Ad-hoc"
+                tools:visibility="visible" />
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/third_info_row"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="36dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="8dp"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/second_info_row">
+
+            <TextView
+                android:id="@+id/fast_roaming_info"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/info_badge_background"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textColor="@color/green_500"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="802.11k/r/v" />
+
+            <TextView
+                android:id="@+id/protocol_full_info"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/info_badge_background"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="802.11ax" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/expand_button_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            app:layout_constraintTop_toBottomOf="@+id/second_info_row">
+            app:layout_constraintTop_toBottomOf="@+id/third_info_row">
 
             <ImageView
                 android:id="@+id/start_icon"
@@ -233,9 +305,10 @@
             android:layout_marginTop="4dp"
             android:textAlignment="center"
             android:visibility="gone"
-            app:layout_constraintTop_toBottomOf="@+id/expand_button" />
+            app:layout_constraintTop_toBottomOf="@+id/expand_button_container" />
 
         <androidx.core.widget.NestedScrollView
+            android:id="@+id/scroll_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:maxHeight="300dp"
@@ -257,7 +330,7 @@
             android:visibility="gone"
             app:icon="@drawable/ic_expand_more"
             app:iconGravity="textStart"
-            app:layout_constraintTop_toBottomOf="@+id/credentials_recycler_view" />
+            app:layout_constraintTop_toBottomOf="@+id/scroll_view" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

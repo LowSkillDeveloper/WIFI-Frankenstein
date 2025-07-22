@@ -23,7 +23,8 @@ object NetworkDetailsExtractor {
             NetworkBandwidth.BW_20MHZ
         }
         val protocol = NetworkProtocol.fromScanResult(scanResult)
-        val security = NetworkSecurityInfo(scanResult.capabilities)
+        val securityTypes = SecurityType.fromScanResult(scanResult)
+        val security = NetworkSecurityInfo(scanResult.capabilities, securityTypes)
 
         return NetworkDetails(
             channel = channel,

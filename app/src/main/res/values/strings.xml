@@ -778,14 +778,12 @@
     <string name="acceptable">Acceptable</string>
     <string name="channel_analysis_error">Channel analysis error</string>
 
-    <!-- Network Bandwidth -->
     <string name="bandwidth_20mhz">20 MHz</string>
     <string name="bandwidth_40mhz">40 MHz</string>
     <string name="bandwidth_80mhz">80 MHz</string>
     <string name="bandwidth_160mhz">160 MHz</string>
     <string name="bandwidth_80mhz_plus">80+ MHz</string>
 
-    <!-- Network Protocol -->
     <string name="protocol_unknown">Unknown</string>
     <string name="protocol_unknown_short">?</string>
     <string name="protocol_legacy">802.11a/b/g</string>
@@ -801,12 +799,34 @@
     <string name="protocol_be">802.11be</string>
     <string name="protocol_be_short">WiFi 7</string>
 
-    <!-- Frequency Band -->
+
     <string name="frequency_band_2ghz">2.4 GHz</string>
     <string name="frequency_band_5ghz">5 GHz</string>
     <string name="frequency_band_6ghz">6 GHz</string>
 
-    <!-- Format strings -->
+    <string name="fast_roaming_k">802.11k</string>
+    <string name="fast_roaming_r">802.11r</string>
+    <string name="fast_roaming_v">802.11v</string>
+
     <string name="channel_format">CH %d</string>
+
+
+    <string name="security_type_unknown">Unknown</string>
+    <string name="security_type_open">Open</string>
+    <string name="security_type_wep">WEP</string>
+    <string name="security_type_psk">PSK</string>
+    <string name="security_type_eap">EAP</string>
+    <string name="security_type_sae">SAE</string>
+    <string name="security_type_eap_wpa3_enterprise_192_bit">EAP-192</string>
+    <string name="security_type_owe">OWE</string>
+    <string name="security_type_wapi_psk">WAPI-PSK</string>
+    <string name="security_type_wapi_cert">WAPI-CERT</string>
+    <string name="security_type_eap_wpa3_enterprise">EAP-WPA3</string>
+    <string name="security_type_osen">OSEN</string>
+    <string name="security_type_passpoint_r1_r2">Passpoint R1/R2</string>
+    <string name="security_type_passpoint_r3">Passpoint R3</string>
+    <string name="security_type_dpp">DPP</string>
+
+
 
 </resources>

@@ -119,20 +119,16 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
                 ssidTextView.text = scanResult.SSID
                 bssidTextView.text = scanResult.BSSID
                 levelTextView.text = "${scanResult.level} dBm"
-
-                // Calculate and show distance
+                
                 val distance = calculateDistanceString(scanResult.frequency, scanResult.level, 1.0)
                 distanceTextView.text = distance
 
-                // Set security icon
                 securityIcon.setImageResource(networkDetails.security.mainProtocol.iconRes)
 
-                // Setup info badges
                 binding.channelInfo.text = itemView.context.getString(R.string.channel_format, networkDetails.channel)
                 binding.frequencyInfo.text = itemView.context.getString(networkDetails.frequencyBand.displayNameRes)
                 binding.bandwidthInfo.text = itemView.context.getString(networkDetails.bandwidth.displayNameRes)
 
-// Protocol info
                 if (networkDetails.protocol != NetworkProtocol.UNKNOWN) {
                     binding.protocolInfo.visibility = View.VISIBLE
                     binding.protocolInfo.text = itemView.context.getString(networkDetails.protocol.shortNameRes)
@@ -140,15 +136,52 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
                     binding.protocolInfo.visibility = View.GONE
                 }
 
-// Security info
                 binding.securityInfo.text = networkDetails.security.getSecurityString()
 
-// WPS info
+                val securityTypesText = networkDetails.security.getSecurityTypesString(itemView.context)
+                if (securityTypesText.isNotBlank() && securityTypesText != itemView.context.getString(R.string.security_type_unknown)) {
+                    binding.securityTypesInfo.visibility = View.VISIBLE
+                    binding.securityTypesInfo.text = securityTypesText
+                } else {
+                    binding.securityTypesInfo.visibility = View.GONE
+                }
+
                 if (networkDetails.security.hasWps) {
                     binding.wpsInfo.visibility = View.VISIBLE
                     binding.wpsInfo.text = "WPS"
                 } else {
                     binding.wpsInfo.visibility = View.GONE
+                }
+
+                if (networkDetails.security.isAdHoc) {
+                    binding.adhocInfo.visibility = View.VISIBLE
+                    binding.adhocInfo.text = "Ad-hoc"
+                } else {
+                    binding.adhocInfo.visibility = View.GONE
+                }
+
+                val fastRoamingText = networkDetails.security.getFastRoamingString(itemView.context)
+                val hasProtocolFull = networkDetails.protocol != NetworkProtocol.UNKNOWN
+                val shouldShowThirdRow = fastRoamingText.isNotBlank() || hasProtocolFull
+
+                if (shouldShowThirdRow) {
+                    binding.thirdInfoRow.visibility = View.VISIBLE
+
+                    if (fastRoamingText.isNotBlank()) {
+                        binding.fastRoamingInfo.visibility = View.VISIBLE
+                        binding.fastRoamingInfo.text = fastRoamingText
+                    } else {
+                        binding.fastRoamingInfo.visibility = View.GONE
+                    }
+
+                    if (hasProtocolFull) {
+                        binding.protocolFullInfo.visibility = View.VISIBLE
+                        binding.protocolFullInfo.text = itemView.context.getString(networkDetails.protocol.fullNameRes)
+                    } else {
+                        binding.protocolFullInfo.visibility = View.GONE
+                    }
+                } else {
+                    binding.thirdInfoRow.visibility = View.GONE
                 }
 
                 val networkResults = databaseResults[scanResult.BSSID.lowercase(Locale.ROOT)]
