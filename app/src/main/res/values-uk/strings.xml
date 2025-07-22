@@ -716,7 +716,7 @@
     <string name="menu_in_app_database">Вбудована база даних</string>
     <string name="database_statistics">Статистика бази даних</string>
     <string name="search_records">Пошук записів</string>
-    <string name="filter_name">Ім'я</string>
+    <string name="filter_name">Ім\'я</string>
     <string name="filter_mac">MAC</string>
     <string name="filter_password">Пароль</string>
     <string name="filter_wps">WPS</string>
