@@ -221,8 +221,9 @@ class WiFiMapFragment : Fragment() {
         }
 
         viewModel.availableDatabases.observe(viewLifecycleOwner) { databases ->
+            val filteredDatabases = databases.filter { it.dbType != DbType.WIFI_API }
             databaseAdapter = MapDatabaseAdapter(
-                databases,
+                filteredDatabases,
                 selectedDatabases,
                 {
                     viewModel.clearCache()
