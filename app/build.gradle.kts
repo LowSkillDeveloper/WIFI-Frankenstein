@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.glide)
     implementation(libs.commons.compress)
     implementation(libs.xz)
+    implementation(libs.flexbox)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

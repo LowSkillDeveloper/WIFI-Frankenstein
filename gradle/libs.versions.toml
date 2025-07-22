@@ -27,6 +27,7 @@ kotlinxSerializationProtobuf = "1.9.0"
 glide = "5.0.0-rc01"
 commonsCompress = "1.27.1"
 xz = "1.10"
+flexbox = "3.0.0"
 #protobufKotlin = "4.30.0"
 
 
@@ -58,6 +59,7 @@ kotlinx-serialization-protobuf = { group = "org.jetbrains.kotlinx", name = "kotl
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
 xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
+flexbox = { group = "com.google.android.flexbox", name = "flexbox", version.ref = "flexbox" }
 #protobuf-kotlin = { group = "com.google.protobuf", name = "protobuf-kotlin", version.ref = "protobufKotlin" }
 
 [plugins]

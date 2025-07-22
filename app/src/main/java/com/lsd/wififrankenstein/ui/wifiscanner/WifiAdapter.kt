@@ -113,9 +113,9 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
         }
 
         fun bind(scanResult: ScanResult) {
-            binding.apply {
-                val networkDetails = NetworkDetailsExtractor.extractDetails(scanResult)
+            val networkDetails = NetworkDetailsExtractor.extractDetails(scanResult)
 
+            binding.apply {
                 ssidTextView.text = scanResult.SSID
                 bssidTextView.text = scanResult.BSSID
                 levelTextView.text = "${scanResult.level} dBm"
@@ -125,103 +125,73 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
 
                 securityIcon.setImageResource(networkDetails.security.mainProtocol.iconRes)
 
-                binding.channelInfo.text = itemView.context.getString(R.string.channel_format, networkDetails.channel)
-                binding.frequencyInfo.text = itemView.context.getString(networkDetails.frequencyBand.displayNameRes)
-                binding.bandwidthInfo.text = itemView.context.getString(networkDetails.bandwidth.displayNameRes)
+                val capabilities = networkDetails.advancedCapabilities
+                untrustedChip.visibility = if (capabilities.isUntrusted) View.VISIBLE else View.GONE
+
+                channelInfo.text = itemView.context.getString(R.string.channel_format, networkDetails.channel)
+                frequencyInfo.text = itemView.context.getString(networkDetails.frequencyBand.displayNameRes)
+                bandwidthInfo.text = itemView.context.getString(networkDetails.bandwidth.displayNameRes)
 
                 if (networkDetails.protocol != NetworkProtocol.UNKNOWN) {
-                    binding.protocolInfo.visibility = View.VISIBLE
-                    binding.protocolInfo.text = itemView.context.getString(networkDetails.protocol.shortNameRes)
+                    protocolInfo.visibility = View.VISIBLE
+                    protocolInfo.text = itemView.context.getString(networkDetails.protocol.shortNameRes)
+                    protocolFullInfo.visibility = View.VISIBLE
+                    protocolFullInfo.text = itemView.context.getString(networkDetails.protocol.fullNameRes)
                 } else {
-                    binding.protocolInfo.visibility = View.GONE
+                    protocolInfo.visibility = View.GONE
+                    protocolFullInfo.visibility = View.GONE
                 }
 
-                binding.securityInfo.text = networkDetails.security.getSecurityString()
+                rttInfo.visibility = if (capabilities.supportsRtt) View.VISIBLE else View.GONE
+                if (capabilities.supportsRtt) {
+                    rttInfo.text = itemView.context.getString(R.string.wifi_rtt_responder)
+                }
+
+                ntbInfo.visibility = if (capabilities.supportsNtb) View.VISIBLE else View.GONE
+                if (capabilities.supportsNtb) {
+                    ntbInfo.text = itemView.context.getString(R.string.wifi_ntb_responder)
+                }
+
+                securityInfo.text = networkDetails.security.getSecurityString()
 
                 val securityTypesText = networkDetails.security.getSecurityTypesString(itemView.context)
                 if (securityTypesText.isNotBlank() && securityTypesText != itemView.context.getString(R.string.security_type_unknown)) {
-                    binding.securityTypesInfo.visibility = View.VISIBLE
-                    binding.securityTypesInfo.text = securityTypesText
+                    securityTypesInfo.visibility = View.VISIBLE
+                    securityTypesInfo.text = securityTypesText
                 } else {
-                    binding.securityTypesInfo.visibility = View.GONE
+                    securityTypesInfo.visibility = View.GONE
                 }
 
                 if (networkDetails.security.hasWps) {
-                    binding.wpsInfo.visibility = View.VISIBLE
-                    binding.wpsInfo.text = "WPS"
+                    wpsInfo.visibility = View.VISIBLE
+                    wpsInfo.text = "WPS"
                 } else {
-                    binding.wpsInfo.visibility = View.GONE
+                    wpsInfo.visibility = View.GONE
                 }
 
                 if (networkDetails.security.isAdHoc) {
-                    binding.adhocInfo.visibility = View.VISIBLE
-                    binding.adhocInfo.text = "Ad-hoc"
+                    adhocInfo.visibility = View.VISIBLE
+                    adhocInfo.text = "Ad-hoc"
                 } else {
-                    binding.adhocInfo.visibility = View.GONE
+                    adhocInfo.visibility = View.GONE
                 }
 
                 val fastRoamingText = networkDetails.security.getFastRoamingString(itemView.context)
-                val hasProtocolFull = networkDetails.protocol != NetworkProtocol.UNKNOWN
-                val shouldShowThirdRow = fastRoamingText.isNotBlank() || hasProtocolFull
-
-                if (shouldShowThirdRow) {
-                    binding.thirdInfoRow.visibility = View.VISIBLE
-
-                    if (fastRoamingText.isNotBlank()) {
-                        binding.fastRoamingInfo.visibility = View.VISIBLE
-                        binding.fastRoamingInfo.text = fastRoamingText
-                    } else {
-                        binding.fastRoamingInfo.visibility = View.GONE
-                    }
-
-                    if (hasProtocolFull) {
-                        binding.protocolFullInfo.visibility = View.VISIBLE
-                        binding.protocolFullInfo.text = itemView.context.getString(networkDetails.protocol.fullNameRes)
-                    } else {
-                        binding.protocolFullInfo.visibility = View.GONE
-                    }
+                if (fastRoamingText.isNotBlank()) {
+                    fastRoamingInfo.visibility = View.VISIBLE
+                    fastRoamingInfo.text = fastRoamingText
                 } else {
-                    binding.thirdInfoRow.visibility = View.GONE
+                    fastRoamingInfo.visibility = View.GONE
                 }
 
-                val capabilities = networkDetails.advancedCapabilities
-                val hasRtt = capabilities.supportsRtt
-                val hasNtb = capabilities.supportsNtb
-                val hasTwt = capabilities.supportsTwt
-                val isUntrusted = capabilities.isUntrusted
-                val hasMld = capabilities.supportsMld
+                twtInfo.visibility = if (capabilities.supportsTwt) View.VISIBLE else View.GONE
+                if (capabilities.supportsTwt) {
+                    twtInfo.text = itemView.context.getString(R.string.wifi_twt_responder)
+                }
 
-                val hasFourthRowFeatures = hasRtt || hasNtb || hasTwt || isUntrusted || hasMld
-
-                if (hasFourthRowFeatures) {
-                    binding.fourthInfoRow.visibility = View.VISIBLE
-
-                    binding.rttInfo.visibility = if (hasRtt) View.VISIBLE else View.GONE
-                    if (hasRtt) {
-                        binding.rttInfo.text = itemView.context.getString(R.string.wifi_rtt_responder)
-                    }
-
-                    binding.ntbInfo.visibility = if (hasNtb) View.VISIBLE else View.GONE
-                    if (hasNtb) {
-                        binding.ntbInfo.text = itemView.context.getString(R.string.wifi_ntb_responder)
-                    }
-
-                    binding.twtInfo.visibility = if (hasTwt) View.VISIBLE else View.GONE
-                    if (hasTwt) {
-                        binding.twtInfo.text = itemView.context.getString(R.string.wifi_twt_responder)
-                    }
-
-                    binding.untrustedInfo.visibility = if (isUntrusted) View.VISIBLE else View.GONE
-                    if (isUntrusted) {
-                        binding.untrustedInfo.text = itemView.context.getString(R.string.wifi_untrusted)
-                    }
-
-                    binding.mldInfo.visibility = if (hasMld) View.VISIBLE else View.GONE
-                    if (hasMld) {
-                        binding.mldInfo.text = itemView.context.getString(R.string.wifi_mld_support)
-                    }
-                } else {
-                    binding.fourthInfoRow.visibility = View.GONE
+                mldInfo.visibility = if (capabilities.supportsMld) View.VISIBLE else View.GONE
+                if (capabilities.supportsMld) {
+                    mldInfo.text = itemView.context.getString(R.string.wifi_mld_support)
                 }
 
                 val networkResults = databaseResults[scanResult.BSSID.lowercase(Locale.ROOT)]
