@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.wifiscanner
 
 import android.Manifest
+import android.R.attr.entries
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -32,7 +33,13 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.ItemCredentialBinding
 import com.lsd.wififrankenstein.databinding.ItemWifiBinding
 import java.util.Locale
-
+import com.lsd.wififrankenstein.util.NetworkDetailsExtractor
+import com.lsd.wififrankenstein.util.NetworkProtocol
+import com.lsd.wififrankenstein.util.calculateDistanceString
+import com.lsd.wififrankenstein.util.NetworkSecurityInfo
+import com.lsd.wififrankenstein.util.NetworkFrequencyBand
+import com.lsd.wififrankenstein.util.NetworkBandwidth
+import com.lsd.wififrankenstein.util.SecurityProtocol
 
 class WifiAdapter(private var wifiList: List<ScanResult>) :
     RecyclerView.Adapter<WifiAdapter.WifiViewHolder>() {
@@ -77,6 +84,15 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
         private var showAllCredentials = false
         private var fullResultsList: List<NetworkDatabaseResult> = emptyList()
 
+        private val securityIcon = binding.securityIcon
+        private val distanceTextView = binding.distanceTextView
+        private val channelChip = binding.channelChip
+        private val frequencyChip = binding.frequencyChip
+        private val bandwidthChip = binding.bandwidthChip
+        private val protocolChip = binding.protocolChip
+        private val securityChip = binding.securityChip
+        private val wpsChip = binding.wpsChip
+
         init {
             itemView.setOnClickListener { view ->
                 val position = adapterPosition
@@ -104,19 +120,49 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
 
         fun bind(scanResult: ScanResult) {
             binding.apply {
+                val networkDetails = NetworkDetailsExtractor.extractDetails(scanResult)
+
                 ssidTextView.text = scanResult.SSID
                 bssidTextView.text = scanResult.BSSID
-                capabilitiesTextView.text = scanResult.capabilities
-                frequencyTextView.text = "${scanResult.frequency} MHz"
                 levelTextView.text = "${scanResult.level} dBm"
 
+                // Calculate and show distance
+                val distance = calculateDistanceString(scanResult.frequency, scanResult.level, 1.0)
+                distanceTextView.text = distance
+
+                // Set security icon
+                securityIcon.setImageResource(networkDetails.security.mainProtocol.iconRes)
+
+                // Setup chips
+                channelChip.text = itemView.context.getString(R.string.channel_format, networkDetails.channel)
+                frequencyChip.text = itemView.context.getString(networkDetails.frequencyBand.displayNameRes)
+                bandwidthChip.text = itemView.context.getString(networkDetails.bandwidth.displayNameRes)
+
+                // Protocol chip
+                if (networkDetails.protocol != NetworkProtocol.UNKNOWN) {
+                    protocolChip.visibility = View.VISIBLE
+                    protocolChip.text = itemView.context.getString(networkDetails.protocol.shortNameRes)
+                } else {
+                    protocolChip.visibility = View.GONE
+                }
+
+                // Security chip
+                securityChip.text = networkDetails.security.getSecurityString()
+
+                // WPS chip
+                if (networkDetails.security.hasWps) {
+                    wpsChip.visibility = View.VISIBLE
+                    wpsChip.text = "WPS"
+                } else {
+                    wpsChip.visibility = View.GONE
+                }
+
                 val networkResults = databaseResults[scanResult.BSSID.lowercase(Locale.ROOT)]
-                Log.d("WifiAdapter", "Binding ${scanResult.SSID} with ${networkResults?.size} database results")
 
                 if (!networkResults.isNullOrEmpty()) {
                     fullResultsList = networkResults
                     expandButton.visibility = View.VISIBLE
-                    expandButton.text = "Show database info"
+                    expandButton.text = itemView.context.getString(R.string.show_database_info)
                     startIcon.visibility = View.VISIBLE
                     endIcon.visibility = View.VISIBLE
 
@@ -485,6 +531,7 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
     }
 
     companion object {
+
         fun extractDatabaseName(path: String): String {
             return try {
                 when {

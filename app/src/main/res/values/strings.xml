@@ -749,9 +749,6 @@
     <string name="menu_wifi_analysis">WiFi Analysis</string>
     <string name="wifi_environment_analysis">WiFi Environment Analysis</string>
     <string name="channel_usage">Channel Usage</string>
-    <string name="frequency_band_2ghz">2.4 GHz</string>
-    <string name="frequency_band_5ghz">5 GHz</string>
-    <string name="frequency_band_6ghz">6 GHz</string>
     <string name="best_channels">Recommended Channels</string>
     <string name="least_congested">Least congested</string>
     <string name="no_interference">No interference</string>
@@ -780,5 +777,36 @@
     <string name="good_choice">Good choice</string>
     <string name="acceptable">Acceptable</string>
     <string name="channel_analysis_error">Channel analysis error</string>
+
+    <!-- Network Bandwidth -->
+    <string name="bandwidth_20mhz">20 MHz</string>
+    <string name="bandwidth_40mhz">40 MHz</string>
+    <string name="bandwidth_80mhz">80 MHz</string>
+    <string name="bandwidth_160mhz">160 MHz</string>
+    <string name="bandwidth_80mhz_plus">80+ MHz</string>
+
+    <!-- Network Protocol -->
+    <string name="protocol_unknown">Unknown</string>
+    <string name="protocol_unknown_short">?</string>
+    <string name="protocol_legacy">802.11a/b/g</string>
+    <string name="protocol_legacy_short">Legacy</string>
+    <string name="protocol_n">802.11n</string>
+    <string name="protocol_n_short">WiFi 4</string>
+    <string name="protocol_ac">802.11ac</string>
+    <string name="protocol_ac_short">WiFi 5</string>
+    <string name="protocol_ax">802.11ax</string>
+    <string name="protocol_ax_short">WiFi 6</string>
+    <string name="protocol_ad">802.11ad</string>
+    <string name="protocol_ad_short">WiGig</string>
+    <string name="protocol_be">802.11be</string>
+    <string name="protocol_be_short">WiFi 7</string>
+
+    <!-- Frequency Band -->
+    <string name="frequency_band_2ghz">2.4 GHz</string>
+    <string name="frequency_band_5ghz">5 GHz</string>
+    <string name="frequency_band_6ghz">6 GHz</string>
+
+    <!-- Format strings -->
+    <string name="channel_format">CH %d</string>
 
 </resources>

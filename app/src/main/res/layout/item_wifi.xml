@@ -1,57 +1,197 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="6dp"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?android:attr/selectableItemBackground"
     app:cardCornerRadius="16dp"
-    app:cardElevation="4dp">
+    app:cardElevation="2dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:padding="16dp">
 
-        <TextView
-            android:id="@+id/ssid_text_view"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceHeadline6" />
+        <ImageView
+            android:id="@+id/security_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_lock"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="?attr/colorPrimary" />
 
-        <TextView
-            android:id="@+id/bssid_text_view"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/ssid_container"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBody2" />
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toStartOf="@+id/signal_container"
+            app:layout_constraintStart_toEndOf="@+id/security_icon"
+            app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:id="@+id/capabilities_text_view"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBody2" />
+            <TextView
+                android:id="@+id/ssid_text_view"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="?attr/textAppearanceHeadline6"
+                android:textSize="18sp"
+                tools:text="MyWiFiNetwork" />
 
-        <TextView
-            android:id="@+id/frequency_text_view"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBody2" />
+            <TextView
+                android:id="@+id/bssid_text_view"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textColor="?android:attr/textColorSecondary"
+                tools:text="00:11:22:33:44:55" />
+        </LinearLayout>
 
-        <TextView
-            android:id="@+id/level_text_view"
+        <LinearLayout
+            android:id="@+id/signal_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBody2" />
+            android:gravity="center"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/level_text_view"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBody2"
+                android:textStyle="bold"
+                tools:text="-65 dBm" />
+
+            <TextView
+                android:id="@+id/distance_text_view"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textColor="?android:attr/textColorSecondary"
+                tools:text="~10m" />
+        </LinearLayout>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/network_info_chips"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:chipSpacing="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/ssid_container">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/channel_chip"
+                style="@style/Widget.MaterialComponents.Chip.Entry"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:checkable="false"
+                android:clickable="false"
+                android:textSize="12sp"
+                app:chipBackgroundColor="?attr/colorSurface"
+                app:chipCornerRadius="8dp"
+                app:chipMinHeight="32dp"
+                app:chipStrokeWidth="0dp"
+                app:closeIconVisible="false"
+                tools:text="CH 11" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/frequency_chip"
+                style="@style/Widget.MaterialComponents.Chip.Entry"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:checkable="false"
+                android:clickable="false"
+                android:textSize="12sp"
+                app:chipBackgroundColor="?attr/colorSurface"
+                app:chipCornerRadius="8dp"
+                app:chipMinHeight="32dp"
+                app:chipStrokeWidth="0dp"
+                app:closeIconVisible="false"
+                tools:text="2.4 GHz" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/bandwidth_chip"
+                style="@style/Widget.MaterialComponents.Chip.Entry"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:checkable="false"
+                android:clickable="false"
+                android:textSize="12sp"
+                app:chipBackgroundColor="?attr/colorSurface"
+                app:chipCornerRadius="8dp"
+                app:chipMinHeight="32dp"
+                app:chipStrokeWidth="0dp"
+                app:closeIconVisible="false"
+                tools:text="40 MHz" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/protocol_chip"
+                style="@style/Widget.MaterialComponents.Chip.Entry"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:checkable="false"
+                android:clickable="false"
+                android:textSize="12sp"
+                app:chipBackgroundColor="?attr/colorSurface"
+                app:chipCornerRadius="8dp"
+                app:chipMinHeight="32dp"
+                app:chipStrokeWidth="0dp"
+                app:closeIconVisible="false"
+                tools:text="WiFi 5" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/security_chip"
+                style="@style/Widget.MaterialComponents.Chip.Entry"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:checkable="false"
+                android:clickable="false"
+                android:textSize="12sp"
+                app:chipBackgroundColor="?attr/colorSurface"
+                app:chipCornerRadius="8dp"
+                app:chipMinHeight="32dp"
+                app:chipStrokeWidth="0dp"
+                app:closeIconVisible="false"
+                tools:text="WPA2" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/wps_chip"
+                style="@style/Widget.MaterialComponents.Chip.Entry"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:checkable="false"
+                android:clickable="false"
+                android:textSize="12sp"
+                android:visibility="gone"
+                app:chipBackgroundColor="?attr/colorSurface"
+                app:chipCornerRadius="8dp"
+                app:chipMinHeight="32dp"
+                app:chipStrokeWidth="0dp"
+                app:closeIconVisible="false"
+                tools:text="WPS"
+                tools:visibility="visible" />
+        </com.google.android.material.chip.ChipGroup>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            app:layout_constraintTop_toBottomOf="@+id/network_info_chips">
 
             <ImageView
                 android:id="@+id/start_icon"
@@ -68,7 +208,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/show_database_info"
-                android:textSize="16sp"
+                android:textSize="14sp"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp" />
 
@@ -79,7 +219,6 @@
                 android:src="@drawable/ic_expand_more"
                 android:visibility="gone"
                 app:tint="?attr/colorPrimary" />
-
         </LinearLayout>
 
         <TextView
@@ -88,19 +227,20 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textAlignment="center"
-            android:visibility="gone" />
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@+id/expand_button" />
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:maxHeight="300dp">
+            android:maxHeight="300dp"
+            app:layout_constraintTop_toBottomOf="@+id/records_count_text_view">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/credentials_recycler_view"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:visibility="gone" />
-
         </androidx.core.widget.NestedScrollView>
 
         <com.google.android.material.button.MaterialButton
@@ -111,7 +251,8 @@
             android:text="@string/show_all_credentials"
             android:visibility="gone"
             app:icon="@drawable/ic_expand_more"
-            app:iconGravity="textStart" />
+            app:iconGravity="textStart"
+            app:layout_constraintTop_toBottomOf="@+id/credentials_recycler_view" />
 
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>
