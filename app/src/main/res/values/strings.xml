@@ -772,7 +772,7 @@
     <string name="no_channel_overlap">No overlap</string>
     <string name="exclude_networks">Exclude network from stats</string>
     <string name="wifi_spectrum">WiFi Spectrum</string>
-    <string name="access_points_count">%d AP</string>
+    <string name="access_points_count">%d APs</string>
     <string name="no_wifi_data_available">No WiFi data available. Please scan for networks first.</string>
     <string name="channel_width_format">%d MHz</string>
     <string name="start_scan">Start Scan</string>
