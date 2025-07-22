@@ -40,10 +40,8 @@ class SettingsFragment : Fragment() {
     private lateinit var sliderClusterAggressiveness: Slider
     private lateinit var sliderMaxClusterSize: Slider
     private lateinit var sliderMarkerVisibilityZoom: Slider
-    private lateinit var sliderMaxPointsPerCluster: Slider
     private lateinit var textViewMaxClusterSizeValue: TextView
     private lateinit var textViewMarkerVisibilityZoomValue: TextView
-    private lateinit var textViewMaxPointsPerClusterValue: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -114,28 +112,16 @@ class SettingsFragment : Fragment() {
         sliderClusterAggressiveness = binding.sliderClusterAggressiveness
         sliderMaxClusterSize = binding.sliderMaxClusterSize
         sliderMarkerVisibilityZoom = binding.sliderMarkerVisibilityZoom
-        sliderMaxPointsPerCluster = binding.sliderMaxPointsPerCluster
 
         textViewMaxClusterSizeValue = binding.textViewMaxClusterSizeValue
         textViewMarkerVisibilityZoomValue = binding.textViewMarkerVisibilityZoomValue
-        textViewMaxPointsPerClusterValue = binding.textViewMaxPointsPerClusterValue
 
         sliderClusterAggressiveness.value = viewModel.getClusterAggressiveness()
         sliderMaxClusterSize.value = viewModel.getMaxClusterSize().toFloat()
         sliderMarkerVisibilityZoom.value = viewModel.getMarkerVisibilityZoom()
-        sliderMaxPointsPerCluster.value = viewModel.getMaxClusterSize().toFloat()
 
         textViewMaxClusterSizeValue.text = viewModel.getMaxClusterSize().toString()
         textViewMarkerVisibilityZoomValue.text = getString(R.string.zoom_level_value, viewModel.getMarkerVisibilityZoom().toInt())
-        textViewMaxPointsPerClusterValue.text = viewModel.getMaxClusterSize().toString()
-
-        val currentMaxClusterSize = viewModel.getMaxClusterSize()
-        val roundedValue = ((currentMaxClusterSize + 250) / 500) * 500
-        val finalValue = if (roundedValue < 1000) 1000 else if (roundedValue > 10000) 10000 else roundedValue
-
-        sliderMaxPointsPerCluster.value = finalValue.toFloat()
-        textViewMaxPointsPerClusterValue.text = finalValue.toString()
-
 
         sliderMarkerVisibilityZoom.valueFrom = 1f
         sliderMarkerVisibilityZoom.valueTo = 18f
@@ -166,14 +152,6 @@ class SettingsFragment : Fragment() {
             }
         }
 
-
-        sliderMaxPointsPerCluster.addOnChangeListener { _, value, fromUser ->
-            if (fromUser) {
-                val intValue = value.toInt()
-                viewModel.setMaxClusterSize(intValue)
-                textViewMaxPointsPerClusterValue.text = intValue.toString()
-            }
-        }
     }
 
 
@@ -538,15 +516,6 @@ class SettingsFragment : Fragment() {
         viewModel.clusterAggressiveness.observe(viewLifecycleOwner) { value ->
             if (::sliderClusterAggressiveness.isInitialized && sliderClusterAggressiveness.value != value) {
                 sliderClusterAggressiveness.value = value
-            }
-        }
-
-        viewModel.maxClusterSize.observe(viewLifecycleOwner) { value ->
-            if (::sliderMaxClusterSize.isInitialized && sliderMaxClusterSize.value != value.toFloat()) {
-                sliderMaxClusterSize.value = value.toFloat()
-                if (::textViewMaxClusterSizeValue.isInitialized) {
-                    textViewMaxClusterSizeValue.text = value.toString()
-                }
             }
         }
 
