@@ -153,6 +153,22 @@
                         android:text="@string/full_cleanup_on_network_update" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchPrioritizeNetworksWithData"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/prioritize_networks_with_data" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchAutoScrollToNetworksWithData"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginStart="32dp"
+                        android:text="@string/auto_scroll_to_networks_with_data"
+                        android:enabled="false" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/switchMergeResults"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

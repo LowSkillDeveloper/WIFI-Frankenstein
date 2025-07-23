@@ -58,6 +58,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _includeAppIdentifier = MutableLiveData<Boolean>()
     val includeAppIdentifier: LiveData<Boolean> = _includeAppIdentifier
 
+    private val _prioritizeNetworksWithData = MutableLiveData<Boolean>()
+    val prioritizeNetworksWithData: LiveData<Boolean> = _prioritizeNetworksWithData
 
     private val _maxPointsPerRequest = MutableLiveData<Int>()
     val maxPointsPerRequest: LiveData<Int> = _maxPointsPerRequest
@@ -100,6 +102,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _forcePointSeparation = MutableLiveData<Boolean>()
     val forcePointSeparation: LiveData<Boolean> = _forcePointSeparation
 
+    private val _autoScrollToNetworksWithData = MutableLiveData<Boolean>()
+    val autoScrollToNetworksWithData: LiveData<Boolean> = _autoScrollToNetworksWithData
+
     init {
         _currentTheme.value = prefs.getInt("night_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         _currentAppIcon.value = prefs.getString("app_icon", "default")
@@ -112,6 +117,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _dummyNetworkMode.value = prefs.getBoolean("dummy_network_mode", false)
         _mergeResults.value = prefs.getBoolean("merge_results", true)
         _usePostMethod.value = api3WiFiPrefs.getBoolean("usePostMethod", false)
+        _prioritizeNetworksWithData.value = prefs.getBoolean("prioritize_networks_with_data", true)
+        _autoScrollToNetworksWithData.value = prefs.getBoolean("auto_scroll_to_networks_with_data", true)
 
         _clusterAggressiveness.value = prefs.getFloat("map_cluster_aggressiveness", 0.4f)
         val savedValue = prefs.getInt("map_max_cluster_size", 5000)
@@ -131,6 +138,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _includeAppIdentifier.value = api3WiFiPrefs.getBoolean("includeAppIdentifier", true)
         _showWipFeatures.value = prefs.getBoolean("show_wip_features", false)
     }
+
+    fun setPrioritizeNetworksWithData(isPrioritized: Boolean) {
+        prefs.edit { putBoolean("prioritize_networks_with_data", isPrioritized) }
+        _prioritizeNetworksWithData.value = isPrioritized
+    }
+
+    fun setAutoScrollToNetworksWithData(isEnabled: Boolean) {
+        prefs.edit { putBoolean("auto_scroll_to_networks_with_data", isEnabled) }
+        _autoScrollToNetworksWithData.value = isEnabled
+    }
+
+    fun getAutoScrollToNetworksWithData() = _autoScrollToNetworksWithData.value != false
+
+    fun getPrioritizeNetworksWithData() = _prioritizeNetworksWithData.value != false
 
     fun getForcePointSeparation() = _forcePointSeparation.value != false
     fun setForcePointSeparation(value: Boolean) {

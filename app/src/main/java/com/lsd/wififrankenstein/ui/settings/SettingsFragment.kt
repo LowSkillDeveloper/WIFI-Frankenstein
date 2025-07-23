@@ -328,6 +328,23 @@ class SettingsFragment : Fragment() {
             viewModel.setFullCleanup(isChecked)
         }
 
+        binding.switchPrioritizeNetworksWithData.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setPrioritizeNetworksWithData(isChecked)
+        }
+
+        binding.switchAutoScrollToNetworksWithData.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setAutoScrollToNetworksWithData(isChecked)
+        }
+
+        binding.switchPrioritizeNetworksWithData.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setPrioritizeNetworksWithData(isChecked)
+            binding.switchAutoScrollToNetworksWithData.isEnabled = isChecked
+            if (!isChecked) {
+                binding.switchAutoScrollToNetworksWithData.isChecked = false
+                viewModel.setAutoScrollToNetworksWithData(false)
+            }
+        }
+
         binding.switchShowWipFeatures.setOnCheckedChangeListener { _, isChecked ->
             showWipFeaturesWarningDialog(isChecked)
         }
@@ -507,6 +524,22 @@ class SettingsFragment : Fragment() {
                 else -> R.id.radioButtonSystemTheme
             }
             binding.radioGroupTheme.check(radioButtonId)
+        }
+
+        viewModel.prioritizeNetworksWithData.observe(viewLifecycleOwner) { isPrioritized ->
+            binding.switchPrioritizeNetworksWithData.isChecked = isPrioritized
+        }
+
+        viewModel.autoScrollToNetworksWithData.observe(viewLifecycleOwner) { isEnabled ->
+            binding.switchAutoScrollToNetworksWithData.isChecked = isEnabled
+        }
+
+        viewModel.prioritizeNetworksWithData.observe(viewLifecycleOwner) { isPrioritized ->
+            binding.switchPrioritizeNetworksWithData.isChecked = isPrioritized
+            binding.switchAutoScrollToNetworksWithData.isEnabled = isPrioritized
+            if (!isPrioritized) {
+                binding.switchAutoScrollToNetworksWithData.isChecked = false
+            }
         }
 
         viewModel.forcePointSeparation.observe(viewLifecycleOwner) { value ->

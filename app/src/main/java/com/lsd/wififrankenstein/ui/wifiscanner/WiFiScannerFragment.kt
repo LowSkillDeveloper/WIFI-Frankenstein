@@ -157,7 +157,14 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun initUI() {
-        wifiAdapter = WifiAdapter(emptyList())
+        wifiAdapter = WifiAdapter(emptyList(), requireContext())
+
+        wifiAdapter.setOnScrollToTopListener {
+            binding.recyclerViewWifi.post {
+                binding.recyclerViewWifi.smoothScrollToPosition(0)
+            }
+        }
+
         binding.recyclerViewWifi.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = wifiAdapter
