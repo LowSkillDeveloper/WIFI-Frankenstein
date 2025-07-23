@@ -161,7 +161,9 @@ class WiFiScannerFragment : Fragment() {
 
         wifiAdapter.setOnScrollToTopListener {
             binding.recyclerViewWifi.post {
-                binding.recyclerViewWifi.smoothScrollToPosition(0)
+                binding.recyclerViewWifi.postDelayed({
+                    binding.recyclerViewWifi.scrollToPosition(0)
+                }, 300)
             }
         }
 
@@ -436,6 +438,7 @@ class WiFiScannerFragment : Fragment() {
                 requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             } else {
                 viewModel.clearResults()
+                wifiAdapter.clearDatabaseResults()
                 startWifiScanInternal()
                 hasScanned = true
             }
@@ -451,6 +454,7 @@ class WiFiScannerFragment : Fragment() {
                 )
             } else {
                 viewModel.clearResults()
+                wifiAdapter.clearDatabaseResults()
                 startWifiScanInternal()
                 hasScanned = true
             }
@@ -458,6 +462,7 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun startWifiScanInternal() {
+        wifiAdapter.clearDatabaseResults()
         val wifiManager = requireContext().applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             viewModel.startWifiScan()
@@ -470,6 +475,7 @@ class WiFiScannerFragment : Fragment() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         if (requestCode == REQUEST_LOCATION_PERMISSION) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                wifiAdapter.clearDatabaseResults()
                 startWifiScanInternal()
                 hasScanned = true
             } else {

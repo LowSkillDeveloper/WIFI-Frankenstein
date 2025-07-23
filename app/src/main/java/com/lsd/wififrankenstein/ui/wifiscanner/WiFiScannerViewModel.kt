@@ -80,6 +80,7 @@ class WiFiScannerViewModel(
     fun clearData() {
         _wifiList.postValue(emptyList())
         _databaseResults.postValue(emptyMap())
+        clearResults()
     }
 
     private fun isDuplicate(existingResults: Map<String, List<NetworkDatabaseResult>>, newResult: NetworkDatabaseResult): Boolean {
@@ -576,6 +577,7 @@ class WiFiScannerViewModel(
 
         return mergedResults
     }
+
 
     fun clearResults() {
         localResults.clear()

@@ -48,6 +48,9 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
     private var databaseResults: Map<String, List<NetworkDatabaseResult>> = emptyMap()
     private var onScrollToTopListener: (() -> Unit)? = null
 
+    private var isDatabaseResultsApplied = false
+    private var networksWithDatabaseData = mutableSetOf<String>()
+
     fun setOnScrollToTopListener(listener: () -> Unit) {
         this.onScrollToTopListener = listener
     }
@@ -68,6 +71,8 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
     override fun getItemCount() = wifiList.size
 
     fun updateData(newWifiList: List<ScanResult>) {
+        isDatabaseResultsApplied = false
+        networksWithDatabaseData.clear()
         val sortedNewWifiList = sortWifiList(newWifiList)
         val diffCallback = WifiDiffCallback(wifiList, sortedNewWifiList)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
@@ -83,7 +88,7 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
         val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
         val shouldPrioritize = prefs.getBoolean("prioritize_networks_with_data", true)
 
-        if (!shouldPrioritize) {
+        if (!shouldPrioritize || !isDatabaseResultsApplied || networksWithDatabaseData.isEmpty()) {
             return wifiList.sortedByDescending { it.level }
         }
 
@@ -92,7 +97,7 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
 
         wifiList.forEach { network ->
             val bssid = network.BSSID.lowercase(Locale.ROOT)
-            if (databaseResults.containsKey(bssid) && databaseResults[bssid]?.isNotEmpty() == true) {
+            if (networksWithDatabaseData.contains(bssid)) {
                 networksWithData.add(network)
             } else {
                 networksWithoutData.add(network)
@@ -102,25 +107,60 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
         val sortedNetworksWithData = networksWithData.sortedByDescending { it.level }
         val sortedNetworksWithoutData = networksWithoutData.sortedByDescending { it.level }
 
+        android.util.Log.d("WifiAdapter", "Networks with data: ${sortedNetworksWithData.size}, without data: ${sortedNetworksWithoutData.size}")
+        android.util.Log.d("WifiAdapter", "Networks with DB data BSSIDs: ${networksWithDatabaseData.joinToString()}")
+        sortedNetworksWithData.forEach { network ->
+            android.util.Log.d("WifiAdapter", "With data: ${network.SSID} (${network.BSSID}) - ${network.level} dBm")
+        }
+
         return sortedNetworksWithData + sortedNetworksWithoutData
     }
 
     fun updateDatabaseResults(results: Map<String, List<NetworkDatabaseResult>>) {
         databaseResults = results.mapKeys { (key, _) -> key.lowercase(Locale.ROOT) }
+
+        networksWithDatabaseData.clear()
+        results.forEach { (bssid, networkResults) ->
+            if (networkResults.isNotEmpty()) {
+                networksWithDatabaseData.add(bssid.lowercase(Locale.ROOT))
+            }
+        }
+
+        val hasNetworksWithData = networksWithDatabaseData.isNotEmpty()
+        if (hasNetworksWithData) {
+            isDatabaseResultsApplied = true
+        }
+
         val sortedList = sortWifiList(wifiList)
-        val diffCallback = WifiDiffCallback(wifiList, sortedList)
-        val diffResult = DiffUtil.calculateDiff(diffCallback)
-        wifiList = sortedList
-        diffResult.dispatchUpdatesTo(this)
 
         val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
         val shouldPrioritize = prefs.getBoolean("prioritize_networks_with_data", true)
         val shouldAutoScroll = prefs.getBoolean("auto_scroll_to_networks_with_data", true)
-        val hasNetworksWithData = results.values.any { it.isNotEmpty() }
 
-        if (shouldPrioritize && shouldAutoScroll && hasNetworksWithData) {
-            onScrollToTopListener?.invoke()
+        if (shouldPrioritize && hasNetworksWithData) {
+            wifiList = sortedList
+            notifyDataSetChanged()
+
+            if (shouldAutoScroll) {
+                onScrollToTopListener?.invoke()
+            }
+        } else {
+            val diffCallback = WifiDiffCallback(wifiList, sortedList)
+            val diffResult = DiffUtil.calculateDiff(diffCallback)
+            wifiList = sortedList
+            diffResult.dispatchUpdatesTo(this)
         }
+    }
+
+    fun clearDatabaseResults() {
+        databaseResults = emptyMap()
+        isDatabaseResultsApplied = false
+        networksWithDatabaseData.clear()
+        val sortedList = wifiList.sortedByDescending { it.level }
+        val diffCallback = WifiDiffCallback(wifiList, sortedList)
+        val diffResult = DiffUtil.calculateDiff(diffCallback)
+        wifiList = sortedList
+        diffResult.dispatchUpdatesTo(this)
     }
 
     fun getWifiList() = wifiList
