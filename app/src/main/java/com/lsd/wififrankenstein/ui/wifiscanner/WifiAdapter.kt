@@ -156,11 +156,7 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
         databaseResults = emptyMap()
         isDatabaseResultsApplied = false
         networksWithDatabaseData.clear()
-        val sortedList = wifiList.sortedByDescending { it.level }
-        val diffCallback = WifiDiffCallback(wifiList, sortedList)
-        val diffResult = DiffUtil.calculateDiff(diffCallback)
-        wifiList = sortedList
-        diffResult.dispatchUpdatesTo(this)
+        notifyDataSetChanged()
     }
 
     fun getWifiList() = wifiList
