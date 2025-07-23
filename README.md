@@ -1,8 +1,8 @@
 # WiFi Frankenstein
 
-![App Version](https://img.shields.io/badge/app_version-1.0-blue)
+![App Version](https://img.shields.io/badge/app_version-1.1-blue)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
-![Kotlin](https://img.shields.io/badge/kotlin-2.2.0_RC-purple)
+![Kotlin](https://img.shields.io/badge/kotlin-2.2.10_RC-purple)
 
 
 
@@ -38,7 +38,9 @@ The application combines various WiFi tools and functionality into one powerful 
 - **Multiple bases**: Possibility to display wifi points from several different databases on the map at once.
 
 ### 🛠️ Tools & Features
+- **WiFi Channel Analysis**: Page for analyzing WiFi channels, providing insights into channel usage and performance.
 - **MAC Address Locating**: Find the geographical location of WiFi access points by MAC address
+- **More detailed information**: detection of WiFi network technologies, including RTT, NTB, TWT, and MLD
 - **WPS Pin Generator**: Local pin code generation
 - **WPS Connect**: Possibility to connect via WPS 
 - **3WiFi API Integration**: Advanced settings and direct API requests
@@ -64,8 +66,10 @@ The application combines various WiFi tools and functionality into one powerful 
 
 | Feature | WiFi Frankenstein | 3WiFi Locator |
 |---------|-------------------|---------------|
-| Local in-app Database | ⚠️ Limited | ⚠️ Limited |
+| Local in-app Database | ✅ Supported | ⚠️ Limited |
 | Local Full 3WiFi Database | ✅ Supported | ❌ Not supported |
+| WiFi Channel Analysis | ✅ Supported | ❌ Not supported |
+| Additional information about WiFi | ✅ Yes | ⚠️ Only security protocol |
 | Custom SQLite Databases | ✅ Supported | ❌ Not supported |
 | Offline WiFi Maps | ⚠️ Only DB data | ❌ Not supported |
 | WiFi Location by MAC | ✅ Yes | ❌ Not supported |
@@ -79,7 +83,7 @@ The application combines various WiFi tools and functionality into one powerful 
 | SDK version | ✅ Latest | ⚠️Old |
 
 
-## 📱 Screenshots
+## 📱 Screenshots (Old version)
 
 <div align="center">
   <img src="https://github.com/user-attachments/assets/18ded2df-5a06-4be7-ac22-0e70484c5b4d" width="250" alt="Screenshot 1" />
@@ -109,7 +113,7 @@ The application combines various WiFi tools and functionality into one powerful 
 ## 🔐 Permissions
 
 The application requires the following permissions:
-- Location access (for mapping and distance calculation)
+- Location access (for mapping and for wifi scanning to work, Android SDK requirement)
 - Storage access (for database management)
 - Network access (for updates and online features)
 
