@@ -41,7 +41,6 @@ class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiff
         fun bind(pin: WPSPin) {
             Log.d("PinViewHolder", "Binding pin: ${pin.pin}, name: ${pin.name}, sugg: ${pin.sugg}, score: ${pin.score}")
             textPin.text = pin.pin
-            textAlgo.text = pin.name
 
             if (pin.isFrom3WiFi) {
                 textScore.visibility = View.VISIBLE
@@ -72,6 +71,12 @@ class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiff
             textScore.setTextColor(secondaryTextColor)
             textDb.setTextColor(secondaryTextColor)
             textAdditionalData.setTextColor(secondaryTextColor)
+
+            if (pin.isExperimental && !pin.sugg) {
+                textAlgo.text = "${pin.name} [EXP]"
+            } else {
+                textAlgo.text = pin.name
+            }
 
             itemView.setOnClickListener { view ->
                 showPopupMenu(view, pin)

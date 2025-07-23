@@ -635,7 +635,7 @@
     <string name="wifi_suggestion_added">Мережу запропоновано системі</string>
     <string name="wifi_suggestion_failed">Не вдалося запропонувати мережу системі</string>
     <string name="password">Пароль</string>
-    <string name="offline_algorithms_notice">На даний момент у розділі оффлайн генератора додаток тільки генерує пін коди, але не визначає можливий, це буде реалізовано в наступних оновленнях.</string>
+    <string name="offline_algorithms_notice">Це застаріла версія генератора. Вона лише створює PIN-коди, але не може визначити, чи працює згенерований код. Щоб підібрати потенційно робочий PIN-код, скористайтеся новою версією генератора.</string>
 
     <!-- About Page -->
     <string name="about_title">Про програму</string>

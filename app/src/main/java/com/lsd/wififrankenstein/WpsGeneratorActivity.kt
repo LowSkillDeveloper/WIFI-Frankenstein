@@ -29,6 +29,7 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
+import com.lsd.wififrankenstein.util.WpsPinGenerator
 
 data class WPSPin(
     var mode: Int,
@@ -37,7 +38,8 @@ data class WPSPin(
     var sugg: Boolean = false,
     var score: Double = 0.0,
     var additionalData: Map<String, Any?> = emptyMap(),
-    var isFrom3WiFi: Boolean = false
+    var isFrom3WiFi: Boolean = false,
+    var isExperimental: Boolean = false
 )
 
 data class Algo(val mode: Int, val name: String)
@@ -54,6 +56,8 @@ class WpsGeneratorActivity : AppCompatActivity() {
 
     private var currentServerIndex = 0
     private var serverResults = mutableMapOf<String, List<WPSPin>>()
+
+    private lateinit var wpsPinGenerator: WpsPinGenerator
 
     private fun applyCurrentTheme() {
         val prefs = getSharedPreferences("settings", MODE_PRIVATE)
@@ -100,6 +104,7 @@ class WpsGeneratorActivity : AppCompatActivity() {
         setupServerNavigation()
         setupButtons()
         setupWebView()
+        wpsPinGenerator = WpsPinGenerator()
     }
 
     private fun setupRecyclerView() {
@@ -133,6 +138,12 @@ class WpsGeneratorActivity : AppCompatActivity() {
                 clearPreviousList()
                 getPinsFromAllServers(bssid, usePostMethod)
             }
+        }
+
+        contentBinding.buttonNewGenerator.setOnClickListener {
+            Log.d("WpsGeneratorActivity", "New generator button clicked")
+            clearPreviousList()
+            generatePinsUsingNewGenerator()
         }
 
         contentBinding.buttonOfflineAlgorithms.setOnClickListener {
@@ -282,6 +293,60 @@ class WpsGeneratorActivity : AppCompatActivity() {
 
         Log.d("WpsGeneratorActivity", "Generating pins using offline algorithms")
         contentBinding.webView.loadUrl("javascript:initAlgos();window.JavaHandler.initAlgos(JSON.stringify(algos), '$bssid');")
+    }
+
+    private fun generatePinsUsingNewGenerator() {
+        contentBinding.offlineNoticeCard.visibility = View.GONE
+
+        Log.d("WpsGeneratorActivity", "Generating pins using new generator for BSSID: $bssid")
+
+        val suggestedPins = wpsPinGenerator.generateSuggestedPins(bssid, includeExperimental = true)
+        val allPins = wpsPinGenerator.generateAllPins(bssid, includeExperimental = true)
+
+        val wpsPins = mutableListOf<WPSPin>()
+
+        suggestedPins.forEach { pinResult ->
+            wpsPins.add(WPSPin(
+                mode = 0,
+                name = pinResult.algorithm,
+                pin = pinResult.pin,
+                sugg = true,
+                score = if (pinResult.isSuggested) 1.0 else 0.0,
+                additionalData = mapOf("mode" to pinResult.mode),
+                isFrom3WiFi = false,
+                isExperimental = pinResult.isExperimental
+            ))
+        }
+
+        val nonSuggestedPins = allPins.filter { allPin ->
+            suggestedPins.none { suggestedPin ->
+                suggestedPin.pin == allPin.pin && suggestedPin.algorithm == allPin.algorithm
+            }
+        }
+
+        nonSuggestedPins.forEach { pinResult ->
+            wpsPins.add(WPSPin(
+                mode = 0,
+                name = pinResult.algorithm,
+                pin = pinResult.pin,
+                sugg = false,
+                score = 0.0,
+                additionalData = mapOf("mode" to pinResult.mode),
+                isFrom3WiFi = false,
+                isExperimental = pinResult.isExperimental
+            ))
+        }
+
+        val sortedPins = wpsPins.sortedWith(compareByDescending<WPSPin> { it.sugg }.thenBy { it.isExperimental })
+
+        pinListAdapter.submitList(sortedPins)
+        contentBinding.recyclerViewPins.isEnabled = sortedPins.isNotEmpty()
+
+        if (sortedPins.isEmpty()) {
+            updateMessage(getString(R.string.no_pins_found))
+        } else {
+            updateMessage("")
+        }
     }
 
     private suspend fun getPinsFromAllServers(bssid: String, usePostMethod: Boolean) {

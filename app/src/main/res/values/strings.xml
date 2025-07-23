@@ -633,7 +633,7 @@
     <string name="wifi_suggestion_added">Network suggested to system</string>
     <string name="wifi_suggestion_failed">Failed to suggest network to system</string>
     <string name="password">Password</string>
-    <string name="offline_algorithms_notice">At the moment, in the offline generator section, the application only generates pin codes, but does not determine the possible one, this will be implemented in the next updates.</string>
+    <string name="offline_algorithms_notice">This is an outdated version of the generator. It only creates PIN codes but cannot determine whether a generated code works. To find a potentially working PIN code, please use the new version of the generator.</string>
 
     <!-- About Page -->
     <string name="about_title">About the application</string>
@@ -831,6 +831,8 @@
     <string name="wifi_twt_responder">TWT</string>
     <string name="wifi_untrusted">Untrusted</string>
     <string name="wifi_mld_support">MLD</string>
+
+    <string name="new_generator">New Offline Generator</string>
 
 
 </resources>

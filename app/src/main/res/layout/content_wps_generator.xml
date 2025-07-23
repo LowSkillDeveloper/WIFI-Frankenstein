@@ -130,6 +130,15 @@
                 android:text="@string/offline_algorithms" />
 
             <Button
+                android:id="@+id/button_new_generator"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:text="@string/new_generator" />
+
+            <Button
                 android:id="@+id/button_method3"
                 style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="0dp"
