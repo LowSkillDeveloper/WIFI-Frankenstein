@@ -4,9 +4,9 @@
     android:id="@+id/card_view"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="6dp"
+    android:layout_margin="4dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
     android:clickable="true"
     android:focusable="true"
     app:cardBackgroundColor="?attr/colorSurface"
@@ -18,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp"
+        android:padding="12dp"
         android:gravity="center_horizontal">
 
         <TextView
@@ -28,37 +28,45 @@
             android:layout_height="wrap_content"
             android:textColor="?attr/colorOnSurface"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:textSize="18sp"
+            android:layout_marginBottom="4dp" />
 
         <TextView
             android:id="@+id/text_algo"
-            style="@style/TextAppearance.MaterialComponents.Body1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="?attr/colorOnSurface"
-            android:layout_marginBottom="4dp" />
-
-        <TextView
-            android:id="@+id/text_score"
             style="@style/TextAppearance.MaterialComponents.Body2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="?attr/colorOnSurface"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="2dp" />
 
-        <TextView
-            android:id="@+id/text_db"
-            style="@style/TextAppearance.MaterialComponents.Body2"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="?attr/colorOnSurface"
-            android:layout_marginBottom="8dp" />
+            android:orientation="horizontal"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/text_score"
+                style="@style/TextAppearance.MaterialComponents.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/text_db"
+                style="@style/TextAppearance.MaterialComponents.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface" />
+
+        </LinearLayout>
 
         <View
             android:layout_width="match_parent"
-            android:layout_height="1dp"
+            android:layout_height="0.5dp"
             android:background="@android:color/darker_gray"
-            android:layout_marginVertical="8dp" />
+            android:layout_marginVertical="4dp" />
 
         <TextView
             android:id="@+id/text_additional_data"
@@ -67,7 +75,8 @@
             android:layout_height="wrap_content"
             android:textColor="?attr/colorOnSurface"
             android:gravity="center"
-            android:maxLines="2"
-            android:ellipsize="end" />
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textSize="11sp" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
