@@ -345,7 +345,12 @@ class WpsGeneratorActivity : AppCompatActivity() {
         if (sortedPins.isEmpty()) {
             updateMessage(getString(R.string.no_pins_found))
         } else {
-            updateMessage("")
+            val suggestedCount = suggestedPins.size
+            if (suggestedCount > 0) {
+                updateMessage(getString(R.string.pins_generated_with_suggested, suggestedCount))
+            } else {
+                updateMessage(getString(R.string.pins_generated))
+            }
         }
     }
 

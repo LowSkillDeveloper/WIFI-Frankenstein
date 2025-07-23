@@ -481,7 +481,7 @@ class WpsPinGenerator {
     private fun initExperimentalAlgos() {
         algorithms.add(WpsAlgorithm(
             id = "pinNetgearSN",
-            name = "Netgear SN-based [EXP]",
+            name = "Netgear SN-based [EXPERIMENTAL]",
             mode = ALGO_MACSN,
             func = { _, ser ->
                 val serial = ser?.replace(Regex("\\D"), "") ?: ""
@@ -496,7 +496,7 @@ class WpsPinGenerator {
 
         algorithms.add(WpsAlgorithm(
             id = "pinArris",
-            name = "Arris OUI XOR [EXP]",
+            name = "Arris OUI XOR [EXPERIMENTAL]",
             mode = ALGO_MAC,
             func = { mac, _ ->
                 val oui = (mac ushr 24) and 0xFFFFFFL
@@ -509,7 +509,7 @@ class WpsPinGenerator {
 
         algorithms.add(WpsAlgorithm(
             id = "pinTPLinkXOR",
-            name = "TP-Link XOR [EXP]",
+            name = "TP-Link XOR [EXPERIMENTAL]",
             mode = ALGO_MAC,
             func = { mac, _ ->
                 val m = mac and 0xFFFFFFL
@@ -522,7 +522,7 @@ class WpsPinGenerator {
 
         algorithms.add(WpsAlgorithm(
             id = "pinZyXELRev",
-            name = "ZyXEL nibble-rev [EXP]",
+            name = "ZyXEL nibble-rev [EXPERIMENTAL]",
             mode = ALGO_MAC,
             func = { mac, _ ->
                 val hex = zeroFill(mac.toString(16), 12)
@@ -539,27 +539,27 @@ class WpsPinGenerator {
     }
 
     private fun addExperimentalStaticPins() {
-        algorithms.add(WpsAlgorithm("pinLinksysStatic", "Linksys Static [EXP]", ALGO_STATIC, { _, _ -> 12345678 },
+        algorithms.add(WpsAlgorithm("pinLinksysStatic", "Linksys Static [EXPERIMENTAL]", ALGO_STATIC, { _, _ -> 12345678 },
             prefixes = listOf("00:0F:66", "00:14:BF", "00:18:F8", "00:1A:70"),
             description = "[EXPERIMENTAL] Pin = 12345678", isExperimental = true))
 
-        algorithms.add(WpsAlgorithm("pinTrendnetStatic", "Trendnet Static [EXP]", ALGO_STATIC, { _, _ -> 12345670 },
+        algorithms.add(WpsAlgorithm("pinTrendnetStatic", "Trendnet Static [EXPERIMENTAL]", ALGO_STATIC, { _, _ -> 12345670 },
             prefixes = listOf("00:14:D1", "D8:EB:97"),
             description = "[EXPERIMENTAL] Pin = 12345670", isExperimental = true))
 
-        algorithms.add(WpsAlgorithm("pinTendaStatic", "Tenda Static [EXP]", ALGO_STATIC, { _, _ -> 88888888 },
+        algorithms.add(WpsAlgorithm("pinTendaStatic", "Tenda Static [EXPERIMENTAL]", ALGO_STATIC, { _, _ -> 88888888 },
             prefixes = listOf("C8:3A:35", "00:1C:1B"),
             description = "[EXPERIMENTAL] Pin = 88888888", isExperimental = true))
 
-        algorithms.add(WpsAlgorithm("pinActiontecStatic", "Actiontec Static [EXP]", ALGO_STATIC, { _, _ -> 25802711 },
+        algorithms.add(WpsAlgorithm("pinActiontecStatic", "Actiontec Static [EXPERIMENTAL]", ALGO_STATIC, { _, _ -> 25802711 },
             prefixes = listOf("00:1D:1A", "00:18:39"),
             description = "[EXPERIMENTAL] Pin = 25802711", isExperimental = true))
 
-        algorithms.add(WpsAlgorithm("pinTest1", "Test PIN 1 [EXP]", ALGO_STATIC, { _, _ -> 12121212 },
+        algorithms.add(WpsAlgorithm("pinTest1", "Test PIN 1 [FAKE]", ALGO_STATIC, { _, _ -> 12121212 },
             prefixes = listOf(),
             description = "[EXPERIMENTAL] Test Pin = 12121212", isExperimental = true))
 
-        algorithms.add(WpsAlgorithm("pinTest2", "Test PIN 2 [EXP]", ALGO_STATIC, { _, _ -> 98989898 },
+        algorithms.add(WpsAlgorithm("pinTest2", "Test PIN 2 [FAKE]", ALGO_STATIC, { _, _ -> 98989898 },
             prefixes = listOf(),
             description = "[EXPERIMENTAL] Test Pin = 98989898", isExperimental = true))
     }

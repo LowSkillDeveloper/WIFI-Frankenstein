@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">WIFI Frankenstein</string>
 
     <string name="include_app_identifier">Включить идентификатор приложения</string>
     <string name="app_identifier_description">Отправлять идентификатор приложения с запросами</string>
@@ -739,6 +738,9 @@
     <string name="delete_record_confirmation">Вы уверены, что хотите удалить эту запись?</string>
     <string name="database_replaced_imported">База данных заменена\nИмпортировано: %d записей</string>
     <string name="import_completed_added">Импорт завершен\nДобавлено: %d записей</string>
+
+    <string name="pins_generated">Пин коды сгенерированы</string>
+    <string name="pins_generated_with_suggested">Пин коды сгенерированы:\n%d подходящих</string>
 
 
 </resources>

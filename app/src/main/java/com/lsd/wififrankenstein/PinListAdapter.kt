@@ -66,14 +66,23 @@ class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiff
             context.theme.resolveAttribute(android.R.attr.textColorSecondary, typedValue, true)
             val secondaryTextColor = ContextCompat.getColor(context, typedValue.resourceId)
 
-            textPin.setTextColor(primaryTextColor)
-            textAlgo.setTextColor(secondaryTextColor)
-            textScore.setTextColor(secondaryTextColor)
-            textDb.setTextColor(secondaryTextColor)
-            textAdditionalData.setTextColor(secondaryTextColor)
+            if (pin.sugg) {
+                val suggestedColor = ContextCompat.getColor(context, android.R.color.holo_green_dark)
+                textPin.setTextColor(suggestedColor)
+                textAlgo.setTextColor(suggestedColor)
+                textScore.setTextColor(suggestedColor)
+                textDb.setTextColor(suggestedColor)
+                textAdditionalData.setTextColor(suggestedColor)
+            } else {
+                textPin.setTextColor(primaryTextColor)
+                textAlgo.setTextColor(secondaryTextColor)
+                textScore.setTextColor(secondaryTextColor)
+                textDb.setTextColor(secondaryTextColor)
+                textAdditionalData.setTextColor(secondaryTextColor)
+            }
 
             if (pin.isExperimental && !pin.sugg) {
-                textAlgo.text = "${pin.name} [EXP]"
+                textAlgo.text = "${pin.name}"
             } else {
                 textAlgo.text = pin.name
             }

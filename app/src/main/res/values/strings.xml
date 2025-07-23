@@ -833,6 +833,8 @@
     <string name="wifi_mld_support">MLD</string>
 
     <string name="new_generator">New Offline Generator</string>
+    <string name="pins_generated">PINs have been generated</string>
+    <string name="pins_generated_with_suggested">PINs have been generated:\n%d suitable</string>
 
 
 </resources>

@@ -739,4 +739,8 @@
     <string name="import_completed_added">Імпорт завершено\nДодано: %d записів</string>
 
 
+    <string name="pins_generated">PIN-коди згенеровано</string>
+    <string name="pins_generated_with_suggested">PIN-коди згенеровано:\n%d підходящих</string>
+
+
 </resources>
