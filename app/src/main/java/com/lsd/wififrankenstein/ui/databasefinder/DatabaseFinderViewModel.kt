@@ -136,7 +136,7 @@ class DatabaseFinderViewModel(application: Application) : AndroidViewModel(appli
                     config = PagingConfig(
                         pageSize = 20,
                         enablePlaceholders = false,
-                        prefetchDistance = 1,
+                        prefetchDistance = 20,
                         initialLoadSize = 20,
                         maxSize = 200
                     ),
