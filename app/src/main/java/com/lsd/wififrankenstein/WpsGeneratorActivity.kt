@@ -223,7 +223,7 @@ class WpsGeneratorActivity : AppCompatActivity() {
                     while (it.moveToNext()) {
                         val pin = it.getString(it.getColumnIndexOrThrow("pin"))
                         Log.d("WpsGeneratorActivity", "Found pin in database: $pin")
-                        pinList.add(WPSPin(0, "Database", pin, isFrom3WiFi = false))
+                        pinList.add(WPSPin(0, "Special Database", pin, isFrom3WiFi = false))
                     }
                 }
                 db.close()

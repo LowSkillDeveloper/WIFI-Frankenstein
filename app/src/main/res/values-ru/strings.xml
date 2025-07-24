@@ -19,8 +19,8 @@
     <string name="check_in_online_bt">Проверить онлайн</string>
     <string name="check_in_offline_bt">Проверить офлайн</string>
     <string name="select_source">Выбрать источник</string>
-    <string name="offline_algorithms">ОФЛАЙН АЛГОРИТМЫ</string>
-    <string name="pin_database">PIN БАЗА ДАННЫХ</string>
+    <string name="offline_algorithms">Старый генератор</string>
+    <string name="pin_database">База пин кодов</string>
     <string name="copy">Копировать</string>
     <string name="copy_ssid">Копировать SSID</string>
     <string name="copy_bssid">Копировать BSSID</string>
@@ -204,7 +204,7 @@
     <string name="api_request_test_error">Тест запроса API: Ошибка</string>
     <string name="time">Время: %1$d мс</string>
 
-    <string name="online_servers">Онлайн серверы</string>
+    <string name="online_servers">3WiFi сервера</string>
     <string name="no_servers_configured">Серверы API 3WiFi не настроены</string>
     <string name="use_post_method">Использовать POST запросы вместо GET в WPS</string>
 
@@ -250,8 +250,6 @@
     <string name="import_successful">Импорт успешно выполнен</string>
     <string name="import_failed">Ошибка импорта: %s</string>
     <string name="import_database">Импорт базы данных</string>
-
-    <string name="routerscan_import_not_implemented">Импорт RouterScan еще не реализован</string>
 
     <string name="clear_local_database">Очистить локальную базу данных</string>
     <string name="clear_database_warning">Вы уверены, что хотите очистить локальную базу данных? Это действие нельзя отменить.</string>
@@ -739,8 +737,39 @@
     <string name="database_replaced_imported">База данных заменена\nИмпортировано: %d записей</string>
     <string name="import_completed_added">Импорт завершен\nДобавлено: %d записей</string>
 
+    <string name="new_generator">Новый генератор</string>
     <string name="pins_generated">Пин коды сгенерированы</string>
     <string name="pins_generated_with_suggested">Пин коды сгенерированы:\n%d подходящих</string>
+
+    <string name="prioritize_networks_with_data">Приоритизировать сети с найденными данными</string>
+    <string name="prioritize_networks_with_data_description">Сети с найденной информацией в базах будут показаны вверху списка</string>
+    <string name="auto_scroll_to_networks_with_data">Автоматически прокручивать к сетям с данными</string>
+    <string name="db_settings">Настройки базы данных</string>
+    <string name="menu_wifi_analysis">Анализ Wi-Fi</string>
+    <string name="wifi_environment_analysis">Анализ окружения Wi-Fi</string>
+    <string name="channel_usage">Использование каналов</string>
+    <string name="best_channels">Рекомендуемые каналы</string>
+    <string name="least_congested">Наименее загружен</string>
+    <string name="no_interference">Нет помех</string>
+    <string name="light_usage">Небольшая загруженость</string>
+    <string name="analysis_empty_state">Сети не найдены</string>
+    <string name="analysis_empty_description">Сначала выполните сканирование Wi-Fi-сетей для анализа</string>
+    <string name="refresh_analysis">Обновить анализ</string>
+    <string name="total_networks">Всего сетей: %d</string>
+    <string name="unique_channels">Уникальных каналов: %d</string>
+    <string name="average_signal">Средний сигнал: %d дБм</string>
+    <string name="strong_signals_short">Сильный сигнал: %d</string>
+    <string name="overlapping_short">Перекрытие: %d</string>
+    <string name="channel_with_frequency">Канал %1$d (%2$d МГц)</string>
+    <string name="no_networks_on_channel">Нет сетей</string>
+    <string name="no_channel_overlap">Нет перекрытия</string>
+    <string name="exclude_networks">Исключить сеть из статистики</string>
+    <string name="wifi_spectrum">Wi-Fi спектр</string>
+    <string name="no_wifi_data_available">Нет данных Wi-Fi. Сначала выполните сканирование сетей.</string>
+    <string name="start_scan">Начать сканирование</string>
+    <string name="good_choice">Хороший выбор</string>
+    <string name="acceptable">Приемлемо</string>
+    <string name="channel_analysis_error">Ошибка анализа канала</string>
 
 
 </resources>

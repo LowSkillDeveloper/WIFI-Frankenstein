@@ -22,8 +22,8 @@
     <string name="check_in_online_bt">Check Online</string>
     <string name="check_in_offline_bt">Check Offline</string>
     <string name="select_source">Select source</string>
-    <string name="offline_algorithms">OFFLINE ALGORITHMS</string>
-    <string name="pin_database">PIN DATABASE</string>
+    <string name="offline_algorithms">Old Generator</string>
+    <string name="pin_database">Pin database</string>
     <string name="copy">Copy</string>
     <string name="copy_ssid">Copy SSID</string>
     <string name="copy_bssid">Copy BSSID</string>
@@ -207,7 +207,7 @@
     <string name="api_request_test_error">API Request Test: Error</string>
     <string name="time">Time: %1$d ms</string>
 
-    <string name="online_servers">Online Servers</string>
+    <string name="online_servers">3WiFi Servers</string>
     <string name="no_servers_configured">No API 3WiFi servers configured</string>
     <string name="use_post_method">Use POST requests instead of GET in WPS</string>
 
@@ -759,82 +759,87 @@
     <string name="total_networks">Total networks: %d</string>
     <string name="unique_channels">Unique channels: %d</string>
     <string name="average_signal">Average signal: %d dBm</string>
-    <string name="frequency_mhz">%d MHz</string>
-    <string name="channel_load_percent">%d%%</string>
-    <string name="strong_signals_short">Strong: %d</string>
+    <string name="frequency_mhz" translatable="false">%d MHz</string>
+    <string name="channel_load_percent" translatable="false">%d%%</string>
+    <string name="strong_signals_short">Strong signal: %d</string>
     <string name="overlapping_short">Overlap: %d</string>
     <string name="channel_with_frequency">Channel %1$d (%2$d MHz)</string>
-    <string name="score_percent">%d%%</string>
+    <string name="score_percent" translatable="false">%d%%</string>
     <string name="no_networks_on_channel">No networks</string>
     <string name="no_channel_overlap">No overlap</string>
     <string name="exclude_networks">Exclude network from stats</string>
     <string name="wifi_spectrum">WiFi Spectrum</string>
-    <string name="access_points_count">%d APs</string>
+    <string name="access_points_count" translatable="false">%d APs</string>
     <string name="no_wifi_data_available">No WiFi data available. Please scan for networks first.</string>
-    <string name="channel_width_format">%d MHz</string>
+    <string name="channel_width_format" translatable="false">%d MHz</string>
     <string name="start_scan">Start Scan</string>
 
     <string name="good_choice">Good choice</string>
     <string name="acceptable">Acceptable</string>
     <string name="channel_analysis_error">Channel analysis error</string>
 
-    <string name="bandwidth_20mhz">20 MHz</string>
-    <string name="bandwidth_40mhz">40 MHz</string>
-    <string name="bandwidth_80mhz">80 MHz</string>
-    <string name="bandwidth_160mhz">160 MHz</string>
-    <string name="bandwidth_80mhz_plus">80+ MHz</string>
+    <string name="bandwidth_20mhz" translatable="false">20 MHz</string>
+    <string name="bandwidth_40mhz" translatable="false">40 MHz</string>
+    <string name="bandwidth_80mhz" translatable="false">80 MHz</string>
+    <string name="bandwidth_160mhz" translatable="false">160 MHz</string>
+    <string name="bandwidth_80mhz_plus" translatable="false">80+ MHz</string>
 
-    <string name="protocol_unknown">Unknown</string>
-    <string name="protocol_unknown_short">?</string>
-    <string name="protocol_legacy">802.11a/b/g</string>
-    <string name="protocol_legacy_short">Legacy</string>
-    <string name="protocol_n">802.11n</string>
-    <string name="protocol_n_short">WiFi 4</string>
-    <string name="protocol_ac">802.11ac</string>
-    <string name="protocol_ac_short">WiFi 5</string>
-    <string name="protocol_ax">802.11ax</string>
-    <string name="protocol_ax_short">WiFi 6</string>
-    <string name="protocol_ad">802.11ad</string>
-    <string name="protocol_ad_short">WiGig</string>
-    <string name="protocol_be">802.11be</string>
-    <string name="protocol_be_short">WiFi 7</string>
-
-
-    <string name="frequency_band_2ghz">2.4 GHz</string>
-    <string name="frequency_band_5ghz">5 GHz</string>
-    <string name="frequency_band_6ghz">6 GHz</string>
-
-    <string name="fast_roaming_k">802.11k</string>
-    <string name="fast_roaming_r">802.11r</string>
-    <string name="fast_roaming_v">802.11v</string>
-
-    <string name="channel_format">CH %d</string>
+    <string name="protocol_unknown" translatable="false">Unknown</string>
+    <string name="protocol_unknown_short" translatable="false">\?</string>
+    <string name="protocol_legacy" translatable="false">802.11a/b/g</string>
+    <string name="protocol_legacy_short" translatable="false">Legacy</string>
+    <string name="protocol_n" translatable="false">802.11n</string>
+    <string name="protocol_n_short" translatable="false">WiFi 4</string>
+    <string name="protocol_ac" translatable="false">802.11ac</string>
+    <string name="protocol_ac_short" translatable="false">WiFi 5</string>
+    <string name="protocol_ax" translatable="false">802.11ax</string>
+    <string name="protocol_ax_short" translatable="false">WiFi 6</string>
+    <string name="protocol_ad" translatable="false">802.11ad</string>
+    <string name="protocol_ad_short" translatable="false">WiGig</string>
+    <string name="protocol_be" translatable="false">802.11be</string>
+    <string name="protocol_be_short" translatable="false">WiFi 7</string>
 
 
-    <string name="security_type_unknown">Unknown</string>
-    <string name="security_type_open">Open</string>
-    <string name="security_type_wep">WEP</string>
-    <string name="security_type_psk">PSK</string>
-    <string name="security_type_eap">EAP</string>
-    <string name="security_type_sae">SAE</string>
-    <string name="security_type_eap_wpa3_enterprise_192_bit">EAP-192</string>
-    <string name="security_type_owe">OWE</string>
-    <string name="security_type_wapi_psk">WAPI-PSK</string>
-    <string name="security_type_wapi_cert">WAPI-CERT</string>
-    <string name="security_type_eap_wpa3_enterprise">EAP-WPA3</string>
-    <string name="security_type_osen">OSEN</string>
-    <string name="security_type_passpoint_r1_r2">Passpoint R1/R2</string>
-    <string name="security_type_passpoint_r3">Passpoint R3</string>
-    <string name="security_type_dpp">DPP</string>
-    <string name="wifi_rtt_responder">RTT</string>
-    <string name="wifi_ntb_responder">NTB</string>
-    <string name="wifi_twt_responder">TWT</string>
-    <string name="wifi_untrusted">Untrusted</string>
-    <string name="wifi_mld_support">MLD</string>
+    <string name="frequency_band_2ghz" translatable="false">2.4 GHz</string>
+    <string name="frequency_band_5ghz" translatable="false">5 GHz</string>
+    <string name="frequency_band_6ghz" translatable="false">6 GHz</string>
 
-    <string name="new_generator">New Offline Generator</string>
+    <string name="fast_roaming_k" translatable="false">802.11k</string>
+    <string name="fast_roaming_r" translatable="false">802.11r</string>
+    <string name="fast_roaming_v" translatable="false">802.11v</string>
+
+    <string name="channel_format" translatable="false">CH %d</string>
+
+
+    <string name="security_type_unknown" translatable="false">Unknown</string>
+    <string name="security_type_open" translatable="false">Open</string>
+    <string name="security_type_wep" translatable="false">WEP</string>
+    <string name="security_type_psk" translatable="false">PSK</string>
+    <string name="security_type_eap" translatable="false">EAP</string>
+    <string name="security_type_sae" translatable="false">SAE</string>
+    <string name="security_type_eap_wpa3_enterprise_192_bit" translatable="false">EAP-192</string>
+    <string name="security_type_owe" translatable="false">OWE</string>
+    <string name="security_type_wapi_psk" translatable="false">WAPI-PSK</string>
+    <string name="security_type_wapi_cert" translatable="false">WAPI-CERT</string>
+    <string name="security_type_eap_wpa3_enterprise" translatable="false">EAP-WPA3</string>
+    <string name="security_type_osen" translatable="false">OSEN</string>
+    <string name="security_type_passpoint_r1_r2" translatable="false">Passpoint R1/R2</string>
+    <string name="security_type_passpoint_r3" translatable="false">Passpoint R3</string>
+    <string name="security_type_dpp" translatable="false">DPP</string>
+    <string name="wifi_rtt_responder" translatable="false">RTT</string>
+    <string name="wifi_ntb_responder" translatable="false">NTB</string>
+    <string name="wifi_twt_responder" translatable="false">TWT</string>
+    <string name="wifi_untrusted" translatable="false">Untrusted</string>
+    <string name="wifi_mld_support" translatable="false">MLD</string>
+
+    <string name="new_generator">New Generator</string>
     <string name="pins_generated">PINs have been generated</string>
     <string name="pins_generated_with_suggested">PINs have been generated:\n%d suitable</string>
+
+    <string name="prioritize_networks_with_data">Prioritize networks with found data</string>
+    <string name="prioritize_networks_with_data_description">Networks with information found in databases will appear at the top of the list</string>
+    <string name="auto_scroll_to_networks_with_data">Auto-scroll to networks with data</string>
+    <string name="db_settings">Database settings</string>
 
 
 </resources>

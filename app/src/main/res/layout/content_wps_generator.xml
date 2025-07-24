@@ -110,35 +110,6 @@
             android:layout_marginBottom="8dp">
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/button_method1"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="@string/online_servers"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/buttonOfflineAlgorithms"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="@string/offline_algorithms"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_new_generator"
                 style="@style/Widget.Material3.Button"
                 android:layout_width="0dp"
@@ -157,6 +128,36 @@
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
                 android:text="@string/pin_database"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_method1"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:text="@string/online_servers"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonOfflineAlgorithms"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="@string/offline_algorithms"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
