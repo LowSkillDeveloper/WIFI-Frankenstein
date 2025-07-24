@@ -65,17 +65,17 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/textInputLayoutSearch"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
                         android:hint="@string/search_records"
-                        app:endIconMode="clear_text" >
+                        app:endIconMode="clear_text">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/editTextSearch"
@@ -87,10 +87,14 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/buttonSearch"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:text="@string/search"
-                        app:icon="@drawable/ic_search" />
+                        android:backgroundTint="@android:color/white"
+                        android:textColor="@android:color/black"
+                        app:icon="@drawable/ic_search"
+                        app:iconTint="@android:color/black" />
 
                 </LinearLayout>
 
