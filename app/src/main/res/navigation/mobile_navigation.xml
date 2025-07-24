@@ -11,6 +11,10 @@
         android:label="@string/menu_rss_news"
         tools:layout="@layout/fragment_rss_news" />
 
+    <action
+        android:id="@+id/action_databaseFinderFragment_to_dbSetupFragment"
+        app:destination="@id/dbSetupFragment" />
+
     <fragment
         android:id="@+id/nav_wifi_scanner"
         android:name="com.lsd.wififrankenstein.ui.wifiscanner.WiFiScannerFragment"

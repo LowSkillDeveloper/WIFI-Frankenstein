@@ -21,6 +21,7 @@ import com.lsd.wififrankenstein.databinding.FragmentDatabaseFinderBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.navigation.fragment.findNavController
 
 class DatabaseFinderFragment : Fragment() {
 
@@ -64,12 +65,9 @@ class DatabaseFinderFragment : Fragment() {
         binding.progressBarDatabaseCheck.visibility = View.GONE
         binding.progressBarDatabaseCheck.isIndeterminate = true
 
-
         if (DbSetupViewModel.needDataRefresh) {
-
             viewModel.refreshDatabases()
         }
-
 
         viewModel.isSearching.observe(viewLifecycleOwner) { isSearching ->
             binding.progressBarDatabaseCheck.visibility = if (isSearching) View.VISIBLE else View.GONE
@@ -84,9 +82,15 @@ class DatabaseFinderFragment : Fragment() {
         setupSearchButton()
         setupSourcesButton()
         setupFiltersButton()
+        setupDbSettingsButton()
         requestPermissions()
     }
 
+    private fun setupDbSettingsButton() {
+        binding.buttonDbSettings.setOnClickListener {
+            findNavController().navigate(R.id.action_databaseFinderFragment_to_dbSetupFragment)
+        }
+    }
     private fun requestPermissions() {
         val permissionsToRequest = REQUIRED_PERMISSIONS.filter {
             ContextCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
