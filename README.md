@@ -36,12 +36,14 @@ The application combines various WiFi tools and functionality into one powerful 
 - **WiFi Maps**: View WiFi points from 3WiFi db and custom databases without an internet connection (The map itself requires internet)
 - **Clustering Control**: Option to enable or disable point clustering on the map
 - **Multiple bases**: Possibility to display wifi points from several different databases on the map at once.
+- **MAC base location**: Finding the location of an access point by its MAC address
 
 ### 🛠️ Tools & Features
 - **WiFi Channel Analysis**: Page for analyzing WiFi channels, providing insights into channel usage and performance.
 - **MAC Address Locating**: Find the geographical location of WiFi access points by MAC address
 - **More detailed information**: detection of WiFi network technologies, including RTT, NTB, TWT, and MLD
 - **WPS Pin Generator**: Local pin code generation
+- **Neighbor-based WPS PIN suggestions**: multi-level neighbor-based WPS PIN suggestions from Local DB
 - **WPS Connect**: Possibility to connect via WPS 
 - **3WiFi API Integration**: Advanced settings and direct API requests
 - **Distance Calculation**: Measure distance to WiFi access point
@@ -68,6 +70,8 @@ The application combines various WiFi tools and functionality into one powerful 
 |---------|-------------------|---------------|
 | Local in-app Database | ✅ Supported | ⚠️ Limited |
 | Local Full 3WiFi Database | ✅ Supported | ❌ Not supported |
+| WPS Generators | ✅ Supported | ⚠️ Limited |
+| Neighbor-based WPS PIN suggestions | ✅ Supported | ❌ Not supported |
 | WiFi Channel Analysis | ✅ Supported | ❌ Not supported |
 | Additional information about WiFi | ✅ Yes | ⚠️ Only security protocol |
 | Custom SQLite Databases | ✅ Supported | ❌ Not supported |
