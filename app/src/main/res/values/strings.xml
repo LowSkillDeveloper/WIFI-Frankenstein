@@ -23,7 +23,7 @@
     <string name="check_in_offline_bt">Check Offline</string>
     <string name="select_source">Select source</string>
     <string name="offline_algorithms">Old Generator</string>
-    <string name="pin_database">Pin database</string>
+    <string name="pin_database">Database search</string>
     <string name="copy">Copy</string>
     <string name="copy_ssid">Copy SSID</string>
     <string name="copy_bssid">Copy BSSID</string>
@@ -840,6 +840,22 @@
     <string name="prioritize_networks_with_data_description">Networks with information found in databases will appear at the top of the list</string>
     <string name="auto_scroll_to_networks_with_data">Auto-scroll to networks with data</string>
     <string name="db_settings">Database settings</string>
+
+    <string name="source_wps_database" translatable="false">WPS Database</string>
+    <string name="source_3wifi_database" translatable="false">3WiFi Database</string>
+    <string name="source_custom_database" translatable="false">Custom Database</string>
+    <string name="source_local_database" translatable="false">Local Database</string>
+    <string name="source_api_database" translatable="false">API Database</string>
+    <string name="pins_found_from_sources">Found %d pins from %d sources</string>
+
+    <string name="neighbor_pin" translatable="false">Neighbor PIN</string>
+    <string name="from_database" translatable="false">From Database</string>
+    <string name="score_format" translatable="false">Score: %.3f</string>
+
+    <string name="close_neighbor" translatable="false">Close Neighbor</string>
+    <string name="medium_neighbor" translatable="false">Medium Neighbor</string>
+    <string name="distance_format" translatable="false">±%d</string>
+    <string name="very_close_neighbor" translatable="false">Very Close Neighbor</string>
 
 
 </resources>

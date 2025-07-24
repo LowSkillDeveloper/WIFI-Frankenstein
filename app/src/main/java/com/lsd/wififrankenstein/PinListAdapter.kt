@@ -44,18 +44,46 @@ class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiff
 
             if (pin.isFrom3WiFi) {
                 textScore.visibility = View.VISIBLE
-                textScore.text = "Score: %.2f".format(pin.score)
+                textScore.text = itemView.context.getString(R.string.score_format, pin.score)
             } else {
                 textScore.visibility = View.GONE
             }
 
             textDb.text = if (pin.sugg) "✔" else ""
 
-            val additionalDataString = pin.additionalData.entries.joinToString("\n") { (key, value) ->
-                "$key: $value"
+            val additionalInfo = when {
+                pin.isFrom3WiFi -> {
+                    val type = pin.additionalData["type"]?.toString() ?: ""
+                    val database = pin.additionalData["database"]?.toString() ?: ""
+                    val neighborBssid = pin.additionalData["neighbor_bssid"]?.toString()
+                    val distance = pin.additionalData["distance"]?.toString()
+
+                    when {
+                        neighborBssid != null && distance != null ->
+                            "$type • Neighbor: ${neighborBssid.takeLast(8)} (±$distance)"
+                        neighborBssid != null ->
+                            "$type • Neighbor: ${neighborBssid.takeLast(8)}"
+                        database.isNotEmpty() -> "$type • $database"
+                        else -> type
+                    }
+                }
+                pin.additionalData.containsKey("source") -> {
+                    val source = pin.additionalData["source"]?.toString() ?: ""
+                    val type = pin.additionalData["type"]?.toString() ?: ""
+                    val database = pin.additionalData["database"]?.toString() ?: ""
+                    when {
+                        database.isNotEmpty() -> "$type • $database"
+                        type.isNotEmpty() -> type
+                        else -> source
+                    }
+                }
+                pin.additionalData.containsKey("mode") -> {
+                    pin.additionalData["mode"]?.toString() ?: ""
+                }
+                else -> ""
             }
-            textAdditionalData.text = additionalDataString
-            textAdditionalData.visibility = if (additionalDataString.isNotEmpty()) View.VISIBLE else View.GONE
+            textAdditionalData.text = additionalInfo
+            textAdditionalData.visibility = if (additionalInfo.isNotEmpty()) View.VISIBLE else View.GONE
 
             val context = itemView.context
             val typedValue = TypedValue()

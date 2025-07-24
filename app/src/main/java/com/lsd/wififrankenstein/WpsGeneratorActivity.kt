@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein
 
 import android.annotation.SuppressLint
+import android.content.ContentValues.TAG
 import android.content.res.Configuration
 import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
@@ -30,6 +31,13 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
 import com.lsd.wififrankenstein.util.WpsPinGenerator
+
+import androidx.core.net.toUri
+import com.lsd.wififrankenstein.ui.dbsetup.DbItem
+import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
+import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 
 data class WPSPin(
     var mode: Int,
@@ -194,41 +202,377 @@ class WpsGeneratorActivity : AppCompatActivity() {
         contentBinding.textViewMessage.text = message
     }
 
+    private fun formatSourcePath(path: String): String {
+        return try {
+            when {
+                path.startsWith("content://") -> {
+                    val uri = android.net.Uri.parse(path)
+                    uri.lastPathSegment?.let { lastSegment ->
+                        val decodedSegment = android.net.Uri.decode(lastSegment)
+                        decodedSegment.substringAfterLast('/')
+                    } ?: path
+                }
+                path.startsWith("file://") -> {
+                    val uri = android.net.Uri.parse(path)
+                    uri.lastPathSegment ?: path
+                }
+                else -> {
+                    path.substringAfterLast('/')
+                }
+            }.substringAfterLast("%2F")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error formatting source path: $path", e)
+            path
+        }
+    }
+
+    private fun isValidWpsPin(pin: String): Boolean {
+        return pin.matches("^\\d{8}$".toRegex())
+    }
+
+    private fun convertBssidToDecimal(bssid: String): Long {
+        return try {
+            bssid.replace(":", "").replace("-", "").toLong(16)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting BSSID to decimal: $bssid", e)
+            0L
+        }
+    }
+
+    private fun decimalToBssid(decimal: Long): String {
+        return String.format("%012X", decimal)
+            .replace("(.{2})".toRegex(), "$1:").dropLast(1)
+    }
+
+    private fun calculateNeighborScore(targetBssid: Long, neighborBssid: Long): Double {
+        val targetNic = targetBssid and 0xFFFFFF
+        val neighborNic = neighborBssid and 0xFFFFFF
+        val distance = kotlin.math.abs((neighborNic - targetNic).toDouble())
+        return 1.0 / kotlin.math.sqrt(distance + 1.0)
+    }
+
+    private suspend fun searchMultiLevelNeighbors(bssid: String, dbItem: DbItem): List<WPSPin> {
+        val allPins = mutableListOf<WPSPin>()
+
+        allPins.addAll(searchNeighborsByDistance(bssid, dbItem, 10, 1.2, getString(R.string.very_close_neighbor)))
+
+        allPins.addAll(searchNeighborsByDistance(bssid, dbItem, 100, 1.0, getString(R.string.close_neighbor)))
+
+        if (allPins.size < 10) {
+            allPins.addAll(searchNeighborsByDistance(bssid, dbItem, 1000, 0.7, getString(R.string.medium_neighbor)))
+        }
+
+        val filteredPins = allPins.distinctBy { it.pin }
+
+        return filteredPins
+    }
+
+    private suspend fun searchNeighborsByDistance(
+        bssid: String,
+        dbItem: DbItem,
+        maxDistance: Int,
+        weightMultiplier: Double,
+        neighborType: String
+    ): List<WPSPin> {
+        return withContext(Dispatchers.IO) {
+            val pinList = mutableListOf<WPSPin>()
+            try {
+                val helper = SQLite3WiFiHelper(this@WpsGeneratorActivity, dbItem.path.toUri(), dbItem.directPath)
+                val targetDecimal = convertBssidToDecimal(bssid)
+                val targetNic = targetDecimal and 0xFFFFFF
+                val ouiBase = targetDecimal and 0xFFFFFF000000L
+
+                val minDistance = when (maxDistance) {
+                    10 -> 1
+                    100 -> 11
+                    1000 -> 101
+                    else -> 1
+                }
+
+                val rangeStart = kotlin.math.max(0, targetNic - maxDistance) or ouiBase
+                val rangeEnd = kotlin.math.min(0xFFFFFF, targetNic + maxDistance) or ouiBase
+
+                val dbName = formatSourcePath(dbItem.path)
+                val tableName = if (helper.getTableNames().contains("nets")) "nets" else "base"
+
+                val query = """
+                SELECT BSSID, WPSPIN 
+                FROM $tableName 
+                WHERE BSSID BETWEEN ? AND ? 
+                AND BSSID != ?
+                AND WPSPIN IS NOT NULL 
+                AND WPSPIN != '0' 
+                AND WPSPIN != '1'
+                ORDER BY ABS(BSSID - ?) 
+                LIMIT 500
+            """.trimIndent()
+
+                val neighborScores = mutableMapOf<String, Pair<Double, Long>>()
+                var totalScore = 0.0
+
+                helper.database?.rawQuery(query, arrayOf(
+                    rangeStart.toString(),
+                    rangeEnd.toString(),
+                    targetDecimal.toString(),
+                    targetDecimal.toString()
+                ))?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val neighborDecimal = cursor.getLong(0)
+                        val wpsPin = cursor.getString(1)
+
+                        if (isValidWpsPin(wpsPin)) {
+                            val distance = kotlin.math.abs((targetNic - (neighborDecimal and 0xFFFFFF)).toInt())
+                            if (distance >= minDistance && distance <= maxDistance) {
+                                val score = calculateNeighborScore(targetDecimal, neighborDecimal) * weightMultiplier
+                                totalScore += score
+                                neighborScores[wpsPin] = Pair(score, neighborDecimal)
+                            }
+                        }
+                    }
+                }
+
+                neighborScores.forEach { (pin, scoreData) ->
+                    val (rawScore, neighborDecimal) = scoreData
+                    val normalizedScore = if (totalScore > 0) rawScore / totalScore else 0.0
+                    val distance = kotlin.math.abs((targetNic - (neighborDecimal and 0xFFFFFF)).toInt())
+
+                    pinList.add(WPSPin(
+                        mode = 0,
+                        name = neighborType,
+                        pin = pin,
+                        sugg = false,
+                        score = normalizedScore,
+                        isFrom3WiFi = true,
+                        additionalData = mapOf(
+                            "source" to "3wifi_database",
+                            "type" to dbName,
+                            "database" to dbItem.type,
+                            "fromdb" to false,
+                            "neighbor_bssid" to decimalToBssid(neighborDecimal),
+                            "distance" to distance.toString()
+                        )
+                    ))
+                }
+
+                helper.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching neighbor pins by distance", e)
+            }
+            pinList.sortedByDescending { it.score }
+        }
+    }
+
     private fun btnLocalClick() {
         contentBinding.offlineNoticeCard.visibility = View.GONE
         lifecycleScope.launch {
-            val pins = withContext(Dispatchers.IO) { getPinsFromDatabase(bssid) }
+            val pins = withContext(Dispatchers.IO) { getPinsFromAllDatabases(bssid) }
             if (pins.isEmpty()) {
                 updateMessage(getString(R.string.no_pins_found))
-                Log.d("WpsGeneratorActivity", "No pins found in local database")
+                Log.d("WpsGeneratorActivity", "No pins found in any database")
             } else {
                 updateMessage("")
-                Log.d("WpsGeneratorActivity", "Found pins in local database: ${pins.joinToString(", ")}")
+                val sourceCount = pins.map { it.additionalData["source"] }.distinct().size
+                updateMessage(getString(R.string.pins_found_from_sources, pins.size, sourceCount))
+                Log.d("WpsGeneratorActivity", "Found ${pins.size} pins from $sourceCount sources")
                 pinListAdapter.submitList(pins)
             }
         }
     }
 
-    private suspend fun getPinsFromDatabase(bssid: String): List<WPSPin> {
+    private suspend fun getPinsFromAllDatabases(bssid: String): List<WPSPin> {
+        return withContext(Dispatchers.IO) {
+            val allPins = mutableListOf<WPSPin>()
+
+            allPins.addAll(getPinsFromWpsDatabase(bssid))
+            allPins.addAll(getPinsFromConfiguredDatabases(bssid))
+
+            allPins.distinctBy { "${it.pin}-${it.name}" }
+        }
+    }
+
+    private suspend fun getPinsFromWpsDatabase(bssid: String): List<WPSPin> {
         return withContext(Dispatchers.IO) {
             val pinList = mutableListOf<WPSPin>()
             try {
                 val dbFile = getFileFromInternalStorageOrAssets("wps_pin.db")
-
                 val db = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
                 val macPrefix = bssid.substring(0, 8).uppercase()
-                Log.d("WpsGeneratorActivity", "Formatted MAC Prefix: $macPrefix")
+                Log.d(TAG, "Searching in WPS database for MAC Prefix: $macPrefix")
+
                 val cursor = db.rawQuery("SELECT pin FROM pins WHERE mac=?", arrayOf(macPrefix))
                 cursor.use {
                     while (it.moveToNext()) {
                         val pin = it.getString(it.getColumnIndexOrThrow("pin"))
-                        Log.d("WpsGeneratorActivity", "Found pin in database: $pin")
-                        pinList.add(WPSPin(0, "Special Database", pin, isFrom3WiFi = false))
+                        if (isValidWpsPin(pin)) {
+                            Log.d(TAG, "Found valid pin in WPS database: $pin")
+                            pinList.add(WPSPin(
+                                mode = 0,
+                                name = getString(R.string.source_wps_database),
+                                pin = pin,
+                                isFrom3WiFi = false,
+                                additionalData = mapOf("source" to "in-app_wps_database")
+                            ))
+                        } else {
+                            Log.d(TAG, "Skipped invalid pin format: $pin")
+                        }
                     }
                 }
                 db.close()
             } catch (e: Exception) {
-                Log.e("WpsGeneratorActivity", "Error accessing database", e)
+                Log.e(TAG, "Error accessing WPS database", e)
+            }
+            pinList
+        }
+    }
+
+    private suspend fun getPinsFromConfiguredDatabases(bssid: String): List<WPSPin> {
+        return withContext(Dispatchers.IO) {
+            val allPins = mutableListOf<WPSPin>()
+            val databases = dbSetupViewModel.dbList.value ?: emptyList()
+
+            databases.forEach { dbItem ->
+                try {
+                    when (dbItem.dbType) {
+                        DbType.SQLITE_FILE_3WIFI, DbType.SMARTLINK_SQLITE_FILE_3WIFI -> {
+                            allPins.addAll(getPinsFrom3WiFiDatabase(bssid, dbItem))
+                        }
+                        DbType.SQLITE_FILE_CUSTOM, DbType.SMARTLINK_SQLITE_FILE_CUSTOM -> {
+                            allPins.addAll(getPinsFromCustomDatabase(bssid, dbItem))
+                        }
+                        DbType.LOCAL_APP_DB -> {
+                            allPins.addAll(getPinsFromLocalDatabase(bssid))
+                        }
+                        else -> {
+                            Log.d("WpsGeneratorActivity", "Skipping database type: ${dbItem.dbType}")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("WpsGeneratorActivity", "Error accessing database ${dbItem.type}", e)
+                }
+            }
+
+            allPins
+        }
+    }
+
+    private suspend fun getPinsFrom3WiFiDatabase(bssid: String, dbItem: DbItem): List<WPSPin> {
+        val allPins = mutableListOf<WPSPin>()
+
+        val exactPins = withContext(Dispatchers.IO) {
+            val pinList = mutableListOf<WPSPin>()
+            try {
+                val helper = SQLite3WiFiHelper(this@WpsGeneratorActivity, dbItem.path.toUri(), dbItem.directPath)
+                val results = helper.searchNetworksByBSSIDsAsync(listOf(bssid))
+
+                val dbName = formatSourcePath(dbItem.path)
+
+                results.forEach { result ->
+                    val wpsPin = result["WPSPIN"]?.toString()
+
+                    if (!wpsPin.isNullOrEmpty() && wpsPin != "0" && isValidWpsPin(wpsPin)) {
+                        pinList.add(WPSPin(
+                            mode = 0,
+                            name = getString(R.string.from_database),
+                            pin = wpsPin,
+                            sugg = true,
+                            score = 1.0,
+                            isFrom3WiFi = true,
+                            additionalData = mapOf(
+                                "source" to "3wifi_database",
+                                "type" to dbName,
+                                "database" to dbItem.type,
+                                "fromdb" to true
+                            )
+                        ))
+                    }
+                }
+                helper.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching in 3WiFi database", e)
+            }
+            pinList
+        }
+
+        allPins.addAll(exactPins)
+
+        val neighborPins = searchMultiLevelNeighbors(bssid, dbItem)
+        allPins.addAll(neighborPins)
+
+        return allPins.distinctBy { it.pin }.sortedWith(
+            compareByDescending<WPSPin> { it.sugg }
+                .thenByDescending { it.score }
+        )
+    }
+
+    private suspend fun getPinsFromCustomDatabase(bssid: String, dbItem: DbItem): List<WPSPin> {
+        return withContext(Dispatchers.IO) {
+            val pinList = mutableListOf<WPSPin>()
+            try {
+                val helper = SQLiteCustomHelper(this@WpsGeneratorActivity, dbItem.path.toUri(), dbItem.directPath)
+                val tableName = dbItem.tableName ?: return@withContext pinList
+                val columnMap = dbItem.columnMap ?: return@withContext pinList
+
+                val results = helper.searchNetworksByBSSIDs(tableName, columnMap, listOf(bssid))
+
+                val dbName = formatSourcePath(dbItem.path)
+
+                results[bssid]?.let { result ->
+                    val wpsPinColumn = columnMap["wps_pin"]
+
+                    if (wpsPinColumn != null) {
+                        val wpsPin = result[wpsPinColumn]?.toString()
+                        if (!wpsPin.isNullOrEmpty() && wpsPin != "0" && isValidWpsPin(wpsPin)) {
+                            pinList.add(WPSPin(
+                                mode = 0,
+                                name = getString(R.string.source_custom_database),
+                                pin = wpsPin,
+                                isFrom3WiFi = false,
+                                additionalData = mapOf(
+                                    "source" to "custom_database",
+                                    "type" to dbName,
+                                    "database" to dbItem.type
+                                )
+                            ))
+                        }
+                    }
+                }
+                helper.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching in custom database", e)
+            }
+            pinList
+        }
+    }
+
+    private suspend fun getPinsFromLocalDatabase(bssid: String): List<WPSPin> {
+        return withContext(Dispatchers.IO) {
+            val pinList = mutableListOf<WPSPin>()
+            try {
+                val helper = LocalAppDbHelper(this@WpsGeneratorActivity)
+                val results = helper.searchRecordsWithFilters(
+                    query = bssid,
+                    filterByName = false,
+                    filterByMac = true,
+                    filterByPassword = false,
+                    filterByWps = true
+                )
+
+                results.forEach { network ->
+                    if (!network.wpsCode.isNullOrEmpty() && isValidWpsPin(network.wpsCode)) {
+                        pinList.add(WPSPin(
+                            mode = 0,
+                            name = getString(R.string.source_local_database),
+                            pin = network.wpsCode,
+                            isFrom3WiFi = false,
+                            additionalData = mapOf(
+                                "source" to "local_database",
+                                "type" to "WPSPIN"
+                            )
+                        ))
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching in local database", e)
             }
             pinList
         }

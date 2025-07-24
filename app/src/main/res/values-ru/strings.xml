@@ -20,7 +20,7 @@
     <string name="check_in_offline_bt">Проверить офлайн</string>
     <string name="select_source">Выбрать источник</string>
     <string name="offline_algorithms">Старый генератор</string>
-    <string name="pin_database">База пин кодов</string>
+    <string name="pin_database">Поиск по базам</string>
     <string name="copy">Копировать</string>
     <string name="copy_ssid">Копировать SSID</string>
     <string name="copy_bssid">Копировать BSSID</string>
@@ -770,6 +770,7 @@
     <string name="good_choice">Хороший выбор</string>
     <string name="acceptable">Приемлемо</string>
     <string name="channel_analysis_error">Ошибка анализа канала</string>
+    <string name="pins_found_from_sources">Найдено %d PIN-кодов из %d источников</string>
 
 
 </resources>
