@@ -17,13 +17,18 @@ class DatabaseRecordsPagingSource(
 
         return try {
             val records = if (searchParams.query.isNotEmpty()) {
-                dbHelper.searchRecordsWithFiltersOptimized(
+                val searchFields = buildSet {
+                    if (searchParams.filterName) add("name")
+                    if (searchParams.filterMac) add("mac")
+                    if (searchParams.filterPassword) add("password")
+                    if (searchParams.filterWps) add("wps")
+                }
+                dbHelper.searchRecordsWithFiltersPaginated(
                     searchParams.query,
-                    searchParams.filterName,
-                    searchParams.filterMac,
-                    searchParams.filterPassword,
-                    searchParams.filterWps
-                ).take(params.loadSize)
+                    searchFields,
+                    position.toInt() * params.loadSize,
+                    params.loadSize
+                )
             } else {
                 dbHelper.getRecords(position, params.loadSize)
             }
