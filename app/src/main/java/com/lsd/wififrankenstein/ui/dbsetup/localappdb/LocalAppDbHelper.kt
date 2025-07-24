@@ -608,6 +608,118 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         }
     }
 
+    fun searchRecordsWithFiltersPaginated(
+        query: String,
+        searchFields: Set<String>,
+        offset: Int,
+        limit: Int
+    ): List<WifiNetwork> {
+        val allResults = mutableSetOf<WifiNetwork>()
+
+        if ("name" in searchFields) {
+            allResults.addAll(searchByNamePaginated(query, offset, limit))
+        }
+
+        if ("mac" in searchFields) {
+            allResults.addAll(searchByMacAllFormatsPaginated(query, offset, limit))
+        }
+
+        if ("password" in searchFields) {
+            allResults.addAll(searchByPasswordPaginated(query, offset, limit))
+        }
+
+        if ("wps" in searchFields) {
+            allResults.addAll(searchByWpsPaginated(query, offset, limit))
+        }
+
+        return allResults.distinctBy { "${it.macAddress}-${it.wifiName}" }.take(limit)
+    }
+
+    private fun searchByNamePaginated(query: String, offset: Int, limit: Int): List<WifiNetwork> {
+        val indexLevel = getIndexLevel()
+        val hasNameIndex = hasIndex("idx_wifi_network_name")
+
+        val sql = when {
+            indexLevel != "NONE" && hasNameIndex -> {
+                "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_name WHERE $COLUMN_WIFI_NAME LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
+            }
+            else -> {
+                "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_NAME LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
+            }
+        }
+
+        return readableDatabase.rawQuery(sql, arrayOf("%$query%")).use { cursor ->
+            buildWifiNetworkList(cursor)
+        }
+    }
+
+    private fun searchByMacAllFormatsPaginated(query: String, offset: Int, limit: Int): List<WifiNetwork> {
+        val indexLevel = getIndexLevel()
+        val hasMacIndex = hasIndex("idx_wifi_network_mac")
+
+        val macFormats = generateAllMacFormats(query)
+        val results = mutableListOf<WifiNetwork>()
+
+        val conditions = mutableListOf<String>()
+        val params = mutableListOf<String>()
+
+        macFormats.forEach { format ->
+            conditions.add("$COLUMN_MAC_ADDRESS = ?")
+            params.add(format)
+        }
+        conditions.add("$COLUMN_MAC_ADDRESS LIKE ?")
+        params.add("%$query%")
+
+        val sql = when {
+            indexLevel != "NONE" && hasMacIndex -> {
+                "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_mac WHERE ${conditions.joinToString(" OR ")} LIMIT $limit OFFSET $offset"
+            }
+            else -> {
+                "SELECT * FROM $TABLE_NAME WHERE ${conditions.joinToString(" OR ")} LIMIT $limit OFFSET $offset"
+            }
+        }
+
+        return readableDatabase.rawQuery(sql, params.toTypedArray()).use { cursor ->
+            buildWifiNetworkList(cursor)
+        }
+    }
+
+    private fun searchByPasswordPaginated(query: String, offset: Int, limit: Int): List<WifiNetwork> {
+        val indexLevel = getIndexLevel()
+        val hasPasswordIndex = hasIndex("idx_wifi_network_password")
+
+        val sql = when {
+            indexLevel == "FULL" && hasPasswordIndex -> {
+                "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_password WHERE $COLUMN_WIFI_PASSWORD LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
+            }
+            else -> {
+                "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_PASSWORD LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
+            }
+        }
+
+        return readableDatabase.rawQuery(sql, arrayOf("%$query%")).use { cursor ->
+            buildWifiNetworkList(cursor)
+        }
+    }
+
+    private fun searchByWpsPaginated(query: String, offset: Int, limit: Int): List<WifiNetwork> {
+        val indexLevel = getIndexLevel()
+        val hasWpsIndex = hasIndex("idx_wifi_network_wps")
+
+        val sql = when {
+            indexLevel == "FULL" && hasWpsIndex -> {
+                "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_wps WHERE $COLUMN_WPS_CODE = ? LIMIT $limit OFFSET $offset"
+            }
+            else -> {
+                "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WPS_CODE = ? LIMIT $limit OFFSET $offset"
+            }
+        }
+
+        return readableDatabase.rawQuery(sql, arrayOf(query)).use { cursor ->
+            buildWifiNetworkList(cursor)
+        }
+    }
+
     fun searchRecords(query: String): List<WifiNetwork> {
         val results = mutableListOf<WifiNetwork>()
         val searchQuery = "%$query%"

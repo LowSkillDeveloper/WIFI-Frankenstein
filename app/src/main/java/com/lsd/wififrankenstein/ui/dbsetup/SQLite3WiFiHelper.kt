@@ -487,6 +487,192 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
             }
         }
 
+    fun searchNetworksByBSSIDAndFieldsPaginated(
+        query: String,
+        filters: Set<String>,
+        wholeWords: Boolean,
+        offset: Int,
+        limit: Int
+    ): List<Map<String, Any?>> {
+        val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
+        val tableName = if (getTableNames().contains("nets")) "nets" else "base"
+
+        val conditions = mutableListOf<String>()
+        val args = mutableListOf<String>()
+
+        filters.forEach { field ->
+            when (field) {
+                "BSSID" -> {
+                    val possibleFormats = generateMacFormats(query)
+                    possibleFormats.forEach { format ->
+                        val decimalValue = macToDecimal(format)
+                        if (decimalValue != -1L) {
+                            conditions.add("n.BSSID = ?")
+                            args.add(decimalValue.toString())
+                        }
+                    }
+                    if (conditions.isEmpty()) {
+                        conditions.add("CAST(n.BSSID AS TEXT) LIKE ?")
+                        args.add(if (wholeWords) query else "%$query%")
+                    }
+                }
+                "ESSID" -> {
+                    if (wholeWords) {
+                        conditions.add("n.ESSID = ? COLLATE NOCASE")
+                        args.add(query)
+                    } else {
+                        conditions.add("n.ESSID LIKE ? ESCAPE '\\'")
+                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                    }
+                }
+                "WiFiKey" -> {
+                    if (wholeWords) {
+                        conditions.add("n.WiFiKey = ? COLLATE NOCASE")
+                        args.add(query)
+                    } else {
+                        conditions.add("n.WiFiKey LIKE ? ESCAPE '\\'")
+                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                    }
+                }
+                "WPSPIN" -> {
+                    conditions.add("n.WPSPIN = ?")
+                    args.add(query)
+                }
+            }
+        }
+
+        if (conditions.isEmpty()) return emptyList()
+
+        val baseQuery = when {
+            indexLevel >= DatabaseIndices.IndexLevel.BASIC -> {
+                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                        "FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                        "WHERE (${conditions.joinToString(" OR ")}) " +
+                        "LIMIT $limit OFFSET $offset"
+            }
+            else -> {
+                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                        "FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                        "WHERE (${conditions.joinToString(" OR ")}) " +
+                        "LIMIT $limit OFFSET $offset"
+            }
+        }
+
+        return database?.rawQuery(baseQuery, args.toTypedArray())?.use { cursor ->
+            cursor.toSearchResultsRaw()
+        } ?: emptyList()
+    }
+
+    fun searchNetworksByBSSIDAndFieldsRaw(
+        query: String,
+        filters: Set<String>,
+        wholeWords: Boolean
+    ): List<Map<String, Any?>> {
+        val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
+        Log.d(TAG, "Index level: $indexLevel")
+
+        val tableName = if (getTableNames().contains("nets")) "nets" else "base"
+        val allResults = mutableSetOf<Map<String, Any?>>()
+
+        filters.forEach { field ->
+            val fieldResults = when (field) {
+                "BSSID" -> searchByBssidRaw(query, indexLevel, tableName)
+                "ESSID" -> searchByEssidRaw(query, indexLevel, tableName, wholeWords)
+                "WiFiKey" -> searchByWifiKeyRaw(query, indexLevel, tableName, wholeWords)
+                "WPSPIN" -> searchByWpsPinRaw(query, indexLevel, tableName)
+                else -> emptyList()
+            }
+            allResults.addAll(fieldResults)
+        }
+
+        return allResults.distinctBy { "${it["BSSID"]}-${it["ESSID"]}" }
+    }
+
+    private fun searchByBssidRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String): List<Map<String, Any?>> {
+        val possibleFormats = generateMacFormats(query)
+        val results = mutableListOf<Map<String, Any?>>()
+
+        Log.d(TAG, "BSSID raw search - Original query: $query")
+        Log.d(TAG, "BSSID raw search - Generated formats: $possibleFormats")
+
+        possibleFormats.forEach { format ->
+            val decimalValue = macToDecimal(format)
+            if (decimalValue != -1L) {
+                val sql = DatabaseIndices.getOptimalBssidSearchQuery(indexLevel, tableName)
+                Log.d(TAG, "BSSID raw search - Using query: $sql with decimal: $decimalValue")
+
+                database?.rawQuery(sql, arrayOf(decimalValue.toString()))?.use { cursor ->
+                    results.addAll(cursor.toSearchResultsRaw())
+                }
+            }
+        }
+
+        if (results.isEmpty() && !query.matches("[0-9]+".toRegex())) {
+            val fallbackSql = DatabaseIndices.getOptimalBssidFallbackQuery(indexLevel, tableName)
+            Log.d(TAG, "BSSID raw search - Using fallback query: $fallbackSql")
+
+            database?.rawQuery(fallbackSql, arrayOf("%$query%"))?.use { cursor ->
+                results.addAll(cursor.toSearchResultsRaw())
+            }
+        }
+
+        Log.d(TAG, "BSSID raw search - Found ${results.size} results")
+        return results
+    }
+
+    private fun searchByEssidRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
+        val searchValue = if (wholeWords) query else "%$query%"
+        val sql = DatabaseIndices.getOptimalEssidSearchQuery(indexLevel, tableName, wholeWords)
+
+        Log.d(TAG, "ESSID raw search - Using query: $sql")
+        Log.d(TAG, "ESSID raw search - Search value: $searchValue")
+
+        return database?.rawQuery(sql, arrayOf(searchValue))?.use { cursor ->
+            cursor.toSearchResultsRaw()
+        } ?: emptyList()
+    }
+
+    private fun searchByWifiKeyRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
+        val searchValue = if (wholeWords) query else "%$query%"
+        val sql = DatabaseIndices.getOptimalWifiKeySearchQuery(indexLevel, tableName, wholeWords)
+
+        Log.d(TAG, "WiFiKey raw search - Using query: $sql")
+        Log.d(TAG, "WiFiKey raw search - Search value: $searchValue")
+
+        return database?.rawQuery(sql, arrayOf(searchValue))?.use { cursor ->
+            cursor.toSearchResultsRaw()
+        } ?: emptyList()
+    }
+
+    private fun searchByWpsPinRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String): List<Map<String, Any?>> {
+        val sql = DatabaseIndices.getOptimalWpsPinSearchQuery(indexLevel, tableName)
+
+        Log.d(TAG, "WPSPIN raw search - Using query: $sql")
+        Log.d(TAG, "WPSPIN raw search - Search value: $query")
+
+        return database?.rawQuery(sql, arrayOf(query))?.use { cursor ->
+            cursor.toSearchResultsRaw()
+        } ?: emptyList()
+    }
+
+    private fun Cursor.toSearchResultsRaw(): List<Map<String, Any?>> = buildList {
+        while (moveToNext()) {
+            val result = buildMap {
+                for (i in 0 until columnCount) {
+                    val columnName = getColumnName(i)
+                    val value = when (getType(i)) {
+                        Cursor.FIELD_TYPE_INTEGER -> getLong(i)
+                        Cursor.FIELD_TYPE_FLOAT -> getFloat(i)
+                        else -> getString(i)
+                    }
+                    put(columnName, value)
+                }
+            }.toMutableMap()
+
+            add(result)
+        }
+    }
+
     fun searchNetworksByBSSIDAndFields(
         query: String,
         filters: Set<String>,

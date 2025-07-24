@@ -280,6 +280,54 @@ class SQLiteCustomHelper(
         return results
     }
 
+    fun searchNetworksByBSSIDAndFieldsPaginated(
+        tableName: String,
+        columnMap: Map<String, String>,
+        query: String,
+        filters: Set<String>,
+        wholeWords: Boolean,
+        offset: Int,
+        limit: Int
+    ): List<Map<String, Any?>> {
+        val reverseColumnMap = columnMap.entries.associate { (k, v) -> v to k }
+        val allConditions = mutableListOf<String>()
+        val allParams = mutableListOf<String>()
+
+        filters.forEach { columnName ->
+            val mappedColumn = columnMap[reverseColumnMap[columnName] ?: columnName]
+            mappedColumn?.let { dbColumn ->
+                when (reverseColumnMap[columnName]) {
+                    "mac" -> {
+                        val macFormats = generateAllMacFormats(query)
+                        macFormats.forEach { format ->
+                            allConditions.add("UPPER($dbColumn) = UPPER(?)")
+                            allParams.add(format)
+                            allConditions.add("REPLACE(REPLACE(UPPER($dbColumn), ':', ''), '-', '') = REPLACE(REPLACE(UPPER(?), ':', ''), '-', '')")
+                            allParams.add(format)
+                        }
+                        allConditions.add("$dbColumn LIKE ?")
+                        allParams.add("%$query%")
+                    }
+                    else -> {
+                        if (wholeWords) {
+                            allConditions.add("UPPER($dbColumn) = UPPER(?)")
+                            allParams.add(query)
+                        } else {
+                            allConditions.add("UPPER($dbColumn) LIKE UPPER(?)")
+                            allParams.add("%$query%")
+                        }
+                    }
+                }
+            }
+        }
+
+        if (allConditions.isEmpty()) return emptyList()
+
+        val sql = "SELECT DISTINCT * FROM $tableName WHERE ${allConditions.joinToString(" OR ")} LIMIT $limit OFFSET $offset"
+
+        return executeSearchQuery(sql, allParams.toTypedArray())
+    }
+
     private fun searchByMacAllFormats(tableName: String, columnName: String, query: String): List<Map<String, Any?>> {
         Log.d(TAG, "Processing MAC search with all formats. Original: $query")
 

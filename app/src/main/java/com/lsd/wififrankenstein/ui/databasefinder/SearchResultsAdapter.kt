@@ -81,7 +81,7 @@ class SearchResultsAdapter : PagingDataAdapter<SearchResult, SearchResultsAdapte
 
             binding.apply {
                 textViewSsid.text = item.ssid
-                textViewBssid.text = item.bssid
+                textViewBssid.text = item.getFormattedBssid()
 
                 val wpsPin = item.wpsPin
                 val isValidWpsPin = wpsPin?.let {
