@@ -53,6 +53,17 @@
             app:layout_constraintStart_toEndOf="@id/textViewPinCount"
             app:layout_constraintTop_toTopOf="@id/textViewPinCount" />
 
+        <TextView
+            android:id="@+id/textViewPossibleCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textAppearance="?attr/textAppearanceCaption"
+            android:textColor="?attr/colorSecondary"
+            app:layout_constraintBottom_toBottomOf="@id/textViewPinCount"
+            app:layout_constraintStart_toEndOf="@id/textViewSuggestedCount"
+            app:layout_constraintTop_toTopOf="@id/textViewPinCount" />
+
         <ImageView
             android:id="@+id/imageViewExpand"
             android:layout_width="24dp"

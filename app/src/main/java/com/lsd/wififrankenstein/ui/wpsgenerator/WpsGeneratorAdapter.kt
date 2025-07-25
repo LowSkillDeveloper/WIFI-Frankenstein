@@ -47,11 +47,20 @@ class WpsGeneratorAdapter : ListAdapter<WpsGeneratorResult, WpsGeneratorAdapter.
             binding.textViewPinCount.text = itemView.context.getString(R.string.pins_found_count, result.pins.size)
 
             val suggestedCount = result.pins.count { it.sugg }
+            val possibleCount = result.pins.count { !it.sugg && shouldShowQuestionMark(it) }
+
             if (suggestedCount > 0) {
                 binding.textViewSuggestedCount.visibility = View.VISIBLE
                 binding.textViewSuggestedCount.text = itemView.context.getString(R.string.suggested_pins_count, suggestedCount)
             } else {
                 binding.textViewSuggestedCount.visibility = View.GONE
+            }
+
+            if (possibleCount > 0) {
+                binding.textViewPossibleCount.visibility = View.VISIBLE
+                binding.textViewPossibleCount.text = itemView.context.getString(R.string.possible_pins_count, possibleCount)
+            } else {
+                binding.textViewPossibleCount.visibility = View.GONE
             }
 
             pinAdapter.submitList(result.pins)
@@ -80,6 +89,7 @@ class WpsGeneratorAdapter : ListAdapter<WpsGeneratorResult, WpsGeneratorAdapter.
             private val textPin = itemView.findViewById<android.widget.TextView>(R.id.text_pin)
             private val textAlgo = itemView.findViewById<android.widget.TextView>(R.id.text_algo)
             private val imageSuggested = itemView.findViewById<android.widget.ImageView>(R.id.image_suggested)
+            private val imageQuestion = itemView.findViewById<android.widget.ImageView>(R.id.image_question)
             private val chipExperimental = itemView.findViewById<com.google.android.material.chip.Chip>(R.id.chip_experimental)
 
             init {
@@ -92,7 +102,20 @@ class WpsGeneratorAdapter : ListAdapter<WpsGeneratorResult, WpsGeneratorAdapter.
             fun bind(pin: WPSPin) {
                 textPin.text = pin.pin
                 textAlgo.text = pin.name
-                imageSuggested.visibility = if (pin.sugg) View.VISIBLE else View.GONE
+                when {
+                    pin.sugg -> {
+                        imageSuggested.visibility = View.VISIBLE
+                        imageQuestion.visibility = View.GONE
+                    }
+                    this@WpsGeneratorAdapter.shouldShowQuestionMark(pin) -> {
+                        imageSuggested.visibility = View.GONE
+                        imageQuestion.visibility = View.VISIBLE
+                    }
+                    else -> {
+                        imageSuggested.visibility = View.GONE
+                        imageQuestion.visibility = View.GONE
+                    }
+                }
                 chipExperimental.visibility = if (pin.isExperimental) View.VISIBLE else View.GONE
 
                 if (pin.additionalData.containsKey("source")) {
@@ -107,6 +130,18 @@ class WpsGeneratorAdapter : ListAdapter<WpsGeneratorResult, WpsGeneratorAdapter.
                 clipboard.setPrimaryClip(clip)
                 Toast.makeText(context, context.getString(R.string.pin_copied), Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private fun shouldShowQuestionMark(pin: WPSPin): Boolean {
+        val source = pin.additionalData["source"] as? String
+        val exactMatch = pin.additionalData["exact_match"] as? Boolean ?: false
+
+        return when {
+            pin.isFrom3WiFi && !exactMatch -> true
+            source == "inapp_database" -> true
+            source == "neighbor_search" && !pin.sugg -> true
+            else -> false
         }
     }
 

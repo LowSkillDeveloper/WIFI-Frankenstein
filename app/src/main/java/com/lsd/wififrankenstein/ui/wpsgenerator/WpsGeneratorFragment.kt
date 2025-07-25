@@ -129,7 +129,17 @@ class WpsGeneratorFragment : Fragment() {
             binding.layoutDatabaseOptions.visibility = if (isChecked) View.VISIBLE else View.GONE
         }
 
+        binding.switchIncludeNeighbors.setOnCheckedChangeListener { _, isChecked ->
+            binding.radioGroupNeighborDistance.visibility = if (isChecked) View.VISIBLE else View.GONE
+        }
+
         binding.radioManual.isChecked = true
+
+        binding.switchIncludeOffline.isChecked = true
+        binding.switchIncludeOnline.isChecked = false
+        binding.switchIncludeLocal.isChecked = true
+        binding.switchIncludeNeighbors.isChecked = true
+        binding.radioNeighborFar.isChecked = true
     }
 
     private fun observeViewModel() {
@@ -241,7 +251,7 @@ class WpsGeneratorFragment : Fragment() {
                 wpsPins.addAll(dbPins)
             }
 
-            val sortedPins = wpsPins.sortedWith(compareByDescending<WPSPin> { it.sugg }.thenBy { it.isExperimental })
+            val sortedPins = sortPinsByPriority(wpsPins)
 
             results.add(WpsGeneratorResult(
                 ssid = ssid,
@@ -301,8 +311,13 @@ class WpsGeneratorFragment : Fragment() {
                     ))
                 }
 
+                if (binding.switchSearchDatabases.isChecked) {
+                    val dbPins = searchInDatabases(network.BSSID)
+                    wpsPins.addAll(dbPins)
+                }
+
                 if (wpsPins.isNotEmpty()) {
-                    val sortedPins = wpsPins.sortedWith(compareByDescending<WPSPin> { it.sugg }.thenBy { it.isExperimental })
+                    val sortedPins = sortPinsByPriority(wpsPins)
 
                     results.add(WpsGeneratorResult(
                         ssid = network.SSID,
@@ -343,6 +358,8 @@ class WpsGeneratorFragment : Fragment() {
         val pins = mutableListOf<WPSPin>()
 
         try {
+            pins.addAll(searchInAppDatabase(bssid))
+
             if (binding.switchIncludeOffline.isChecked) {
                 pins.addAll(searchOfflineDatabases(bssid))
             }
@@ -398,7 +415,8 @@ class WpsGeneratorFragment : Fragment() {
                                     isFrom3WiFi = true,
                                     additionalData = mapOf(
                                         "source" to "3wifi_database",
-                                        "database" to dbItem.type
+                                        "database" to dbItem.type,
+                                        "exact_match" to true
                                     )
                                 ))
                             }
@@ -420,10 +438,13 @@ class WpsGeneratorFragment : Fragment() {
                                         mode = 0,
                                         name = getString(R.string.source_custom_database),
                                         pin = wpsPin,
-                                        isFrom3WiFi = false,
+                                        sugg = true,
+                                        score = 1.0,
+                                        isFrom3WiFi = true,
                                         additionalData = mapOf(
                                             "source" to "custom_database",
-                                            "database" to dbItem.type
+                                            "database" to dbItem.type,
+                                            "exact_match" to true
                                         )
                                     ))
                                 }
@@ -449,6 +470,8 @@ class WpsGeneratorFragment : Fragment() {
                 val url = URL("${db.path}/api/apiwps?key=${db.apiKey}&bssid=${bssid.uppercase()}")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
+                connection.connectTimeout = 5000
+                connection.readTimeout = 10000
 
                 if (connection.responseCode == HttpURLConnection.HTTP_OK) {
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
@@ -472,12 +495,13 @@ class WpsGeneratorFragment : Fragment() {
                                             mode = 0,
                                             name = name,
                                             pin = value,
-                                            sugg = scoreValue > 0.5,
+                                            sugg = scoreValue > 0.8,
                                             score = scoreValue,
                                             isFrom3WiFi = true,
                                             additionalData = mapOf(
                                                 "source" to "online_api",
-                                                "api" to db.path
+                                                "api" to db.path,
+                                                "exact_match" to (scoreValue > 0.8)
                                             )
                                         ))
                                     }
@@ -487,10 +511,25 @@ class WpsGeneratorFragment : Fragment() {
                     }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("WpsGeneratorFragment", "Error searching online database", e)
+                android.util.Log.e("WpsGeneratorFragment", "Error searching online database ${db.path}", e)
             }
         }
         pins
+    }
+
+    private fun sortPinsByPriority(pins: List<WPSPin>): List<WPSPin> {
+        return pins.sortedWith(compareBy<WPSPin> { pin ->
+            when {
+                pin.sugg && !pin.isFrom3WiFi -> 0
+                pin.sugg && pin.isFrom3WiFi && pin.additionalData["exact_match"] == true -> 1
+                pin.sugg && pin.isFrom3WiFi -> 2
+                !pin.sugg && pin.isFrom3WiFi -> 3
+                !pin.sugg && !pin.isFrom3WiFi && pin.additionalData["source"] == "inapp_database" -> 4
+                !pin.sugg && !pin.isFrom3WiFi && !pin.isExperimental -> 5
+                !pin.sugg && !pin.isFrom3WiFi && pin.isExperimental -> 6
+                else -> 7
+            }
+        }.thenByDescending { it.score })
     }
 
     private suspend fun searchLocalDatabase(bssid: String): List<WPSPin> = withContext(Dispatchers.IO) {
@@ -511,8 +550,13 @@ class WpsGeneratorFragment : Fragment() {
                         mode = 0,
                         name = getString(R.string.source_local_database),
                         pin = network.wpsCode,
-                        isFrom3WiFi = false,
-                        additionalData = mapOf("source" to "local_database")
+                        sugg = true,
+                        score = 1.0,
+                        isFrom3WiFi = true,
+                        additionalData = mapOf(
+                            "source" to "local_database",
+                            "exact_match" to true
+                        )
                     ))
                 }
             }
@@ -563,23 +607,24 @@ class WpsGeneratorFragment : Fragment() {
 
                         if (isValidWpsPin(wpsPin)) {
                             val distance = kotlin.math.abs((targetNic - (neighborDecimal and 0xFFFFFF)).toInt())
-                            val neighborType = when (distance) {
-                                in 1..10 -> getString(R.string.very_close_neighbor)
-                                in 11..100 -> getString(R.string.close_neighbor)
-                                else -> getString(R.string.medium_neighbor)
+                            val (neighborType, isSuggested) = when (distance) {
+                                in 1..10 -> Pair(getString(R.string.very_close_neighbor), true)
+                                in 11..100 -> Pair(getString(R.string.close_neighbor), true)
+                                else -> Pair(getString(R.string.medium_neighbor), false)
                             }
 
                             pins.add(WPSPin(
                                 mode = 0,
                                 name = neighborType,
                                 pin = wpsPin,
-                                sugg = false,
+                                sugg = isSuggested,
                                 score = 1.0 / kotlin.math.sqrt(distance.toDouble() + 1.0),
                                 isFrom3WiFi = true,
                                 additionalData = mapOf(
                                     "source" to "neighbor_search",
                                     "neighbor_bssid" to decimalToBssid(neighborDecimal),
-                                    "distance" to distance.toString()
+                                    "distance" to distance.toString(),
+                                    "exact_match" to false
                                 )
                             ))
                         }
@@ -591,6 +636,52 @@ class WpsGeneratorFragment : Fragment() {
             }
         }
         pins.sortedByDescending { it.score }
+    }
+
+    private suspend fun searchInAppDatabase(bssid: String): List<WPSPin> = withContext(Dispatchers.IO) {
+        val pins = mutableListOf<WPSPin>()
+        try {
+            val dbFile = getFileFromInternalStorageOrAssets("wps_pin.db")
+            val db = android.database.sqlite.SQLiteDatabase.openDatabase(dbFile.path, null, android.database.sqlite.SQLiteDatabase.OPEN_READONLY)
+            val macPrefix = bssid.substring(0, 8).uppercase()
+
+            val cursor = db.rawQuery("SELECT pin FROM pins WHERE mac=?", arrayOf(macPrefix))
+            cursor.use {
+                while (it.moveToNext()) {
+                    val pin = it.getString(it.getColumnIndexOrThrow("pin"))
+                    if (isValidWpsPin(pin)) {
+                        pins.add(WPSPin(
+                            mode = 0,
+                            name = getString(R.string.source_inapp_database),
+                            pin = pin,
+                            sugg = false,
+                            score = 0.5,
+                            isFrom3WiFi = false,
+                            additionalData = mapOf(
+                                "source" to "inapp_database",
+                                "exact_match" to false
+                            )
+                        ))
+                    }
+                }
+            }
+            db.close()
+        } catch (e: Exception) {
+            android.util.Log.e("WpsGeneratorFragment", "Error accessing in-app database", e)
+        }
+        pins
+    }
+
+    private fun getFileFromInternalStorageOrAssets(fileName: String): java.io.File {
+        val file = java.io.File(requireContext().filesDir, fileName)
+        if (!file.exists()) {
+            requireContext().assets.open(fileName).use { input ->
+                java.io.FileOutputStream(file).use { output ->
+                    input.copyTo(output)
+                }
+            }
+        }
+        return file
     }
 
 

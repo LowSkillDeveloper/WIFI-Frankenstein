@@ -880,7 +880,7 @@
     <string name="pins_found_count">%d PINs found</string>
     <string name="suggested_pins_count">%d suggested</string>
     <string name="pin_copied">PIN copied to clipboard</string>
-    <string name="experimental">EXP</string>
+    <string name="experimental" translatable="false">EXP</string>
     <string name="unknown_network">Unknown Network</string>
     <string name="no_suggested_pins_found">No suggested PINs found for scanned networks</string>
     <string name="error_scanning_wifi">Error scanning WiFi networks</string>
@@ -889,9 +889,21 @@
     <string name="select_network_for_generation">Select Network for PIN Generation</string>
     <string name="scan_networks_first">Please scan networks first</string>
     <string name="no_networks_found">No networks found</string>
-    
+
     <string name="no_pins_generated">No pins generated</string>
     <string name="pins_generated_for_networks">Pins generated for %d networks</string>
     <string name="pins_generated_for_networks_with_suggested">Pins generated for %d networks (%d with suggested pins)</string>
+
+
+    <string name="generate_all">Generate All</string>
+    <string name="offline_db">Offline DB</string>
+    <string name="online_db">Online DB</string>
+    <string name="local_db">Local DB</string>
+    <string name="neighbors">Neighbors</string>
+    <string name="medium">Medium</string>
+    <string name="far">Far</string>
+    <string name="source_inapp_database">In-App Database</string>
+
+    <string name="possible_pins_count">%d possible</string>
 
 </resources>

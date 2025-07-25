@@ -794,7 +794,6 @@
     <string name="pins_found_count">Найдено PIN-кодов: %d</string>
     <string name="suggested_pins_count">Предложено: %d</string>
     <string name="pin_copied">PIN скопирован в буфер</string>
-    <string name="experimental">ЭКС</string>
     <string name="unknown_network">Неизвестная сеть</string>
     <string name="no_suggested_pins_found">Нет предложенных PIN-кодов для найденных сетей</string>
     <string name="error_scanning_wifi">Ошибка при сканировании Wi-Fi</string>
