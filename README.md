@@ -61,8 +61,6 @@ The application combines various WiFi tools and functionality into one powerful 
 ## ⚠️ Known Issues
 
 - **Profile Saving**: Saving wifi profiles may sometimes fail
-- **WPS Pin Detection**: The local WPS pin code generator does not detect possible pin codes (pins are still generated)
-- **Local DB**: Some features are not fully transferred from the original locator
 
 ## 🔄 Comparison with 3WiFi Locator
 
@@ -128,6 +126,27 @@ The application requires the following permissions:
 ## ⚖️ Disclaimer
 
 This application is designed for network administrators, security researchers and WiFi enthusiasts to test and analyze their own networks. Always ensure you have proper authorization before analyzing any WiFi network.
+
+## 💝 Support Development
+
+If you find this project useful and would like to support its development, you can make a donation using cryptocurrency:
+
+### Bitcoin (BTC)
+```
+19LYe2QhHXp2YAXSPrYydGc8v3t2TPdEPf
+```
+
+### Ethereum (ETH) 
+```
+0x5ebC5Eb2f59E6B62Ca9b221F2549D5067457D9b8
+```
+
+### Monero (XMR)
+```
+4AC1MepXZA8R6XGcL5mjejWRDqKvmbY3YWGEJTCWmFxJ8gPuLULSYxKSWafy9haMXGYuR2CdF3Vr8Q2kS8pBorVpQ4Lie48
+```
+
+Your support helps maintain and improve this project. Thank you! 🙏
 
 ## 🤝 Contributing
 
