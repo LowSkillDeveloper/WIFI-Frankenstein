@@ -328,8 +328,13 @@ class WpsGeneratorFragment : Fragment() {
             }
 
             val sortedResults = results.sortedWith(
-                compareByDescending<WpsGeneratorResult> { it.pins.any { pin -> pin.sugg } }
-                    .thenBy { it.ssid }
+                compareBy<WpsGeneratorResult> { result ->
+                    when {
+                        result.pins.any { it.sugg } -> 0
+                        hasPossiblePins(result) -> 1
+                        else -> 2
+                    }
+                }.thenBy { it.ssid }
             )
 
             wpsGeneratorAdapter.submitList(sortedResults)
@@ -341,14 +346,29 @@ class WpsGeneratorFragment : Fragment() {
                 Toast.makeText(requireContext(), getString(R.string.no_pins_generated), Toast.LENGTH_SHORT).show()
             } else {
                 val networksWithSuggested = results.count { it.pins.any { pin -> pin.sugg } }
-                if (networksWithSuggested > 0) {
-                    Toast.makeText(requireContext(),
-                        getString(R.string.pins_generated_for_networks_with_suggested, results.size, networksWithSuggested),
-                        Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(requireContext(),
-                        getString(R.string.pins_generated_for_networks, results.size),
-                        Toast.LENGTH_SHORT).show()
+                val networksWithPossible = results.count { hasPossiblePins(it) }
+
+                when {
+                    networksWithSuggested > 0 && networksWithPossible > 0 -> {
+                        Toast.makeText(requireContext(),
+                            getString(R.string.pins_generated_with_suggested_and_possible, results.size, networksWithSuggested, networksWithPossible),
+                            Toast.LENGTH_SHORT).show()
+                    }
+                    networksWithSuggested > 0 -> {
+                        Toast.makeText(requireContext(),
+                            getString(R.string.pins_generated_for_networks_with_suggested, results.size, networksWithSuggested),
+                            Toast.LENGTH_SHORT).show()
+                    }
+                    networksWithPossible > 0 -> {
+                        Toast.makeText(requireContext(),
+                            getString(R.string.pins_generated_with_possible, results.size, networksWithPossible),
+                            Toast.LENGTH_SHORT).show()
+                    }
+                    else -> {
+                        Toast.makeText(requireContext(),
+                            getString(R.string.pins_generated_for_networks, results.size),
+                            Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
@@ -670,6 +690,22 @@ class WpsGeneratorFragment : Fragment() {
             android.util.Log.e("WpsGeneratorFragment", "Error accessing in-app database", e)
         }
         pins
+    }
+
+    private fun shouldShowQuestionMark(pin: WPSPin): Boolean {
+        val source = pin.additionalData["source"] as? String
+        val exactMatch = pin.additionalData["exact_match"] as? Boolean ?: false
+
+        return when {
+            pin.isFrom3WiFi && !exactMatch -> true
+            source == "inapp_database" -> true
+            source == "neighbor_search" && !pin.sugg -> true
+            else -> false
+        }
+    }
+
+    private fun hasPossiblePins(result: WpsGeneratorResult): Boolean {
+        return result.pins.any { !it.sugg && shouldShowQuestionMark(it) }
     }
 
     private fun getFileFromInternalStorageOrAssets(fileName: String): java.io.File {

@@ -907,4 +907,7 @@
 
     <string name="possible_pins_count">Possible: %d</string>
 
+    <string name="pins_generated_with_suggested_and_possible">Pins generated for %d networks (%d suggested, %d possible)</string>
+    <string name="pins_generated_with_possible">Pins generated for %d networks (%d with possible pins)</string>
+
 </resources>
