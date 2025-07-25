@@ -772,6 +772,7 @@
     <string name="channel_analysis_error">Помилка аналізу каналу</string>
     <string name="pins_found_from_sources">Знайдено %d PIN-кодів з %d джерел</string>
 
+    <string name="very_close_neighbor">"Дуже близький сусід  "</string>
     <string name="menu_wps_generator">Генератор WPS</string>
     <string name="select_mode">Виберіть режим</string>
     <string name="manual_input">Введення вручну</string>
@@ -802,7 +803,32 @@
     <string name="select_network_for_generation">Виберіть мережу для генерації PIN</string>
     <string name="scan_networks_first">Спочатку проскануйте мережі</string>
     <string name="no_networks_found">Мережі не знайдено</string>
+    <string name="include_inapp_database">Вбудована база</string>
     <string name="possible_pins_count">Можливих: %d</string>
+    <string name="qr_code_eth_description">QR-код для донату в ETH</string>
+    <string name="rickroll_error">Неможливо відкрити посилання</string>
+    <string name="close_neighbor">"Близький сусід  "</string>
+    <string name="medium_neighbor">"Середній сусід  "</string>
+    <string name="no_pins_generated">"Піни не згенеровано  "</string>
+    <string name="pins_generated_for_networks">"Згенеровано пінів для %d мереж  "</string>
+    <string name="pins_generated_for_networks_with_suggested">"Згенеровано пінів для %d мереж (%d із запропонованими пінами)  "</string>
+    <string name="generate_all">"Згенерувати для всіх  "</string>
+    <string name="offline_db">Офлайн база</string>
+    <string name="online_db">Онлайн база</string>
+    <string name="local_db">"Локальна база "</string>
+    <string name="neighbors">"Сусіди "</string>
+    <string name="source_inapp_database">Вбудована база</string>
+    <string name="pins_generated_with_suggested_and_possible">Згенеровано піни для %d мереж (%d запропоновано, %d можливо)</string>
+    <string name="pins_generated_with_possible">Згенеровано піни для %d мереж (%d з можливими пінами)</string>
+    <string name="donation_title">Підтримати розробку</string>
+    <string name="btc_address_label">Bitcoin (BTC) адреса:</string>
+    <string name="qr_code_btc_description">QR-код для донату в BTC</string>
+    <string name="xmr_address_label">Monero (XMR) адреса:</string>
+    <string name="qr_code_xmr_description">QR-код для донату в XMR</string>
+    <string name="qr_code_description">QR-код для донату</string>
+    <string name="tap_to_copy">Натисніть, щоб скопіювати адресу</string>
+    <string name="address_copied">Адресу скопійовано в буфер обміну</string>
+    <string name="eth_address_label">Ethereum (ETH) адреса:</string>
 
 
 </resources>
