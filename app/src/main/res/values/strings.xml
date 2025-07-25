@@ -858,4 +858,36 @@
     <string name="very_close_neighbor" translatable="false">Very Close Neighbor</string>
 
 
+    <string name="menu_wps_generator">WPS Generator</string>
+    <string name="select_mode">Select Mode</string>
+    <string name="manual_input">Manual Input</string>
+    <string name="scan_networks">Scan Networks</string>
+    <string name="press_scan_to_start">Press scan to find networks</string>
+    <string name="include_experimental_algorithms">Include experimental algorithms</string>
+    <string name="search_in_databases">Search in databases</string>
+    <string name="include_offline_databases">Offline databases</string>
+    <string name="include_online_databases">Online databases</string>
+    <string name="include_local_database">Local database</string>
+    <string name="include_neighbor_search">Neighbor search</string>
+    <string name="neighbor_close">Close (±10)</string>
+    <string name="neighbor_medium">Medium (±100)</string>
+    <string name="neighbor_far">Far (±1000)</string>
+    <string name="generate_pins">Generate PINs</string>
+    <string name="scan_wifi_networks">Scan WiFi Networks</string>
+    <string name="generate_for_all">Generate for All Networks</string>
+    <string name="networks_found">%d networks found</string>
+    <string name="select_network">Select Network</string>
+    <string name="pins_found_count">%d PINs found</string>
+    <string name="suggested_pins_count">%d suggested</string>
+    <string name="pin_copied">PIN copied to clipboard</string>
+    <string name="experimental">EXP</string>
+    <string name="unknown_network">Unknown Network</string>
+    <string name="no_suggested_pins_found">No suggested PINs found for scanned networks</string>
+    <string name="error_scanning_wifi">Error scanning WiFi networks</string>
+    <string name="error_searching_databases">Error searching in databases</string>
+    <string name="enter_valid_bssid">Please enter a valid BSSID</string>
+    <string name="select_network_for_generation">Select Network for PIN Generation</string>
+    <string name="scan_networks_first">Please scan networks first</string>
+    <string name="no_networks_found">No networks found</string>
+
 </resources>

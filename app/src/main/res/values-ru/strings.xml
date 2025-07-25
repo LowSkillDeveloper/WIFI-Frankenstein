@@ -772,5 +772,38 @@
     <string name="channel_analysis_error">Ошибка анализа канала</string>
     <string name="pins_found_from_sources">Найдено %d PIN-кодов из %d источников</string>
 
+    <string name="menu_wps_generator">Генератор WPS</string>
+    <string name="select_mode">Выберите режим</string>
+    <string name="manual_input">Ввод вручную</string>
+    <string name="scan_networks">Сканировать сети</string>
+    <string name="press_scan_to_start">Нажмите «Сканировать», чтобы найти сети</string>
+    <string name="include_experimental_algorithms">Включить экспериментальные алгоритмы</string>
+    <string name="search_in_databases">Поиск в базах данных</string>
+    <string name="include_offline_databases">Офлайн-базы данных</string>
+    <string name="include_online_databases">Онлайн-базы данных</string>
+    <string name="include_local_database">Локальная база данных</string>
+    <string name="include_neighbor_search">Поиск по соседним</string>
+    <string name="neighbor_close">Близко (±10)</string>
+    <string name="neighbor_medium">Средне (±100)</string>
+    <string name="neighbor_far">Далеко (±1000)</string>
+    <string name="generate_pins">Сгенерировать PIN-коды</string>
+    <string name="scan_wifi_networks">Сканировать Wi-Fi сети</string>
+    <string name="generate_for_all">Сгенерировать для всех сетей</string>
+    <string name="networks_found">Найдено сетей: %d</string>
+    <string name="select_network">Выберите сеть</string>
+    <string name="pins_found_count">Найдено PIN-кодов: %d</string>
+    <string name="suggested_pins_count">Предложено: %d</string>
+    <string name="pin_copied">PIN скопирован в буфер</string>
+    <string name="experimental">ЭКС</string>
+    <string name="unknown_network">Неизвестная сеть</string>
+    <string name="no_suggested_pins_found">Нет предложенных PIN-кодов для найденных сетей</string>
+    <string name="error_scanning_wifi">Ошибка при сканировании Wi-Fi</string>
+    <string name="error_searching_databases">Ошибка при поиске в базах данных</string>
+    <string name="enter_valid_bssid">Введите корректный BSSID</string>
+    <string name="select_network_for_generation">Выберите сеть для генерации PIN</string>
+    <string name="scan_networks_first">Сначала выполните сканирование сетей</string>
+    <string name="no_networks_found">Сети не найдены</string>
+
+
 
 </resources>

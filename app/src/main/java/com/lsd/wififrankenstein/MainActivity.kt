@@ -57,6 +57,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_wifi_analysis,
                 R.id.nav_database_finder,
                 R.id.nav_wifi_map,
+                R.id.nav_wps_generator,
                 R.id.nav_settings,
                 R.id.nav_about
             ), drawerLayout

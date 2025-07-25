@@ -22,6 +22,12 @@
         tools:layout="@layout/fragment_wifi_scanner" />
 
     <fragment
+        android:id="@+id/nav_wps_generator"
+        android:name="com.lsd.wififrankenstein.ui.wpsgenerator.WpsGeneratorFragment"
+        android:label="@string/menu_wps_generator"
+        tools:layout="@layout/fragment_wps_generator" />
+
+    <fragment
         android:id="@+id/nav_api_query"
         android:name="com.lsd.wififrankenstein.ui.api3wifi.API3WiFiFragment"
         android:label="@string/menu_api_query"
