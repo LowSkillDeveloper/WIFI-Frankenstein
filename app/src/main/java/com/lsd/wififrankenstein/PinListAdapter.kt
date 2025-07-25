@@ -117,6 +117,10 @@ class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiff
                 textAdditionalData.setTextColor(secondaryTextColor)
             }
 
+            if (pin.isExperimental || pin.name.lowercase().contains("fake")) {
+                textAlgo.setTextColor(ContextCompat.getColor(context, R.color.error_red))
+            }
+
             if (pin.isExperimental && !pin.sugg) {
                 textAlgo.text = "${pin.name}"
             } else {
