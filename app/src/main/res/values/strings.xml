@@ -889,5 +889,9 @@
     <string name="select_network_for_generation">Select Network for PIN Generation</string>
     <string name="scan_networks_first">Please scan networks first</string>
     <string name="no_networks_found">No networks found</string>
+    
+    <string name="no_pins_generated">No pins generated</string>
+    <string name="pins_generated_for_networks">Pins generated for %d networks</string>
+    <string name="pins_generated_for_networks_with_suggested">Pins generated for %d networks (%d with suggested pins)</string>
 
 </resources>

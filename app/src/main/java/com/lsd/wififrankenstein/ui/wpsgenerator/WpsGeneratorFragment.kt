@@ -265,36 +265,76 @@ class WpsGeneratorFragment : Fragment() {
 
             scannedNetworks.forEach { network ->
                 val suggestedPins = wpsPinGenerator.generateSuggestedPins(network.BSSID, includeExperimental = includeExperimental)
+                val allPins = wpsPinGenerator.generateAllPins(network.BSSID, includeExperimental = includeExperimental)
 
-                if (suggestedPins.isNotEmpty()) {
-                    val wpsPins = suggestedPins.map { pinResult ->
-                        WPSPin(
-                            mode = 0,
-                            name = pinResult.algorithm,
-                            pin = pinResult.pin,
-                            sugg = true,
-                            score = 1.0,
-                            additionalData = mapOf("mode" to pinResult.mode),
-                            isFrom3WiFi = false,
-                            isExperimental = pinResult.isExperimental
-                        )
+                val wpsPins = mutableListOf<WPSPin>()
+
+                suggestedPins.forEach { pinResult ->
+                    wpsPins.add(WPSPin(
+                        mode = 0,
+                        name = pinResult.algorithm,
+                        pin = pinResult.pin,
+                        sugg = true,
+                        score = 1.0,
+                        additionalData = mapOf("mode" to pinResult.mode),
+                        isFrom3WiFi = false,
+                        isExperimental = pinResult.isExperimental
+                    ))
+                }
+
+                val nonSuggestedPins = allPins.filter { allPin ->
+                    suggestedPins.none { suggestedPin ->
+                        suggestedPin.pin == allPin.pin && suggestedPin.algorithm == allPin.algorithm
                     }
+                }
+
+                nonSuggestedPins.forEach { pinResult ->
+                    wpsPins.add(WPSPin(
+                        mode = 0,
+                        name = pinResult.algorithm,
+                        pin = pinResult.pin,
+                        sugg = false,
+                        score = 0.0,
+                        additionalData = mapOf("mode" to pinResult.mode),
+                        isFrom3WiFi = false,
+                        isExperimental = pinResult.isExperimental
+                    ))
+                }
+
+                if (wpsPins.isNotEmpty()) {
+                    val sortedPins = wpsPins.sortedWith(compareByDescending<WPSPin> { it.sugg }.thenBy { it.isExperimental })
 
                     results.add(WpsGeneratorResult(
                         ssid = network.SSID,
                         bssid = network.BSSID,
-                        pins = wpsPins
+                        pins = sortedPins
                     ))
                 }
             }
 
-            wpsGeneratorAdapter.submitList(results)
+            val sortedResults = results.sortedWith(
+                compareByDescending<WpsGeneratorResult> { it.pins.any { pin -> pin.sugg } }
+                    .thenBy { it.ssid }
+            )
+
+            wpsGeneratorAdapter.submitList(sortedResults)
             binding.recyclerViewResults.visibility = View.VISIBLE
             binding.progressBar.visibility = View.GONE
             binding.buttonGenerateAll.isEnabled = true
 
             if (results.isEmpty()) {
-                Toast.makeText(requireContext(), getString(R.string.no_suggested_pins_found), Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.no_pins_generated), Toast.LENGTH_SHORT).show()
+            } else {
+                val networksWithSuggested = results.count { it.pins.any { pin -> pin.sugg } }
+                if (networksWithSuggested > 0) {
+                    Toast.makeText(requireContext(),
+                        getString(R.string.pins_generated_for_networks_with_suggested, results.size, networksWithSuggested),
+                        Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(),
+                        getString(R.string.pins_generated_for_networks, results.size),
+                        Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
