@@ -135,6 +135,7 @@ class WpsGeneratorFragment : Fragment() {
 
         binding.radioManual.isChecked = true
 
+        binding.switchIncludeInApp.isChecked = true
         binding.switchIncludeOffline.isChecked = true
         binding.switchIncludeOnline.isChecked = false
         binding.switchIncludeLocal.isChecked = true
@@ -378,7 +379,9 @@ class WpsGeneratorFragment : Fragment() {
         val pins = mutableListOf<WPSPin>()
 
         try {
-            pins.addAll(searchInAppDatabase(bssid))
+            if (binding.switchIncludeInApp.isChecked) {
+                pins.addAll(searchInAppDatabase(bssid))
+            }
 
             if (binding.switchIncludeOffline.isChecked) {
                 pins.addAll(searchOfflineDatabases(bssid))

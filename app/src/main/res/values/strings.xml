@@ -852,10 +852,10 @@
     <string name="from_database" translatable="false">From Database</string>
     <string name="score_format" translatable="false">Score: %.3f</string>
 
-    <string name="close_neighbor" translatable="false">Close Neighbor</string>
-    <string name="medium_neighbor" translatable="false">Medium Neighbor</string>
+    <string name="close_neighbor">Close Neighbor</string>
+    <string name="medium_neighbor">Medium Neighbor</string>
     <string name="distance_format" translatable="false">±%d</string>
-    <string name="very_close_neighbor" translatable="false">Very Close Neighbor</string>
+    <string name="very_close_neighbor">Very Close Neighbor</string>
 
 
     <string name="menu_wps_generator">WPS Generator</string>
@@ -868,7 +868,7 @@
     <string name="include_offline_databases">Offline databases</string>
     <string name="include_online_databases">Online databases</string>
     <string name="include_local_database">Local database</string>
-    <string name="include_neighbor_search">Neighbor search</string>
+    <string name="include_neighbor_search">Neighbor search algorithm</string>
     <string name="neighbor_close">Close (±10)</string>
     <string name="neighbor_medium">Medium (±100)</string>
     <string name="neighbor_far">Far (±1000)</string>
@@ -877,8 +877,8 @@
     <string name="generate_for_all">Generate for All Networks</string>
     <string name="networks_found">%d networks found</string>
     <string name="select_network">Select Network</string>
-    <string name="pins_found_count">%d PINs found</string>
-    <string name="suggested_pins_count">%d suggested</string>
+    <string name="pins_found_count">PINs: %d</string>
+    <string name="suggested_pins_count">Suggested: %d</string>
     <string name="pin_copied">PIN copied to clipboard</string>
     <string name="experimental" translatable="false">EXP</string>
     <string name="unknown_network">Unknown Network</string>
@@ -900,10 +900,8 @@
     <string name="online_db">Online DB</string>
     <string name="local_db">Local DB</string>
     <string name="neighbors">Neighbors</string>
-    <string name="search_distance_close">Close</string>
-    <string name="search_distance_medium">Medium</string>
-    <string name="search_distance_far">Far</string>
     <string name="source_inapp_database">In-App Database</string>
+    <string name="include_inapp_database">Include In-App Database</string>
 
     <string name="possible_pins_count">Possible: %d</string>
 

@@ -782,7 +782,7 @@
     <string name="include_offline_databases">Офлайн-базы данных</string>
     <string name="include_online_databases">Онлайн-базы данных</string>
     <string name="include_local_database">Локальная база данных</string>
-    <string name="include_neighbor_search">Поиск по соседним</string>
+    <string name="include_neighbor_search">Алгоритм поиска соседей</string>
     <string name="neighbor_close">Близко (±10)</string>
     <string name="neighbor_medium">Средне (±100)</string>
     <string name="neighbor_far">Далеко (±1000)</string>
@@ -791,8 +791,8 @@
     <string name="generate_for_all">Сгенерировать для всех сетей</string>
     <string name="networks_found">Найдено сетей: %d</string>
     <string name="select_network">Выберите сеть</string>
-    <string name="pins_found_count">Найдено PIN-кодов: %d</string>
-    <string name="suggested_pins_count">Предложено: %d</string>
+    <string name="pins_found_count">PIN-кодов: %d</string>
+    <string name="suggested_pins_count">Предложеных: %d</string>
     <string name="pin_copied">PIN скопирован в буфер</string>
     <string name="unknown_network">Неизвестная сеть</string>
     <string name="no_suggested_pins_found">Нет предложенных PIN-кодов для найденных сетей</string>
@@ -802,7 +802,7 @@
     <string name="select_network_for_generation">Выберите сеть для генерации PIN</string>
     <string name="scan_networks_first">Сначала выполните сканирование сетей</string>
     <string name="no_networks_found">Сети не найдены</string>
-    <string name="possible_pins_count">Возможный: %d</string>
+    <string name="possible_pins_count">Возможных: %d</string>
 
 
 </resources>

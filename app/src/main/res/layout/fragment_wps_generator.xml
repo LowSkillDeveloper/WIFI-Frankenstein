@@ -177,47 +177,46 @@
                     android:orientation="vertical"
                     android:visibility="gone">
 
-                    <LinearLayout
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchIncludeInApp"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:text="@string/include_inapp_database" />
 
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/switchIncludeOffline"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/offline_db" />
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/switchIncludeOnline"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/online_db" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchIncludeOffline"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:layout_marginTop="4dp"
+                        android:text="@string/include_offline_databases" />
 
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/switchIncludeLocal"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/local_db" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchIncludeLocal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/include_local_database" />
 
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/switchIncludeNeighbors"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/neighbors" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchIncludeOnline"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/include_online_databases" />
 
-                    </LinearLayout>
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="?attr/colorPrimary" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchIncludeNeighbors"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/include_neighbor_search" />
 
                     <RadioGroup
                         android:id="@+id/radioGroupNeighborDistance"
@@ -232,7 +231,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="@string/search_distance_close"
+                            android:text="@string/neighbor_close"
                             android:textSize="12sp" />
 
                         <RadioButton
@@ -241,7 +240,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:checked="true"
-                            android:text="@string/search_distance_medium"
+                            android:text="@string/neighbor_medium"
                             android:textSize="12sp" />
 
                         <RadioButton
@@ -249,7 +248,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="@string/search_distance_far"
+                            android:text="@string/neighbor_far"
                             android:textSize="12sp" />
 
                     </RadioGroup>

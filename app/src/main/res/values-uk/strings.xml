@@ -782,7 +782,7 @@
     <string name="include_offline_databases">Офлайн-бази даних</string>
     <string name="include_online_databases">Онлайн-бази даних</string>
     <string name="include_local_database">Локальна база даних</string>
-    <string name="include_neighbor_search">Пошук по сусідніх</string>
+    <string name="include_neighbor_search">Алгоритм пошуку сусідів</string>
     <string name="neighbor_close">Близько (±10)</string>
     <string name="neighbor_medium">Середньо (±100)</string>
     <string name="neighbor_far">Далеко (±1000)</string>
@@ -791,8 +791,8 @@
     <string name="generate_for_all">Згенерувати для всіх мереж</string>
     <string name="networks_found">Знайдено мереж: %d</string>
     <string name="select_network">Виберіть мережу</string>
-    <string name="pins_found_count">Знайдено PIN-кодів: %d</string>
-    <string name="suggested_pins_count">Запропоновано: %d</string>
+    <string name="pins_found_count">PIN-кодів: %d</string>
+    <string name="suggested_pins_count">Запропонованих: %d</string>
     <string name="pin_copied">PIN скопійовано в буфер</string>
     <string name="unknown_network">Невідома мережа</string>
     <string name="no_suggested_pins_found">Не знайдено запропонованих PIN-кодів для знайдених мереж</string>
@@ -802,7 +802,7 @@
     <string name="select_network_for_generation">Виберіть мережу для генерації PIN</string>
     <string name="scan_networks_first">Спочатку проскануйте мережі</string>
     <string name="no_networks_found">Мережі не знайдено</string>
-    <string name="possible_pins_count">Можливий: %d</string>
+    <string name="possible_pins_count">Можливих: %d</string>
 
 
 </resources>
