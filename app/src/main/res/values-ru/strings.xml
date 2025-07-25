@@ -15,7 +15,7 @@
     <string name="menu_wifi_map">WiFi Карта</string>
     <string name="menu_updates">Обновления</string>
     <string name="menu_settings">Настройки</string>
-    <string name="menu_about">О приложении</string>
+    <string name="menu_about">О приложении / Донат</string>
     <string name="check_in_online_bt">Проверить онлайн</string>
     <string name="check_in_offline_bt">Проверить офлайн</string>
     <string name="select_source">Выбрать источник</string>
@@ -829,6 +829,28 @@
     <string name="tap_to_copy">"Нажмите для копирования адреса  "</string>
     <string name="address_copied">"Адрес скопирован в буфер обмена  "</string>
     <string name="eth_address_label">"Ethereum (ETH) адрес:  "</string>
+
+    <string name="wpa_generator_title">Генератор WPA</string>
+    <string name="manual_input_mode">Ручной ввод</string>
+    <string name="network_scan_mode">Сканирование сети</string>
+    <string name="enter_ssid">Введите SSID</string>
+    <string name="generate_keys">Сгенерировать ключи</string>
+    <string name="generated_keys">Сгенерированные ключи</string>
+    <string name="no_keys_generated">Ключи не сгенерированы</string>
+    <string name="invalid_input">Неверный ввод</string>
+    <string name="keys_copied">Ключ скопирован в буфер обмена</string>
+    <string name="algorithm_used">Алгоритм: %s</string>
+    <string name="generation_time">Время генерации: %d мс</string>
+    <string name="networks_scanned">Найдено сетей: %d</string>
+    <string name="scanning_networks">Сканирование сетей…</string>
+    <string name="scan_complete">Сканирование завершено</string>
+    <string name="permission_required_location">Для сканирования сетей требуется разрешение на доступ к геолокации</string>
+    <string name="wifi_disabled">Wi-Fi отключён</string>
+    <string name="enable_wifi">Включить Wi-Fi</string>
+    <string name="wifi_network">Wi-Fi сеть</string>
+    <string name="support_state">Состояние поддержки</string>
+    <string name="expand_collapse">Развернуть/Свернуть</string>
+
 
 
 </resources>

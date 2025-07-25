@@ -59,4 +59,8 @@
     <color name="text_primary">#DE000000</color>
     <color name="text_secondary">#99000000</color>
     <color name="grid_color">#42000000</color>
+
+    <color name="green_dark">#2E7D32</color>
+    <color name="orange_dark">#F57C00</color>
+    <color name="red_dark">#C62828</color>
 </resources>

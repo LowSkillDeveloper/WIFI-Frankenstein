@@ -15,7 +15,7 @@
     <string name="menu_wifi_map">WiFi Мапа</string>
     <string name="menu_updates">Оновлення</string>
     <string name="menu_settings">Налаштування</string>
-    <string name="menu_about">Про додаток</string>
+    <string name="menu_about">Про додаток / Донат</string>
     <string name="check_in_online_bt">Перевірити онлайн</string>
     <string name="check_in_offline_bt">Перевірити офлайн</string>
     <string name="select_source">Вибрати джерело</string>
@@ -829,6 +829,28 @@
     <string name="tap_to_copy">Натисніть, щоб скопіювати адресу</string>
     <string name="address_copied">Адресу скопійовано в буфер обміну</string>
     <string name="eth_address_label">Ethereum (ETH) адреса:</string>
+
+    <string name="wpa_generator_title">Генератор WPA</string>
+    <string name="manual_input_mode">Ручне введення</string>
+    <string name="network_scan_mode">Сканування мережі</string>
+    <string name="enter_ssid">Введіть SSID</string>
+    <string name="generate_keys">Згенерувати ключі</string>
+    <string name="generated_keys">Згенеровані ключі</string>
+    <string name="no_keys_generated">Ключі не згенеровано</string>
+    <string name="invalid_input">Неправильне введення</string>
+    <string name="keys_copied">Ключ скопійовано в буфер обміну</string>
+    <string name="algorithm_used">Алгоритм: %s</string>
+    <string name="generation_time">Час генерації: %d мс</string>
+    <string name="networks_scanned">Знайдено мереж: %d</string>
+    <string name="scanning_networks">Сканування мереж…</string>
+    <string name="scan_complete">Сканування завершено</string>
+    <string name="permission_required_location">Для сканування мереж потрібно дозвіл на доступ до геолокації</string>
+    <string name="wifi_disabled">Wi-Fi вимкнено</string>
+    <string name="enable_wifi">Увімкнути Wi-Fi</string>
+    <string name="wifi_network">Wi-Fi мережа</string>
+    <string name="support_state">Стан підтримки</string>
+    <string name="expand_collapse">Розгорнути/Згорнути</string>
+
 
 
 </resources>

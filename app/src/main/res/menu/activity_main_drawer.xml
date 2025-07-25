@@ -31,6 +31,10 @@
             android:icon="@drawable/ic_key"
             android:title="@string/menu_wps_generator" />
         <item
+            android:id="@+id/nav_wpa_generator"
+            android:icon="@drawable/ic_key"
+            android:title="@string/wpa_generator_title" />
+        <item
             android:id="@+id/nav_mac_location"
             android:icon="@drawable/ic_location"
             android:title="@string/menu_mac_location" />

@@ -11,6 +11,12 @@
         android:label="@string/menu_rss_news"
         tools:layout="@layout/fragment_rss_news" />
 
+    <fragment
+        android:id="@+id/nav_wpa_generator"
+        android:name="com.lsd.wififrankenstein.ui.wpagenerator.WpaGeneratorFragment"
+        android:label="@string/wpa_generator_title"
+        tools:layout="@layout/fragment_wpa_generator" />
+
     <action
         android:id="@+id/action_databaseFinderFragment_to_dbSetupFragment"
         app:destination="@id/dbSetupFragment" />
