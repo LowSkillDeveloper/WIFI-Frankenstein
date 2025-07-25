@@ -895,15 +895,16 @@
     <string name="pins_generated_for_networks_with_suggested">Pins generated for %d networks (%d with suggested pins)</string>
 
 
-    <string name="generate_all">Generate All</string>
+    <string name="generate_all">Generate for All</string>
     <string name="offline_db">Offline DB</string>
     <string name="online_db">Online DB</string>
     <string name="local_db">Local DB</string>
     <string name="neighbors">Neighbors</string>
-    <string name="medium">Medium</string>
-    <string name="far">Far</string>
+    <string name="search_distance_close">Close</string>
+    <string name="search_distance_medium">Medium</string>
+    <string name="search_distance_far">Far</string>
     <string name="source_inapp_database">In-App Database</string>
 
-    <string name="possible_pins_count">%d possible</string>
+    <string name="possible_pins_count">Possible: %d</string>
 
 </resources>

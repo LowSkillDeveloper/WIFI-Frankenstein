@@ -802,6 +802,7 @@
     <string name="select_network_for_generation">Виберіть мережу для генерації PIN</string>
     <string name="scan_networks_first">Спочатку проскануйте мережі</string>
     <string name="no_networks_found">Мережі не знайдено</string>
+    <string name="possible_pins_count">Можливий: %d</string>
 
 
 </resources>

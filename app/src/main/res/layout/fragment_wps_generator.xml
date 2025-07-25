@@ -232,7 +232,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="@string/close"
+                            android:text="@string/search_distance_close"
                             android:textSize="12sp" />
 
                         <RadioButton
@@ -241,7 +241,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:checked="true"
-                            android:text="@string/medium"
+                            android:text="@string/search_distance_medium"
                             android:textSize="12sp" />
 
                         <RadioButton
@@ -249,7 +249,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="@string/far"
+                            android:text="@string/search_distance_far"
                             android:textSize="12sp" />
 
                     </RadioGroup>
