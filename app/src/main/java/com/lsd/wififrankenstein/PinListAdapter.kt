@@ -49,7 +49,15 @@ class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiff
                 textScore.visibility = View.GONE
             }
 
-            textDb.text = if (pin.sugg) "✔" else ""
+            if (pin.sugg) {
+                textDb.text = ""
+                val starDrawable = ContextCompat.getDrawable(itemView.context, R.drawable.ic_star)
+                starDrawable?.setBounds(0, 0, starDrawable.intrinsicWidth, starDrawable.intrinsicHeight)
+                textDb.setCompoundDrawablesRelative(starDrawable, null, null, null)
+            } else {
+                textDb.text = ""
+                textDb.setCompoundDrawablesRelative(null, null, null, null)
+            }
 
             val additionalInfo = when {
                 pin.isFrom3WiFi -> {

@@ -5,17 +5,9 @@
 
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_rss_news"
-            android:icon="@drawable/ic_menu_gallery"
-            android:title="@string/menu_rss_news" />
-        <item
             android:id="@+id/nav_wifi_scanner"
             android:icon="@drawable/baseline_wifi_find_24"
             android:title="@string/menu_wifi_scanner" />
-        <item
-            android:id="@+id/nav_wps_generator"
-            android:icon="@drawable/ic_key"
-            android:title="@string/menu_wps_generator" />
         <item
             android:id="@+id/nav_database_finder"
             android:icon="@drawable/ic_storage"
@@ -35,6 +27,10 @@
             android:icon="@drawable/ic_menu_mapmode"
             android:title="@string/menu_wifi_map" />
         <item
+            android:id="@+id/nav_wps_generator"
+            android:icon="@drawable/ic_key"
+            android:title="@string/menu_wps_generator" />
+        <item
             android:id="@+id/nav_mac_location"
             android:icon="@drawable/ic_location"
             android:title="@string/menu_mac_location" />
@@ -46,6 +42,10 @@
             android:id="@+id/nav_updates"
             android:icon="@drawable/outline_archive_24"
             android:title="@string/menu_updates" />
+        <item
+            android:id="@+id/nav_rss_news"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/menu_rss_news" />
         <item
             android:id="@+id/nav_settings"
             android:icon="@drawable/outline_build_circle_24"
