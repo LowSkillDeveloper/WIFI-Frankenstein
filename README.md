@@ -39,6 +39,7 @@ The application combines various WiFi tools and functionality into one powerful 
 - **MAC base location**: Finding the location of an access point by its MAC address
 
 ### 🛠️ Tools & Features
+- **WPS PixieDust Android (OneShot)**: If you have root, you can perform a pixeldust attack from your smartphone with built-in wifi module [WIP]
 - **WiFi Channel Analysis**: Page for analyzing WiFi channels, providing insights into channel usage and performance.
 - **MAC Address Locating**: Find the geographical location of WiFi access points by MAC address
 - **More detailed information**: detection of WiFi network technologies, including RTT, NTB, TWT, and MLD
@@ -69,6 +70,7 @@ The application combines various WiFi tools and functionality into one powerful 
 |---------|-------------------|---------------|
 | Local in-app Database | ✅ Supported | ⚠️ Limited |
 | Local Full 3WiFi Database | ✅ Supported | ❌ Not supported |
+| WPS PixieDust (OneShot) | ✅ [WIP] | ❌ Not supported |
 | WPA Generators | ✅ Supported | ❌ Not supported |
 | WPS Generators | ✅ Supported | ⚠️ Limited |
 | Neighbor-based WPS PIN suggestions | ✅ Supported | ❌ Not supported |
