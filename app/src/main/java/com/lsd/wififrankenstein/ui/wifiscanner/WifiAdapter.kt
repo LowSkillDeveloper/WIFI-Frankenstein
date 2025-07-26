@@ -40,6 +40,8 @@ import com.lsd.wififrankenstein.util.NetworkSecurityInfo
 import com.lsd.wififrankenstein.util.NetworkFrequencyBand
 import com.lsd.wififrankenstein.util.NetworkBandwidth
 import com.lsd.wififrankenstein.util.SecurityProtocol
+import com.lsd.wififrankenstein.databinding.ItemWpaResultBinding
+import com.lsd.wififrankenstein.databinding.ItemWpsResultBinding
 
 class WifiAdapter(private var wifiList: List<ScanResult>, private val context: Context) :
     RecyclerView.Adapter<WifiAdapter.WifiViewHolder>() {
@@ -345,18 +347,41 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
     }
 
     private inner class CredentialsAdapter :
-        ListAdapter<NetworkDatabaseResult, CredentialsAdapter.CredentialsViewHolder>(
+        ListAdapter<NetworkDatabaseResult, RecyclerView.ViewHolder>(
             CredentialsDiffCallback()
         ) {
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CredentialsViewHolder {
-            val binding =
-                ItemCredentialBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-            return CredentialsViewHolder(binding)
+        override fun getItemViewType(position: Int): Int {
+            return when (getItem(position).resultType) {
+                ResultType.DATABASE -> TYPE_DATABASE
+                ResultType.WPA_ALGORITHM -> TYPE_WPA
+                ResultType.WPS_ALGORITHM -> TYPE_WPS
+            }
         }
 
-        override fun onBindViewHolder(holder: CredentialsViewHolder, position: Int) {
-            holder.bind(getItem(position))
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            return when (viewType) {
+                TYPE_DATABASE -> {
+                    val binding = ItemCredentialBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                    CredentialsViewHolder(binding)
+                }
+                TYPE_WPA -> {
+                    val binding = ItemWpaResultBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                    WpaViewHolder(binding)
+                }
+                TYPE_WPS -> {
+                    val binding = ItemWpsResultBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                    WpsViewHolder(binding)
+                }
+                else -> throw IllegalArgumentException("Unknown view type: $viewType")
+            }
+        }
+
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            when (holder) {
+                is CredentialsViewHolder -> holder.bind(getItem(position))
+                is WpaViewHolder -> holder.bind(getItem(position))
+                is WpsViewHolder -> holder.bind(getItem(position))
+            }
         }
 
         inner class CredentialsViewHolder(private val binding: ItemCredentialBinding) :
@@ -365,62 +390,22 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
                 Log.d("CredentialsAdapter", "Binding credentials for ${result.network.SSID}")
                 Log.d("CredentialsAdapter", "Database info: ${result.databaseInfo}")
 
-                when (result.resultType) {
-                    ResultType.WPA_ALGORITHM -> {
-                        val wpaKeys = result.databaseInfo["WiFiKey"]?.toString()
-                            ?: itemView.context.getString(R.string.not_available)
-                        val algorithm = result.databaseInfo["algorithm"]?.toString() ?: ""
-                        val supportState = result.databaseInfo["support_state"]?.toString() ?: ""
-                        val generationTime = result.databaseInfo["generation_time"]?.toString() ?: ""
+                val wifiKey = result.databaseInfo["WiFiKey"]?.toString()
+                    ?: result.databaseInfo["wifi_pass"]?.toString()
+                    ?: result.databaseInfo["key"]?.toString()
+                    ?: itemView.context.getString(R.string.not_available)
 
-                        binding.wifiKeyTextView.text = itemView.context.getString(R.string.wpa_result) + ": $wpaKeys"
-                        binding.wpsPinTextView.text = "Algorithm: $algorithm | Support: $supportState | Time: ${generationTime}ms"
+                val wpsPin = result.databaseInfo["WPSPIN"]?.toString()
+                    ?: result.databaseInfo["wps_pin"]?.toString()
+                    ?: result.databaseInfo["wps"]?.toString()
+                    ?: itemView.context.getString(R.string.not_available)
 
-                        binding.actionsButton.visibility = if (wpaKeys != itemView.context.getString(R.string.not_available))
-                            View.VISIBLE else View.GONE
-                    }
+                binding.wifiKeyTextView.text = itemView.context.getString(R.string.wifi_key_format, wifiKey)
+                binding.wpsPinTextView.text = itemView.context.getString(R.string.wps_pin_format, wpsPin)
 
-                    ResultType.WPS_ALGORITHM -> {
-                        val wpsPin = result.databaseInfo["WPSPIN"]?.toString()
-                            ?: itemView.context.getString(R.string.not_available)
-                        val algorithm = result.databaseInfo["algorithm"]?.toString() ?: ""
-                        val suggested = result.databaseInfo["suggested"]?.toString()?.toBoolean() ?: false
-                        val experimental = result.databaseInfo["experimental"]?.toString()?.toBoolean() ?: false
-                        val source = result.databaseInfo["source"]?.toString() ?: ""
-
-                        binding.wifiKeyTextView.text = itemView.context.getString(R.string.wps_result) + ": $wpsPin"
-
-                        val statusText = buildString {
-                            append("Algorithm: $algorithm")
-                            if (suggested) append(" | Suggested")
-                            if (experimental) append(" | Experimental")
-                            if (source.isNotEmpty()) append(" | Source: $source")
-                        }
-                        binding.wpsPinTextView.text = statusText
-
-                        binding.actionsButton.visibility = if (wpsPin != itemView.context.getString(R.string.not_available))
-                            View.VISIBLE else View.GONE
-                    }
-
-                    ResultType.DATABASE -> {
-                        val wifiKey = result.databaseInfo["WiFiKey"]?.toString()
-                            ?: result.databaseInfo["wifi_pass"]?.toString()
-                            ?: result.databaseInfo["key"]?.toString()
-                            ?: itemView.context.getString(R.string.not_available)
-
-                        val wpsPin = result.databaseInfo["WPSPIN"]?.toString()
-                            ?: result.databaseInfo["wps_pin"]?.toString()
-                            ?: result.databaseInfo["wps"]?.toString()
-                            ?: itemView.context.getString(R.string.not_available)
-
-                        binding.wifiKeyTextView.text = itemView.context.getString(R.string.wifi_key_format, wifiKey)
-                        binding.wpsPinTextView.text = itemView.context.getString(R.string.wps_pin_format, wpsPin)
-
-                        val hasKeyOrWps = wifiKey != itemView.context.getString(R.string.not_available) ||
-                                wpsPin != itemView.context.getString(R.string.not_available)
-                        binding.actionsButton.visibility = if (hasKeyOrWps) View.VISIBLE else View.GONE
-                    }
-                }
+                val hasKeyOrWps = wifiKey != itemView.context.getString(R.string.not_available) ||
+                        wpsPin != itemView.context.getString(R.string.not_available)
+                binding.actionsButton.visibility = if (hasKeyOrWps) View.VISIBLE else View.GONE
 
                 binding.actionsButton.setOnClickListener {
                     showActionsMenu(it, result)
@@ -447,21 +432,66 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
             }
         }
 
+        inner class WpaViewHolder(private val binding: ItemWpaResultBinding) : RecyclerView.ViewHolder(binding.root) {
+            fun bind(result: NetworkDatabaseResult) {
+                val wpaResult = result.wpaResult ?: return
+
+                binding.algorithmName.text = wpaResult.algorithm
+                binding.wpaKeysText.text = wpaResult.keys.first()
+                binding.generationTime.text = itemView.context.getString(R.string.generation_time, wpaResult.generationTime)
+
+                binding.copyKeysButton.setOnClickListener {
+                    copyToClipboard(itemView.context, "WPA Key", wpaResult.keys.first())
+                }
+            }
+        }
+
+        inner class WpsViewHolder(private val binding: ItemWpsResultBinding) : RecyclerView.ViewHolder(binding.root) {
+            fun bind(result: NetworkDatabaseResult) {
+                val wpsPin = result.wpsPin ?: return
+
+                binding.algorithmName.text = wpsPin.name
+                binding.wpsPinText.text = wpsPin.pin
+
+                val source = wpsPin.additionalData["source"] as? String
+                val distance = wpsPin.additionalData["distance"] as? String
+
+                val sourceText = when {
+                    source == "neighbor_search" && distance != null ->
+                        itemView.context.getString(R.string.source_format, "${wpsPin.name} (${distance} MAC distance)")
+                    source != null ->
+                        itemView.context.getString(R.string.source_format, source)
+                    else -> ""
+                }
+                binding.sourceInfo.text = sourceText
+
+                binding.scoreText.text = itemView.context.getString(R.string.score_format, wpsPin.score)
+
+                if (wpsPin.sugg) {
+                    binding.statusIcon.setImageResource(R.drawable.ic_star)
+                    binding.statusIcon.setColorFilter(itemView.context.getColor(R.color.orange_dark))
+                } else {
+                    binding.statusIcon.setImageResource(R.drawable.ic_help)
+                    binding.statusIcon.setColorFilter(itemView.context.getColor(R.color.orange_dark))
+                }
+
+                binding.experimentalChip.visibility = if (wpsPin.isExperimental) View.VISIBLE else View.GONE
+
+                binding.copyPinButton.setOnClickListener {
+                    copyToClipboard(itemView.context, "WPS PIN", wpsPin.pin)
+                }
+            }
+        }
+
         private fun showActionsMenu(view: View, result: NetworkDatabaseResult) {
             val popupMenu = PopupMenu(view.context, view)
             popupMenu.menuInflater.inflate(R.menu.credential_actions, popupMenu.menu)
 
-            val wifiKey = when (result.resultType) {
-                ResultType.WPA_ALGORITHM -> result.databaseInfo["WiFiKey"] as? String ?: ""
-                else -> result.databaseInfo["WiFiKey"] as? String
-                    ?: result.databaseInfo["key"] as? String ?: ""
-            }
+            val wifiKey = result.databaseInfo["WiFiKey"] as? String
+                ?: result.databaseInfo["key"] as? String ?: ""
 
-            val wpsPin = when (result.resultType) {
-                ResultType.WPS_ALGORITHM -> result.databaseInfo["WPSPIN"] as? String ?: ""
-                else -> result.databaseInfo["WPSPIN"]?.toString()
-                    ?: result.databaseInfo["wps"]?.toString() ?: ""
-            }
+            val wpsPin = result.databaseInfo["WPSPIN"]?.toString()
+                ?: result.databaseInfo["wps"]?.toString() ?: ""
 
             val prefs = view.context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             val isRootEnabled = prefs.getBoolean("enable_root", false)
@@ -697,6 +727,10 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
     }
 
     companion object {
+
+        private const val TYPE_DATABASE = 0
+        private const val TYPE_WPA = 1
+        private const val TYPE_WPS = 2
 
         fun extractDatabaseName(path: String): String {
             return try {

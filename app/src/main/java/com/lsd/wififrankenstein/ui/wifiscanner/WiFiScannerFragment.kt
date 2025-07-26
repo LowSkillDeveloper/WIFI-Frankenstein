@@ -175,29 +175,38 @@ class WiFiScannerFragment : Fragment() {
                     if (results.isNotEmpty()) {
                         val networkResults = mutableListOf<NetworkDatabaseResult>()
 
-                        results.forEach { wpaResult ->
-                            val databaseInfo = mapOf(
-                                "WiFiKey" to wpaResult.keys.joinToString(", "),
-                                "algorithm" to wpaResult.algorithm,
-                                "generation_time" to wpaResult.generationTime.toString(),
-                                "support_state" to when(wpaResult.supportState) {
-                                    2 -> getString(R.string.support_state_supported)
-                                    1 -> getString(R.string.support_state_unlikely)
-                                    else -> getString(R.string.support_state_unsupported)
+                        results.filter { it.supportState == 2 }.forEach { wpaResult ->
+                            // Создаем отдельную карточку для каждого ключа
+                            wpaResult.keys.forEachIndexed { index, key ->
+                                val keyDisplayName = if (wpaResult.keys.size > 1) {
+                                    "${wpaResult.algorithm} (Key ${index + 1}/${wpaResult.keys.size})"
+                                } else {
+                                    wpaResult.algorithm
                                 }
-                            )
 
-                            networkResults.add(NetworkDatabaseResult(
-                                network = network,
-                                databaseInfo = databaseInfo,
-                                databaseName = getString(R.string.algorithm_name, wpaResult.algorithm),
-                                resultType = ResultType.WPA_ALGORITHM
-                            ))
+                                // Создаем копию WpaResult с одним ключом
+                                val singleKeyResult = com.lsd.wififrankenstein.ui.wpagenerator.WpaResult(
+                                    keys = listOf(key),
+                                    algorithm = keyDisplayName,
+                                    generationTime = wpaResult.generationTime,
+                                    supportState = wpaResult.supportState
+                                )
 
-                            totalKeys += wpaResult.keys.size
+                                networkResults.add(NetworkDatabaseResult(
+                                    network = network,
+                                    databaseInfo = emptyMap(),
+                                    databaseName = keyDisplayName,
+                                    resultType = ResultType.WPA_ALGORITHM,
+                                    wpaResult = singleKeyResult
+                                ))
+
+                                totalKeys++
+                            }
                         }
 
-                        allResults[network.BSSID.lowercase(Locale.ROOT)] = networkResults
+                        if (networkResults.isNotEmpty()) {
+                            allResults[network.BSSID.lowercase(Locale.ROOT)] = networkResults
+                        }
                     }
                 }
 
@@ -226,37 +235,32 @@ class WiFiScannerFragment : Fragment() {
             try {
                 val networks = wifiAdapter.getWifiList()
                 val allResults = mutableMapOf<String, MutableList<NetworkDatabaseResult>>()
-                var totalPins = 0
 
                 networks.forEach { network ->
                     val pins = withContext(Dispatchers.IO) {
                         generateWpsPinsForNetwork(network)
                     }
 
-                    if (pins.isNotEmpty()) {
+                    val filteredPins = pins.filter { pin ->
+                        pin.sugg || shouldShowQuestionMark(pin)
+                    }
+
+                    if (filteredPins.isNotEmpty()) {
                         val networkResults = mutableListOf<NetworkDatabaseResult>()
 
-                        pins.forEach { wpsPin ->
-                            val databaseInfo = mapOf(
-                                "WPSPIN" to wpsPin.pin,
-                                "algorithm" to wpsPin.name,
-                                "suggested" to wpsPin.sugg.toString(),
-                                "score" to wpsPin.score.toString(),
-                                "experimental" to wpsPin.isExperimental.toString(),
-                                "from_database" to wpsPin.isFrom3WiFi.toString(),
-                                "source" to (wpsPin.additionalData["source"] ?: "algorithm")
-                            )
+                        val sortedPins = sortPinsByPriority(filteredPins)
 
+                        sortedPins.forEach { wpsPin ->
                             networkResults.add(NetworkDatabaseResult(
                                 network = network,
-                                databaseInfo = databaseInfo,
+                                databaseInfo = emptyMap(),
                                 databaseName = wpsPin.name,
-                                resultType = ResultType.WPS_ALGORITHM
+                                resultType = ResultType.WPS_ALGORITHM,
+                                wpsPin = wpsPin
                             ))
                         }
 
                         allResults[network.BSSID.lowercase(Locale.ROOT)] = networkResults
-                        totalPins += pins.size
                     }
                 }
 
@@ -277,6 +281,33 @@ class WiFiScannerFragment : Fragment() {
                     Toast.LENGTH_SHORT
                 ).show()
             }
+        }
+    }
+
+    private fun sortPinsByPriority(pins: List<WPSPin>): List<WPSPin> {
+        return pins.sortedWith(compareBy<WPSPin> { pin ->
+            when {
+                pin.sugg && !pin.isFrom3WiFi -> 0
+                pin.sugg && pin.isFrom3WiFi && pin.additionalData["exact_match"] == true -> 1
+                pin.sugg && pin.isFrom3WiFi -> 2
+                !pin.sugg && pin.isFrom3WiFi -> 3
+                !pin.sugg && !pin.isFrom3WiFi && pin.additionalData["source"] == "inapp_database" -> 4
+                !pin.sugg && !pin.isFrom3WiFi && !pin.isExperimental -> 5
+                !pin.sugg && !pin.isFrom3WiFi && pin.isExperimental -> 6
+                else -> 7
+            }
+        }.thenByDescending { it.score })
+    }
+
+    private fun shouldShowQuestionMark(pin: WPSPin): Boolean {
+        val source = pin.additionalData["source"] as? String
+        val exactMatch = pin.additionalData["exact_match"] as? Boolean ?: false
+
+        return when {
+            pin.isFrom3WiFi && !exactMatch -> true
+            source == "inapp_database" -> true
+            source == "neighbor_search" && !pin.sugg -> true
+            else -> false
         }
     }
 

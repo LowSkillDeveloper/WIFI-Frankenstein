@@ -958,4 +958,24 @@
     <string name="generating_keys">Generating keys…</string>
     <string name="no_algorithms_supported">No supported algorithms</string>
 
+    <string name="generate_wpa_algorithms">WPA Algorithms</string>
+    <string name="generate_wps_algorithms">WPS Algorithms</string>
+    <string name="wpa_algorithms_generated">WPA algorithms generated for %d networks</string>
+    <string name="wps_algorithms_generated">WPS algorithms generated for %d networks</string>
+    <string name="generating_algorithms">Generating algorithms…</string>
+    <string name="wpa_result">WPA Key</string>
+    <string name="wps_result">WPS PIN</string>
+    <string name="algorithm_name">Algorithm: %s</string>
+    <string name="support_state_supported">Supported</string>
+    <string name="support_state_unlikely">Unlikely</string>
+    <string name="support_state_unsupported">Unsupported</string>
+
+
+    <string name="wpa_algorithm_result">WPA Algorithm Result</string>
+    <string name="wps_algorithm_result">WPS Algorithm Result</string>
+    <string name="suggested_pin">Suggested</string>
+    <string name="possible_pin">Possible</string>
+    <string name="keys_copied_to_clipboard">Keys copied to clipboard</string>
+    <string name="pin_copied_to_clipboard">PIN copied to clipboard</string>
+
 </resources>
