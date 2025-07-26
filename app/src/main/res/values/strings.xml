@@ -1,7 +1,7 @@
 <resources>
 
     <string name="app_name" translatable="false">WIFI Frankenstein</string>
-    <string name="app_identifier" translatable="false">WIFIFrankenstein-1.0-official</string>
+    <string name="app_identifier" translatable="false">WIFIFrankenstein-1.1-official</string>
 
     <string name="include_app_identifier">Include App Identifier</string>
     <string name="app_identifier_description">Send app identifier with requests</string>
@@ -14,16 +14,16 @@
     <string name="db_type_smartlink">SmartLinkDB</string>
     <string name="unknown_ssid">Unknown SSID</string>
     <string name="menu_wifi_scanner">WiFi Scanner</string>
-    <string name="menu_database_finder">Local Database Query</string>
+    <string name="menu_database_finder">Databases Query</string>
     <string name="menu_wifi_map">WiFi Map</string>
     <string name="menu_updates">Updates</string>
     <string name="menu_settings">Settings</string>
-    <string name="menu_about">About</string>
-    <string name="check_in_online_bt">Check Online</string>
-    <string name="check_in_offline_bt">Check Offline</string>
+    <string name="menu_about">About / Donation</string>
+    <string name="check_in_online_bt">Online DB</string>
+    <string name="check_in_offline_bt">Offline DB</string>
     <string name="select_source">Select source</string>
-    <string name="offline_algorithms">OFFLINE ALGORITHMS</string>
-    <string name="pin_database">PIN DATABASE</string>
+    <string name="offline_algorithms">Old Generator</string>
+    <string name="pin_database">Database search</string>
     <string name="copy">Copy</string>
     <string name="copy_ssid">Copy SSID</string>
     <string name="copy_bssid">Copy BSSID</string>
@@ -185,6 +185,7 @@
 
     <string name="enable_debug_logging">Enable Debug Logging (WIP)</string>
 
+    <string name="rickroll_url" translatable="false">https://www.youtube.com/watch?v=dQw4w9WgXcQ</string>
 
     <string name="test_results_with_domain">Test Results [%1$s]</string>
 
@@ -207,7 +208,7 @@
     <string name="api_request_test_error">API Request Test: Error</string>
     <string name="time">Time: %1$d ms</string>
 
-    <string name="online_servers">Online Servers</string>
+    <string name="online_servers">3WiFi Servers</string>
     <string name="no_servers_configured">No API 3WiFi servers configured</string>
     <string name="use_post_method">Use POST requests instead of GET in WPS</string>
 
@@ -227,7 +228,6 @@
     <string name="add_new_record">Add New Record</string>
     <string name="wifi_name">WiFi Name</string>
     <string name="mac_address">MAC Address</string>
-    <string name="wifi_password">WiFi Password</string>
     <string name="wps_pin">WPS PIN</string>
     <string name="add">Add</string>
 
@@ -253,8 +253,6 @@
     <string name="import_successful">Import successful</string>
     <string name="import_failed">Import failed: %s</string>
     <string name="import_database">Import Database</string>
-
-    <string name="routerscan_import_not_implemented">RouterScan import not yet implemented</string>
 
     <string name="clear_local_database">Clear Local Database</string>
     <string name="clear_database_warning">Are you sure you want to clear the local database? This action cannot be undone.</string>
@@ -295,9 +293,6 @@
     <string name="wps_pin_not_available">WPS PIN not available</string>
 
     <string name="toast_no_data_to_save">No network data to save</string>
-    <string name="toast_network_stored">Network profile stored successfully</string>
-    <string name="toast_failed_to_store">Failed to store network profile</string>
-    <string name="toast_wifi_disabled">WiFi is disabled</string>
 
     <string name="connect_wps_root_menu">Connect using WPS (ROOT)</string>
     <string name="root_wps_not_implemented">ROOT WPS connection not implemented yet</string>
@@ -318,7 +313,6 @@
     <string name="update_banner_app">App update to %1$s available</string>
     <string name="update_banner_system">System updates available</string>
     <string name="update_banner_multiple">Multiple updates available</string>
-    <string name="update_banner_databases">Database updates available</string>
     <string name="update_banner_smartlink_db">Available database updates</string>
     <string name="update_banner_app_and_smartlink">App update to %1$s and database updates available</string>
     <string name="update_banner_system_and_smartlink">System and database updates available</string>
@@ -359,8 +353,6 @@
     <string name="select_databases">Select databases to show points from</string>
     <string name="network_info">Network Information</string>
     <string name="map_legend">Legend</string>
-    <string name="loading_points_progress">Loaded %1$d points</string>
-
 
     <string name="wifi_map_settings">WiFi Map Settings</string>
 
@@ -385,9 +377,6 @@
     <!-- API 3WiFi Method Params -->
     <string name="exclude_wifi_clients">Exclude Wi-Fi Clients</string>
     <string name="invalid_bssid_format">Invalid BSSID format</string>
-    <string name="invalid_latitude">Latitude must be between -90 and 90</string>
-    <string name="invalid_longitude">Longitude must be between -180 and 180</string>
-    <string name="invalid_radius">Radius must be between 0.001 and 25</string>
 
     <!-- API 3WiFi Fragment -->
     <string name="select_server_error">Please select a server</string>
@@ -454,10 +443,6 @@
     <string name="everything_up_to_date">Everything is up to date!</string>
 
 
-    <string name="server_url">Server URL</string>
-    <string name="test_results">Test Results</string>
-    <string name="action_settings">Settings</string>
-
     <string name="local_database">Local database</string>
     <string name="enable_indexing">Enable indexing</string>
     <string name="indexing_info">Enabling indexing will speed up searching in large databases, but will slow down adding new networks.</string>
@@ -501,7 +486,6 @@
     <string name="search_by_mac">Search by BSSID</string>
     <string name="search_by_ssid">Search by ESSID</string>
 
-    <string name="create_indexes_title">Creating indexes</string>
     <string name="create_indexes_message">To improve performance, it\'s recommended to create indexes for this database. Create now?</string>
     <string name="creating_indexes">Creating indexes…</string>
     <string name="indexing_failed">Index creation failed</string>
@@ -517,7 +501,6 @@
     <string name="database_removed">Database removed</string>
 
     <!-- DB Indexing -->
-    <string name="indexed">Indexed</string>
     <string name="not_indexed">Not indexed</string>
     <string name="index_database">Index</string>
     <string name="delete_indexes">Delete indexes</string>
@@ -561,19 +544,12 @@
     <string name="aggressive">Aggressive</string>
     <string name="points">points</string>
     <string name="zoom_level_value">Zoom level: %1$d</string>
-    <string name="marker_density">Marker density</string>
-    <string name="marker_density_info">Maximum number of markers to display. Lower values improve performance.</string>
-    <string name="sparse">Sparse</string>
-    <string name="dense">Dense</string>
 
     <string name="show_at_any_zoom">Always</string>
     <string name="only_when_close">Only when close</string>
 
     <string name="marker_visibility_zoom">Marker visibility</string>
     <string name="marker_visibility_zoom_info">Indicates how close you need to zoom to the map to see markers. Low values allow you to see markers even when zoomed out.</string>
-
-    <string name="prevent_cluster_merge">Prevent cluster merging</string>
-    <string name="prevent_cluster_merge_desc">Prevents clusters from merging when zooming out</string>
 
     <string name="force_point_separation">Separate overlapping points</string>
     <string name="force_point_separation_desc">Apply offset to points with identical coordinates</string>
@@ -628,8 +604,6 @@
     <string name="selected_databases">Selected databases</string>
     <string name="download_completed">Download completed</string>
 
-    <string name="update_banner_system_and_db">System files and database updates available</string>
-
     <!-- Permission strings -->
     <string name="permissions_required">Required permissions</string>
     <string name="permissions_description">The following permissions are required for the application to function correctly:</string>
@@ -639,7 +613,6 @@
     <string name="storage_permission_description">This permission is required to work with databases. Without it, database indexing will not be possible, and files will be cached inside the application, which will lead to double memory consumption.</string>
     <string name="request_permission">Request permission</string>
     <string name="permission_granted">Permission granted</string>
-    <string name="permission_not_granted">Permission not granted</string>
     <string name="location_icon">Location icon</string>
     <string name="storage_icon">Storage icon</string>
     <string name="permission_status">Permission status</string>
@@ -660,7 +633,7 @@
     <string name="wifi_suggestion_added">Network suggested to system</string>
     <string name="wifi_suggestion_failed">Failed to suggest network to system</string>
     <string name="password">Password</string>
-    <string name="offline_algorithms_notice">At the moment, in the offline generator section, the application only generates pin codes, but does not determine the possible one, this will be implemented in the next updates.</string>
+    <string name="offline_algorithms_notice">This is an outdated version of the generator. It only creates PIN codes but cannot determine whether a generated code works. To find a potentially working PIN code, please use the new version of the generator.</string>
 
     <!-- About Page -->
     <string name="about_title">About the application</string>
@@ -668,7 +641,6 @@
     <string name="about_app_replacement">The application was created to replace the old 3WiFi Locator application.</string>
     <string name="about_app_author">Author: LowSkillDeveloper (Internet User in Telegram)</string>
     <string name="about_libraries_title">Libraries used:</string>
-    <string name="about_github">GitHub: https://github.com/LowSkillDeveloper/WIFI-Frankenstein</string>
     <string name="github_button">Open on GitHub</string>
 
     <!-- Libraries -->
@@ -686,19 +658,14 @@
     <string name="error_merging_parts">Error merging parts: %1$s</string>
 
     <string name="advanced_mode">Advanced Mode</string>
-    <string name="simple_mode_hint">Simple database search</string>
     <string name="search_networks">Search Networks</string>
     <string name="enter_mac_address">MAC address (e.g., 01:23:45:67:89:AB)</string>
     <string name="enter_network_name">Network name (ESSID)</string>
-    <string name="no_results">No results found</string>
     <string name="error_empty_input">Please enter a MAC address or network name</string>
-    <string name="invalid_input">Invalid input format</string>
     <string name="bssid_required">BSSID is required</string>
-    <string name="search_by_essid">Search by name</string>
     <string name="get_request_single_only">GET request is only available for single search</string>
     <string name="selected_request_type">Selected request type: %s</string>
     <string name="request_type">Request Type</string>
-    <string name="copy_response">Copy</string>
     <string name="clear">Clear</string>
     <string name="show_raw">Show JSON</string>
     <string name="hide_raw">Hide JSON</string>
@@ -718,5 +685,262 @@
     <string name="get_request_response" translatable="false">GET request response:</string>
     <string name="separator_line" translatable="false">════════════════════════════════════════</string>
     <string name="coordinates_may_be_incorrect">⚠️ Coordinates may be incorrect</string>
+
+
+    <string name="basic_indices_available">Basic indices available</string>
+    <string name="no_indices_available">No indices available</string>
+    <string name="checking_indexes">Checking indexes…</string>
+    <string name="select_index_level">Select indexing level</string>
+    <string name="index_level_full_option">Full indexing (best performance, largest size)</string>
+    <string name="index_level_basic_option">Basic indexing (good performance, moderate size)</string>
+    <string name="index_level_none_option">No indexing (slow performance, smallest size)</string>
+    <string name="db_added_without_indexes">Database added without indexes</string>
+    <string name="clustering_points">Clustering points…</string>
+    <string name="rendering_markers">Rendering markers…</string>
+    <string name="loading_points_progress">Loading points…</string>
+    <string name="server_url">Server URL</string>
+    <string name="test_results">Test Results</string>
+    <string name="action_settings">Settings</string>
+    <string name="create_indexes">Create Indexes</string>
+
+
+    <string name="importing_data">Importing data…</string>
+    <string name="import_error">Import error: %1$s</string>
+    <string name="replace_database">Replace database</string>
+    <string name="select_import_type">Select import type</string>
+
+    <string name="append_no_duplicates">Append to database (no duplicate check)</string>
+    <string name="append_check_duplicates">Append to database (check for duplicates)</string>
+    <string name="import_stats">Import complete\nProcessed: %1$d\nAdded: %2$d\nSkipped duplicates: %3$d</string>
+
+    <string name="menu_in_app_database">In-App Database</string>
+    <string name="database_statistics">Database Statistics</string>
+    <string name="search_records">Search records</string>
+    <string name="filter_name">Name</string>
+    <string name="filter_mac">MAC</string>
+    <string name="filter_password">Password</string>
+    <string name="filter_wps">WPS</string>
+    <string name="manage_database">Manage</string>
+    <string name="no_records_found">No records found</string>
+    <string name="no_records_description">The database is empty or no records match your search criteria</string>
+    <string name="database_management">Database Management</string>
+    <string name="indexing_improves_search">Indexing improves search performance</string>
+    <string name="database_operations">Database Operations</string>
+    <string name="import_export">Import &amp; Export</string>
+    <string name="import_data">Import Data</string>
+    <string name="export_data">Export Data</string>
+    <string name="clear_database">Clear Database</string>
+    <string name="indexing_status">Indexing: %s</string>
+    <string name="database_stats_format">Records: %,d | Size: %s</string>
+    <string name="delete_record_confirmation">Are you sure you want to delete this entry?</string>
+    <string name="database_replaced_imported">Database replaced\nImported: %d records</string>
+    <string name="import_completed_added">Import completed\nAdded: %d records</string>
+
+    <string name="menu_wifi_analysis">WiFi Analysis</string>
+    <string name="wifi_environment_analysis">WiFi Environment Analysis</string>
+    <string name="channel_usage">Channel Usage</string>
+    <string name="best_channels">Recommended Channels</string>
+    <string name="least_congested">Least congested</string>
+    <string name="no_interference">No interference</string>
+    <string name="light_usage">Light usage</string>
+    <string name="analysis_empty_state">No networks found</string>
+    <string name="analysis_empty_description">Scan for WiFi networks first to see analysis</string>
+    <string name="refresh_analysis">Refresh Analysis</string>
+    <string name="total_networks">Total networks: %d</string>
+    <string name="unique_channels">Unique channels: %d</string>
+    <string name="average_signal">Average signal: %d dBm</string>
+    <string name="frequency_mhz" translatable="false">%d MHz</string>
+    <string name="channel_load_percent" translatable="false">%d%%</string>
+    <string name="strong_signals_short">Strong signal: %d</string>
+    <string name="overlapping_short">Overlap: %d</string>
+    <string name="channel_with_frequency">Channel %1$d (%2$d MHz)</string>
+    <string name="score_percent" translatable="false">%d%%</string>
+    <string name="no_networks_on_channel">No networks</string>
+    <string name="no_channel_overlap">No overlap</string>
+    <string name="exclude_networks">Exclude network from stats</string>
+    <string name="wifi_spectrum">WiFi Spectrum</string>
+    <string name="access_points_count" translatable="false">%d APs</string>
+    <string name="no_wifi_data_available">No WiFi data available. Please scan for networks first.</string>
+    <string name="channel_width_format" translatable="false">%d MHz</string>
+    <string name="start_scan">Start Scan</string>
+
+    <string name="good_choice">Good choice</string>
+    <string name="acceptable">Acceptable</string>
+    <string name="channel_analysis_error">Channel analysis error</string>
+
+    <string name="bandwidth_20mhz" translatable="false">20 MHz</string>
+    <string name="bandwidth_40mhz" translatable="false">40 MHz</string>
+    <string name="bandwidth_80mhz" translatable="false">80 MHz</string>
+    <string name="bandwidth_160mhz" translatable="false">160 MHz</string>
+    <string name="bandwidth_80mhz_plus" translatable="false">80+ MHz</string>
+
+    <string name="protocol_unknown" translatable="false">Unknown</string>
+    <string name="protocol_unknown_short" translatable="false">\?</string>
+    <string name="protocol_legacy" translatable="false">802.11a/b/g</string>
+    <string name="protocol_legacy_short" translatable="false">Legacy</string>
+    <string name="protocol_n" translatable="false">802.11n</string>
+    <string name="protocol_n_short" translatable="false">WiFi 4</string>
+    <string name="protocol_ac" translatable="false">802.11ac</string>
+    <string name="protocol_ac_short" translatable="false">WiFi 5</string>
+    <string name="protocol_ax" translatable="false">802.11ax</string>
+    <string name="protocol_ax_short" translatable="false">WiFi 6</string>
+    <string name="protocol_ad" translatable="false">802.11ad</string>
+    <string name="protocol_ad_short" translatable="false">WiGig</string>
+    <string name="protocol_be" translatable="false">802.11be</string>
+    <string name="protocol_be_short" translatable="false">WiFi 7</string>
+
+
+    <string name="frequency_band_2ghz" translatable="false">2.4 GHz</string>
+    <string name="frequency_band_5ghz" translatable="false">5 GHz</string>
+    <string name="frequency_band_6ghz" translatable="false">6 GHz</string>
+
+    <string name="fast_roaming_k" translatable="false">802.11k</string>
+    <string name="fast_roaming_r" translatable="false">802.11r</string>
+    <string name="fast_roaming_v" translatable="false">802.11v</string>
+
+    <string name="channel_format" translatable="false">CH %d</string>
+
+
+    <string name="security_type_unknown" translatable="false">Unknown</string>
+    <string name="security_type_open" translatable="false">Open</string>
+    <string name="security_type_wep" translatable="false">WEP</string>
+    <string name="security_type_psk" translatable="false">PSK</string>
+    <string name="security_type_eap" translatable="false">EAP</string>
+    <string name="security_type_sae" translatable="false">SAE</string>
+    <string name="security_type_eap_wpa3_enterprise_192_bit" translatable="false">EAP-192</string>
+    <string name="security_type_owe" translatable="false">OWE</string>
+    <string name="security_type_wapi_psk" translatable="false">WAPI-PSK</string>
+    <string name="security_type_wapi_cert" translatable="false">WAPI-CERT</string>
+    <string name="security_type_eap_wpa3_enterprise" translatable="false">EAP-WPA3</string>
+    <string name="security_type_osen" translatable="false">OSEN</string>
+    <string name="security_type_passpoint_r1_r2" translatable="false">Passpoint R1/R2</string>
+    <string name="security_type_passpoint_r3" translatable="false">Passpoint R3</string>
+    <string name="security_type_dpp" translatable="false">DPP</string>
+    <string name="wifi_rtt_responder" translatable="false">RTT</string>
+    <string name="wifi_ntb_responder" translatable="false">NTB</string>
+    <string name="wifi_twt_responder" translatable="false">TWT</string>
+    <string name="wifi_untrusted" translatable="false">Untrusted</string>
+    <string name="wifi_mld_support" translatable="false">MLD</string>
+
+    <string name="new_generator">New Generator</string>
+    <string name="pins_generated">PINs have been generated</string>
+    <string name="pins_generated_with_suggested">PINs have been generated:\n%d suitable</string>
+
+    <string name="prioritize_networks_with_data">Prioritize networks with found data</string>
+    <string name="auto_scroll_to_networks_with_data">Auto-scroll to networks with data</string>
+    <string name="db_settings">Database settings</string>
+
+    <string name="source_wps_database" translatable="false">WPS Database</string>
+    <string name="source_custom_database" translatable="false">Custom Database</string>
+    <string name="source_local_database" translatable="false">Local Database</string>
+    <string name="pins_found_from_sources">Found %d pins from %d sources</string>
+
+    <string name="from_database" translatable="false">From Database</string>
+    <string name="score_format" translatable="false">Score: %.3f</string>
+
+    <string name="close_neighbor">Close Neighbor</string>
+    <string name="medium_neighbor">Medium Neighbor</string>
+    <string name="very_close_neighbor">Very Close Neighbor</string>
+
+
+    <string name="menu_wps_generator">WPS Generator</string>
+    <string name="select_mode">Select Mode</string>
+    <string name="manual_input">Manual Input</string>
+    <string name="scan_networks">Scan Networks</string>
+    <string name="press_scan_to_start">Press scan to find networks</string>
+    <string name="include_experimental_algorithms">Include experimental algorithms</string>
+    <string name="search_in_databases">Search in databases</string>
+    <string name="include_offline_databases">Offline databases</string>
+    <string name="include_online_databases">Online databases</string>
+    <string name="include_local_database">Local database</string>
+    <string name="include_neighbor_search">Neighbor search algorithm</string>
+    <string name="neighbor_close">Close (±10)</string>
+    <string name="neighbor_medium">Medium (±100)</string>
+    <string name="neighbor_far">Far (±1000)</string>
+    <string name="generate_pins">Generate PINs</string>
+    <string name="scan_wifi_networks">Scan WiFi Networks</string>
+    <string name="networks_found">%d networks found</string>
+    <string name="select_network">Select Network</string>
+    <string name="pins_found_count">PINs: %d</string>
+    <string name="suggested_pins_count">Suggested: %d</string>
+    <string name="pin_copied">PIN copied to clipboard</string>
+    <string name="experimental" translatable="false">EXP</string>
+    <string name="unknown_network">Unknown Network</string>
+    <string name="error_scanning_wifi">Error scanning WiFi networks</string>
+    <string name="error_searching_databases">Error searching in databases</string>
+    <string name="enter_valid_bssid">Please enter a valid BSSID</string>
+    <string name="scan_networks_first">Please scan networks first</string>
+    <string name="no_networks_found">No networks found</string>
+
+    <string name="no_pins_generated">No pins generated</string>
+    <string name="pins_generated_for_networks">Pins generated for %d networks</string>
+    <string name="pins_generated_for_networks_with_suggested">Pins generated for %d networks (%d with suggested pins)</string>
+
+
+    <string name="generate_all">Generate for All</string>
+    <string name="source_inapp_database">In-App Database</string>
+    <string name="include_inapp_database">In-App Database</string>
+
+    <string name="possible_pins_count">Possible: %d</string>
+
+    <string name="pins_generated_with_suggested_and_possible">Pins generated for %d networks (%d suggested, %d possible)</string>
+    <string name="pins_generated_with_possible">Pins generated for %d networks (%d with possible pins)</string>
+
+
+    <string name="donation_title">"Support Development  "</string>
+
+    <string name="bitcoin_tab" translatable="false">Bitcoin</string>
+    <string name="monero_tab" translatable="false">Monero</string>
+    <string name="ethereum_tab" translatable="false">Ethereum</string>
+
+
+    <string name="btc_address_label">"Bitcoin (BTC) address:  "</string>
+    <string name="btc_wallet_address" translatable="false">19LYe2QhHXp2YAXSPrYydGc8v3t2TPdEPf</string>
+    <string name="qr_code_btc_description">"QR code for BTC donation  "</string>
+
+
+    <string name="xmr_address_label">"Monero (XMR) address:  "</string>
+    <string name="xmr_wallet_address" translatable="false">4AC1MepXZA8R6XGcL5mjejWRDqKvmbY3YWGEJTCWmFxJ8gPuLULSYxKSWafy9haMXGYuR2CdF3Vr8Q2kS8pBorVpQ4Lie48</string>
+    <string name="qr_code_xmr_description">"QR code for XMR donation  "</string>
+
+    <string name="qr_code_description">"QR code for donation  "</string>
+    <string name="tap_to_copy">"Tap to copy address  "</string>
+    <string name="address_copied">"Address copied to clipboard  "</string>
+
+    <string name="eth_address_label">"Ethereum (ETH) address:  "</string>
+    <string name="eth_wallet_address" translatable="false">0x5ebC5Eb2f59E6B62Ca9b221F2549D5067457D9b8</string>
+    <string name="qr_code_eth_description">"QR code for ETH donation  "</string>
+    <string name="rickroll_error">Failed to open link</string>
+
+    <string name="wpa_generator_title">WPA Generator</string>
+    <string name="manual_input_mode">Manual Input</string>
+    <string name="network_scan_mode">Network Scan</string>
+    <string name="enter_ssid">Enter SSID</string>
+    <string name="generate_keys">Generate Keys</string>
+    <string name="generated_keys">Generated Keys</string>
+    <string name="invalid_input">Invalid input</string>
+    <string name="keys_copied">Key copied to clipboard</string>
+    <string name="algorithm_used">Algorithm: %s</string>
+    <string name="generation_time">Generation time: %d ms</string>
+    <string name="networks_scanned">%d networks found</string>
+    <string name="scanning_networks">Scanning networks…</string>
+    <string name="permission_required_location">Location permission required for network scanning</string>
+    <string name="wifi_disabled">WiFi is disabled</string>
+    <string name="wifi_network">WiFi Network</string>
+    <string name="support_state">Support state</string>
+    <string name="expand_collapse">Expand/Collapse</string>
+    <string name="generating_keys">Generating keys…</string>
+    <string name="no_algorithms_supported">No supported algorithms</string>
+
+    <string name="generate_wpa_algorithms">WPA Algorithms</string>
+    <string name="generate_wps_algorithms">WPS Algorithms</string>
+    <string name="wpa_algorithms_generated">WPA algorithms generated for %d networks</string>
+    <string name="wps_algorithms_generated">WPS algorithms generated for %d networks</string>
+
+
+    <string name="wpa_algorithm_result">WPA Algorithm Result</string>
+    <string name="wps_algorithm_result">WPS Algorithm Result</string>
+    <string name="keys_copied_to_clipboard">Keys copied to clipboard</string>
+    <string name="pin_copied_to_clipboard">PIN copied to clipboard</string>
 
 </resources>

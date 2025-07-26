@@ -40,10 +40,8 @@ class SettingsFragment : Fragment() {
     private lateinit var sliderClusterAggressiveness: Slider
     private lateinit var sliderMaxClusterSize: Slider
     private lateinit var sliderMarkerVisibilityZoom: Slider
-    private lateinit var sliderMaxMarkerDensity: Slider
     private lateinit var textViewMaxClusterSizeValue: TextView
     private lateinit var textViewMarkerVisibilityZoomValue: TextView
-    private lateinit var textViewMaxMarkerDensityValue: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -71,7 +69,6 @@ class SettingsFragment : Fragment() {
         setupDeveloperSettings()
 
 
-        // Первые две карточки всегда развернуты по умолчанию
         binding.layoutDbSettingsContent.visibility = View.VISIBLE
         binding.layoutAppSettingsContent.visibility = View.VISIBLE
     }
@@ -115,20 +112,19 @@ class SettingsFragment : Fragment() {
         sliderClusterAggressiveness = binding.sliderClusterAggressiveness
         sliderMaxClusterSize = binding.sliderMaxClusterSize
         sliderMarkerVisibilityZoom = binding.sliderMarkerVisibilityZoom
-        sliderMaxMarkerDensity = binding.sliderMaxMarkerDensity
 
         textViewMaxClusterSizeValue = binding.textViewMaxClusterSizeValue
         textViewMarkerVisibilityZoomValue = binding.textViewMarkerVisibilityZoomValue
-        textViewMaxMarkerDensityValue = binding.textViewMaxMarkerDensityValue
 
         sliderClusterAggressiveness.value = viewModel.getClusterAggressiveness()
         sliderMaxClusterSize.value = viewModel.getMaxClusterSize().toFloat()
         sliderMarkerVisibilityZoom.value = viewModel.getMarkerVisibilityZoom()
-        sliderMaxMarkerDensity.value = viewModel.getMaxMarkerDensity().toFloat()
 
         textViewMaxClusterSizeValue.text = viewModel.getMaxClusterSize().toString()
         textViewMarkerVisibilityZoomValue.text = getString(R.string.zoom_level_value, viewModel.getMarkerVisibilityZoom().toInt())
-        textViewMaxMarkerDensityValue.text = viewModel.getMaxMarkerDensity().toString()
+
+        sliderMarkerVisibilityZoom.valueFrom = 1f
+        sliderMarkerVisibilityZoom.valueTo = 18f
 
         sliderClusterAggressiveness.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
@@ -156,18 +152,6 @@ class SettingsFragment : Fragment() {
             }
         }
 
-        binding.switchPreventClusterMerge.isChecked = viewModel.getPreventClusterMerge()
-        binding.switchPreventClusterMerge.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setPreventClusterMerge(isChecked)
-        }
-
-        sliderMaxMarkerDensity.addOnChangeListener { _, value, fromUser ->
-            if (fromUser) {
-                val intValue = value.toInt()
-                viewModel.setMaxMarkerDensity(intValue)
-                textViewMaxMarkerDensityValue.text = intValue.toString()
-            }
-        }
     }
 
 
@@ -342,6 +326,23 @@ class SettingsFragment : Fragment() {
     private fun setupSwitches() {
         binding.switchFullCleanup.setOnCheckedChangeListener { _, isChecked ->
             viewModel.setFullCleanup(isChecked)
+        }
+
+        binding.switchPrioritizeNetworksWithData.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setPrioritizeNetworksWithData(isChecked)
+        }
+
+        binding.switchAutoScrollToNetworksWithData.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setAutoScrollToNetworksWithData(isChecked)
+        }
+
+        binding.switchPrioritizeNetworksWithData.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setPrioritizeNetworksWithData(isChecked)
+            binding.switchAutoScrollToNetworksWithData.isEnabled = isChecked
+            if (!isChecked) {
+                binding.switchAutoScrollToNetworksWithData.isChecked = false
+                viewModel.setAutoScrollToNetworksWithData(false)
+            }
         }
 
         binding.switchShowWipFeatures.setOnCheckedChangeListener { _, isChecked ->
@@ -525,6 +526,22 @@ class SettingsFragment : Fragment() {
             binding.radioGroupTheme.check(radioButtonId)
         }
 
+        viewModel.prioritizeNetworksWithData.observe(viewLifecycleOwner) { isPrioritized ->
+            binding.switchPrioritizeNetworksWithData.isChecked = isPrioritized
+        }
+
+        viewModel.autoScrollToNetworksWithData.observe(viewLifecycleOwner) { isEnabled ->
+            binding.switchAutoScrollToNetworksWithData.isChecked = isEnabled
+        }
+
+        viewModel.prioritizeNetworksWithData.observe(viewLifecycleOwner) { isPrioritized ->
+            binding.switchPrioritizeNetworksWithData.isChecked = isPrioritized
+            binding.switchAutoScrollToNetworksWithData.isEnabled = isPrioritized
+            if (!isPrioritized) {
+                binding.switchAutoScrollToNetworksWithData.isChecked = false
+            }
+        }
+
         viewModel.forcePointSeparation.observe(viewLifecycleOwner) { value ->
             binding.switchForcePointSeparation.isChecked = value
         }
@@ -535,29 +552,11 @@ class SettingsFragment : Fragment() {
             }
         }
 
-        viewModel.maxClusterSize.observe(viewLifecycleOwner) { value ->
-            if (::sliderMaxClusterSize.isInitialized && sliderMaxClusterSize.value != value.toFloat()) {
-                sliderMaxClusterSize.value = value.toFloat()
-                if (::textViewMaxClusterSizeValue.isInitialized) {
-                    textViewMaxClusterSizeValue.text = value.toString()
-                }
-            }
-        }
-
         viewModel.markerVisibilityZoom.observe(viewLifecycleOwner) { value ->
             if (::sliderMarkerVisibilityZoom.isInitialized && sliderMarkerVisibilityZoom.value != value) {
                 sliderMarkerVisibilityZoom.value = value
                 if (::textViewMarkerVisibilityZoomValue.isInitialized) {
                     textViewMarkerVisibilityZoomValue.text = getString(R.string.zoom_level_value, value.toInt())
-                }
-            }
-        }
-
-        viewModel.maxMarkerDensity.observe(viewLifecycleOwner) { value ->
-            if (::sliderMaxMarkerDensity.isInitialized && sliderMaxMarkerDensity.value != value.toFloat()) {
-                sliderMaxMarkerDensity.value = value.toFloat()
-                if (::textViewMaxMarkerDensityValue.isInitialized) {
-                    textViewMaxMarkerDensityValue.text = value.toString()
                 }
             }
         }

@@ -1,0 +1,138 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@android:color/darker_gray"
+        android:alpha="0.4" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="@string/database_management"
+        android:textAppearance="?attr/textAppearanceHeadline6" />
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switchIndexing"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/enable_indexing" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="@string/indexing_improves_search"
+        android:textAppearance="?attr/textAppearanceCaption"
+        android:alpha="0.7" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="8dp"
+        android:background="@android:color/darker_gray"
+        android:alpha="0.3" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="@string/database_operations"
+        android:textAppearance="?attr/textAppearanceSubtitle1" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonOptimize"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/optimize_database"
+        app:icon="@drawable/ic_tune" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonRemoveDuplicates"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/remove_duplicates"
+        app:icon="@drawable/ic_content_copy" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="8dp"
+        android:background="@android:color/darker_gray"
+        android:alpha="0.3" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="@string/import_export"
+        android:textAppearance="?attr/textAppearanceSubtitle1" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonImport"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/import_data"
+        app:icon="@drawable/ic_file_download" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonExport"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/export_data"
+        app:icon="@drawable/ic_file_upload" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonBackup"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/backup_database"
+        app:icon="@drawable/ic_backup" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonRestore"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/restore_database"
+        app:icon="@drawable/ic_restore" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="8dp"
+        android:background="@android:color/darker_gray"
+        android:alpha="0.3" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonClearDatabase"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/clear_database"
+        android:textColor="?attr/colorError"
+        app:icon="@drawable/ic_delete"
+        app:iconTint="?attr/colorError"
+        app:strokeColor="?attr/colorError" />
+
+</LinearLayout>

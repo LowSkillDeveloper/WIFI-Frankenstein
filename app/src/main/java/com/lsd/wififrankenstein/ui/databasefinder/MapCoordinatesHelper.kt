@@ -8,6 +8,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
+import com.lsd.wififrankenstein.util.DatabaseIndices
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -74,7 +75,13 @@ class MapCoordinatesHelper(private val context: Context) {
             SQLite3WiFiHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
                 val db = helper.database
                 if (db != null) {
-                    val query = "SELECT latitude, longitude FROM geo WHERE BSSID = ?"
+                    val indexLevel = DatabaseIndices.determineIndexLevel(db)
+                    val query = if (indexLevel >= DatabaseIndices.IndexLevel.BASIC) {
+                        "SELECT latitude, longitude FROM geo INDEXED BY ${DatabaseIndices.GEO_BSSID} WHERE BSSID = ?"
+                    } else {
+                        "SELECT latitude, longitude FROM geo WHERE BSSID = ?"
+                    }
+
                     db.rawQuery(query, arrayOf(decimalBssid)).use { cursor ->
                         if (cursor.moveToFirst()) {
                             val latIndex = cursor.getColumnIndex("latitude")
@@ -83,7 +90,7 @@ class MapCoordinatesHelper(private val context: Context) {
                             val lat = if (latIndex >= 0) cursor.getDouble(latIndex) else null
                             val lon = if (lonIndex >= 0) cursor.getDouble(lonIndex) else null
 
-                            Log.d(TAG, "3WiFi coordinates for $bssid: lat=$lat, lon=$lon")
+                            Log.d(TAG, "3WiFi coordinates for $bssid: lat=$lat, lon=$lon (index level: $indexLevel)")
                             return@withContext lat to lon
                         }
                     }

@@ -21,8 +21,18 @@ import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.util.DatabaseIndices
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.osmdroid.util.BoundingBox
+import java.util.Collections
+import kotlin.collections.containsKey
+import kotlin.text.set
 
 class WiFiMapViewModel(application: Application) : AndroidViewModel(application) {
     private val TAG = "WiFiMapViewModel"
@@ -66,15 +76,187 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     private var lastUpdateTime = 0L
     private val MIN_UPDATE_INTERVAL = 100L
 
+    private var currentLoadingJob: Job? = null
+
+    private data class CacheEntry(
+        val points: List<NetworkPoint>,
+        val boundingBox: BoundingBox,
+        val zoom: Double,
+        val wasLimited: Boolean
+    )
+
+    private var backgroundCachingJob: Job? = null
+
+    private fun launchBackgroundCaching(database: DbItem, currentBox: BoundingBox, zoom: Double) {
+        backgroundCachingJob?.cancel()
+
+        backgroundCachingJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Starting background caching for ${database.id} at zoom $zoom")
+
+                val latRange = currentBox.latNorth - currentBox.latSouth
+                val lonRange = currentBox.lonEast - currentBox.lonWest
+
+                val neighborBoxes = listOf(
+                    BoundingBox(
+                        currentBox.latNorth + latRange, currentBox.lonEast,
+                        currentBox.latNorth, currentBox.lonWest
+                    ),
+                    BoundingBox(
+                        currentBox.latNorth + latRange, currentBox.lonEast + lonRange,
+                        currentBox.latNorth, currentBox.lonEast
+                    ),
+                    BoundingBox(
+                        currentBox.latNorth + latRange, currentBox.lonWest,
+                        currentBox.latNorth, currentBox.lonWest - lonRange
+                    ),
+                    BoundingBox(
+                        currentBox.latNorth, currentBox.lonWest,
+                        currentBox.latSouth, currentBox.lonWest - lonRange
+                    ),
+                    BoundingBox(
+                        currentBox.latNorth, currentBox.lonEast + lonRange,
+                        currentBox.latSouth, currentBox.lonEast
+                    ),
+                    BoundingBox(
+                        currentBox.latSouth, currentBox.lonWest,
+                        currentBox.latSouth - latRange, currentBox.lonWest - lonRange
+                    ),
+                    BoundingBox(
+                        currentBox.latSouth, currentBox.lonEast,
+                        currentBox.latSouth - latRange, currentBox.lonWest
+                    ),
+                    BoundingBox(
+                        currentBox.latSouth, currentBox.lonEast + lonRange,
+                        currentBox.latSouth - latRange, currentBox.lonEast
+                    )
+                )
+
+                neighborBoxes.forEachIndexed { index, neighborBox ->
+                    if (!isActive) return@forEachIndexed
+
+                    val neighborCacheKey = "${database.id}_${createCacheKey(neighborBox)}"
+
+                    if (!smartCache.containsKey(neighborCacheKey)) {
+                        Log.d(TAG, "Background caching neighbor area ${index + 1}/8 for ${database.id}")
+
+                        try {
+                            backgroundLoadArea(database, neighborBox, zoom)
+
+                            delay(100)
+
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Background caching failed for neighbor area ${index + 1}: ${e.message}")
+                        }
+                    }
+                }
+
+                Log.d(TAG, "Background caching completed for ${database.id}")
+
+            } catch (e: Exception) {
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e(TAG, "Background caching error for ${database.id}", e)
+                }
+            }
+        }
+    }
+
+    private suspend fun backgroundLoadArea(database: DbItem, boundingBox: BoundingBox, zoom: Double) {
+        val cacheKey = "${database.id}_${createCacheKey(boundingBox)}"
+        val maxPoints = getMaxPointsForZoom(zoom)
+        val willBeLimited = zoom < 12.0 && maxPoints != Int.MAX_VALUE
+
+        val points = when (database.dbType) {
+            DbType.LOCAL_APP_DB -> {
+                val dbHelper = LocalAppDbHelper(getApplication())
+                val localPoints = dbHelper.getPointsInBounds(
+                    boundingBox.latSouth,
+                    boundingBox.latNorth,
+                    boundingBox.lonWest,
+                    boundingBox.lonEast
+                )
+
+                localPoints.mapIndexed { index, network ->
+                    if (index % 1000 == 0) {
+                        yield()
+                    }
+
+                    val macDecimal = try {
+                        network.macAddress.replace(":", "").replace("-", "").toLongOrNull(16)
+                            ?: network.macAddress.toLongOrNull()
+                            ?: -1L
+                    } catch (_: Exception) {
+                        -1L
+                    }
+
+                    Triple(macDecimal, network.latitude ?: 0.0, network.longitude ?: 0.0)
+                }.filter { it.first != -1L }
+            }
+            DbType.SQLITE_FILE_CUSTOM -> {
+                if (database.directPath.isNullOrEmpty()) {
+                    emptyList()
+                } else {
+                    if (willBeLimited) maxPoints else Int.MAX_VALUE
+                    externalIndexManager.getPointsInBoundingBox(database.id, boundingBox)
+                }
+            }
+            else -> {
+                val helper = getHelper(database)
+                when (helper) {
+                    is SQLite3WiFiHelper -> {
+                        if (willBeLimited) maxPoints else Int.MAX_VALUE
+                        helper.getPointsInBoundingBox(boundingBox)
+                    }
+                    is SQLiteCustomHelper -> {
+                        if (database.tableName != null && database.columnMap != null) {
+                            if (willBeLimited) maxPoints else Int.MAX_VALUE
+                            helper.getPointsInBoundingBox(
+                                boundingBox,
+                                database.tableName,
+                                database.columnMap
+                            ) ?: emptyList()
+                        } else {
+                            emptyList()
+                        }
+                    }
+                    else -> emptyList()
+                }
+            }
+        }
+
+        if (points.isNotEmpty()) {
+            val networkPoints = points.mapIndexed { index, (bssid, lat, lon) ->
+                if (index % 1000 == 0) {
+                    yield()
+                }
+                NetworkPoint(
+                    latitude = lat,
+                    longitude = lon,
+                    bssidDecimal = bssid,
+                    source = database.type,
+                    databaseId = database.id
+                )
+            }
+
+            val cacheEntry = CacheEntry(
+                points = networkPoints,
+                boundingBox = boundingBox,
+                zoom = zoom,
+                wasLimited = willBeLimited && networkPoints.size >= maxPoints
+            )
+
+            smartCache[cacheKey] = cacheEntry
+            Log.d(TAG, "Background cached ${networkPoints.size} points for ${database.id} (wasLimited: ${cacheEntry.wasLimited})")
+        }
+    }
+
+    private val smartCache = mutableMapOf<String, CacheEntry>()
+
     fun getMinZoomForMarkers(): Double {
-        val maxRestriction = 14.0
-
-        val minRestriction = 3.0
-
+        val maxRestriction = 12.0
+        val minRestriction = 1.0
         val zoomSetting = settingsPrefs.getFloat("map_marker_visibility_zoom", 13f)
-
         val maxSetting = 18f
-
         val ratio = zoomSetting / maxSetting
         return minRestriction + ratio * (maxRestriction - minRestriction)
     }
@@ -113,12 +295,12 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         clusterManager = getClusterManager()
     }
 
-    private fun getClusterManager(): MarkerClusterManager {
+    private fun getClusterManager(): GridBasedClusterManager {
         val maxClusterSize = settingsPrefs.getInt("map_max_cluster_size", 1000)
         val clusterAggressiveness = settingsPrefs.getFloat("map_cluster_aggressiveness", 1.0f)
         val preventMerge = settingsPrefs.getBoolean("map_prevent_cluster_merge", false)
         val forceSeparation = settingsPrefs.getBoolean("map_force_point_separation", true)
-        return MarkerClusterManager(maxClusterSize, clusterAggressiveness, preventMerge, forceSeparation)
+        return GridBasedClusterManager(maxClusterSize, clusterAggressiveness, preventMerge, forceSeparation)
     }
 
     private fun createCacheKey(boundingBox: BoundingBox): String {
@@ -129,11 +311,70 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         return "$latSouth,$latNorth,$lonWest,$lonEast"
     }
 
-    private fun boundingBoxesIntersect(box1: List<Double>, box2: List<Double>): Boolean {
-        return !(box1[0] > box2[1] || // latSouth1 > latNorth2
-                box1[1] < box2[0] || // latNorth1 < latSouth2
-                box1[2] > box2[3] || // lonWest1 > lonEast2
-                box1[3] < box2[2])   // lonEast1 < lonWest2
+    private fun isAreaContainedIn(innerBox: BoundingBox, outerBox: BoundingBox): Boolean {
+        return innerBox.latSouth >= outerBox.latSouth &&
+                innerBox.latNorth <= outerBox.latNorth &&
+                innerBox.lonWest >= outerBox.lonWest &&
+                innerBox.lonEast <= outerBox.lonEast
+    }
+
+    private fun getAreaIntersection(box1: BoundingBox, box2: BoundingBox): BoundingBox? {
+        val latSouth = maxOf(box1.latSouth, box2.latSouth)
+        val latNorth = minOf(box1.latNorth, box2.latNorth)
+        val lonWest = maxOf(box1.lonWest, box2.lonWest)
+        val lonEast = minOf(box1.lonEast, box2.lonEast)
+
+        return if (latSouth < latNorth && lonWest < lonEast) {
+            BoundingBox(latNorth, lonEast, latSouth, lonWest)
+        } else {
+            null
+        }
+    }
+
+    private fun getIntersectionArea(box: BoundingBox): Double {
+        return (box.latNorth - box.latSouth) * (box.lonEast - box.lonWest)
+    }
+
+    private fun findContainingCache(
+        databaseId: String,
+        requestedBox: BoundingBox,
+        requestedZoom: Double
+    ): CacheEntry? {
+        for ((cacheKey, entry) in smartCache) {
+            if (entry.points.any { it.databaseId == databaseId } && !entry.wasLimited) {
+
+                if (isAreaContainedIn(requestedBox, entry.boundingBox)) {
+                    Log.d(TAG, "Found FULL containing cache for $databaseId: zoom ${entry.zoom}")
+                    return entry
+                }
+
+                val intersection = getAreaIntersection(requestedBox, entry.boundingBox)
+                if (intersection != null) {
+                    val requestedArea = getIntersectionArea(requestedBox)
+                    val intersectionArea = getIntersectionArea(intersection)
+                    val coveragePercent = (intersectionArea / requestedArea) * 100
+
+                    Log.d(TAG, "Found PARTIAL cache for $databaseId: ${String.format("%.1f", coveragePercent)}% coverage")
+
+                    if (coveragePercent >= 70.0) {
+                        Log.d(TAG, "Using partial cache (${String.format("%.1f", coveragePercent)}% >= 70%)")
+                        return entry
+                    } else {
+                        Log.d(TAG, "Skipping partial cache (${String.format("%.1f", coveragePercent)}% < 70%)")
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun filterPointsInBounds(points: List<NetworkPoint>, bounds: BoundingBox): List<NetworkPoint> {
+        return points.filter { point ->
+            point.latitude >= bounds.latSouth &&
+                    point.latitude <= bounds.latNorth &&
+                    point.longitude >= bounds.lonWest &&
+                    point.longitude <= bounds.lonEast
+        }
     }
 
     fun handleCustomDbSelection(dbItem: DbItem, isSelected: Boolean, selectedDatabases: Set<DbItem>) {
@@ -249,206 +490,323 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     ) {
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+            Log.d(TAG, "Skipping update - too soon (${currentTime - lastUpdateTime}ms < ${MIN_UPDATE_INTERVAL}ms)")
             return
         }
         lastUpdateTime = currentTime
 
         val minZoom = getMinZoomForMarkers()
+
+        Log.d(TAG, "=== VIEWMODEL LOAD DEBUG ===")
+        Log.d(TAG, "Zoom: $zoom (min: $minZoom)")
+        Log.d(TAG, "Max points for zoom: ${getMaxPointsForZoom(zoom)}")
+        Log.d(TAG, "Bounding box: lat(${boundingBox.latSouth} to ${boundingBox.latNorth}), lon(${boundingBox.lonWest} to ${boundingBox.lonEast})")
+        Log.d(TAG, "Area size: ${String.format("%.2f", (boundingBox.latNorth - boundingBox.latSouth) * (boundingBox.lonEast - boundingBox.lonWest))} degrees²")
+        Log.d(TAG, "Selected databases: ${selectedDatabases.map { it.id }}")
+        Log.d(TAG, "Cluster settings: preventMerge=${getPreventClusterMerge()}, aggressiveness=${settingsPrefs.getFloat("map_cluster_aggressiveness", 1.0f)}")
+
         if (zoom < minZoom) {
             Log.d(TAG, "Zoom level too low: $zoom < $minZoom")
             _points.value = emptyList()
             return
         }
 
-        viewModelScope.launch {
-            _loadingProgress.postValue(0)
-            val allPoints = mutableListOf<NetworkPoint>()
+        currentLoadingJob?.cancel()
 
-            val currentBox = listOf(
-                boundingBox.latSouth,
-                boundingBox.latNorth,
-                boundingBox.lonWest,
-                boundingBox.lonEast
-            )
+        currentLoadingJob = viewModelScope.launch {
+            try {
+                _loadingProgress.postValue(0)
 
-            val cachedPoints = mutableListOf<NetworkPoint>()
-            pointsCache.forEach { (cacheKey, points) ->
-                val cachedBox = cacheKey.split(",").map { it.toDouble() }
-                if (boundingBoxesIntersect(currentBox, cachedBox)) {
-                    cachedPoints.addAll(points.filter { point ->
-                        point.latitude in boundingBox.latSouth..boundingBox.latNorth &&
-                                point.longitude in boundingBox.lonWest..boundingBox.lonEast &&
-                                selectedDatabases.any { it.id == point.databaseId }
-                    })
-                }
-            }
+                val allPoints = withContext(Dispatchers.IO) {
+                    val points = Collections.synchronizedList(mutableListOf<NetworkPoint>())
+                    val totalDatabases = selectedDatabases.size
 
-            val cachedDatabaseIds = cachedPoints.map { it.databaseId }.toSet()
-            val databasesToLoad = selectedDatabases.filter { db ->
-                db.id !in cachedDatabaseIds
-            }
+                    selectedDatabases.mapIndexed { index, database ->
+                        async {
+                            if (!isActive) return@async
 
-            allPoints.addAll(cachedPoints)
-            Log.d(TAG, "Using ${cachedPoints.size} cached points")
+                            try {
+                                Log.d(TAG, "Loading database: ${database.id}, type: ${database.dbType}")
+                                val startTime = System.currentTimeMillis()
+                                val dbPoints = loadPointsFromDatabase(database, boundingBox, zoom)
+                                val loadTime = System.currentTimeMillis() - startTime
 
-            databasesToLoad.forEachIndexed { index, database ->
-                try {
-                    Log.d(TAG, "Loading uncached database: ${database.id}, type: ${database.dbType}")
-
-                    _loadingProgress.postValue((index * 100) / databasesToLoad.size)
-
-                    val points = when (database.dbType) {
-                        DbType.LOCAL_APP_DB -> {
-
-                            Log.d(TAG, "Getting points from local database")
-                            val dbHelper = LocalAppDbHelper(getApplication())
-                            val localPoints = dbHelper.getPointsInBounds(
-                                boundingBox.latSouth,
-                                boundingBox.latNorth,
-                                boundingBox.lonWest,
-                                boundingBox.lonEast
-                            )
-
-                            localPoints.map { network ->
-                                val macDecimal = try {
-                                    network.macAddress.replace(":", "").replace("-", "").toLongOrNull(16)
-                                        ?: network.macAddress.toLongOrNull()
-                                        ?: -1L
-                                } catch (_: Exception) {
-                                    -1L
-                                }
-
-                                Triple(macDecimal, network.latitude ?: 0.0, network.longitude ?: 0.0)
-                            }.filter { it.first != -1L }
-                        }
-                        DbType.SQLITE_FILE_CUSTOM -> {
-                            if (database.directPath.isNullOrEmpty()) {
-                                Log.e(TAG, "Direct path is null for database ${database.id}")
-                                _error.postValue(getApplication<Application>().getString(R.string.directpath_missing))
-                                return@forEachIndexed
-                            }
-
-                            Log.d(TAG, "Using external indexes for database: ${database.id}")
-                            externalIndexManager.getPointsInBoundingBox(database.id, boundingBox)
-                        }
-                        DbType.SQLITE_FILE_3WIFI -> {
-                            val helper = getHelper(database) as? SQLite3WiFiHelper
-                                ?: return@forEachIndexed
-
-                            val db = helper.database
-
-                            if (db != null) {
-                                val dbType = DatabaseTypeUtils.determineDbType(db)
-                                Log.d(TAG, "3WiFi database type: $dbType")
-
-                                val indices = DatabaseIndices.getAvailableIndices(db)
-                                Log.d(TAG, "Available indices: $indices")
-
-                                val hasGeoIndexes = when (dbType) {
-                                    DatabaseTypeUtils.WiFiDbType.TYPE_NETS,
-                                    DatabaseTypeUtils.WiFiDbType.TYPE_BASE -> {
-                                        indices.contains(DatabaseIndices.GEO_COORDS_BSSID) ||
-                                                indices.contains(DatabaseIndices.GEO_QUADKEY_FULL)
-                                    }
-                                    else -> false
-                                }
-
-                                if (hasGeoIndexes) {
-                                    Log.d(TAG, "Using optimized geo indices for query")
-                                } else {
-                                    Log.d(TAG, "No optimized geo indices found, using standard query")
-                                }
-                            }
-
-                            helper.getPointsInBoundingBox(boundingBox)
-                        }
-                        else -> {
-                            val helper = getHelper(database)
-                            Log.d(TAG, "Using helper ${helper.javaClass.simpleName} for database: ${database.id}")
-
-                            when (helper) {
-                                is SQLite3WiFiHelper -> {
-                                    Log.d(TAG, "Getting points from SQLite3WiFiHelper")
-                                    helper.getPointsInBoundingBox(boundingBox)
-                                }
-                                is SQLiteCustomHelper -> {
-                                    if (database.tableName == null || database.columnMap == null) {
-                                        Log.e(TAG, "Table name or column map is null for database ${database.id}")
-                                        _error.postValue(getApplication<Application>().getString(R.string.column_mapping_missing))
-                                        return@forEachIndexed
+                                val networkPoints = dbPoints.mapIndexed { pointIndex, (bssidDecimal, lat, lon) ->
+                                    if (pointIndex % 500 == 0) {
+                                        yield()
                                     }
 
-                                    Log.d(TAG, "Getting points from SQLiteCustomHelper directly")
-                                    helper.getPointsInBoundingBox(
-                                        boundingBox,
-                                        database.tableName,
-                                        database.columnMap
+                                    NetworkPoint(
+                                        latitude = lat,
+                                        longitude = lon,
+                                        bssidDecimal = bssidDecimal,
+                                        source = database.type,
+                                        databaseId = database.id,
+                                        color = databaseColors[database.id] ?: Color.GRAY
                                     )
                                 }
-                                else -> {
-                                    Log.e(TAG, "Unknown helper type: ${helper.javaClass.name}")
-                                    null
-                                }
-                            } ?: emptyList()
+
+                                points.addAll(networkPoints)
+
+                                val progress = ((index + 1) * 40) / totalDatabases
+                                _loadingProgress.postValue(progress)
+
+                                Log.d(TAG, "Loaded ${networkPoints.size} points from ${database.id} in ${loadTime}ms")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error loading points from database ${database.id}", e)
+                            }
+                        }
+                    }.awaitAll()
+
+                    points.toList()
+                }
+
+                if (!isActive) return@launch
+
+                Log.d(TAG, "Total points loaded: ${allPoints.size}")
+                _loadingProgress.postValue(50)
+
+                if (allPoints.isNotEmpty()) {
+                    val clusterStartTime = System.currentTimeMillis()
+                    val clusteredPoints = withContext(Dispatchers.Default) {
+                        if (!isActive) return@withContext emptyList()
+
+                        val mapCenter = Pair(
+                            (boundingBox.latNorth + boundingBox.latSouth) / 2,
+                            (boundingBox.lonEast + boundingBox.lonWest) / 2
+                        )
+
+                        _loadingProgress.postValue(60)
+
+                        val clusters = getClusterManager().createAdaptiveClusters(allPoints, zoom, mapCenter)
+                        val clusterTime = System.currentTimeMillis() - clusterStartTime
+
+                        Log.d(TAG, "Created ${clusters.size} adaptive clusters from ${allPoints.size} points in ${clusterTime}ms")
+                        Log.d(TAG, "Clustering ratio: ${String.format("%.2f", (clusters.size.toFloat() / allPoints.size) * 100)}%")
+
+                        _loadingProgress.postValue(75)
+
+                        clusters.mapIndexed { index, clusterItem ->
+                            if (index % 1000 == 0) {
+                                yield()
+                            }
+
+                            if (clusterItem.size == 1) {
+                                clusterItem.points.first()
+                            } else {
+                                val dominantDatabaseId = clusterItem.points
+                                    .groupBy { it.databaseId }
+                                    .maxByOrNull { it.value.size }
+                                    ?.key ?: clusterItem.points.first().databaseId
+
+                                NetworkPoint(
+                                    latitude = clusterItem.centerLatitude,
+                                    longitude = clusterItem.centerLongitude,
+                                    bssidDecimal = -1L,
+                                    source = "Cluster",
+                                    databaseId = dominantDatabaseId,
+                                    essid = "Cluster (${clusterItem.size} points)",
+                                    color = databaseColors[dominantDatabaseId] ?: Color.GRAY
+                                )
+                            }
                         }
                     }
 
-                    Log.d(TAG, "Retrieved ${points.size} points for database: ${database.id}")
+                    if (!isActive) return@launch
 
-                    val networkPoints = points.map { (bssidDecimal, lat, lon) ->
-                        NetworkPoint(
-                            latitude = lat,
-                            longitude = lon,
-                            bssidDecimal = bssidDecimal,
-                            source = database.type,
-                            databaseId = database.id,
-                            color = databaseColors[database.id] ?: Color.GRAY
-                        )
-                    }
+                    _loadingProgress.postValue(90)
+                    Log.d(TAG, "Final result: ${clusteredPoints.size} points to render")
+                    _points.postValue(clusteredPoints)
+                } else {
+                    Log.d(TAG, "No points loaded")
+                    _points.postValue(emptyList())
+                }
 
-                    val cacheKey = createCacheKey(boundingBox)
-                    pointsCache[cacheKey] = networkPoints
+                _loadingProgress.postValue(100)
+                Log.d(TAG, "=== LOAD COMPLETE ===")
 
-                    allPoints.addAll(networkPoints)
-                    Log.d(TAG, "Added ${networkPoints.size} points to allPoints. Total now: ${allPoints.size}")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error loading points from database ${database.id}", e)
+            } catch (e: Exception) {
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e(TAG, "Error loading points", e)
                     _error.postValue(getApplication<Application>().getString(
                         R.string.database_error,
                         e.localizedMessage ?: "Unknown error"
                     ))
                 }
             }
-            _loadingProgress.postValue(100)
+        }
+    }
 
-            val maxMarkerDensity = settingsPrefs.getInt("map_max_marker_density", 2000)
-            val clusters = getClusterManager().createClusters(allPoints, zoom, maxMarkerDensity)
-            Log.d(TAG, "Created ${clusters.size} clusters from ${allPoints.size} points")
+    private fun getMaxPointsForZoom(zoom: Double): Int {
+        val maxPoints = when {
+            zoom >= 12.0 -> Int.MAX_VALUE
+            zoom >= 10.0 -> 20000
+            zoom >= 8.0 -> 15000
+            else -> 10000
+        }
 
-            val pointsToShow = clusters.map { cluster ->
-                if (cluster.size == 1) {
-                    cluster.points.first()
-                } else {
-                    val dominantDatabase = cluster.points
-                        .groupBy { it.databaseId }
-                        .maxByOrNull { it.value.size }
-                        ?.key ?: cluster.points.first().databaseId
+        Log.d(TAG, "Max points for zoom $zoom: ${if (maxPoints == Int.MAX_VALUE) "UNLIMITED" else maxPoints}")
+        return maxPoints
+    }
 
-                    NetworkPoint(
-                        latitude = cluster.centerLatitude,
-                        longitude = cluster.centerLongitude,
-                        bssidDecimal = -1L,
-                        source = "Cluster",
-                        databaseId = dominantDatabase,
-                        essid = "Cluster (${cluster.size} points)",
-                        color = databaseColors[dominantDatabase] ?: Color.GRAY
-                    )
-                }
+    private suspend fun loadPointsFromDatabase(
+        database: DbItem,
+        boundingBox: BoundingBox,
+        zoom: Double
+    ): List<Triple<Long, Double, Double>> = withContext(Dispatchers.IO) {
+        val cacheKey = "${database.id}_${createCacheKey(boundingBox)}"
+        val maxPoints = getMaxPointsForZoom(zoom)
+        val willBeLimited = zoom < 12.0 && maxPoints != Int.MAX_VALUE
+
+        Log.d(TAG, "Loading from DB: ${database.id}, maxPoints: $maxPoints, zoom: $zoom, willBeLimited: $willBeLimited")
+
+        val containingCache = findContainingCache(database.id, boundingBox, zoom)
+        if (containingCache != null) {
+            Log.d(TAG, "Using smart cache: filtering ${containingCache.points.size} points from larger area")
+            val filteredPoints = filterPointsInBounds(
+                containingCache.points.filter { it.databaseId == database.id },
+                boundingBox
+            )
+            Log.d(TAG, "Smart cache result: ${filteredPoints.size} points after filtering")
+
+            if (zoom >= 10.0) {
+                launchBackgroundCaching(database, boundingBox, zoom)
             }
 
-            Log.d(TAG, "Posting final clusters/points count: ${pointsToShow.size}")
-            _points.postValue(pointsToShow)
+            return@withContext filteredPoints.map {
+                Triple(it.bssidDecimal, it.latitude, it.longitude)
+            }
         }
+
+        smartCache[cacheKey]?.let { cacheEntry ->
+            Log.d(TAG, "Cache hit: ${cacheEntry.points.size} cached points for ${database.id}")
+            val limitedPoints = if (willBeLimited && cacheEntry.points.size > maxPoints) {
+                Log.d(TAG, "Limiting cached points: ${cacheEntry.points.size} -> $maxPoints")
+                cacheEntry.points.take(maxPoints)
+            } else {
+                cacheEntry.points
+            }
+
+            if (zoom >= 10.0) {
+                launchBackgroundCaching(database, boundingBox, zoom)
+            }
+
+            return@withContext limitedPoints.map {
+                Triple(it.bssidDecimal, it.latitude, it.longitude)
+            }
+        }
+
+        Log.d(TAG, "Cache miss for ${database.id}, loading from database")
+
+        val points = when (database.dbType) {
+            DbType.LOCAL_APP_DB -> {
+                Log.d(TAG, "Getting points from local database")
+                val dbHelper = LocalAppDbHelper(getApplication())
+                val localPoints = dbHelper.getPointsInBounds(
+                    boundingBox.latSouth,
+                    boundingBox.latNorth,
+                    boundingBox.lonWest,
+                    boundingBox.lonEast
+                )
+
+                Log.d(TAG, "Local DB returned ${localPoints.size} points")
+
+                localPoints.mapIndexed { index, network ->
+                    if (index % 1000 == 0) {
+                        yield()
+                    }
+
+                    val macDecimal = try {
+                        network.macAddress.replace(":", "").replace("-", "").toLongOrNull(16)
+                            ?: network.macAddress.toLongOrNull()
+                            ?: -1L
+                    } catch (_: Exception) {
+                        -1L
+                    }
+
+                    Triple(macDecimal, network.latitude ?: 0.0, network.longitude ?: 0.0)
+                }.filter { it.first != -1L }
+            }
+            DbType.SQLITE_FILE_CUSTOM -> {
+                if (database.directPath.isNullOrEmpty()) {
+                    Log.e(TAG, "Direct path is null for database ${database.id}")
+                    emptyList()
+                } else {
+                    Log.d(TAG, "Using external indexes for database: ${database.id}")
+                    if (willBeLimited) maxPoints else Int.MAX_VALUE
+                    val allPoints = externalIndexManager.getPointsInBoundingBox(database.id, boundingBox)
+                    Log.d(TAG, "External index returned ${allPoints.size} points for ${database.id}")
+                    allPoints
+                }
+            }
+            else -> {
+                val helper = getHelper(database)
+                when (helper) {
+                    is SQLite3WiFiHelper -> {
+                        Log.d(TAG, "Using SQLite3WiFiHelper for ${database.id}")
+                        if (willBeLimited) maxPoints else Int.MAX_VALUE
+                        val allPoints = helper.getPointsInBoundingBox(boundingBox)
+                        Log.d(TAG, "SQLite3WiFiHelper returned ${allPoints.size} points for ${database.id}")
+                        allPoints
+                    }
+                    is SQLiteCustomHelper -> {
+                        if (database.tableName == null || database.columnMap == null) {
+                            Log.e(TAG, "Table name or column map is null for database ${database.id}")
+                            emptyList()
+                        } else {
+                            Log.d(TAG, "Using SQLiteCustomHelper for ${database.id}")
+                            if (willBeLimited) maxPoints else Int.MAX_VALUE
+                            val allPoints = helper.getPointsInBoundingBox(
+                                boundingBox,
+                                database.tableName,
+                                database.columnMap,
+                            ) ?: emptyList()
+                            Log.d(TAG, "SQLiteCustomHelper returned ${allPoints.size} points for ${database.id}")
+                            allPoints
+                        }
+                    }
+                    else -> {
+                        Log.e(TAG, "Unknown helper type: ${helper.javaClass.name}")
+                        emptyList()
+                    }
+                }
+            }
+        }
+
+        if (points.isNotEmpty()) {
+            val networkPoints = points.mapIndexed { index, (bssid, lat, lon) ->
+                if (index % 1000 == 0) {
+                    yield()
+                }
+                NetworkPoint(
+                    latitude = lat,
+                    longitude = lon,
+                    bssidDecimal = bssid,
+                    source = database.type,
+                    databaseId = database.id
+                )
+            }
+
+            val cacheEntry = CacheEntry(
+                points = networkPoints,
+                boundingBox = boundingBox,
+                zoom = zoom,
+                wasLimited = willBeLimited && networkPoints.size >= maxPoints
+            )
+            smartCache[cacheKey] = cacheEntry
+
+            Log.d(TAG, "Cached ${networkPoints.size} points for ${database.id} (wasLimited: ${cacheEntry.wasLimited})")
+
+            if (zoom >= 10.0) {
+                launchBackgroundCaching(database, boundingBox, zoom)
+            }
+
+            return@withContext networkPoints.map {
+                Triple(it.bssidDecimal, it.latitude, it.longitude)
+            }
+        }
+
+        emptyList()
     }
 
     suspend fun createLocalDbIndexes() {
@@ -504,6 +862,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
     fun clearCache() {
         pointsCache.clear()
+        smartCache.clear()
+        Log.d(TAG, "Cleared both regular and smart cache")
     }
 
     fun resetState() {
@@ -680,10 +1040,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-
-
     override fun onCleared() {
         super.onCleared()
+        backgroundCachingJob?.cancel()
         clearCache()
         viewModelScope.launch(Dispatchers.IO) {
             databaseHelpers.values.forEach { it.close() }

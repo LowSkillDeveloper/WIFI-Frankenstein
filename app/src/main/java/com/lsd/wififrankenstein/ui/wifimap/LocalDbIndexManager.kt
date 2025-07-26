@@ -32,7 +32,7 @@ class LocalDbIndexManager(private val context: Context) {
             val fileSize = dbFile.length()
             Log.d(TAG, "File size: $fileSize bytes")
 
-            if (fileSize > 50 * 1024 * 1024) { // если файл больше 50MB
+            if (fileSize > 50 * 1024 * 1024) {
                 Log.d(TAG, "File too large, using modified date for hash")
                 return dbFile.lastModified().toString()
             }
@@ -73,8 +73,37 @@ class LocalDbIndexManager(private val context: Context) {
     }
 
     private fun hasIndexes(db: SQLiteDatabase): Boolean {
-        val dbHelper = LocalAppDbHelper(context)
-        return dbHelper.hasIndexes()
+        return try {
+            val prefs = context.getSharedPreferences("index_preferences", Context.MODE_PRIVATE)
+            val indexLevel = prefs.getString("local_db_index_level", "BASIC") ?: "BASIC"
+
+            if (indexLevel == "NONE") return true
+
+            val requiredIndexes = when (indexLevel) {
+                "FULL" -> arrayOf(
+                    "idx_wifi_network_mac",
+                    "idx_wifi_network_name",
+                    "idx_wifi_network_coords",
+                    "idx_wifi_network_password",
+                    "idx_wifi_network_wps"
+                )
+                else -> arrayOf(
+                    "idx_wifi_network_mac",
+                    "idx_wifi_network_name",
+                    "idx_wifi_network_coords"
+                )
+            }
+
+            db.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND name IN (${requiredIndexes.joinToString(",") { "?" }})",
+                arrayOf(LocalAppDbHelper.TABLE_NAME, *requiredIndexes)
+            ).use { cursor ->
+                cursor.count >= requiredIndexes.size
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking indexes", e)
+            false
+        }
     }
 
     suspend fun createIndexes(
@@ -99,18 +128,56 @@ class LocalDbIndexManager(private val context: Context) {
             dropIndexes(db)
             progressCallback(20)
 
+            val prefs = context.getSharedPreferences("index_preferences", Context.MODE_PRIVATE)
+            val indexLevel = prefs.getString("local_db_index_level", "BASIC") ?: "BASIC"
+
+            Log.d(TAG, "Creating indexes with level: $indexLevel")
+
             try {
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_mac ON wifi_network (mac_address)")
-                progressCallback(40)
+                when (indexLevel) {
+                    "FULL" -> {
+                        Log.d(TAG, "Creating FULL indexes for local database")
 
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_name ON wifi_network (wifi_name)")
-                progressCallback(60)
+                        db.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_mac ON ${LocalAppDbHelper.TABLE_NAME} (${LocalAppDbHelper.COLUMN_MAC_ADDRESS})")
+                        progressCallback(25)
 
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_coords ON wifi_network (latitude, longitude)")
-                progressCallback(80)
+                        db.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_name ON ${LocalAppDbHelper.TABLE_NAME} (${LocalAppDbHelper.COLUMN_WIFI_NAME} COLLATE NOCASE)")
+                        progressCallback(35)
+
+                        db.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_coords ON ${LocalAppDbHelper.TABLE_NAME} (${LocalAppDbHelper.COLUMN_LATITUDE}, ${LocalAppDbHelper.COLUMN_LONGITUDE})")
+                        progressCallback(45)
+
+                        db.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_password ON ${LocalAppDbHelper.TABLE_NAME} (${LocalAppDbHelper.COLUMN_WIFI_PASSWORD} COLLATE NOCASE)")
+                        progressCallback(60)
+
+                        db.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_wps ON ${LocalAppDbHelper.TABLE_NAME} (${LocalAppDbHelper.COLUMN_WPS_CODE})")
+                        progressCallback(75)
+                    }
+                    "BASIC" -> {
+                        Log.d(TAG, "Creating BASIC indexes for local database")
+
+                        db.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_mac ON ${LocalAppDbHelper.TABLE_NAME} (${LocalAppDbHelper.COLUMN_MAC_ADDRESS})")
+                        progressCallback(30)
+
+                        db.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_name ON ${LocalAppDbHelper.TABLE_NAME} (${LocalAppDbHelper.COLUMN_WIFI_NAME} COLLATE NOCASE)")
+                        progressCallback(50)
+
+                        db.execSQL("CREATE INDEX IF NOT EXISTS idx_wifi_network_coords ON ${LocalAppDbHelper.TABLE_NAME} (${LocalAppDbHelper.COLUMN_LATITUDE}, ${LocalAppDbHelper.COLUMN_LONGITUDE})")
+                        progressCallback(70)
+                    }
+                    "NONE" -> {
+                        Log.d(TAG, "Skipping index creation for local database (NONE level)")
+                        progressCallback(70)
+                    }
+                }
 
                 db.execSQL("ANALYZE")
-                db.execSQL("VACUUM")
+                progressCallback(85)
+
+                if (indexLevel != "NONE") {
+                    db.execSQL("VACUUM")
+                    progressCallback(95)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error creating indexes", e)
                 return@withContext false
@@ -121,7 +188,7 @@ class LocalDbIndexManager(private val context: Context) {
             Log.d(TAG, "Saving new hash: $newHash for local database")
             saveDbHash(newHash)
 
-            val indexesCreated = hasIndexes(db)
+            val indexesCreated = if (indexLevel == "NONE") true else hasIndexes(db)
             Log.d(TAG, "Indexes created successfully: $indexesCreated")
 
             indexesCreated

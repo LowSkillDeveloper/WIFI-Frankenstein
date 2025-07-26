@@ -37,6 +37,54 @@ object DatabaseTypeUtils {
         }
     }
 
+    fun getRecommendedIndexLevel(db: SQLiteDatabase): String {
+        return try {
+            val cursor = db.rawQuery("SELECT COUNT(*) FROM sqlite_master WHERE type='table'", null)
+            cursor.use {
+                if (it.moveToFirst()) {
+                    val tableCount = it.getInt(0)
+
+                    var totalRecords = 0L
+                    val mainTables = when (determineDbType(db)) {
+                        WiFiDbType.TYPE_NETS -> listOf("geo", "nets")
+                        WiFiDbType.TYPE_BASE -> listOf("geo", "base")
+                        else -> emptyList()
+                    }
+
+                    mainTables.forEach { tableName ->
+                        db.rawQuery("SELECT COUNT(*) FROM $tableName", null).use { countCursor ->
+                            if (countCursor.moveToFirst()) {
+                                totalRecords += countCursor.getLong(0)
+                            }
+                        }
+                    }
+
+                    Log.d(TAG, "Total records in database: $totalRecords")
+
+                    when {
+                        totalRecords < 100_000 -> {
+                            Log.d(TAG, "Small database, recommending NONE")
+                            "NONE"
+                        }
+                        totalRecords < 1_000_000 -> {
+                            Log.d(TAG, "Medium database, recommending BASIC")
+                            "BASIC"
+                        }
+                        else -> {
+                            Log.d(TAG, "Large database, recommending FULL")
+                            "FULL"
+                        }
+                    }
+                } else {
+                    "BASIC"
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error determining recommended index level", e)
+            "BASIC"
+        }
+    }
+
     private fun getTableNames(db: SQLiteDatabase): List<String> {
         return db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null)?.use { cursor ->
             buildList {

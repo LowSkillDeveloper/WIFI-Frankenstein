@@ -22,7 +22,6 @@ import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.wifimap.ExternalIndexManager
 import com.lsd.wififrankenstein.util.DatabaseIndices
-import com.lsd.wififrankenstein.util.DatabaseTypeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -188,22 +187,10 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
             val helper = SQLite3WiFiHelper(getApplication(), dbItem.path.toUri(), dbItem.directPath)
             val database = helper.database ?: return false
 
-            val indices = DatabaseIndices.getAvailableIndices(database)
+            val indexLevel = DatabaseIndices.determineIndexLevel(database)
+            helper.close()
 
-            val dbType = DatabaseTypeUtils.determineDbType(database)
-
-            val hasGeoIndexes = indices.contains(DatabaseIndices.GEO_COORDS_BSSID) ||
-                    indices.contains(DatabaseIndices.GEO_BSSID)
-
-            val hasMainTableIndexes = when (dbType) {
-                DatabaseTypeUtils.WiFiDbType.TYPE_NETS ->
-                    indices.contains(DatabaseIndices.NETS_BSSID)
-                DatabaseTypeUtils.WiFiDbType.TYPE_BASE ->
-                    indices.contains(DatabaseIndices.BASE_BSSID)
-                else -> false
-            }
-
-            return hasGeoIndexes && hasMainTableIndexes
+            return indexLevel >= DatabaseIndices.IndexLevel.BASIC
         } catch (e: Exception) {
             Log.e("DbSetupViewModel", "Error checking 3WiFi indexes", e)
             return false
@@ -211,34 +198,88 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun updateAllDbIndexStatuses() {
-        val currentList = _dbList.value.orEmpty().toMutableList()
-        var updated = false
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentList = _dbList.value.orEmpty().toMutableList()
+            var updated = false
 
-        for (i in currentList.indices) {
-            val dbItem = currentList[i]
-            val isIndexed = when (dbItem.dbType) {
-                DbType.SQLITE_FILE_CUSTOM -> {
-                    if (dbItem.directPath != null) {
-                        externalIndexManager.indexesExist(dbItem.id)
-                    } else {
-                        false
+            for (i in currentList.indices) {
+                val dbItem = currentList[i]
+                val isIndexed = withContext(Dispatchers.IO) {
+                    when (dbItem.dbType) {
+                        DbType.SQLITE_FILE_CUSTOM -> {
+                            if (dbItem.directPath != null) {
+                                externalIndexManager.indexesExist(dbItem.id)
+                            } else {
+                                false
+                            }
+                        }
+                        DbType.SQLITE_FILE_3WIFI -> {
+                            check3WiFiIndexesDirectly(dbItem)
+                        }
+                        else -> false
                     }
                 }
-                DbType.SQLITE_FILE_3WIFI -> {
-                    check3WiFiIndexes(dbItem)
+
+                if (dbItem.isIndexed != isIndexed) {
+                    currentList[i] = dbItem.copy(isIndexed = isIndexed)
+                    updated = true
+                    Log.d("DbSetupViewModel", "Updated index status for ${dbItem.id}: $isIndexed")
                 }
-                else -> false
             }
 
-            if (dbItem.isIndexed != isIndexed) {
-                currentList[i] = dbItem.copy(isIndexed = isIndexed)
-                updated = true
+            if (updated) {
+                withContext(Dispatchers.Main) {
+                    _dbList.postValue(currentList)
+                    saveDbList()
+                }
             }
         }
+    }
 
-        if (updated) {
-            _dbList.postValue(currentList)
-            saveDbList()
+    fun forceUpdateIndexStatus(dbId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentList = _dbList.value.orEmpty().toMutableList()
+            val index = currentList.indexOfFirst { it.id == dbId }
+
+            if (index != -1) {
+                val dbItem = currentList[index]
+                val isIndexed = when (dbItem.dbType) {
+                    DbType.SQLITE_FILE_CUSTOM -> {
+                        if (dbItem.directPath != null) {
+                            externalIndexManager.indexesExist(dbItem.id)
+                        } else {
+                            false
+                        }
+                    }
+                    DbType.SQLITE_FILE_3WIFI -> {
+                        check3WiFiIndexesDirectly(dbItem)
+                    }
+                    else -> false
+                }
+
+                if (dbItem.isIndexed != isIndexed) {
+                    currentList[index] = dbItem.copy(isIndexed = isIndexed)
+                    withContext(Dispatchers.Main) {
+                        _dbList.postValue(currentList)
+                        saveDbList()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun check3WiFiIndexesDirectly(dbItem: DbItem): Boolean {
+        return try {
+            val helper = SQLite3WiFiHelper(getApplication(), dbItem.path.toUri(), dbItem.directPath)
+            val database = helper.database ?: return false
+
+            val indexLevel = DatabaseIndices.determineIndexLevel(database)
+            helper.close()
+
+            indexLevel >= DatabaseIndices.IndexLevel.BASIC
+        } catch (e: Exception) {
+            Log.e("DbSetupViewModel", "Error checking 3WiFi indexes directly", e)
+            false
         }
     }
 

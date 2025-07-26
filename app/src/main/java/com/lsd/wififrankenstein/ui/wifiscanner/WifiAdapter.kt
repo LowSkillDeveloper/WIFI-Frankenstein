@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.wifiscanner
 
 import android.Manifest
+import android.R.attr.entries
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -32,13 +33,29 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.ItemCredentialBinding
 import com.lsd.wififrankenstein.databinding.ItemWifiBinding
 import java.util.Locale
+import com.lsd.wififrankenstein.util.NetworkDetailsExtractor
+import com.lsd.wififrankenstein.util.NetworkProtocol
+import com.lsd.wififrankenstein.util.calculateDistanceString
+import com.lsd.wififrankenstein.util.NetworkSecurityInfo
+import com.lsd.wififrankenstein.util.NetworkFrequencyBand
+import com.lsd.wififrankenstein.util.NetworkBandwidth
+import com.lsd.wififrankenstein.util.SecurityProtocol
+import com.lsd.wififrankenstein.databinding.ItemWpaResultBinding
+import com.lsd.wififrankenstein.databinding.ItemWpsResultBinding
 
-
-class WifiAdapter(private var wifiList: List<ScanResult>) :
+class WifiAdapter(private var wifiList: List<ScanResult>, private val context: Context) :
     RecyclerView.Adapter<WifiAdapter.WifiViewHolder>() {
 
     private var onItemClickListener: ((View, ScanResult) -> Unit)? = null
     private var databaseResults: Map<String, List<NetworkDatabaseResult>> = emptyMap()
+    private var onScrollToTopListener: (() -> Unit)? = null
+
+    private var isDatabaseResultsApplied = false
+    private var networksWithDatabaseData = mutableSetOf<String>()
+
+    fun setOnScrollToTopListener(listener: () -> Unit) {
+        this.onScrollToTopListener = listener
+    }
 
     fun setOnItemClickListener(listener: (View, ScanResult) -> Unit) {
         this.onItemClickListener = listener
@@ -56,15 +73,91 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
     override fun getItemCount() = wifiList.size
 
     fun updateData(newWifiList: List<ScanResult>) {
-        val sortedNewWifiList = newWifiList.sortedByDescending { it.level }
+        isDatabaseResultsApplied = false
+        networksWithDatabaseData.clear()
+        val sortedNewWifiList = sortWifiList(newWifiList)
         val diffCallback = WifiDiffCallback(wifiList, sortedNewWifiList)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         wifiList = sortedNewWifiList
         diffResult.dispatchUpdatesTo(this)
     }
 
+    private fun sortWifiList(wifiList: List<ScanResult>): List<ScanResult> {
+        if (wifiList.isEmpty()) {
+            return wifiList
+        }
+
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val shouldPrioritize = prefs.getBoolean("prioritize_networks_with_data", true)
+
+        if (!shouldPrioritize || !isDatabaseResultsApplied || networksWithDatabaseData.isEmpty()) {
+            return wifiList.sortedByDescending { it.level }
+        }
+
+        val networksWithData = mutableListOf<ScanResult>()
+        val networksWithoutData = mutableListOf<ScanResult>()
+
+        wifiList.forEach { network ->
+            val bssid = network.BSSID.lowercase(Locale.ROOT)
+            if (networksWithDatabaseData.contains(bssid)) {
+                networksWithData.add(network)
+            } else {
+                networksWithoutData.add(network)
+            }
+        }
+
+        val sortedNetworksWithData = networksWithData.sortedByDescending { it.level }
+        val sortedNetworksWithoutData = networksWithoutData.sortedByDescending { it.level }
+
+        android.util.Log.d("WifiAdapter", "Networks with data: ${sortedNetworksWithData.size}, without data: ${sortedNetworksWithoutData.size}")
+        android.util.Log.d("WifiAdapter", "Networks with DB data BSSIDs: ${networksWithDatabaseData.joinToString()}")
+        sortedNetworksWithData.forEach { network ->
+            android.util.Log.d("WifiAdapter", "With data: ${network.SSID} (${network.BSSID}) - ${network.level} dBm")
+        }
+
+        return sortedNetworksWithData + sortedNetworksWithoutData
+    }
+
     fun updateDatabaseResults(results: Map<String, List<NetworkDatabaseResult>>) {
         databaseResults = results.mapKeys { (key, _) -> key.lowercase(Locale.ROOT) }
+
+        networksWithDatabaseData.clear()
+        results.forEach { (bssid, networkResults) ->
+            if (networkResults.isNotEmpty()) {
+                networksWithDatabaseData.add(bssid.lowercase(Locale.ROOT))
+            }
+        }
+
+        val hasNetworksWithData = networksWithDatabaseData.isNotEmpty()
+        if (hasNetworksWithData) {
+            isDatabaseResultsApplied = true
+        }
+
+        val sortedList = sortWifiList(wifiList)
+
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val shouldPrioritize = prefs.getBoolean("prioritize_networks_with_data", true)
+        val shouldAutoScroll = prefs.getBoolean("auto_scroll_to_networks_with_data", true)
+
+        if (shouldPrioritize && hasNetworksWithData) {
+            wifiList = sortedList
+            notifyDataSetChanged()
+
+            if (shouldAutoScroll) {
+                onScrollToTopListener?.invoke()
+            }
+        } else {
+            val diffCallback = WifiDiffCallback(wifiList, sortedList)
+            val diffResult = DiffUtil.calculateDiff(diffCallback)
+            wifiList = sortedList
+            diffResult.dispatchUpdatesTo(this)
+        }
+    }
+
+    fun clearDatabaseResults() {
+        databaseResults = emptyMap()
+        isDatabaseResultsApplied = false
+        networksWithDatabaseData.clear()
         notifyDataSetChanged()
     }
 
@@ -76,6 +169,9 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
         private var isExpanded = false
         private var showAllCredentials = false
         private var fullResultsList: List<NetworkDatabaseResult> = emptyList()
+
+        private val securityIcon = binding.securityIcon
+        private val distanceTextView = binding.distanceTextView
 
         init {
             itemView.setOnClickListener { view ->
@@ -103,20 +199,93 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
         }
 
         fun bind(scanResult: ScanResult) {
+            val networkDetails = NetworkDetailsExtractor.extractDetails(scanResult)
+
             binding.apply {
                 ssidTextView.text = scanResult.SSID
                 bssidTextView.text = scanResult.BSSID
-                capabilitiesTextView.text = scanResult.capabilities
-                frequencyTextView.text = "${scanResult.frequency} MHz"
                 levelTextView.text = "${scanResult.level} dBm"
 
+                val distance = calculateDistanceString(scanResult.frequency, scanResult.level, 1.0)
+                distanceTextView.text = distance
+
+                securityIcon.setImageResource(networkDetails.security.mainProtocol.iconRes)
+
+                val capabilities = networkDetails.advancedCapabilities
+                untrustedChip.visibility = if (capabilities.isUntrusted) View.VISIBLE else View.GONE
+
+                channelInfo.text = itemView.context.getString(R.string.channel_format, networkDetails.channel)
+                frequencyInfo.text = itemView.context.getString(networkDetails.frequencyBand.displayNameRes)
+                bandwidthInfo.text = itemView.context.getString(networkDetails.bandwidth.displayNameRes)
+
+                if (networkDetails.protocol != NetworkProtocol.UNKNOWN) {
+                    protocolInfo.visibility = View.VISIBLE
+                    protocolInfo.text = itemView.context.getString(networkDetails.protocol.shortNameRes)
+                    protocolFullInfo.visibility = View.VISIBLE
+                    protocolFullInfo.text = itemView.context.getString(networkDetails.protocol.fullNameRes)
+                } else {
+                    protocolInfo.visibility = View.GONE
+                    protocolFullInfo.visibility = View.GONE
+                }
+
+                rttInfo.visibility = if (capabilities.supportsRtt) View.VISIBLE else View.GONE
+                if (capabilities.supportsRtt) {
+                    rttInfo.text = itemView.context.getString(R.string.wifi_rtt_responder)
+                }
+
+                ntbInfo.visibility = if (capabilities.supportsNtb) View.VISIBLE else View.GONE
+                if (capabilities.supportsNtb) {
+                    ntbInfo.text = itemView.context.getString(R.string.wifi_ntb_responder)
+                }
+
+                securityInfo.text = networkDetails.security.getSecurityString()
+
+                val securityTypesText = networkDetails.security.getSecurityTypesString(itemView.context)
+                if (securityTypesText.isNotBlank() && securityTypesText != itemView.context.getString(R.string.security_type_unknown)) {
+                    securityTypesInfo.visibility = View.VISIBLE
+                    securityTypesInfo.text = securityTypesText
+                } else {
+                    securityTypesInfo.visibility = View.GONE
+                }
+
+                if (networkDetails.security.hasWps) {
+                    wpsInfo.visibility = View.VISIBLE
+                    wpsInfo.text = "WPS"
+                } else {
+                    wpsInfo.visibility = View.GONE
+                }
+
+                if (networkDetails.security.isAdHoc) {
+                    adhocInfo.visibility = View.VISIBLE
+                    adhocInfo.text = "Ad-hoc"
+                } else {
+                    adhocInfo.visibility = View.GONE
+                }
+
+                val fastRoamingText = networkDetails.security.getFastRoamingString(itemView.context)
+                if (fastRoamingText.isNotBlank()) {
+                    fastRoamingInfo.visibility = View.VISIBLE
+                    fastRoamingInfo.text = fastRoamingText
+                } else {
+                    fastRoamingInfo.visibility = View.GONE
+                }
+
+                twtInfo.visibility = if (capabilities.supportsTwt) View.VISIBLE else View.GONE
+                if (capabilities.supportsTwt) {
+                    twtInfo.text = itemView.context.getString(R.string.wifi_twt_responder)
+                }
+
+                mldInfo.visibility = if (capabilities.supportsMld) View.VISIBLE else View.GONE
+                if (capabilities.supportsMld) {
+                    mldInfo.text = itemView.context.getString(R.string.wifi_mld_support)
+                }
+
                 val networkResults = databaseResults[scanResult.BSSID.lowercase(Locale.ROOT)]
-                Log.d("WifiAdapter", "Binding ${scanResult.SSID} with ${networkResults?.size} database results")
 
                 if (!networkResults.isNullOrEmpty()) {
                     fullResultsList = networkResults
                     expandButton.visibility = View.VISIBLE
-                    expandButton.text = "Show database info"
+                    expandButton.text = itemView.context.getString(R.string.show_database_info)
                     startIcon.visibility = View.VISIBLE
                     endIcon.visibility = View.VISIBLE
 
@@ -171,7 +340,6 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
             context.startActivity(Intent.createChooser(mapIntent,
                 context.getString(R.string.map_choose_app)))
         } else {
-            // If Google Maps not installed, try to open in browser
             val browserUri = Uri.parse("https://maps.google.com/maps?q=$lat,$lon")
             val browserIntent = Intent(Intent.ACTION_VIEW, browserUri)
             context.startActivity(browserIntent)
@@ -179,18 +347,41 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
     }
 
     private inner class CredentialsAdapter :
-        ListAdapter<NetworkDatabaseResult, CredentialsAdapter.CredentialsViewHolder>(
+        ListAdapter<NetworkDatabaseResult, RecyclerView.ViewHolder>(
             CredentialsDiffCallback()
         ) {
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CredentialsViewHolder {
-            val binding =
-                ItemCredentialBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-            return CredentialsViewHolder(binding)
+        override fun getItemViewType(position: Int): Int {
+            return when (getItem(position).resultType) {
+                ResultType.DATABASE -> TYPE_DATABASE
+                ResultType.WPA_ALGORITHM -> TYPE_WPA
+                ResultType.WPS_ALGORITHM -> TYPE_WPS
+            }
         }
 
-        override fun onBindViewHolder(holder: CredentialsViewHolder, position: Int) {
-            holder.bind(getItem(position))
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            return when (viewType) {
+                TYPE_DATABASE -> {
+                    val binding = ItemCredentialBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                    CredentialsViewHolder(binding)
+                }
+                TYPE_WPA -> {
+                    val binding = ItemWpaResultBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                    WpaViewHolder(binding)
+                }
+                TYPE_WPS -> {
+                    val binding = ItemWpsResultBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                    WpsViewHolder(binding)
+                }
+                else -> throw IllegalArgumentException("Unknown view type: $viewType")
+            }
+        }
+
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            when (holder) {
+                is CredentialsViewHolder -> holder.bind(getItem(position))
+                is WpaViewHolder -> holder.bind(getItem(position))
+                is WpsViewHolder -> holder.bind(getItem(position))
+            }
         }
 
         inner class CredentialsViewHolder(private val binding: ItemCredentialBinding) :
@@ -241,16 +432,66 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
             }
         }
 
+        inner class WpaViewHolder(private val binding: ItemWpaResultBinding) : RecyclerView.ViewHolder(binding.root) {
+            fun bind(result: NetworkDatabaseResult) {
+                val wpaResult = result.wpaResult ?: return
+
+                binding.algorithmName.text = wpaResult.algorithm
+                binding.wpaKeysText.text = wpaResult.keys.first()
+                binding.generationTime.text = itemView.context.getString(R.string.generation_time, wpaResult.generationTime)
+
+                binding.copyKeysButton.setOnClickListener {
+                    copyToClipboard(itemView.context, "WPA Key", wpaResult.keys.first())
+                }
+            }
+        }
+
+        inner class WpsViewHolder(private val binding: ItemWpsResultBinding) : RecyclerView.ViewHolder(binding.root) {
+            fun bind(result: NetworkDatabaseResult) {
+                val wpsPin = result.wpsPin ?: return
+
+                binding.algorithmName.text = wpsPin.name
+                binding.wpsPinText.text = wpsPin.pin
+
+                val source = wpsPin.additionalData["source"] as? String
+                val distance = wpsPin.additionalData["distance"] as? String
+
+                val sourceText = when {
+                    source == "neighbor_search" && distance != null ->
+                        itemView.context.getString(R.string.source_format, "${wpsPin.name} (${distance} MAC distance)")
+                    source != null ->
+                        itemView.context.getString(R.string.source_format, source)
+                    else -> ""
+                }
+                binding.sourceInfo.text = sourceText
+
+                binding.scoreText.text = itemView.context.getString(R.string.score_format, wpsPin.score)
+
+                if (wpsPin.sugg) {
+                    binding.statusIcon.setImageResource(R.drawable.ic_star)
+                    binding.statusIcon.setColorFilter(itemView.context.getColor(R.color.orange_dark))
+                } else {
+                    binding.statusIcon.setImageResource(R.drawable.ic_help)
+                    binding.statusIcon.setColorFilter(itemView.context.getColor(R.color.orange_dark))
+                }
+
+                binding.experimentalChip.visibility = if (wpsPin.isExperimental) View.VISIBLE else View.GONE
+
+                binding.copyPinButton.setOnClickListener {
+                    copyToClipboard(itemView.context, "WPS PIN", wpsPin.pin)
+                }
+            }
+        }
+
         private fun showActionsMenu(view: View, result: NetworkDatabaseResult) {
             val popupMenu = PopupMenu(view.context, view)
             popupMenu.menuInflater.inflate(R.menu.credential_actions, popupMenu.menu)
 
             val wifiKey = result.databaseInfo["WiFiKey"] as? String
-                ?: result.databaseInfo["key"] as? String
-                ?: ""
+                ?: result.databaseInfo["key"] as? String ?: ""
+
             val wpsPin = result.databaseInfo["WPSPIN"]?.toString()
-                ?: result.databaseInfo["wps"]?.toString()
-                ?: ""
+                ?: result.databaseInfo["wps"]?.toString() ?: ""
 
             val prefs = view.context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             val isRootEnabled = prefs.getBoolean("enable_root", false)
@@ -486,6 +727,11 @@ class WifiAdapter(private var wifiList: List<ScanResult>) :
     }
 
     companion object {
+
+        private const val TYPE_DATABASE = 0
+        private const val TYPE_WPA = 1
+        private const val TYPE_WPS = 2
+
         fun extractDatabaseName(path: String): String {
             return try {
                 when {

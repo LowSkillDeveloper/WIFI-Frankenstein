@@ -54,8 +54,11 @@ class MainActivity : AppCompatActivity() {
         appBarConfiguration = AppBarConfiguration(
             setOf(
                 R.id.nav_wifi_scanner,
+                R.id.nav_wifi_analysis,
                 R.id.nav_database_finder,
                 R.id.nav_wifi_map,
+                R.id.nav_wps_generator,
+                R.id.nav_wpa_generator,
                 R.id.nav_settings,
                 R.id.nav_about
             ), drawerLayout
@@ -96,7 +99,6 @@ class MainActivity : AppCompatActivity() {
                         put("hasSystemUpdates", status.fileUpdates.any { it.needsUpdate })
                         put("hasDbUpdates", status.dbUpdates.any { it.needsUpdate })
                         put("hasAnyUpdates", status.hasUpdates)
-                        // Add the new version number
                         status.appUpdate?.let {
                             put("newVersion", it.newVersion)
                         }

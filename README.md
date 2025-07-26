@@ -1,8 +1,8 @@
 # WiFi Frankenstein
 
-![App Version](https://img.shields.io/badge/app_version-1.0-blue)
+![App Version](https://img.shields.io/badge/app_version-1.1-blue)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
-![Kotlin](https://img.shields.io/badge/kotlin-2.2.0_RC-purple)
+![Kotlin](https://img.shields.io/badge/kotlin-2.2.10_RC-purple)
 
 
 
@@ -36,10 +36,15 @@ The application combines various WiFi tools and functionality into one powerful 
 - **WiFi Maps**: View WiFi points from 3WiFi db and custom databases without an internet connection (The map itself requires internet)
 - **Clustering Control**: Option to enable or disable point clustering on the map
 - **Multiple bases**: Possibility to display wifi points from several different databases on the map at once.
+- **MAC base location**: Finding the location of an access point by its MAC address
 
 ### 🛠️ Tools & Features
+- **WiFi Channel Analysis**: Page for analyzing WiFi channels, providing insights into channel usage and performance.
 - **MAC Address Locating**: Find the geographical location of WiFi access points by MAC address
+- **More detailed information**: detection of WiFi network technologies, including RTT, NTB, TWT, and MLD
 - **WPS Pin Generator**: Local pin code generation
+- **WPA Password Generator**: Local wpa passwords generation
+- **Neighbor-based WPS PIN suggestions**: multi-level neighbor-based WPS PIN suggestions from Local DB
 - **WPS Connect**: Possibility to connect via WPS 
 - **3WiFi API Integration**: Advanced settings and direct API requests
 - **Distance Calculation**: Measure distance to WiFi access point
@@ -57,15 +62,18 @@ The application combines various WiFi tools and functionality into one powerful 
 ## ⚠️ Known Issues
 
 - **Profile Saving**: Saving wifi profiles may sometimes fail
-- **WPS Pin Detection**: The local WPS pin code generator does not detect possible pin codes (pins are still generated)
-- **Local DB**: Some features are not fully transferred from the original locator
 
 ## 🔄 Comparison with 3WiFi Locator
 
 | Feature | WiFi Frankenstein | 3WiFi Locator |
 |---------|-------------------|---------------|
-| Local in-app Database | ⚠️ Limited | ⚠️ Limited |
+| Local in-app Database | ✅ Supported | ⚠️ Limited |
 | Local Full 3WiFi Database | ✅ Supported | ❌ Not supported |
+| WPA Generators | ✅ Supported | ❌ Not supported |
+| WPS Generators | ✅ Supported | ⚠️ Limited |
+| Neighbor-based WPS PIN suggestions | ✅ Supported | ❌ Not supported |
+| WiFi Channel Analysis | ✅ Supported | ❌ Not supported |
+| Additional information about WiFi | ✅ Yes | ⚠️ Only security protocol |
 | Custom SQLite Databases | ✅ Supported | ❌ Not supported |
 | Offline WiFi Maps | ⚠️ Only DB data | ❌ Not supported |
 | WiFi Location by MAC | ✅ Yes | ❌ Not supported |
@@ -79,7 +87,7 @@ The application combines various WiFi tools and functionality into one powerful 
 | SDK version | ✅ Latest | ⚠️Old |
 
 
-## 📱 Screenshots
+## 📱 Screenshots (Old version)
 
 <div align="center">
   <img src="https://github.com/user-attachments/assets/18ded2df-5a06-4be7-ac22-0e70484c5b4d" width="250" alt="Screenshot 1" />
@@ -109,7 +117,7 @@ The application combines various WiFi tools and functionality into one powerful 
 ## 🔐 Permissions
 
 The application requires the following permissions:
-- Location access (for mapping and distance calculation)
+- Location access (for mapping and for wifi scanning to work, Android SDK requirement)
 - Storage access (for database management)
 - Network access (for updates and online features)
 
@@ -120,6 +128,27 @@ The application requires the following permissions:
 ## ⚖️ Disclaimer
 
 This application is designed for network administrators, security researchers and WiFi enthusiasts to test and analyze their own networks. Always ensure you have proper authorization before analyzing any WiFi network.
+
+## 💝 Support Development
+
+If you find this project useful and would like to support its development, you can make a donation using cryptocurrency:
+
+### Bitcoin (BTC)
+```
+19LYe2QhHXp2YAXSPrYydGc8v3t2TPdEPf
+```
+
+### Ethereum (ETH) 
+```
+0x5ebC5Eb2f59E6B62Ca9b221F2549D5067457D9b8
+```
+
+### Monero (XMR)
+```
+4AC1MepXZA8R6XGcL5mjejWRDqKvmbY3YWGEJTCWmFxJ8gPuLULSYxKSWafy9haMXGYuR2CdF3Vr8Q2kS8pBorVpQ4Lie48
+```
+
+Your support helps maintain and improve this project. Thank you! 🙏
 
 ## 🤝 Contributing
 

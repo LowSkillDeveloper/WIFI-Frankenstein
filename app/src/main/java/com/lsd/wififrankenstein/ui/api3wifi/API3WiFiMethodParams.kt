@@ -354,7 +354,6 @@ sealed class API3WiFiMethodParams {
             bssidInputLayout = view.findViewById(R.id.bssidInputLayout)
             bssidChipGroup = view.findViewById(R.id.bssidChipGroup)
 
-            // BSSID фильтр
             bssidInput.filters = arrayOf(InputFilter { source, start, end, dest, dstart, dend ->
                 val newText = dest.toString().substring(0, dstart) + source.toString() + dest.toString().substring(dend)
                 if (newText.isEmpty()) return@InputFilter source
@@ -539,7 +538,6 @@ sealed class API3WiFiMethodParams {
         }
 
         private fun setupInputFilters() {
-            // Фильтры для числовых полей
             val latLonFilter = InputFilter { source, start, end, dest, dstart, dend ->
                 val newText = dest.toString().substring(0, dstart) + source.toString() + dest.toString().substring(dend)
                 if (newText.isEmpty() || newText == "-" || newText == ".") return@InputFilter source

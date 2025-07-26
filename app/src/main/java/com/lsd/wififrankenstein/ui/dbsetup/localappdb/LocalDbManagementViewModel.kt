@@ -1,6 +1,8 @@
 package com.lsd.wififrankenstein.ui.dbsetup.localappdb
 
+import android.annotation.SuppressLint
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -11,9 +13,16 @@ import androidx.paging.cachedIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+@SuppressLint("LongLogTag")
 class LocalDbManagementViewModel(application: Application) : AndroidViewModel(application) {
 
     private val dbHelper = LocalAppDbHelper(application)
+
+    private val indexLevel: String = dbHelper.getIndexLevel()
+
+    init {
+        Log.d("LocalDbManagementViewModel", "Local DB index level: $indexLevel")
+    }
 
     var localDbItems = Pager(
         config = PagingConfig(pageSize = 50, enablePlaceholders = false, prefetchDistance = 3),

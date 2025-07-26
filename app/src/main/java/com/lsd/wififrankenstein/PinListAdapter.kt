@@ -41,22 +41,57 @@ class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiff
         fun bind(pin: WPSPin) {
             Log.d("PinViewHolder", "Binding pin: ${pin.pin}, name: ${pin.name}, sugg: ${pin.sugg}, score: ${pin.score}")
             textPin.text = pin.pin
-            textAlgo.text = pin.name
 
             if (pin.isFrom3WiFi) {
                 textScore.visibility = View.VISIBLE
-                textScore.text = "Score: %.2f".format(pin.score)
+                textScore.text = itemView.context.getString(R.string.score_format, pin.score)
             } else {
                 textScore.visibility = View.GONE
             }
 
-            textDb.text = if (pin.sugg) "✔" else ""
-
-            val additionalDataString = pin.additionalData.entries.joinToString("\n") { (key, value) ->
-                "$key: $value"
+            if (pin.sugg) {
+                textDb.text = ""
+                val starDrawable = ContextCompat.getDrawable(itemView.context, R.drawable.ic_star)
+                starDrawable?.setBounds(0, 0, starDrawable.intrinsicWidth, starDrawable.intrinsicHeight)
+                textDb.setCompoundDrawablesRelative(starDrawable, null, null, null)
+            } else {
+                textDb.text = ""
+                textDb.setCompoundDrawablesRelative(null, null, null, null)
             }
-            textAdditionalData.text = additionalDataString
-            textAdditionalData.visibility = if (additionalDataString.isNotEmpty()) View.VISIBLE else View.GONE
+
+            val additionalInfo = when {
+                pin.isFrom3WiFi -> {
+                    val type = pin.additionalData["type"]?.toString() ?: ""
+                    val database = pin.additionalData["database"]?.toString() ?: ""
+                    val neighborBssid = pin.additionalData["neighbor_bssid"]?.toString()
+                    val distance = pin.additionalData["distance"]?.toString()
+
+                    when {
+                        neighborBssid != null && distance != null ->
+                            "$type • Neighbor: ${neighborBssid.takeLast(8)} (±$distance)"
+                        neighborBssid != null ->
+                            "$type • Neighbor: ${neighborBssid.takeLast(8)}"
+                        database.isNotEmpty() -> "$type • $database"
+                        else -> type
+                    }
+                }
+                pin.additionalData.containsKey("source") -> {
+                    val source = pin.additionalData["source"]?.toString() ?: ""
+                    val type = pin.additionalData["type"]?.toString() ?: ""
+                    val database = pin.additionalData["database"]?.toString() ?: ""
+                    when {
+                        database.isNotEmpty() -> "$type • $database"
+                        type.isNotEmpty() -> type
+                        else -> source
+                    }
+                }
+                pin.additionalData.containsKey("mode") -> {
+                    pin.additionalData["mode"]?.toString() ?: ""
+                }
+                else -> ""
+            }
+            textAdditionalData.text = additionalInfo
+            textAdditionalData.visibility = if (additionalInfo.isNotEmpty()) View.VISIBLE else View.GONE
 
             val context = itemView.context
             val typedValue = TypedValue()
@@ -67,11 +102,30 @@ class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiff
             context.theme.resolveAttribute(android.R.attr.textColorSecondary, typedValue, true)
             val secondaryTextColor = ContextCompat.getColor(context, typedValue.resourceId)
 
-            textPin.setTextColor(primaryTextColor)
-            textAlgo.setTextColor(secondaryTextColor)
-            textScore.setTextColor(secondaryTextColor)
-            textDb.setTextColor(secondaryTextColor)
-            textAdditionalData.setTextColor(secondaryTextColor)
+            if (pin.sugg) {
+                val suggestedColor = ContextCompat.getColor(context, android.R.color.holo_green_dark)
+                textPin.setTextColor(suggestedColor)
+                textAlgo.setTextColor(suggestedColor)
+                textScore.setTextColor(suggestedColor)
+                textDb.setTextColor(suggestedColor)
+                textAdditionalData.setTextColor(suggestedColor)
+            } else {
+                textPin.setTextColor(primaryTextColor)
+                textAlgo.setTextColor(secondaryTextColor)
+                textScore.setTextColor(secondaryTextColor)
+                textDb.setTextColor(secondaryTextColor)
+                textAdditionalData.setTextColor(secondaryTextColor)
+            }
+
+            if (pin.isExperimental || pin.name.lowercase().contains("fake")) {
+                textAlgo.setTextColor(ContextCompat.getColor(context, R.color.error_red))
+            }
+
+            if (pin.isExperimental && !pin.sugg) {
+                textAlgo.text = "${pin.name}"
+            } else {
+                textAlgo.text = pin.name
+            }
 
             itemView.setOnClickListener { view ->
                 showPopupMenu(view, pin)
@@ -82,7 +136,6 @@ class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiff
             PopupMenu(view.context, view).apply {
                 menuInflater.inflate(R.menu.pin_actions, menu)
 
-                // Проверяем включены ли root функции
                 val prefs = view.context.getSharedPreferences("settings", Context.MODE_PRIVATE)
                 val isRootEnabled = prefs.getBoolean("enable_root", false)
                 menu.findItem(R.id.action_connect_wps_root).isVisible = isRootEnabled

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_copy_ssid"
+        android:title="@string/copy_ssid" />
+    <item
+        android:id="@+id/action_copy_bssid"
+        android:title="@string/copy_bssid" />
+    <item
+        android:id="@+id/action_copy_password"
+        android:title="@string/copy_password" />
+    <item
+        android:id="@+id/action_copy_wps"
+        android:title="@string/copy_wps_pin" />
+    <item
+        android:id="@+id/action_copy_admin_panel"
+        android:title="@string/copy_admin_panel" />
+    <item
+        android:id="@+id/action_show_location"
+        android:title="@string/show_on_map" />
+    <item
+        android:id="@+id/action_generate_wps"
+        android:title="@string/generate_wps_pins" />
+    <item
+        android:id="@+id/action_edit"
+        android:title="@string/edit_record" />
+    <item
+        android:id="@+id/action_delete"
+        android:title="@string/delete_record" />
+</menu>

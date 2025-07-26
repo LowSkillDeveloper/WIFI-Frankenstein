@@ -19,3 +19,20 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+}
+
+-optimizationpasses 5
+-allowaccessmodification
+-mergeinterfacesaggressively
+
+-optimizations method/inlining/short
+
+-optimizations !code/allocation/variable
+-optimizations method/inlining/*,code/removal/exception

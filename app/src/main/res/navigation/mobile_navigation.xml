@@ -12,10 +12,26 @@
         tools:layout="@layout/fragment_rss_news" />
 
     <fragment
+        android:id="@+id/nav_wpa_generator"
+        android:name="com.lsd.wififrankenstein.ui.wpagenerator.WpaGeneratorFragment"
+        android:label="@string/wpa_generator_title"
+        tools:layout="@layout/fragment_wpa_generator" />
+
+    <action
+        android:id="@+id/action_databaseFinderFragment_to_dbSetupFragment"
+        app:destination="@id/dbSetupFragment" />
+
+    <fragment
         android:id="@+id/nav_wifi_scanner"
         android:name="com.lsd.wififrankenstein.ui.wifiscanner.WiFiScannerFragment"
         android:label="@string/menu_wifi_scanner"
         tools:layout="@layout/fragment_wifi_scanner" />
+
+    <fragment
+        android:id="@+id/nav_wps_generator"
+        android:name="com.lsd.wififrankenstein.ui.wpsgenerator.WpsGeneratorFragment"
+        android:label="@string/menu_wps_generator"
+        tools:layout="@layout/fragment_wps_generator" />
 
     <fragment
         android:id="@+id/nav_api_query"
@@ -28,6 +44,18 @@
         android:name="com.lsd.wififrankenstein.ui.databasefinder.DatabaseFinderFragment"
         android:label="@string/menu_database_finder"
         tools:layout="@layout/fragment_database_finder" />
+
+    <fragment
+        android:id="@+id/nav_wifi_analysis"
+        android:name="com.lsd.wififrankenstein.ui.wifianalysis.WiFiAnalysisFragment"
+        android:label="@string/menu_wifi_analysis"
+        tools:layout="@layout/fragment_wifi_analysis" />
+
+    <fragment
+        android:id="@+id/nav_in_app_database"
+        android:name="com.lsd.wififrankenstein.ui.inappdatabase.InAppDatabaseFragment"
+        android:label="@string/menu_in_app_database"
+        tools:layout="@layout/fragment_in_app_database" />
 
     <fragment
         android:id="@+id/nav_wifi_map"

@@ -11,12 +11,12 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-    <include
-        android:id="@+id/updateBanner"
-        layout="@layout/update_banner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone"/>
+        <include
+            android:id="@+id/updateBanner"
+            layout="@layout/update_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"/>
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -54,22 +54,21 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipe_refresh_layout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="0dp"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_view_wifi"
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipe_refresh_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp" />
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-    </LinearLayout>
+            android:layout_marginTop="0dp"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view_wifi"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp" />
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+    </LinearLayout>
 
     <com.google.android.material.bottomappbar.BottomAppBar
         android:id="@+id/bottom_app_bar"
@@ -77,39 +76,72 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="@color/card_background"
-        app:fabCradleMargin="8dp"
+        app:fabCradleMargin="6dp"
         app:fabCradleRoundedCornerRadius="16dp"
         app:fabCradleVerticalOffset="10dp"
         app:hideOnScroll="true">
 
         <LinearLayout
-            android:id="@+id/scan_buttons_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="10dp"
-            android:layout_marginEnd="20dp"
-            android:layout_marginBottom="20dp"
+            android:layout_marginStart="1dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="15dp"
+            android:layout_marginBottom="4dp"
             android:gravity="center"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
-            <Button
-                android:id="@+id/button_online_db"
-                style="@style/RoundedButton"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="40dp"
-                android:layout_weight="1"
-                android:text="@string/check_in_online_bt" />
+                android:orientation="horizontal"
+                android:layout_marginBottom="2dp">
 
-            <Button
-                android:id="@+id/button_offline_db"
-                style="@style/RoundedButton"
-                android:layout_width="0dp"
+                <Button
+                    android:id="@+id/button_offline_db"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="33dp"
+                    android:text="@string/check_in_offline_bt"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/button_generate_wps"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="33dp"
+                    android:text="@string/generate_wps_algorithms"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="40dp"
-                android:layout_weight="1"
-                android:text="@string/check_in_offline_bt" />
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/button_online_db"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="33dp"
+                    android:text="@string/check_in_online_bt"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/button_generate_wpa"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="33dp"
+                    android:text="@string/generate_wpa_algorithms"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
         </LinearLayout>
     </com.google.android.material.bottomappbar.BottomAppBar>
 
@@ -117,7 +149,7 @@
         android:id="@+id/button_scan_wifi"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="28dp"
         app:fabSize="normal"
         app:layout_anchor="@id/bottom_app_bar"
         app:srcCompat="@drawable/baseline_refresh_24" />

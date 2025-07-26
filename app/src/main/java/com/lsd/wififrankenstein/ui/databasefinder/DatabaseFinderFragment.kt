@@ -21,6 +21,8 @@ import com.lsd.wififrankenstein.databinding.FragmentDatabaseFinderBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.navigation.fragment.findNavController
+import androidx.paging.LoadState
 
 class DatabaseFinderFragment : Fragment() {
 
@@ -64,12 +66,9 @@ class DatabaseFinderFragment : Fragment() {
         binding.progressBarDatabaseCheck.visibility = View.GONE
         binding.progressBarDatabaseCheck.isIndeterminate = true
 
-
         if (DbSetupViewModel.needDataRefresh) {
-
             viewModel.refreshDatabases()
         }
-
 
         viewModel.isSearching.observe(viewLifecycleOwner) { isSearching ->
             binding.progressBarDatabaseCheck.visibility = if (isSearching) View.VISIBLE else View.GONE
@@ -84,9 +83,15 @@ class DatabaseFinderFragment : Fragment() {
         setupSearchButton()
         setupSourcesButton()
         setupFiltersButton()
+        setupDbSettingsButton()
         requestPermissions()
     }
 
+    private fun setupDbSettingsButton() {
+        binding.buttonDbSettings.setOnClickListener {
+            findNavController().navigate(R.id.action_databaseFinderFragment_to_dbSetupFragment)
+        }
+    }
     private fun requestPermissions() {
         val permissionsToRequest = REQUIRED_PERMISSIONS.filter {
             ContextCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
@@ -119,15 +124,16 @@ class DatabaseFinderFragment : Fragment() {
 
         searchResultsAdapter.addLoadStateListener { loadState ->
 
-            binding.progressBarDatabaseCheck.visibility =
-                if (loadState.source.refresh is androidx.paging.LoadState.Loading) View.VISIBLE else View.GONE
+            val isLoading = loadState.source.refresh is LoadState.Loading ||
+                    loadState.source.append is LoadState.Loading
 
-            val errorState = loadState.source.append as? androidx.paging.LoadState.Error
-                ?: loadState.source.prepend as? androidx.paging.LoadState.Error
-                ?: loadState.source.refresh as? androidx.paging.LoadState.Error
+            binding.progressBarDatabaseCheck.visibility = if (isLoading) View.VISIBLE else View.GONE
+
+            val errorState = loadState.source.refresh as? LoadState.Error
+                ?: loadState.source.append as? LoadState.Error
+                ?: loadState.source.prepend as? LoadState.Error
 
             errorState?.let {
-                binding.progressBarDatabaseCheck.visibility = View.GONE
                 Log.e(TAG, "Ошибка загрузки данных: ${it.error}")
             }
         }
@@ -135,12 +141,6 @@ class DatabaseFinderFragment : Fragment() {
         lifecycleScope.launch {
             viewModel.searchResults.collectLatest { pagingData ->
                 searchResultsAdapter.submitData(pagingData)
-            }
-        }
-
-        lifecycleScope.launch {
-            viewModel.searchResults.collectLatest {
-                searchResultsAdapter.submitData(it)
             }
         }
     }

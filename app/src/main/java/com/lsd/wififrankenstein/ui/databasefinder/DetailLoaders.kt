@@ -9,6 +9,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
+import com.lsd.wififrankenstein.util.DatabaseIndices
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -53,7 +54,13 @@ class WiFi3DetailLoader(
                         }
                     }
 
-                    val query = "SELECT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
+                    val indexLevel = DatabaseIndices.determineIndexLevel(db)
+                    val query = if (indexLevel >= DatabaseIndices.IndexLevel.BASIC) {
+                        "SELECT n.*, g.latitude, g.longitude FROM $tableName n INDEXED BY ${if (tableName == "nets") DatabaseIndices.NETS_BSSID else DatabaseIndices.BASE_BSSID} LEFT JOIN geo g INDEXED BY ${DatabaseIndices.GEO_BSSID} ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
+                    } else {
+                        "SELECT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
+                    }
+
                     db.rawQuery(query, arrayOf(decimalBssid.toString())).use { cursor ->
                         if (cursor.moveToFirst()) {
                             val result = cursorToMap(cursor)
@@ -98,11 +105,16 @@ class CustomDbDetailLoader(
                 return@flow
             }
 
+            if (columnMap == null) {
+                emit(mapOf("error" to "Column mapping not defined"))
+                return@flow
+            }
+
             SQLiteCustomHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
                 val db = helper.database
                 if (db != null) {
                     val cleanMac = bssid.replace("[^a-fA-F0-9]".toRegex(), "")
-                    val macColumn = columnMap?.get("mac") ?: "bssid"
+                    val macColumn = columnMap["mac"] ?: "bssid"
 
                     val query = """
                         SELECT * FROM $tableName WHERE 
@@ -113,7 +125,49 @@ class CustomDbDetailLoader(
 
                     db.rawQuery(query, arrayOf(bssid, bssid.uppercase(), cleanMac.uppercase())).use { cursor ->
                         if (cursor.moveToFirst()) {
-                            emit(cursorToMap(cursor))
+                            val result = cursorToMap(cursor)
+
+                            val normalizedResult = mutableMapOf<String, Any?>()
+
+                            columnMap["mac"]?.let { macField ->
+                                normalizedResult["BSSID"] = result[macField]
+                            }
+
+                            columnMap["essid"]?.let { essidField ->
+                                normalizedResult["ESSID"] = result[essidField]
+                            }
+
+                            columnMap["wifi_pass"]?.let { passField ->
+                                normalizedResult["WiFiKey"] = result[passField]
+                            }
+
+                            columnMap["wps_pin"]?.let { wpsField ->
+                                normalizedResult["WPSPIN"] = result[wpsField]
+                            }
+
+                            columnMap["latitude"]?.let { latField ->
+                                normalizedResult["latitude"] = result[latField]
+                            }
+
+                            columnMap["longitude"]?.let { lonField ->
+                                normalizedResult["longitude"] = result[lonField]
+                            }
+
+                            columnMap["security_type"]?.let { secField ->
+                                normalizedResult["capabilities"] = result[secField]
+                            }
+
+                            columnMap["timestamp"]?.let { timeField ->
+                                normalizedResult["time"] = result[timeField]
+                            }
+
+                            result.forEach { (key, value) ->
+                                if (!normalizedResult.containsKey(key)) {
+                                    normalizedResult[key] = value
+                                }
+                            }
+
+                            emit(normalizedResult)
                         } else {
                             emit(mapOf("message" to "No detailed data found"))
                         }
@@ -136,18 +190,43 @@ class LocalAppDetailLoader(
     override suspend fun loadDetailData(searchResult: SearchResult): Flow<Map<String, Any?>> = flow {
         try {
             val helper = LocalAppDbHelper(context)
-            val cleanMac = bssid.replace("[^a-fA-F0-9]".toRegex(), "")
+
+            val macFormats = generateAllMacFormats(bssid)
+            val conditions = mutableListOf<String>()
+            val params = mutableListOf<String>()
+
+            macFormats.forEach { format ->
+                conditions.add("UPPER(${LocalAppDbHelper.COLUMN_MAC_ADDRESS}) = UPPER(?)")
+                params.add(format)
+                conditions.add("REPLACE(REPLACE(UPPER(${LocalAppDbHelper.COLUMN_MAC_ADDRESS}), ':', ''), '-', '') = REPLACE(REPLACE(UPPER(?), ':', ''), '-', '')")
+                params.add(format)
+            }
 
             val query = """
-                SELECT * FROM ${LocalAppDbHelper.TABLE_NAME} 
-                WHERE ${LocalAppDbHelper.COLUMN_MAC_ADDRESS} = ? OR 
-                ${LocalAppDbHelper.COLUMN_MAC_ADDRESS} LIKE ? OR
-                REPLACE(REPLACE(${LocalAppDbHelper.COLUMN_MAC_ADDRESS}, ':', ''), '-', '') = ?
-            """.trimIndent()
+            SELECT * FROM ${LocalAppDbHelper.TABLE_NAME} 
+            WHERE ${conditions.joinToString(" OR ")}
+        """.trimIndent()
 
-            helper.readableDatabase.rawQuery(query, arrayOf(bssid, "%$bssid%", cleanMac.uppercase())).use { cursor ->
+            helper.readableDatabase.rawQuery(query, params.toTypedArray()).use { cursor ->
                 if (cursor.moveToFirst()) {
-                    emit(cursorToMap(cursor))
+                    val result = cursorToMap(cursor)
+
+                    val normalizedResult = mutableMapOf<String, Any?>()
+                    normalizedResult["BSSID"] = result[LocalAppDbHelper.COLUMN_MAC_ADDRESS]
+                    normalizedResult["ESSID"] = result[LocalAppDbHelper.COLUMN_WIFI_NAME]
+                    normalizedResult["WiFiKey"] = result[LocalAppDbHelper.COLUMN_WIFI_PASSWORD]
+                    normalizedResult["WPSPIN"] = result[LocalAppDbHelper.COLUMN_WPS_CODE]
+                    normalizedResult["AdminPanel"] = result[LocalAppDbHelper.COLUMN_ADMIN_PANEL]
+                    normalizedResult["latitude"] = result[LocalAppDbHelper.COLUMN_LATITUDE]
+                    normalizedResult["longitude"] = result[LocalAppDbHelper.COLUMN_LONGITUDE]
+
+                    result.forEach { (key, value) ->
+                        if (!normalizedResult.containsKey(key)) {
+                            normalizedResult[key] = value
+                        }
+                    }
+
+                    emit(normalizedResult)
                 } else {
                     emit(mapOf("message" to "No detailed data found"))
                 }
@@ -157,9 +236,52 @@ class LocalAppDetailLoader(
             emit(mapOf("error" to e.message))
         }
     }.flowOn(Dispatchers.IO)
+
+    private fun generateAllMacFormats(input: String): List<String> {
+        val cleanInput = input.replace("[^a-fA-F0-9]".toRegex(), "").uppercase()
+        val formats = mutableSetOf<String>()
+
+        formats.add(input.trim())
+
+        if (cleanInput.isNotEmpty()) {
+            formats.add(cleanInput)
+            formats.add(cleanInput.lowercase())
+
+            if (cleanInput.length == 12) {
+                formats.add(cleanInput.replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(cleanInput.replace("(.{2})".toRegex(), "$1-").dropLast(1))
+                formats.add(cleanInput.lowercase().replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(cleanInput.lowercase().replace("(.{2})".toRegex(), "$1-").dropLast(1))
+
+                try {
+                    val decimal = cleanInput.toLong(16)
+                    formats.add(decimal.toString())
+                } catch (e: NumberFormatException) {
+
+                }
+            }
+        }
+
+        if (input.matches("[0-9]+".toRegex())) {
+            try {
+                val decimal = input.toLong()
+                val hex = String.format("%012X", decimal)
+                formats.add(hex)
+                formats.add(hex.lowercase())
+                formats.add(hex.replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(hex.replace("(.{2})".toRegex(), "$1-").dropLast(1))
+                formats.add(hex.lowercase().replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(hex.lowercase().replace("(.{2})".toRegex(), "$1-").dropLast(1))
+            } catch (e: NumberFormatException) {
+
+            }
+        }
+
+        return formats.filter { it.isNotEmpty() }.distinct()
+    }
 }
 
-// Для ApiDetailLoader:
+
 class ApiDetailLoader(
     private val context: Context,
     private val dbItem: DbItem,

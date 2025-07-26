@@ -7,9 +7,9 @@ data class WifiNetwork(
     val id: Long,
     val wifiName: String,
     val macAddress: String,
-    val wifiPassword: String?,
-    val wpsCode: String?,
-    val adminPanel: String?,
-    val latitude: Double?,
-    val longitude: Double?
+    val wifiPassword: String? = null,
+    val wpsCode: String? = null,
+    val adminPanel: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )

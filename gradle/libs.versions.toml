@@ -1,32 +1,33 @@
 [versions]
-agp = "8.10.0"
-jsoup = "1.20.1"
-kotlin = "2.2.0-RC"
+agp = "8.11.1"
+jsoup = "1.21.1"
+kotlin = "2.2.10-RC"
 coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-appcompat = "1.7.0"
-material = "1.13.0-alpha13"
+appcompat = "1.7.1"
+material = "1.13.0-beta01"
 constraintlayout = "2.2.1"
-lifecycleLivedataKtx = "2.9.0"
-lifecycleViewmodelKtx = "2.9.0"
-navigationFragmentKtx = "2.9.0"
-navigationUiKtx = "2.9.0"
+lifecycleLivedataKtx = "2.9.2"
+lifecycleViewmodelKtx = "2.9.2"
+navigationFragmentKtx = "2.9.2"
+navigationUiKtx = "2.9.2"
 swiperefreshlayout = "1.2.0-beta01"
 recyclerview = "1.4.0"
-sqlite_version = "2.5.1"
-orgJetbrainsKotlinPluginSerializationGradlePlugin = "2.2.0-RC"
-kotlinxSerializationJson = "1.8.1"
+sqlite_version = "2.5.2"
+orgJetbrainsKotlinPluginSerializationGradlePlugin = "2.2.10-RC"
+kotlinxSerializationJson = "1.9.0"
 kotlinxCoroutinesAndroid = "1.10.2"
 pagingRuntimeKtx = "3.3.6"
-opencsv = "5.11"
-okhttp = "5.0.0-alpha.14"
+opencsv = "5.11.2"
+okhttp = "5.1.0"
 osmdroidAndroid = "6.1.20"
-kotlinxSerializationProtobuf = "1.8.1"
+kotlinxSerializationProtobuf = "1.9.0"
 glide = "5.0.0-rc01"
 commonsCompress = "1.27.1"
 xz = "1.10"
+flexbox = "3.0.0"
 #protobufKotlin = "4.30.0"
 
 
@@ -58,6 +59,7 @@ kotlinx-serialization-protobuf = { group = "org.jetbrains.kotlinx", name = "kotl
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
 xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
+flexbox = { group = "com.google.android.flexbox", name = "flexbox", version.ref = "flexbox" }
 #protobuf-kotlin = { group = "com.google.protobuf", name = "protobuf-kotlin", version.ref = "protobufKotlin" }
 
 [plugins]

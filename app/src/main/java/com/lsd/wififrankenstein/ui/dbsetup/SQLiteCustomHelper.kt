@@ -44,6 +44,23 @@ class SQLiteCustomHelper(
         }
     }
 
+    fun getRecommendedIndexLevel(tableName: String): String {
+        return try {
+            val recordCount = _database?.rawQuery("SELECT COUNT(*) FROM $tableName", null)?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getLong(0) else 0L
+            } ?: 0L
+
+            when {
+                recordCount < 50_000 -> "NONE"
+                recordCount < 500_000 -> "BASIC"
+                else -> "FULL"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting recommended index level", e)
+            "BASIC"
+        }
+    }
+
     suspend fun getPointsInBoundingBox(
         bounds: BoundingBox,
         tableName: String,
@@ -55,28 +72,8 @@ class SQLiteCustomHelper(
                 val lonColumn = columnMap["longitude"] ?: return@withContext null
                 val macColumn = columnMap["mac"] ?: return@withContext null
 
-                val hasIndexes = _database?.rawQuery(
-                    "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND (name LIKE '%coords%' OR name LIKE '%mac%')",
-                    arrayOf(tableName)
-                )?.use { cursor ->
-                    cursor.count > 0
-                } == true
-
-                val query = if (hasIndexes) {
-                    """
-                    SELECT $macColumn, $latColumn, $lonColumn 
-                    FROM $tableName 
-                    WHERE $latColumn BETWEEN ? AND ?
-                    AND $lonColumn BETWEEN ? AND ?
-                    """
-                } else {
-                    """
-                    SELECT $macColumn, $latColumn, $lonColumn 
-                    FROM $tableName 
-                    WHERE $latColumn >= ? AND $latColumn <= ?
-                    AND $lonColumn >= ? AND $lonColumn <= ?
-                    """
-                }
+                val query = getOptimalQuery(tableName, columnMap, bounds)
+                if (query.isEmpty()) return@withContext null
 
                 _database?.rawQuery(query, arrayOf(
                     bounds.latSouth.toString(),
@@ -114,6 +111,80 @@ class SQLiteCustomHelper(
         }
     }
 
+    fun getCustomIndexLevel(): String {
+        return try {
+            val hasEssidIndex = _database?.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND sql LIKE '%essid%'",
+                null
+            )?.use { it.count > 0 } ?: false
+
+            val hasPasswordIndex = _database?.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND sql LIKE '%password%' OR sql LIKE '%wifi_pass%'",
+                null
+            )?.use { it.count > 0 } ?: false
+
+            val hasWpsIndex = _database?.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND sql LIKE '%wps%'",
+                null
+            )?.use { it.count > 0 } ?: false
+
+            when {
+                hasEssidIndex && hasPasswordIndex && hasWpsIndex -> "FULL"
+                hasEssidIndex -> "BASIC"
+                else -> "NONE"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error determining custom index level", e)
+            "NONE"
+        }
+    }
+
+    fun getOptimalQuery(
+        tableName: String,
+        columnMap: Map<String, String>,
+        bounds: BoundingBox
+    ): String {
+        val latColumn = columnMap["latitude"] ?: return ""
+        val lonColumn = columnMap["longitude"] ?: return ""
+        val macColumn = columnMap["mac"] ?: return ""
+
+        val indexLevel = getCustomIndexLevel()
+
+        return when (indexLevel) {
+            "FULL", "BASIC" -> {
+                val hasCoordsIndex = _database?.rawQuery(
+                    "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql LIKE '%$latColumn%'",
+                    arrayOf(tableName)
+                )?.use { it.count > 0 } ?: false
+
+                if (hasCoordsIndex) {
+                    """
+                SELECT $macColumn, $latColumn, $lonColumn 
+                FROM $tableName 
+                WHERE $latColumn >= ? AND $latColumn <= ?
+                AND $lonColumn >= ? AND $lonColumn <= ?
+                ORDER BY $latColumn, $lonColumn
+                """
+                } else {
+                    """
+                SELECT $macColumn, $latColumn, $lonColumn 
+                FROM $tableName 
+                WHERE $latColumn >= ? AND $latColumn <= ?
+                AND $lonColumn >= ? AND $lonColumn <= ?
+                """
+                }
+            }
+            else -> {
+                """
+            SELECT $macColumn, $latColumn, $lonColumn 
+            FROM $tableName 
+            WHERE $latColumn >= ? AND $latColumn <= ?
+            AND $lonColumn >= ? AND $lonColumn <= ?
+            """
+            }
+        }
+    }
+
     fun searchNetworksByBSSIDs(
         tableName: String,
         columnMap: Map<String, String>,
@@ -121,54 +192,52 @@ class SQLiteCustomHelper(
     ): Map<String, Map<String, Any?>> {
         val macColumn = columnMap["mac"] ?: return emptyMap()
         val searchStartTime = System.currentTimeMillis()
-        Log.d("SQLiteCustomHelper", "Searching for ${bssids.size} BSSIDs in $tableName")
+        Log.d(TAG, "Searching for ${bssids.size} BSSIDs in $tableName")
 
-        val searchFormats = bssids.flatMap { bssid ->
-            val cleanMac = bssid.replace("[^a-fA-F0-9]".toRegex(), "")
-            listOf(
-                bssid,
-                bssid.uppercase(),
-                cleanMac,
-                cleanMac.uppercase()
-            ).also { formats ->
-                try {
-                    formats.plus(cleanMac.toLong(16).toString())
-                } catch (_: NumberFormatException) {}
-            }
-        }.distinct()
-
-        val conditions = searchFormats.joinToString(" OR ") {
-            """
-        $macColumn = ? OR
-        UPPER($macColumn) = UPPER(?) OR
-        REPLACE(REPLACE(UPPER($macColumn), ':', ''), '-', '') = ?
-        """
+        val allMacFormats = mutableMapOf<String, List<String>>()
+        bssids.forEach { bssid ->
+            allMacFormats[bssid] = generateAllMacFormats(bssid)
         }
 
-        val query = "SELECT * FROM $tableName WHERE $conditions"
-        val params = searchFormats.flatMap { format ->
-            listOf(
-                format,
-                format,
-                format.replace("[^a-fA-F0-9]".toRegex(), "").uppercase()
-            )
-        }.toTypedArray()
+        val conditions = mutableListOf<String>()
+        val params = mutableListOf<String>()
 
-        Log.d("SQLiteCustomHelper", "Executing search query with ${params.size} parameters")
+        allMacFormats.values.flatten().distinct().forEach { format ->
+            conditions.add("UPPER($macColumn) = UPPER(?)")
+            params.add(format)
+            conditions.add("REPLACE(REPLACE(UPPER($macColumn), ':', ''), '-', '') = REPLACE(REPLACE(UPPER(?), ':', ''), '-', '')")
+            params.add(format)
+        }
 
-        return _database?.rawQuery(query, params)?.use { cursor ->
+        val query = "SELECT * FROM $tableName WHERE ${conditions.joinToString(" OR ")}"
+        Log.d(TAG, "Executing search query with ${params.size} parameters")
+
+        val results = _database?.rawQuery(query, params.toTypedArray())?.use { cursor ->
             buildMap {
                 while (cursor.moveToNext()) {
-                    val result = cursorToMap(cursor, columnMap)
-                    val bssid = result["mac"]?.toString()
-                    if (bssid != null) {
-                        put(bssid, result)
+                    val result = cursorToMap(cursor)
+                    val dbMac = result[macColumn]?.toString()
+                    if (dbMac != null) {
+                        val matchingOriginalBssid = findMatchingOriginalBssid(dbMac, allMacFormats)
+                        if (matchingOriginalBssid != null) {
+                            put(matchingOriginalBssid, result)
+                        }
                     }
                 }
             }
-        }?.also { results ->
-            Log.d("SQLiteCustomHelper", "Found ${results.size} results in ${System.currentTimeMillis() - searchStartTime}ms")
         } ?: emptyMap()
+
+        Log.d(TAG, "Found ${results.size} results in ${System.currentTimeMillis() - searchStartTime}ms")
+        return results
+    }
+
+    private fun findMatchingOriginalBssid(dbMac: String, allMacFormats: Map<String, List<String>>): String? {
+        return allMacFormats.entries.find { (_, formats) ->
+            formats.any { format ->
+                dbMac.equals(format, ignoreCase = true) ||
+                        dbMac.replace("[^a-fA-F0-9]".toRegex(), "").equals(format.replace("[^a-fA-F0-9]".toRegex(), ""), ignoreCase = true)
+            }
+        }?.key
     }
 
     fun searchNetworksByBSSIDAndFields(
@@ -190,8 +259,7 @@ class SQLiteCustomHelper(
         val reverseColumnMap = columnMap.entries.associate { (k, v) -> v to k }
         Log.d(TAG, "Reverse column map: $reverseColumnMap")
 
-        val conditions = mutableListOf<String>()
-        val params = mutableListOf<String>()
+        val allResults = mutableSetOf<Map<String, Any?>>()
 
         filters.forEach { columnName ->
             Log.d(TAG, "Processing filter: $columnName")
@@ -199,59 +267,166 @@ class SQLiteCustomHelper(
             Log.d(TAG, "Mapped column name: $mappedColumn")
 
             mappedColumn?.let { dbColumn ->
+                val fieldResults = when (reverseColumnMap[columnName]) {
+                    "mac" -> searchByMacAllFormats(tableName, dbColumn, query)
+                    else -> searchByField(tableName, dbColumn, query, wholeWords)
+                }
+                allResults.addAll(fieldResults)
+            }
+        }
+
+        val results = allResults.distinctBy { "${it[columnMap["mac"]]}-${it[columnMap["essid"]]}" }
+        Log.d(TAG, "Total unique results found: ${results.size}")
+        return results
+    }
+
+    fun searchNetworksByBSSIDAndFieldsPaginated(
+        tableName: String,
+        columnMap: Map<String, String>,
+        query: String,
+        filters: Set<String>,
+        wholeWords: Boolean,
+        offset: Int,
+        limit: Int
+    ): List<Map<String, Any?>> {
+        val reverseColumnMap = columnMap.entries.associate { (k, v) -> v to k }
+        val allConditions = mutableListOf<String>()
+        val allParams = mutableListOf<String>()
+
+        filters.forEach { columnName ->
+            val mappedColumn = columnMap[reverseColumnMap[columnName] ?: columnName]
+            mappedColumn?.let { dbColumn ->
                 when (reverseColumnMap[columnName]) {
                     "mac" -> {
-                        val cleanMac = query.replace("[^a-fA-F0-9]".toRegex(), "")
-                        Log.d(TAG, "Processing MAC search. Original: $query, Cleaned: $cleanMac")
-
-                        conditions.add("""
-                    ($dbColumn = ? OR
-                    UPPER($dbColumn) = UPPER(?) OR
-                    REPLACE(REPLACE(UPPER($dbColumn), ':', ''), '-', '') = ?)
-                """.trimIndent())
-
-                        params.add(query)
-                        params.add(query)
-                        params.add(cleanMac.uppercase())
-
-                        Log.d(TAG, "Added MAC condition with params: $query, $query, ${cleanMac.uppercase()}")
+                        val macFormats = generateAllMacFormats(query)
+                        macFormats.forEach { format ->
+                            allConditions.add("UPPER($dbColumn) = UPPER(?)")
+                            allParams.add(format)
+                            allConditions.add("REPLACE(REPLACE(UPPER($dbColumn), ':', ''), '-', '') = REPLACE(REPLACE(UPPER(?), ':', ''), '-', '')")
+                            allParams.add(format)
+                        }
+                        allConditions.add("$dbColumn LIKE ?")
+                        allParams.add("%$query%")
                     }
                     else -> {
-                        conditions.add(if (wholeWords) {
-                            "(UPPER($dbColumn) = UPPER(?))"
+                        if (wholeWords) {
+                            allConditions.add("UPPER($dbColumn) = UPPER(?)")
+                            allParams.add(query)
                         } else {
-                            "(UPPER($dbColumn) LIKE UPPER(?))"
-                        })
-                        val param = if (wholeWords) query else "%$query%"
-                        params.add(param)
-                        Log.d(TAG, "Added regular condition for column $dbColumn with param: $param")
+                            allConditions.add("UPPER($dbColumn) LIKE UPPER(?)")
+                            allParams.add("%$query%")
+                        }
                     }
                 }
             }
         }
 
-        if (conditions.isEmpty()) {
-            Log.d(TAG, "No conditions generated, returning empty list")
-            return emptyList()
+        if (allConditions.isEmpty()) return emptyList()
+
+        val sql = "SELECT DISTINCT * FROM $tableName WHERE ${allConditions.joinToString(" OR ")} LIMIT $limit OFFSET $offset"
+
+        return executeSearchQuery(sql, allParams.toTypedArray())
+    }
+
+    private fun searchByMacAllFormats(tableName: String, columnName: String, query: String): List<Map<String, Any?>> {
+        Log.d(TAG, "Processing MAC search with all formats. Original: $query")
+
+        val macFormats = generateAllMacFormats(query)
+        Log.d(TAG, "Generated MAC formats: $macFormats")
+
+        val allConditions = mutableListOf<String>()
+        val allParams = mutableListOf<String>()
+
+        macFormats.forEach { format ->
+            allConditions.add("UPPER($columnName) = UPPER(?)")
+            allParams.add(format)
+
+            allConditions.add("REPLACE(REPLACE(UPPER($columnName), ':', ''), '-', '') = REPLACE(REPLACE(UPPER(?), ':', ''), '-', '')")
+            allParams.add(format)
         }
 
-        val sqlQuery = "SELECT DISTINCT * FROM $tableName WHERE ${conditions.joinToString(" OR ")}"
-        Log.d(TAG, "Final SQL Query: $sqlQuery")
-        Log.d(TAG, "Final params: ${params.joinToString()}")
+        allConditions.add("$columnName LIKE ?")
+        allParams.add("%$query%")
 
+        val sql = "SELECT DISTINCT * FROM $tableName WHERE ${allConditions.joinToString(" OR ")}"
+
+        Log.d(TAG, "MAC search - SQL: $sql")
+        Log.d(TAG, "MAC search - Params count: ${allParams.size}")
+
+        return executeSearchQuery(sql, allParams.toTypedArray())
+    }
+
+    private fun generateAllMacFormats(input: String): List<String> {
+        val cleanInput = input.replace("[^a-fA-F0-9]".toRegex(), "").uppercase()
+        val formats = mutableSetOf<String>()
+
+        formats.add(input.trim())
+
+        if (cleanInput.isNotEmpty()) {
+            formats.add(cleanInput)
+
+            if (cleanInput.length == 12) {
+                formats.add(cleanInput.lowercase())
+                formats.add(cleanInput.replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(cleanInput.replace("(.{2})".toRegex(), "$1-").dropLast(1))
+                formats.add(cleanInput.lowercase().replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(cleanInput.lowercase().replace("(.{2})".toRegex(), "$1-").dropLast(1))
+
+                try {
+                    val decimal = cleanInput.toLong(16)
+                    formats.add(decimal.toString())
+                } catch (e: NumberFormatException) {
+                    Log.d(TAG, "Could not convert $cleanInput to decimal")
+                }
+            }
+        }
+
+        if (input.matches("[0-9]+".toRegex())) {
+            try {
+                val decimal = input.toLong()
+                val hex = String.format("%012X", decimal)
+                formats.add(hex)
+                formats.add(hex.lowercase())
+                formats.add(hex.replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(hex.replace("(.{2})".toRegex(), "$1-").dropLast(1))
+                formats.add(hex.lowercase().replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(hex.lowercase().replace("(.{2})".toRegex(), "$1-").dropLast(1))
+            } catch (e: NumberFormatException) {
+                Log.d(TAG, "Could not convert decimal $input to hex")
+            }
+        }
+
+        return formats.filter { it.isNotEmpty() }.distinct()
+    }
+
+    private fun searchByField(tableName: String, columnName: String, query: String, wholeWords: Boolean): List<Map<String, Any?>> {
+        val sql = if (wholeWords) {
+            "SELECT DISTINCT * FROM $tableName WHERE UPPER($columnName) = UPPER(?)"
+        } else {
+            "SELECT DISTINCT * FROM $tableName WHERE UPPER($columnName) LIKE UPPER(?)"
+        }
+
+        val param = if (wholeWords) query else "%$query%"
+
+        Log.d(TAG, "Field search - SQL: $sql")
+        Log.d(TAG, "Field search - Param: $param")
+
+        return executeSearchQuery(sql, arrayOf(param))
+    }
+
+    private fun executeSearchQuery(sql: String, params: Array<String>): List<Map<String, Any?>> {
         return try {
-            _database?.rawQuery(sqlQuery, params.toTypedArray())?.use { cursor ->
+            _database?.rawQuery(sql, params)?.use { cursor ->
                 Log.d(TAG, "Cursor obtained with ${cursor.count} rows")
                 buildList {
                     while (cursor.moveToNext()) {
-                        val result = cursorToMap(cursor, columnMap)
-                        Log.d(TAG, "Row found: $result")
+                        val result = cursorToMap(cursor)
                         add(result)
                     }
                 }
             } ?: emptyList()
         } catch (e: Exception) {
-            Log.e(TAG, "Error executing query", e)
+            Log.e(TAG, "Error executing query: $sql", e)
             emptyList()
         }
     }
@@ -363,35 +538,48 @@ class SQLiteCustomHelper(
             val essidColumn = columnMap["essid"] ?: return@withContext emptyList()
             val chunkedEssids = validEssids.chunked(500)
 
+            val indexLevel = getCustomIndexLevel()
+            val hasEssidIndex = _database?.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql LIKE '%$essidColumn%'",
+                arrayOf(tableName)
+            )?.use { cursor ->
+                cursor.count > 0
+            } ?: false
+
+            Log.d(TAG, "ESSID search - Has index on $essidColumn: $hasEssidIndex, Index level: $indexLevel")
+
             chunkedEssids.flatMap { chunk ->
                 val placeholders = chunk.joinToString(",") { "?" }
-                val query = "SELECT * FROM $tableName WHERE $essidColumn IN ($placeholders)"
+                val query = if (hasEssidIndex && indexLevel != "NONE") {
+                    "SELECT * FROM $tableName WHERE $essidColumn IN ($placeholders) COLLATE NOCASE"
+                } else {
+                    "SELECT * FROM $tableName WHERE $essidColumn IN ($placeholders) COLLATE NOCASE"
+                }
 
                 _database?.rawQuery(query, chunk.toTypedArray())?.use { cursor ->
                     buildList {
                         while (cursor.moveToNext()) {
-                            add(cursorToMap(cursor, columnMap))
+                            add(cursorToMap(cursor))
                         }
                     }
                 } ?: emptyList()
             }
         } catch (e: Exception) {
-            Log.e("SQLiteCustomHelper", "Error searching networks by ESSID", e)
+            Log.e(TAG, "Error searching networks by ESSID", e)
             emptyList()
         }
     }
 
-    private fun cursorToMap(cursor: Cursor, columnMap: Map<String, String>): Map<String, Any?> {
+    private fun cursorToMap(cursor: Cursor): Map<String, Any?> {
         return buildMap {
-            columnMap.forEach { (key, columnName) ->
-                val columnIndex = cursor.getColumnIndex(columnName)
-                if (columnIndex != -1) {
-                    put(key, when (cursor.getType(columnIndex)) {
-                        Cursor.FIELD_TYPE_INTEGER -> cursor.getLong(columnIndex)
-                        Cursor.FIELD_TYPE_FLOAT -> cursor.getFloat(columnIndex)
-                        else -> cursor.getString(columnIndex)
-                    })
+            for (i in 0 until cursor.columnCount) {
+                val columnName = cursor.getColumnName(i)
+                val value = when (cursor.getType(i)) {
+                    Cursor.FIELD_TYPE_INTEGER -> cursor.getLong(i)
+                    Cursor.FIELD_TYPE_FLOAT -> cursor.getFloat(i)
+                    else -> cursor.getString(i)
                 }
+                put(columnName, value)
             }
         }
     }

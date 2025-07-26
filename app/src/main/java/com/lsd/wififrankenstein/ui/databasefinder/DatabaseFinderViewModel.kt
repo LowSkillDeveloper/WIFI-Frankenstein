@@ -21,6 +21,11 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import com.lsd.wififrankenstein.util.DatabaseIndices
+import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
+import com.lsd.wififrankenstein.ui.wifimap.ExternalIndexManager
+import androidx.core.net.toUri
 
 class DatabaseFinderViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -83,6 +88,43 @@ class DatabaseFinderViewModel(application: Application) : AndroidViewModel(appli
         }
     }
 
+    fun getDatabaseIndexInfo(): Map<String, String> {
+        return try {
+            dbSetupViewModel.dbList.value?.associate { dbItem ->
+                val indexLevel = when (dbItem.dbType) {
+                    DbType.SQLITE_FILE_3WIFI -> {
+                        try {
+                            SQLite3WiFiHelper(getApplication(), dbItem.path.toUri(), dbItem.directPath).use { helper ->
+                                val db = helper.database
+                                if (db != null) {
+                                    DatabaseIndices.determineIndexLevel(db).toString()
+                                } else "UNKNOWN"
+                            }
+                        } catch (e: Exception) {
+                            "ERROR"
+                        }
+                    }
+                    DbType.SQLITE_FILE_CUSTOM -> {
+                        if (dbItem.directPath != null) {
+                            val externalIndexManager = ExternalIndexManager(getApplication())
+                            externalIndexManager.getIndexLevel(dbItem.id)
+                        } else {
+                            "NONE"
+                        }
+                    }
+                    DbType.LOCAL_APP_DB -> {
+                        LocalAppDbHelper(getApplication()).getIndexLevel()
+                    }
+                    else -> "N/A"
+                }
+                dbItem.path to indexLevel
+            } ?: emptyMap()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting database index info", e)
+            emptyMap()
+        }
+    }
+
     fun performSearch(query: String) {
         Log.d(TAG, "Starting search with query: '$query'")
         System.currentTimeMillis()
@@ -92,10 +134,11 @@ class DatabaseFinderViewModel(application: Application) : AndroidViewModel(appli
             try {
                 val pagerFlow = Pager(
                     config = PagingConfig(
-                        pageSize = 50,
+                        pageSize = 20,
                         enablePlaceholders = false,
-                        prefetchDistance = 2,
-                        initialLoadSize = 50
+                        prefetchDistance = 20,
+                        initialLoadSize = 20,
+                        maxSize = 200
                     ),
                     pagingSourceFactory = {
                         DatabaseFinderPagingSource(
