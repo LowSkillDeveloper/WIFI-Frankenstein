@@ -16,8 +16,8 @@
     <string name="menu_updates">Обновления</string>
     <string name="menu_settings">Настройки</string>
     <string name="menu_about">О приложении / Донат</string>
-    <string name="check_in_online_bt">Проверить онлайн</string>
-    <string name="check_in_offline_bt">Проверить офлайн</string>
+    <string name="check_in_online_bt">Онлайн базы</string>
+    <string name="check_in_offline_bt">Офлайн базы</string>
     <string name="select_source">Выбрать источник</string>
     <string name="offline_algorithms">Старый генератор</string>
     <string name="pin_database">Поиск по базам</string>

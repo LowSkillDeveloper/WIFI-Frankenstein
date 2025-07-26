@@ -19,8 +19,8 @@
     <string name="menu_updates">Updates</string>
     <string name="menu_settings">Settings</string>
     <string name="menu_about">About / Donation</string>
-    <string name="check_in_online_bt">Check Online</string>
-    <string name="check_in_offline_bt">Check Offline</string>
+    <string name="check_in_online_bt">Online DB</string>
+    <string name="check_in_offline_bt">Offline DB</string>
     <string name="select_source">Select source</string>
     <string name="offline_algorithms">Old Generator</string>
     <string name="pin_database">Database search</string>
