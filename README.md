@@ -43,6 +43,7 @@ The application combines various WiFi tools and functionality into one powerful 
 - **MAC Address Locating**: Find the geographical location of WiFi access points by MAC address
 - **More detailed information**: detection of WiFi network technologies, including RTT, NTB, TWT, and MLD
 - **WPS Pin Generator**: Local pin code generation
+- **WPA Password Generator**: Local wpa passwords generation
 - **Neighbor-based WPS PIN suggestions**: multi-level neighbor-based WPS PIN suggestions from Local DB
 - **WPS Connect**: Possibility to connect via WPS 
 - **3WiFi API Integration**: Advanced settings and direct API requests
@@ -68,6 +69,7 @@ The application combines various WiFi tools and functionality into one powerful 
 |---------|-------------------|---------------|
 | Local in-app Database | ✅ Supported | ⚠️ Limited |
 | Local Full 3WiFi Database | ✅ Supported | ❌ Not supported |
+| WPA Generators | ✅ Supported | ❌ Not supported |
 | WPS Generators | ✅ Supported | ⚠️ Limited |
 | Neighbor-based WPS PIN suggestions | ✅ Supported | ❌ Not supported |
 | WiFi Channel Analysis | ✅ Supported | ❌ Not supported |
