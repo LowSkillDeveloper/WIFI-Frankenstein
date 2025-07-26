@@ -34,15 +34,6 @@ When running either script, you will be prompted to choose:
 
 > ⚠️ **IMPORTANT WARNING**: DO NOT MANUALLY MODIFY THE SQLITE DATABASE FILE! This will break the indexing in applications or corrupt the entire database.
 
-## 🔧 Handling Problematic Entries
-
-If the final report shows unadded lines, you can:
-
-1. Add them to the `problem_entries` section at the end of the script
-2. Re-run the script to include these entries
-
-This section can also be used to add your own custom data to the database.
-
 ## 📑 Example of SmartLinkDB JSON File
 
 Below is an example of a `smartlinkdb` configuration JSON file, which the application uses to download and update databases.
