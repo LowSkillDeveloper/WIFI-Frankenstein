@@ -553,7 +553,7 @@ class WpsGeneratorFragment : Fragment() {
         pins
     }
 
-    private fun sortPinsByPriority(pins: List<WPSPin>): List<WPSPin> {
+        private fun sortPinsByPriority(pins: List<WPSPin>): List<WPSPin> {
         return pins.sortedWith(compareBy<WPSPin> { pin ->
             when {
                 pin.sugg && !pin.isFrom3WiFi -> 0

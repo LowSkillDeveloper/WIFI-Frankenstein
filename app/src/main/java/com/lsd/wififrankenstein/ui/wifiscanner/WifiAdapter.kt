@@ -365,22 +365,62 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
                 Log.d("CredentialsAdapter", "Binding credentials for ${result.network.SSID}")
                 Log.d("CredentialsAdapter", "Database info: ${result.databaseInfo}")
 
-                val wifiKey = result.databaseInfo["WiFiKey"]?.toString()
-                    ?: result.databaseInfo["wifi_pass"]?.toString()
-                    ?: result.databaseInfo["key"]?.toString()
-                    ?: itemView.context.getString(R.string.not_available)
+                when (result.resultType) {
+                    ResultType.WPA_ALGORITHM -> {
+                        val wpaKeys = result.databaseInfo["WiFiKey"]?.toString()
+                            ?: itemView.context.getString(R.string.not_available)
+                        val algorithm = result.databaseInfo["algorithm"]?.toString() ?: ""
+                        val supportState = result.databaseInfo["support_state"]?.toString() ?: ""
+                        val generationTime = result.databaseInfo["generation_time"]?.toString() ?: ""
 
-                val wpsPin = result.databaseInfo["WPSPIN"]?.toString()
-                    ?: result.databaseInfo["wps_pin"]?.toString()
-                    ?: result.databaseInfo["wps"]?.toString()
-                    ?: itemView.context.getString(R.string.not_available)
+                        binding.wifiKeyTextView.text = itemView.context.getString(R.string.wpa_result) + ": $wpaKeys"
+                        binding.wpsPinTextView.text = "Algorithm: $algorithm | Support: $supportState | Time: ${generationTime}ms"
 
-                binding.wifiKeyTextView.text = itemView.context.getString(R.string.wifi_key_format, wifiKey)
-                binding.wpsPinTextView.text = itemView.context.getString(R.string.wps_pin_format, wpsPin)
+                        binding.actionsButton.visibility = if (wpaKeys != itemView.context.getString(R.string.not_available))
+                            View.VISIBLE else View.GONE
+                    }
 
-                val hasKeyOrWps = wifiKey != itemView.context.getString(R.string.not_available) ||
-                        wpsPin != itemView.context.getString(R.string.not_available)
-                binding.actionsButton.visibility = if (hasKeyOrWps) View.VISIBLE else View.GONE
+                    ResultType.WPS_ALGORITHM -> {
+                        val wpsPin = result.databaseInfo["WPSPIN"]?.toString()
+                            ?: itemView.context.getString(R.string.not_available)
+                        val algorithm = result.databaseInfo["algorithm"]?.toString() ?: ""
+                        val suggested = result.databaseInfo["suggested"]?.toString()?.toBoolean() ?: false
+                        val experimental = result.databaseInfo["experimental"]?.toString()?.toBoolean() ?: false
+                        val source = result.databaseInfo["source"]?.toString() ?: ""
+
+                        binding.wifiKeyTextView.text = itemView.context.getString(R.string.wps_result) + ": $wpsPin"
+
+                        val statusText = buildString {
+                            append("Algorithm: $algorithm")
+                            if (suggested) append(" | Suggested")
+                            if (experimental) append(" | Experimental")
+                            if (source.isNotEmpty()) append(" | Source: $source")
+                        }
+                        binding.wpsPinTextView.text = statusText
+
+                        binding.actionsButton.visibility = if (wpsPin != itemView.context.getString(R.string.not_available))
+                            View.VISIBLE else View.GONE
+                    }
+
+                    ResultType.DATABASE -> {
+                        val wifiKey = result.databaseInfo["WiFiKey"]?.toString()
+                            ?: result.databaseInfo["wifi_pass"]?.toString()
+                            ?: result.databaseInfo["key"]?.toString()
+                            ?: itemView.context.getString(R.string.not_available)
+
+                        val wpsPin = result.databaseInfo["WPSPIN"]?.toString()
+                            ?: result.databaseInfo["wps_pin"]?.toString()
+                            ?: result.databaseInfo["wps"]?.toString()
+                            ?: itemView.context.getString(R.string.not_available)
+
+                        binding.wifiKeyTextView.text = itemView.context.getString(R.string.wifi_key_format, wifiKey)
+                        binding.wpsPinTextView.text = itemView.context.getString(R.string.wps_pin_format, wpsPin)
+
+                        val hasKeyOrWps = wifiKey != itemView.context.getString(R.string.not_available) ||
+                                wpsPin != itemView.context.getString(R.string.not_available)
+                        binding.actionsButton.visibility = if (hasKeyOrWps) View.VISIBLE else View.GONE
+                    }
+                }
 
                 binding.actionsButton.setOnClickListener {
                     showActionsMenu(it, result)
@@ -411,12 +451,17 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
             val popupMenu = PopupMenu(view.context, view)
             popupMenu.menuInflater.inflate(R.menu.credential_actions, popupMenu.menu)
 
-            val wifiKey = result.databaseInfo["WiFiKey"] as? String
-                ?: result.databaseInfo["key"] as? String
-                ?: ""
-            val wpsPin = result.databaseInfo["WPSPIN"]?.toString()
-                ?: result.databaseInfo["wps"]?.toString()
-                ?: ""
+            val wifiKey = when (result.resultType) {
+                ResultType.WPA_ALGORITHM -> result.databaseInfo["WiFiKey"] as? String ?: ""
+                else -> result.databaseInfo["WiFiKey"] as? String
+                    ?: result.databaseInfo["key"] as? String ?: ""
+            }
+
+            val wpsPin = when (result.resultType) {
+                ResultType.WPS_ALGORITHM -> result.databaseInfo["WPSPIN"] as? String ?: ""
+                else -> result.databaseInfo["WPSPIN"]?.toString()
+                    ?: result.databaseInfo["wps"]?.toString() ?: ""
+            }
 
             val prefs = view.context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             val isRootEnabled = prefs.getBoolean("enable_root", false)
