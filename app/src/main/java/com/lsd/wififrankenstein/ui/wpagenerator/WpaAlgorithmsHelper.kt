@@ -18,7 +18,7 @@ data class WpaResult(
 ) {
     companion object {
         const val SUPPORTED = 2
-        const val LIKELY_SUPPORTED = 2
+        const val LIKELY_SUPPORTED = 1
         const val UNLIKELY_SUPPORTED = 1
         const val UNSUPPORTED = 0
     }
@@ -110,8 +110,11 @@ class WpaAlgorithmsHelper(private val context: Context) {
                 }
             }
 
-            context.assets.open("RouterKeygen.dic").use { input ->
-                parseDictionary(input.readBytes(), thomsonDict)
+            try {
+                context.assets.open("RouterKeygen.dic").use { input ->
+                    parseDictionary(input.readBytes(), thomsonDict)
+                }
+            } catch (e: Exception) {
             }
 
             if (thomsonDict.isNotEmpty()) {
@@ -307,9 +310,13 @@ class WpaAlgorithmsHelper(private val context: Context) {
         abstract fun generateKeys(ssid: String, mac: String): List<String>
 
         protected fun incrementMac(mac: String, increment: Int): String {
-            val macInt = mac.toLong(16)
-            val newMac = macInt + increment
-            return newMac.toString(16).padStart(12, '0').uppercase()
+            return try {
+                val macInt = mac.toLong(16)
+                val newMac = (macInt + increment) and 0xFFFFFFFFFFL
+                newMac.toString(16).padStart(12, '0').uppercase()
+            } catch (e: Exception) {
+                mac
+            }
         }
 
         protected fun ByteArray.toHexString(): String {
@@ -329,41 +336,57 @@ class WpaAlgorithmsHelper(private val context: Context) {
         }
 
         override fun generateKeys(ssid: String, mac: String): List<String> {
-            if (mac.length != 12) return emptyList()
+            return try {
+                if (mac.length != 12) return emptyList()
 
-            val results = mutableListOf<String>()
-            val c1 = Integer.parseInt(mac.substring(8), 16).toString().padStart(5, '0')
-            val s7 = c1[1]
-            val s8 = c1[2]
-            val s9 = c1[3]
-            val s10 = c1[4]
-            val m9 = mac[8]
-            val m10 = mac[9]
-            val m11 = mac[10]
-            val m12 = mac[11]
+                val results = mutableListOf<String>()
+                val orders = arrayOf(
+                    intArrayOf(6, 2, 3, 8, 5, 1, 7, 4),
+                    intArrayOf(1, 2, 3, 8, 5, 1, 7, 4),
+                    intArrayOf(1, 2, 3, 8, 5, 6, 7, 4),
+                    intArrayOf(6, 2, 3, 8, 5, 6, 7, 4)
+                )
+                val charsets = arrayOf("024613578ACE9BDF", "944626378ace9bdf")
 
-            val tmpK1 = (s7.digitToInt(16) + s8.digitToInt(16) + m11.digitToInt(16) + m12.digitToInt(16)).toString(16)
-            val tmpK2 = (m9.digitToInt(16) + m10.digitToInt(16) + s9.digitToInt(16) + s10.digitToInt(16)).toString(16)
+                fun generateKey(macPart: String, charset: String, order: IntArray) {
+                    if (macPart.length != 8) return
+                    val key = buildString {
+                        for (i in order.indices) {
+                            val index = order[i] - 1
+                            if (index >= 0 && index < macPart.length) {
+                                val k = macPart[index].toString()
+                                val hexValue = k.toIntOrNull(16) ?: return
+                                if (hexValue < charset.length) {
+                                    append(charset[hexValue])
+                                }
+                            }
+                        }
+                    }
+                    if (key.length == 8) {
+                        results.add(key)
+                    }
+                }
 
-            val k1 = tmpK1.last()
-            val k2 = tmpK2.last()
-
-            val x1 = (k1.digitToInt(16) xor s10.digitToInt(16)).toString(16)
-            val x2 = (k1.digitToInt(16) xor s9.digitToInt(16)).toString(16)
-            val x3 = (k1.digitToInt(16) xor s8.digitToInt(16)).toString(16)
-            val y1 = (k2.digitToInt(16) xor m10.digitToInt(16)).toString(16)
-            val y2 = (k2.digitToInt(16) xor m11.digitToInt(16)).toString(16)
-            val y3 = (k2.digitToInt(16) xor m12.digitToInt(16)).toString(16)
-            val z1 = (m11.digitToInt(16) xor s10.digitToInt(16)).toString(16)
-            val z2 = (m12.digitToInt(16) xor s9.digitToInt(16)).toString(16)
-            val z3 = (k1.digitToInt(16) xor k2.digitToInt(16)).toString(16)
-
-            val wpaKey = "$x1$y1$z1$x2$y2$z2$x3$y3$z3"
-            results.add(wpaKey.uppercase())
-            if (wpaKey.contains('0')) {
-                results.add(wpaKey.replace("0", "1").uppercase())
+                when {
+                    ssid.startsWith("B") -> generateKey(mac.substring(4), charsets[0], orders[0])
+                    ssid.startsWith("b") -> {
+                        generateKey(incrementMac(mac, 1).substring(4), charsets[1], orders[0])
+                    }
+                    else -> {
+                        var currentMac = mac
+                        repeat(3) {
+                            orders.forEach { order ->
+                                generateKey(currentMac.substring(4), charsets[0], order)
+                                generateKey(currentMac.substring(4), charsets[1], order)
+                            }
+                            currentMac = incrementMac(currentMac, 1)
+                        }
+                    }
+                }
+                return results.distinct()
+            } catch (e: Exception) {
+                emptyList()
             }
-            return results
         }
     }
 

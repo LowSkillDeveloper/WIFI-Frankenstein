@@ -32,7 +32,6 @@ class WpaGeneratorFragment : Fragment() {
     private lateinit var wpaHelper: WpaAlgorithmsHelper
     private lateinit var wifiManager: WifiManager
     private lateinit var networksAdapter: NetworksAdapter
-    private lateinit var resultsAdapter: ResultsAdapter
 
     private val locationPermissionCode = 1001
     private var currentMode = MODE_MANUAL
@@ -71,22 +70,18 @@ class WpaGeneratorFragment : Fragment() {
     }
 
     private fun setupAdapters() {
-        networksAdapter = NetworksAdapter { network ->
-            generateKeysForNetwork(network.ssid, network.bssid)
-        }
-
-        resultsAdapter = ResultsAdapter { key ->
-            copyToClipboard(key)
-        }
+        networksAdapter = NetworksAdapter(
+            onNetworkClick = { network ->
+                generateKeysForNetwork(network)
+            },
+            onKeyClick = { key ->
+                copyToClipboard(key)
+            }
+        )
 
         binding.networksRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = networksAdapter
-        }
-
-        binding.resultsRecyclerView.apply {
-            layoutManager = LinearLayoutManager(context)
-            adapter = resultsAdapter
         }
     }
 
@@ -115,28 +110,22 @@ class WpaGeneratorFragment : Fragment() {
                 startNetworkScan()
             }
         }
-
-        binding.scanButton.setOnClickListener {
-            startNetworkScan()
-        }
     }
 
     private fun showManualInputMode() {
         binding.manualInputGroup.visibility = View.VISIBLE
-        binding.scanGroup.visibility = View.GONE
-        binding.generateButton.setText(R.string.generate_keys)
+        binding.generateButton.text = getString(R.string.generate_keys)
         binding.generateButton.setEnabled(true)
         binding.networksRecyclerView.visibility = View.GONE
-        binding.resultsRecyclerView.visibility = View.VISIBLE
+        binding.statusText.text = ""
     }
 
     private fun showScanMode() {
         binding.manualInputGroup.visibility = View.GONE
-        binding.scanGroup.visibility = View.VISIBLE
-        binding.generateButton.setText(R.string.scan_networks)
+        binding.generateButton.text = getString(R.string.scan_networks)
         binding.generateButton.setEnabled(true)
         binding.networksRecyclerView.visibility = View.VISIBLE
-        binding.resultsRecyclerView.visibility = View.GONE
+        binding.statusText.text = ""
     }
 
     private fun generateKeysManually() {
@@ -153,36 +142,37 @@ class WpaGeneratorFragment : Fragment() {
             return
         }
 
-        generateKeysForNetwork(ssid, bssid)
+        val network = NetworkInfo(ssid, bssid, 0, wpaHelper.getSupportState(ssid, bssid))
+        networksAdapter.updateNetworks(listOf(network))
+        binding.networksRecyclerView.visibility = View.VISIBLE
+        generateKeysForNetwork(network)
     }
 
-    private fun generateKeysForNetwork(ssid: String, bssid: String) {
+    private fun generateKeysForNetwork(network: NetworkInfo) {
         binding.progressBar.visibility = View.VISIBLE
         binding.generateButton.isEnabled = false
-        binding.networksRecyclerView.visibility = View.GONE
-        binding.resultsRecyclerView.visibility = View.VISIBLE
+        binding.statusText.text = getString(R.string.generating_keys)
 
         lifecycleScope.launch {
             try {
                 val results = withContext(Dispatchers.IO) {
-                    wpaHelper.generateKeys(ssid, bssid)
+                    wpaHelper.generateKeys(network.ssid, network.bssid)
                 }
 
                 binding.progressBar.visibility = View.GONE
                 binding.generateButton.isEnabled = true
 
                 if (results.isEmpty()) {
-                    binding.statusText.text = getString(R.string.no_keys_generated)
-                    resultsAdapter.updateResults(emptyList())
+                    binding.statusText.text = getString(R.string.no_algorithms_supported)
                 } else {
                     val totalKeys = results.sumOf { it.keys.size }
                     binding.statusText.text = getString(R.string.generated_keys) + ": $totalKeys"
-                    resultsAdapter.updateResults(results)
+                    networksAdapter.updateNetworkResults(network.bssid, results)
                 }
             } catch (e: Exception) {
                 binding.progressBar.visibility = View.GONE
                 binding.generateButton.isEnabled = true
-                binding.statusText.text = getString(R.string.error_general, e.message)
+                binding.statusText.text = getString(R.string.error_general, e.message ?: "Unknown error")
             }
         }
     }
@@ -204,8 +194,6 @@ class WpaGeneratorFragment : Fragment() {
         binding.progressBar.visibility = View.VISIBLE
         binding.generateButton.isEnabled = false
         binding.statusText.text = getString(R.string.scanning_networks)
-        binding.resultsRecyclerView.visibility = View.GONE
-        binding.networksRecyclerView.visibility = View.VISIBLE
 
         lifecycleScope.launch {
             try {

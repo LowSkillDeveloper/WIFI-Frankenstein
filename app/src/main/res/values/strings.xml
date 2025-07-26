@@ -955,5 +955,7 @@
     <string name="wifi_network">WiFi Network</string>
     <string name="support_state">Support state</string>
     <string name="expand_collapse">Expand/Collapse</string>
+    <string name="generating_keys">Generating keys…</string>
+    <string name="no_algorithms_supported">No supported algorithms</string>
 
 </resources>

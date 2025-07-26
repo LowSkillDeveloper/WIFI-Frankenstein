@@ -25,6 +25,7 @@ import com.lsd.wififrankenstein.util.WpsPinGenerator
 import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
+import com.lsd.wififrankenstein.util.MacAddressUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -424,24 +425,32 @@ class WpsGeneratorFragment : Fragment() {
                 when (dbItem.dbType) {
                     DbType.SQLITE_FILE_3WIFI -> {
                         val helper = SQLite3WiFiHelper(requireContext(), dbItem.path.toUri(), dbItem.directPath)
-                        val results = helper.searchNetworksByBSSIDsAsync(listOf(bssid))
 
-                        results.forEach { result ->
-                            val wpsPin = result["WPSPIN"]?.toString()
-                            if (!wpsPin.isNullOrEmpty() && wpsPin != "0" && isValidWpsPin(wpsPin)) {
-                                pins.add(WPSPin(
-                                    mode = 0,
-                                    name = getString(R.string.from_database),
-                                    pin = wpsPin,
-                                    sugg = true,
-                                    score = 1.0,
-                                    isFrom3WiFi = true,
-                                    additionalData = mapOf(
-                                        "source" to "3wifi_database",
-                                        "database" to dbItem.type,
-                                        "exact_match" to true
-                                    )
-                                ))
+                        val searchFormats = MacAddressUtils.generateAllFormats(bssid)
+                        val decimalBssids = searchFormats.mapNotNull { format ->
+                            MacAddressUtils.convertToDecimal(format)?.toString()
+                        }.distinct()
+
+                        if (decimalBssids.isNotEmpty()) {
+                            val results = helper.searchNetworksByBSSIDsAsync(decimalBssids)
+
+                            results.forEach { result ->
+                                val wpsPin = result["WPSPIN"]?.toString()
+                                if (!wpsPin.isNullOrEmpty() && wpsPin != "0" && isValidWpsPin(wpsPin)) {
+                                    pins.add(WPSPin(
+                                        mode = 0,
+                                        name = getString(R.string.from_database),
+                                        pin = wpsPin,
+                                        sugg = true,
+                                        score = 1.0,
+                                        isFrom3WiFi = true,
+                                        additionalData = mapOf(
+                                            "source" to "3wifi_database",
+                                            "database" to dbItem.type,
+                                            "exact_match" to true
+                                        )
+                                    ))
+                                }
                             }
                         }
                         helper.close()
@@ -451,25 +460,29 @@ class WpsGeneratorFragment : Fragment() {
                         val tableName = dbItem.tableName ?: return@forEach
                         val columnMap = dbItem.columnMap ?: return@forEach
 
-                        val results = helper.searchNetworksByBSSIDs(tableName, columnMap, listOf(bssid))
-                        results[bssid]?.let { result ->
-                            val wpsPinColumn = columnMap["wps_pin"]
-                            if (wpsPinColumn != null) {
-                                val wpsPin = result[wpsPinColumn]?.toString()
-                                if (!wpsPin.isNullOrEmpty() && wpsPin != "0" && isValidWpsPin(wpsPin)) {
-                                    pins.add(WPSPin(
-                                        mode = 0,
-                                        name = getString(R.string.source_custom_database),
-                                        pin = wpsPin,
-                                        sugg = true,
-                                        score = 1.0,
-                                        isFrom3WiFi = true,
-                                        additionalData = mapOf(
-                                            "source" to "custom_database",
-                                            "database" to dbItem.type,
-                                            "exact_match" to true
-                                        )
-                                    ))
+                        val searchFormats = MacAddressUtils.generateAllFormats(bssid)
+                        val results = helper.searchNetworksByBSSIDs(tableName, columnMap, searchFormats)
+
+                        searchFormats.forEach { searchFormat ->
+                            results[searchFormat]?.let { result ->
+                                val wpsPinColumn = columnMap["wps_pin"]
+                                if (wpsPinColumn != null) {
+                                    val wpsPin = result[wpsPinColumn]?.toString()
+                                    if (!wpsPin.isNullOrEmpty() && wpsPin != "0" && isValidWpsPin(wpsPin)) {
+                                        pins.add(WPSPin(
+                                            mode = 0,
+                                            name = getString(R.string.source_custom_database),
+                                            pin = wpsPin,
+                                            sugg = true,
+                                            score = 1.0,
+                                            isFrom3WiFi = true,
+                                            additionalData = mapOf(
+                                                "source" to "custom_database",
+                                                "database" to dbItem.type,
+                                                "exact_match" to true
+                                            )
+                                        ))
+                                    }
                                 }
                             }
                         }
@@ -481,7 +494,7 @@ class WpsGeneratorFragment : Fragment() {
                 android.util.Log.e("WpsGeneratorFragment", "Error searching offline database", e)
             }
         }
-        pins
+        pins.distinctBy { it.pin }
     }
 
     private suspend fun searchOnlineDatabases(bssid: String): List<WPSPin> = withContext(Dispatchers.IO) {
@@ -559,34 +572,38 @@ class WpsGeneratorFragment : Fragment() {
         val pins = mutableListOf<WPSPin>()
         try {
             val helper = LocalAppDbHelper(requireContext())
-            val results = helper.searchRecordsWithFilters(
-                query = bssid,
-                filterByName = false,
-                filterByMac = true,
-                filterByPassword = false,
-                filterByWps = true
-            )
+            val searchFormats = MacAddressUtils.generateAllFormats(bssid)
 
-            results.forEach { network ->
-                if (!network.wpsCode.isNullOrEmpty() && isValidWpsPin(network.wpsCode)) {
-                    pins.add(WPSPin(
-                        mode = 0,
-                        name = getString(R.string.source_local_database),
-                        pin = network.wpsCode,
-                        sugg = true,
-                        score = 1.0,
-                        isFrom3WiFi = true,
-                        additionalData = mapOf(
-                            "source" to "local_database",
-                            "exact_match" to true
-                        )
-                    ))
+            searchFormats.forEach { format ->
+                val results = helper.searchRecordsWithFilters(
+                    query = format,
+                    filterByName = false,
+                    filterByMac = true,
+                    filterByPassword = false,
+                    filterByWps = true
+                )
+
+                results.forEach { network ->
+                    if (!network.wpsCode.isNullOrEmpty() && isValidWpsPin(network.wpsCode)) {
+                        pins.add(WPSPin(
+                            mode = 0,
+                            name = getString(R.string.source_local_database),
+                            pin = network.wpsCode,
+                            sugg = true,
+                            score = 1.0,
+                            isFrom3WiFi = true,
+                            additionalData = mapOf(
+                                "source" to "local_database",
+                                "exact_match" to (format.equals(bssid, ignoreCase = true))
+                            )
+                        ))
+                    }
                 }
             }
         } catch (e: Exception) {
             android.util.Log.e("WpsGeneratorFragment", "Error searching local database", e)
         }
-        pins
+        pins.distinctBy { it.pin }
     }
 
     private suspend fun searchNeighborPins(bssid: String, maxDistance: Int): List<WPSPin> = withContext(Dispatchers.IO) {
@@ -595,10 +612,15 @@ class WpsGeneratorFragment : Fragment() {
             it.dbType == DbType.SQLITE_FILE_3WIFI
         } ?: emptyList()
 
+        val targetDecimal = MacAddressUtils.convertToDecimal(bssid)
+        if (targetDecimal == null) {
+            android.util.Log.e("WpsGeneratorFragment", "Could not convert BSSID to decimal: $bssid")
+            return@withContext pins
+        }
+
         databases.forEach { dbItem ->
             try {
                 val helper = SQLite3WiFiHelper(requireContext(), dbItem.path.toUri(), dbItem.directPath)
-                val targetDecimal = convertBssidToDecimal(bssid)
                 val targetNic = targetDecimal and 0xFFFFFF
                 val ouiBase = targetDecimal and 0xFFFFFF000000L
 
@@ -607,16 +629,16 @@ class WpsGeneratorFragment : Fragment() {
 
                 val tableName = if (helper.getTableNames().contains("nets")) "nets" else "base"
                 val query = """
-                    SELECT BSSID, WPSPIN 
-                    FROM $tableName 
-                    WHERE BSSID BETWEEN ? AND ? 
-                    AND BSSID != ?
-                    AND WPSPIN IS NOT NULL 
-                    AND WPSPIN != '0' 
-                    AND WPSPIN != '1'
-                    ORDER BY ABS(BSSID - ?) 
-                    LIMIT 50
-                """.trimIndent()
+                SELECT BSSID, WPSPIN 
+                FROM $tableName 
+                WHERE BSSID BETWEEN ? AND ? 
+                AND BSSID != ?
+                AND WPSPIN IS NOT NULL 
+                AND WPSPIN != '0' 
+                AND WPSPIN != '1'
+                ORDER BY ABS(BSSID - ?) 
+                LIMIT 50
+            """.trimIndent()
 
                 helper.database?.rawQuery(query, arrayOf(
                     rangeStart.toString(),
@@ -666,25 +688,34 @@ class WpsGeneratorFragment : Fragment() {
         try {
             val dbFile = getFileFromInternalStorageOrAssets("wps_pin.db")
             val db = android.database.sqlite.SQLiteDatabase.openDatabase(dbFile.path, null, android.database.sqlite.SQLiteDatabase.OPEN_READONLY)
-            val macPrefix = bssid.substring(0, 8).uppercase()
 
-            val cursor = db.rawQuery("SELECT pin FROM pins WHERE mac=?", arrayOf(macPrefix))
-            cursor.use {
-                while (it.moveToNext()) {
-                    val pin = it.getString(it.getColumnIndexOrThrow("pin"))
-                    if (isValidWpsPin(pin)) {
-                        pins.add(WPSPin(
-                            mode = 0,
-                            name = getString(R.string.source_inapp_database),
-                            pin = pin,
-                            sugg = false,
-                            score = 0.5,
-                            isFrom3WiFi = false,
-                            additionalData = mapOf(
-                                "source" to "inapp_database",
-                                "exact_match" to false
-                            )
-                        ))
+            val searchFormats = MacAddressUtils.generateAllFormats(bssid)
+            val macPrefixes = searchFormats.mapNotNull { format ->
+                val hexString = MacAddressUtils.convertToHexString(format)
+                if (hexString != null && hexString.length >= 8) {
+                    hexString.substring(0, 8)
+                } else null
+            }.distinct()
+
+            macPrefixes.forEach { macPrefix ->
+                val cursor = db.rawQuery("SELECT pin FROM pins WHERE mac=?", arrayOf(macPrefix))
+                cursor.use {
+                    while (it.moveToNext()) {
+                        val pin = it.getString(it.getColumnIndexOrThrow("pin"))
+                        if (isValidWpsPin(pin)) {
+                            pins.add(WPSPin(
+                                mode = 0,
+                                name = getString(R.string.source_inapp_database),
+                                pin = pin,
+                                sugg = false,
+                                score = 0.5,
+                                isFrom3WiFi = false,
+                                additionalData = mapOf(
+                                    "source" to "inapp_database",
+                                    "exact_match" to false
+                                )
+                            ))
+                        }
                     }
                 }
             }
@@ -692,7 +723,7 @@ class WpsGeneratorFragment : Fragment() {
         } catch (e: Exception) {
             android.util.Log.e("WpsGeneratorFragment", "Error accessing in-app database", e)
         }
-        pins
+        pins.distinctBy { it.pin }
     }
 
     private fun shouldShowQuestionMark(pin: WPSPin): Boolean {
@@ -729,17 +760,12 @@ class WpsGeneratorFragment : Fragment() {
     }
 
     private fun convertBssidToDecimal(bssid: String): Long {
-        return try {
-            bssid.replace(":", "").replace("-", "").toLong(16)
-        } catch (e: Exception) {
-            android.util.Log.e("WpsGeneratorFragment", "Error converting BSSID to decimal: $bssid", e)
-            0L
-        }
+        return MacAddressUtils.convertToDecimal(bssid) ?: 0L
     }
 
     private fun decimalToBssid(decimal: Long): String {
-        return String.format("%012X", decimal)
-            .replace("(.{2})".toRegex(), "$1:").dropLast(1)
+        return MacAddressUtils.formatToColonSeparated(decimal.toString()) ?: String.format("%012X", decimal)
+            .chunked(2).joinToString(":")
     }
 
     override fun onDestroyView() {

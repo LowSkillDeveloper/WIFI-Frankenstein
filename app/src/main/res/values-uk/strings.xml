@@ -850,7 +850,8 @@
     <string name="wifi_network">Wi-Fi мережа</string>
     <string name="support_state">Стан підтримки</string>
     <string name="expand_collapse">Розгорнути/Згорнути</string>
-
+    <string name="generating_keys">Генерація ключів…</string>
+    <string name="no_algorithms_supported">Немає підтримуваних алгоритмів</string>
 
 
 </resources>
