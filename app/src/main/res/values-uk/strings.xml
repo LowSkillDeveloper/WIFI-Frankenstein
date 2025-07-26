@@ -224,7 +224,6 @@
     <string name="add_new_record">Додати новий запис</string>
     <string name="wifi_name">Назва WiFi</string>
     <string name="mac_address">MAC адреса</string>
-    <string name="wifi_password">Пароль WiFi</string>
     <string name="wps_pin">WPS PIN</string>
     <string name="add">Додати</string>
 
@@ -350,7 +349,6 @@
     <string name="select_databases">Виберіть бази даних для відображення точок</string>
     <string name="network_info">Інформація про мережу</string>
     <string name="map_legend">Легенда</string>
-    <string name="max_points_per_cluster_info">Обмежує кількість точок в одному кластері</string>
     <string name="loading_points_progress">Завантаження точок…</string>
 
 
@@ -640,7 +638,6 @@
     <string name="about_app_description">WIFI Frankenstein — додаток для пінтестингу ваших мереж Wi-Fi та роботи з базами даних Wi-Fi, відображення розташування точок Wi-Fi на карті та багато іншого. Це програма франкінштейн, яка містить різні функції для роботи з Wi-Fi.</string>
     <string name="about_app_replacement">Програма створена для заміни старої програми 3WiFi Locator.</string>
     <string name="about_app_author">Author: LowSkillDeveloper (Internet User у Telegram)</string>
-    <string name="about_github">GitHub: https://github.com/LowSkillDeveloper/WIFI-Frankenstein</string>
     <string name="github_button">Відкрити на GitHub</string>
     <string name="about_libraries_title">Використовувані бібліотеки:</string>
 
@@ -691,24 +688,16 @@
     <string name="db_added_without_indexes">Базу даних додано без індексів</string>
     <string name="clustering_points">Кластеризація точок…</string>
     <string name="rendering_markers">Відображення маркерів…</string>
-    <string name="max_points_per_cluster">Максимум точок у кластері</string>
-    <string name="server_url">URL сервера</string>
-    <string name="test_results">Результати тесту</string>
     <string name="action_settings">Налаштування</string>
     <string name="create_indexes">Створити індекси</string>
 
     <string name="importing_data">Імпорт даних…</string>
-    <string name="importing_large_amount">Імпортується велика кількість даних, зачекайте…</string>
-    <string name="import_complete">Імпорт завершено</string>
     <string name="import_error">Помилка імпорту: %1$s</string>
     <string name="replace_database">Замінити базу даних</string>
-    <string name="update_existing_database">Оновити наявну базу</string>
     <string name="select_import_type">Оберіть тип імпорту</string>
 
     <string name="append_no_duplicates">Доповнити базу (без перевірки на дублікати)</string>
     <string name="append_check_duplicates">Доповнити базу (з перевіркою на дублікати)</string>
-    <string name="checking_duplicates">Перевірка на дублікати…</string>
-    <string name="optimizing_database">Оптимізація бази даних…</string>
     <string name="import_stats">Імпорт завершено\nОброблено: %1$d\nДодано: %2$d\nПропущено дублікатів: %3$d</string>
 
     <string name="menu_in_app_database">Вбудована база даних</string>
@@ -730,8 +719,6 @@
     <string name="clear_database">Очистити базу даних</string>
     <string name="indexing_status">Індексація: %s</string>
     <string name="database_stats_format">Записів: %,d | Розмір: %s</string>
-    <string name="wps">WPS</string>
-    <string name="location">Місцезнаходження</string>
     <string name="delete_record_confirmation">Ви впевнені, що хочете видалити цей запис?</string>
     <string name="database_replaced_imported">Базу даних замінено\nІмпортовано: %d записів</string>
     <string name="import_completed_added">Імпорт завершено\nДодано: %d записів</string>
@@ -742,7 +729,6 @@
     <string name="pins_generated_with_suggested">PIN-коди згенеровано:\n%d підходящих</string>
 
     <string name="prioritize_networks_with_data">Пріоритезувати мережі з знайденими даними</string>
-    <string name="prioritize_networks_with_data_description">Мережі з інформацією, знайденою в базах даних, будуть показані на початку списку</string>
     <string name="auto_scroll_to_networks_with_data">Автоматично прокручувати до мереж з даними</string>
     <string name="db_settings">Налаштування бази даних</string>
     <string name="menu_wifi_analysis">Аналіз Wi-Fi</string>
@@ -789,18 +775,15 @@
     <string name="neighbor_far">Далеко (±1000)</string>
     <string name="generate_pins">Згенерувати PIN-коди</string>
     <string name="scan_wifi_networks">Сканувати Wi-Fi мережі</string>
-    <string name="generate_for_all">Згенерувати для всіх мереж</string>
     <string name="networks_found">Знайдено мереж: %d</string>
     <string name="select_network">Виберіть мережу</string>
     <string name="pins_found_count">PIN-кодів: %d</string>
     <string name="suggested_pins_count">Запропонованих: %d</string>
     <string name="pin_copied">PIN скопійовано в буфер</string>
     <string name="unknown_network">Невідома мережа</string>
-    <string name="no_suggested_pins_found">Не знайдено запропонованих PIN-кодів для знайдених мереж</string>
     <string name="error_scanning_wifi">Помилка при скануванні Wi-Fi</string>
     <string name="error_searching_databases">Помилка при пошуку в базах даних</string>
     <string name="enter_valid_bssid">Будь ласка, введіть дійсний BSSID</string>
-    <string name="select_network_for_generation">Виберіть мережу для генерації PIN</string>
     <string name="scan_networks_first">Спочатку проскануйте мережі</string>
     <string name="no_networks_found">Мережі не знайдено</string>
     <string name="include_inapp_database">Вбудована база</string>
@@ -813,10 +796,6 @@
     <string name="pins_generated_for_networks">"Згенеровано пінів для %d мереж  "</string>
     <string name="pins_generated_for_networks_with_suggested">"Згенеровано пінів для %d мереж (%d із запропонованими пінами)  "</string>
     <string name="generate_all">"Згенерувати для всіх  "</string>
-    <string name="offline_db">Офлайн база</string>
-    <string name="online_db">Онлайн база</string>
-    <string name="local_db">"Локальна база "</string>
-    <string name="neighbors">"Сусіди "</string>
     <string name="source_inapp_database">Вбудована база</string>
     <string name="pins_generated_with_suggested_and_possible">Згенеровано піни для %d мереж (%d запропоновано, %d можливо)</string>
     <string name="pins_generated_with_possible">Згенеровано піни для %d мереж (%d з можливими пінами)</string>
@@ -836,22 +815,29 @@
     <string name="enter_ssid">Введіть SSID</string>
     <string name="generate_keys">Згенерувати ключі</string>
     <string name="generated_keys">Згенеровані ключі</string>
-    <string name="no_keys_generated">Ключі не згенеровано</string>
     <string name="invalid_input">Неправильне введення</string>
     <string name="keys_copied">Ключ скопійовано в буфер обміну</string>
     <string name="algorithm_used">Алгоритм: %s</string>
     <string name="generation_time">Час генерації: %d мс</string>
     <string name="networks_scanned">Знайдено мереж: %d</string>
     <string name="scanning_networks">Сканування мереж…</string>
-    <string name="scan_complete">Сканування завершено</string>
     <string name="permission_required_location">Для сканування мереж потрібно дозвіл на доступ до геолокації</string>
     <string name="wifi_disabled">Wi-Fi вимкнено</string>
-    <string name="enable_wifi">Увімкнути Wi-Fi</string>
     <string name="wifi_network">Wi-Fi мережа</string>
     <string name="support_state">Стан підтримки</string>
     <string name="expand_collapse">Розгорнути/Згорнути</string>
     <string name="generating_keys">Генерація ключів…</string>
     <string name="no_algorithms_supported">Немає підтримуваних алгоритмів</string>
+    <string name="generate_wpa_algorithms">WPA Алгоритми</string>
+    <string name="generate_wps_algorithms">WPS Алгоритми</string>
+    <string name="wpa_algorithms_generated">Алгоритми WPA згенеровано для %d мереж</string>
+    <string name="wps_algorithms_generated">Алгоритми WPS згенеровано для %d мереж</string>
+    <string name="wpa_algorithm_result">Результат алгоритму WPA</string>
+    <string name="wps_algorithm_result">Результат алгоритму WPS</string>
+    <string name="keys_copied_to_clipboard">Ключі скопійовано до буфера обміну</string>
+    <string name="pin_copied_to_clipboard">ПІН скопійовано до буфера обміну</string>
+    <string name="server_url">URL сервера</string>
+    <string name="test_results">Результати тесту</string>
 
 
 </resources>
