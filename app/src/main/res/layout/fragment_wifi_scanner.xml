@@ -76,7 +76,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="@color/card_background"
-        app:fabCradleMargin="8dp"
+        app:fabCradleMargin="6dp"
         app:fabCradleRoundedCornerRadius="16dp"
         app:fabCradleVerticalOffset="10dp"
         app:hideOnScroll="true">
@@ -84,63 +84,62 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="10dp"
-            android:layout_marginEnd="20dp"
-            android:layout_marginBottom="20dp"
+            android:layout_marginStart="1dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="15dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="center"
             android:orientation="vertical">
 
             <LinearLayout
-                android:id="@+id/database_buttons_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
+                android:orientation="horizontal"
+                android:layout_marginBottom="2dp">
+
+                <Button
+                    android:id="@+id/button_offline_db"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="33dp"
+                    android:text="@string/check_in_offline_bt"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/button_generate_wps"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="33dp"
+                    android:text="@string/generate_wps_algorithms"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
                 <Button
                     android:id="@+id/button_online_db"
-                    style="@style/RoundedButton"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="40dp"
+                    android:layout_height="42dp"
                     android:layout_weight="1"
-                    android:text="@string/check_in_online_bt" />
-
-                <Button
-                    android:id="@+id/button_offline_db"
-                    style="@style/RoundedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="40dp"
-                    android:layout_weight="1"
-                    android:text="@string/check_in_offline_bt" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/algorithm_buttons_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center"
-                android:orientation="horizontal">
+                    android:layout_marginEnd="33dp"
+                    android:text="@string/check_in_online_bt"
+                    android:textSize="11sp" />
 
                 <Button
                     android:id="@+id/button_generate_wpa"
-                    style="@style/RoundedButton"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="40dp"
+                    android:layout_height="42dp"
                     android:layout_weight="1"
-                    android:text="@string/generate_wpa_algorithms" />
+                    android:layout_marginStart="33dp"
+                    android:text="@string/generate_wpa_algorithms"
+                    android:textSize="11sp" />
 
-                <Button
-                    android:id="@+id/button_generate_wps"
-                    style="@style/RoundedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="40dp"
-                    android:layout_weight="1"
-                    android:text="@string/generate_wps_algorithms" />
             </LinearLayout>
 
         </LinearLayout>
@@ -150,7 +149,7 @@
         android:id="@+id/button_scan_wifi"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="28dp"
         app:fabSize="normal"
         app:layout_anchor="@id/bottom_app_bar"
         app:srcCompat="@drawable/baseline_refresh_24" />
