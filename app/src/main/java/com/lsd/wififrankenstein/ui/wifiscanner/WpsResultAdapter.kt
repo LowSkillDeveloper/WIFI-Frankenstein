@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.ItemWpsResultBinding
@@ -55,10 +56,10 @@ class WpsResultAdapter : RecyclerView.Adapter<WpsResultAdapter.WpsResultViewHold
 
             if (wpsPin.sugg) {
                 binding.statusIcon.setImageResource(R.drawable.ic_star)
-                binding.statusIcon.setColorFilter(itemView.context.getColor(R.color.orange_dark))
+                binding.statusIcon.setColorFilter(ContextCompat.getColor(itemView.context, R.color.orange_dark))
             } else {
                 binding.statusIcon.setImageResource(R.drawable.ic_help)
-                binding.statusIcon.setColorFilter(itemView.context.getColor(R.color.orange_dark))
+                binding.statusIcon.setColorFilter(ContextCompat.getColor(itemView.context, R.color.orange_dark))
             }
 
             binding.experimentalChip.visibility = if (wpsPin.isExperimental) View.VISIBLE else View.GONE

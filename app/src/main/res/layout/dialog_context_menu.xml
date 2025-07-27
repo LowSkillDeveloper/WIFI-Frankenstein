@@ -72,6 +72,15 @@
         android:text="@string/calculate_distance"
         android:textColor="?android:attr/textColorPrimary" />
 
+    <Button
+        android:id="@+id/action_generate_qr"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="4dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:text="@string/action_generate_qr"
+        android:textColor="?android:attr/textColorPrimary" />
+
     <TextView
         android:id="@+id/text_wps_category"
         android:layout_width="match_parent"

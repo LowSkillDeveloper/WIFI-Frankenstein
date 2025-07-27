@@ -138,9 +138,11 @@ class DatabaseFinderFragment : Fragment() {
             }
         }
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.searchResults.collectLatest { pagingData ->
-                searchResultsAdapter.submitData(pagingData)
+                if (_binding != null) {
+                    searchResultsAdapter.submitData(pagingData)
+                }
             }
         }
     }

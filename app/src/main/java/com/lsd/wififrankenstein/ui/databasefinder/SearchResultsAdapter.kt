@@ -38,6 +38,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.WpsGeneratorActivity
 import com.lsd.wififrankenstein.databinding.ItemSearchResultBinding
+import com.lsd.wififrankenstein.util.QrNavigationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -334,6 +335,9 @@ class SearchResultsAdapter : PagingDataAdapter<SearchResult, SearchResultsAdapte
             popupMenu.menu.findItem(R.id.action_copy_wps)?.isVisible = !item.wpsPin.isNullOrBlank()
             popupMenu.menu.findItem(R.id.action_connect_wps)?.isVisible = !item.wpsPin.isNullOrBlank()
 
+            val hasValidCredentials = QrNavigationHelper.hasValidCredentials(item.password, item.wpsPin)
+            popupMenu.menu.findItem(R.id.action_generate_qr)?.isVisible = hasValidCredentials
+
             val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             val isRootEnabled = prefs.getBoolean("enable_root", false)
             popupMenu.menu.findItem(R.id.action_connect_wps_root)?.isVisible = isRootEnabled && !item.wpsPin.isNullOrBlank()
@@ -350,6 +354,20 @@ class SearchResultsAdapter : PagingDataAdapter<SearchResult, SearchResultsAdapte
                         Toast.makeText(context, context.getString(R.string.connect_wps_root_menu), Toast.LENGTH_SHORT).show()
                     }
                     R.id.action_open_generator -> openWpsGenerator(item)
+                    R.id.action_generate_qr -> {
+                        val activity = context as? FragmentActivity
+                        val fragment = activity?.supportFragmentManager?.fragments?.find { it.isVisible }
+                        if (fragment != null) {
+                            val password = item.password ?: ""
+                            val security = if (password.isNotEmpty()) "WPA" else "NONE"
+                            QrNavigationHelper.navigateToQrGenerator(
+                                fragment,
+                                item.ssid,
+                                password,
+                                security
+                            )
+                        }
+                    }
                 }
                 true
             }

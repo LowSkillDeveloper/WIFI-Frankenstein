@@ -3,22 +3,25 @@ package com.lsd.wififrankenstein.ui.updates
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import com.lsd.wififrankenstein.network.NetworkClient
+import com.lsd.wififrankenstein.network.NetworkException
+import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
-import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import com.lsd.wififrankenstein.ui.dbsetup.SmartLinkDbInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.serialization.json.Json
 import org.json.JSONObject
 import java.io.File
-import java.net.URL
 import kotlin.math.log10
 import kotlin.math.pow
-import com.lsd.wififrankenstein.ui.dbsetup.SmartLinkDbInfo
-import kotlinx.serialization.json.Json
 
 class UpdateChecker(private val context: Context) {
+
+    private val networkClient = NetworkClient.getInstance(context)
 
     data class UpdateStatus(
         val appUpdate: AppUpdateInfo? = null,
@@ -33,30 +36,31 @@ class UpdateChecker(private val context: Context) {
     }
 
     fun checkForUpdates(): Flow<UpdateStatus> = flow {
-        val jsonString = URL(UPDATE_URL).readText()
-        val json = JSONObject(jsonString)
+        if (!NetworkUtils.hasActiveConnection(context)) {
+            emit(UpdateStatus())
+            return@flow
+        }
 
-        val appUpdate = checkAppUpdate(json)
+        try {
+            val jsonString = networkClient.get(UPDATE_URL)
+            val json = JSONObject(jsonString)
 
-        val fileUpdates = checkFileUpdates(json)
+            val appUpdate = checkAppUpdate(json)
+            val fileUpdates = checkFileUpdates(json)
+            val dbUpdates = checkDatabaseUpdates(json)
 
-        val dbUpdates = checkDatabaseUpdates(json)
-
-        val hasUpdates = appUpdate != null ||
-                fileUpdates.any { it.needsUpdate } ||
-                dbUpdates.any { it.needsUpdate }
-
-        emit(UpdateStatus(
-            appUpdate = appUpdate,
-            fileUpdates = fileUpdates,
-            dbUpdates = dbUpdates,
-            hasUpdates = hasUpdates
-        ))
-    }
-        .catch { e ->
-            Log.e(TAG, "Error checking updates", e)
+            emit(UpdateStatus(
+                appUpdate = appUpdate,
+                fileUpdates = fileUpdates,
+                dbUpdates = dbUpdates,
+                hasUpdates = appUpdate != null || fileUpdates.any { it.needsUpdate } || dbUpdates.any { it.needsUpdate }
+            ))
+        } catch (e: Exception) {
+            Log.e(TAG, "Update check failed", e)
             emit(UpdateStatus())
         }
+    }
+        .catch { emit(UpdateStatus()) }
         .flowOn(Dispatchers.IO)
 
     private fun checkAppUpdate(json: JSONObject): AppUpdateInfo? {
@@ -76,7 +80,6 @@ class UpdateChecker(private val context: Context) {
                 )
             } else null
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking app update", e)
             null
         }
     }
@@ -85,75 +88,45 @@ class UpdateChecker(private val context: Context) {
         return try {
             val fileUpdates = json.getJSONArray("files")
             (0 until fileUpdates.length()).mapNotNull { i ->
-                val fileInfo = fileUpdates.getJSONObject(i)
-                val fileName = fileInfo.getString("name")
-                val serverVersion = fileInfo.getString("version")
-                val downloadUrl = fileInfo.getString("download_url")
+                try {
+                    val fileInfo = fileUpdates.getJSONObject(i)
+                    val fileName = fileInfo.getString("name")
+                    val serverVersion = fileInfo.getString("version")
+                    val downloadUrl = fileInfo.getString("download_url")
 
-                val localFile = File(context.filesDir, fileName)
-                val localVersion = getFileVersion(fileName)
-                val localSize = if (localFile.exists()) localFile.length() else 0
+                    val localFile = File(context.filesDir, fileName)
+                    val localVersion = getFileVersion(fileName)
+                    val localSize = if (localFile.exists()) localFile.length() else 0
 
-                FileUpdateInfo(
-                    fileName = fileName,
-                    localVersion = localVersion,
-                    serverVersion = serverVersion,
-                    localSize = formatFileSize(localSize),
-                    downloadUrl = downloadUrl,
-                    needsUpdate = compareVersions(localVersion, serverVersion) < 0
-                )
+                    FileUpdateInfo(
+                        fileName = fileName,
+                        localVersion = localVersion,
+                        serverVersion = serverVersion,
+                        localSize = formatFileSize(localSize),
+                        downloadUrl = downloadUrl,
+                        needsUpdate = compareVersions(localVersion, serverVersion) < 0
+                    )
+                } catch (e: Exception) {
+                    null
+                }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking file updates", e)
             emptyList()
         }
     }
 
-    private fun compareVersions(v1: String, v2: String): Int {
-        val parts1 = v1.split(".").map { it.toInt() }
-        val parts2 = v2.split(".").map { it.toInt() }
-
-        for (i in 0 until minOf(parts1.size, parts2.size)) {
-            when {
-                parts1[i] < parts2[i] -> return -1
-                parts1[i] > parts2[i] -> return 1
-            }
-        }
-
-        return when {
-            parts1.size < parts2.size -> -1
-            parts1.size > parts2.size -> 1
-            else -> 0
-        }
-    }
-
-    private fun checkDatabaseUpdates(json: JSONObject): List<SmartLinkDbUpdateInfo> {
+    private suspend fun checkDatabaseUpdates(json: JSONObject): List<SmartLinkDbUpdateInfo> {
         return try {
-            val context = this.context
-
             val dbSetupPrefs = context.getSharedPreferences("db_setup_prefs", Context.MODE_PRIVATE)
             val dbListJson = dbSetupPrefs.getString("db_list", null) ?: return emptyList()
 
-            val installedDbs = try {
-                Json.decodeFromString<List<DbItem>>(dbListJson).filter {
-                    it.smartlinkType != null && !it.smartlinkType.isBlank() &&
-                            !it.updateUrl.isNullOrBlank() &&
-                            !it.idJson.isNullOrBlank()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error parsing installed databases", e)
-                emptyList()
-            }
-
-            Log.d(TAG, "Found ${installedDbs.size} SmartLink databases to check for updates")
-            installedDbs.forEach { db ->
-                Log.d(TAG, "SmartLink DB: ${db.type}, smartlinkType: ${db.smartlinkType}, version: ${db.version}")
+            val installedDbs = Json.decodeFromString<List<DbItem>>(dbListJson).filter {
+                !it.smartlinkType.isNullOrBlank() && !it.updateUrl.isNullOrBlank() && !it.idJson.isNullOrBlank()
             }
 
             installedDbs.mapNotNull { installedDb ->
                 try {
-                    val updateUrl = installedDb.updateUrl ?: return@mapNotNull null
-                    val response = URL(updateUrl).readText()
+                    val response = networkClient.get(installedDb.updateUrl!!)
                     val updateJson = JSONObject(response)
                     val databasesArray = updateJson.getJSONArray("databases")
 
@@ -164,8 +137,6 @@ class UpdateChecker(private val context: Context) {
                         if (serverId == installedDb.idJson) {
                             val serverVersion = dbInfo.getString("version")
                             val localVersion = installedDb.version ?: "1.0"
-
-                            Log.d(TAG, "Checking DB ${installedDb.type}: local=$localVersion, server=$serverVersion")
 
                             val info = SmartLinkDbInfo(
                                 id = serverId,
@@ -192,14 +163,27 @@ class UpdateChecker(private val context: Context) {
                     }
                     null
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error checking updates for database ${installedDb.type}", e)
                     null
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking database updates", e)
             emptyList()
         }
+    }
+
+    private fun compareVersions(v1: String, v2: String): Int {
+        val parts1 = v1.split(".").map { it.toIntOrNull() ?: 0 }
+        val parts2 = v2.split(".").map { it.toIntOrNull() ?: 0 }
+
+        for (i in 0 until maxOf(parts1.size, parts2.size)) {
+            val p1 = parts1.getOrNull(i) ?: 0
+            val p2 = parts2.getOrNull(i) ?: 0
+            when {
+                p1 < p2 -> return -1
+                p1 > p2 -> return 1
+            }
+        }
+        return 0
     }
 
     private fun getFileVersion(fileName: String): String {
@@ -217,13 +201,8 @@ class UpdateChecker(private val context: Context) {
     }
 
     fun getChangelog(appUpdateInfo: AppUpdateInfo): Flow<String> = flow {
-        try {
-            val changelog = URL(appUpdateInfo.changelogUrl).readText()
-            emit(changelog)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching changelog", e)
-            throw e
-        }
+        val changelog = networkClient.get(appUpdateInfo.changelogUrl)
+        emit(changelog)
     }.flowOn(Dispatchers.IO)
 
     private fun formatFileSize(size: Long): String {

@@ -943,4 +943,187 @@
     <string name="keys_copied_to_clipboard">Keys copied to clipboard</string>
     <string name="pin_copied_to_clipboard">PIN copied to clipboard</string>
 
+
+    <!-- PixieDust Fragment -->
+    <string name="pixiedust_title">PixieDust Attack</string>
+    <string name="pixiedust_description">PixieDust is a WPS attack that exploits weak randomness in some WPS implementations to recover the WPS PIN</string>
+    <string name="pixiedust_requires_wps">This attack only works on networks with WPS enabled and vulnerable implementations</string>
+    <string name="pixiedust_system_requirements">System Requirements</string>
+    <string name="pixiedust_checking_root">Checking root access…</string>
+    <string name="pixiedust_checking_binaries">Checking binary files…</string>
+    <string name="pixiedust_network_scanning">Network Scanning</string>
+    <string name="pixiedust_scan_networks">Scan for WPS Networks</string>
+    <string name="pixiedust_wps_networks">WPS Networks</string>
+    <string name="pixiedust_attack_control">Attack Control</string>
+    <string name="pixiedust_no_network_selected">No network selected</string>
+    <string name="pixiedust_start_attack">Start Attack</string>
+    <string name="pixiedust_stop_attack">Stop Attack</string>
+    <string name="pixiedust_attack_result">Attack Result</string>
+    <string name="pixiedust_copy_pin">Copy PIN</string>
+    <string name="pixiedust_save_result">Save Result</string>
+    <string name="pixiedust_wps_enabled">WPS</string>
+
+    <!-- PixieDust States -->
+    <string name="pixiedust_scanning">Scanning for networks…</string>
+    <string name="pixiedust_preparing">Preparing attack…</string>
+    <string name="pixiedust_extracting_data">Extracting handshake data…</string>
+    <string name="pixiedust_running_attack">Running PixieDust attack…</string>
+    <string name="pixiedust_attack_completed">Attack completed</string>
+    <string name="pixiedust_attack_failed">Attack failed: %s</string>
+
+    <!-- PixieDust Messages -->
+    <string name="pixiedust_networks_found">Found %d WPS networks</string>
+    <string name="pixiedust_no_networks">No WPS networks found</string>
+    <string name="pixiedust_select_network">Please select a network</string>
+    <string name="pixiedust_root_required">Root access required</string>
+    <string name="pixiedust_binaries_not_found">Binary files not found</string>
+    <string name="pixiedust_root_not_available">Root access: Not available</string>
+    <string name="pixiedust_pin_found">PIN discovered: %s</string>
+    <string name="pixiedust_pin_not_found">PIN not found</string>
+    <string name="pixiedust_result_saved">Result saved successfully</string>
+    <string name="pixiedust_network_info">%s (%s)</string>
+    <string name="pixiedust_signal_strength">%d dBm</string>
+    <string name="pixiedust_frequency">%d MHz</string>
+
+    <!-- Dialog Messages -->
+    <string name="pixiedust_warning_title">Warning</string>
+    <string name="pixiedust_warning_message">This tool is for educational purposes only. Only use on networks you own or have explicit permission to test. Unauthorized access to wireless networks is illegal.</string>
+    <string name="pixiedust_understand_risks">I Understand</string>
+
+    <!-- Permissions -->
+    <string name="permission_required">Permission Required</string>
+
+    <!-- Common -->
+
+    <string name="pixiedust_root_available">Root access: Available</string>
+    <string name="pixiedust_binary_files_ready">Binary files: Ready</string>
+    <string name="pixiedust_binary_files_not_available">Binary files: Not available</string>
+    <string name="pixiedust_unknown_network">Unknown</string>
+
+    <string name="menu_pixiedust">PixieDust</string>
+
+    <string name="pixiedust_copying_binaries">Copying binary files…</string>
+    <string name="pixiedust_binaries_ready">Binary files ready</string>
+    <string name="pixiedust_error_copying_binaries">Error copying binary files</string>
+    <string name="pixiedust_preparing_binaries">Preparing binary files…</string>
+    <string name="pixiedust_preparing_attack">Preparing attack…</string>
+    <string name="pixiedust_failed_start_supplicant">Failed to start WPA supplicant</string>
+    <string name="pixiedust_extracting_handshake">Extracting handshake data…</string>
+    <string name="pixiedust_failed_extract_data">Failed to extract handshake data</string>
+    <string name="pixiedust_computing_pin">Computing PIN…</string>
+    <string name="pixiedust_attack_error">Attack error: %1$s</string>
+    <string name="pixiedust_attack_stopped">Attack stopped</string>
+
+    <string name="pixiedust_critical_binaries_missing">Critical binary files are missing</string>
+    <string name="pixiedust_testing_binaries">Testing binary execution…</string>
+    <string name="pixiedust_binary_test_failed">Binary execution test failed</string>
+    <string name="pixiedust_creating_symlinks">Creating library symlinks…</string>
+    <string name="pixiedust_symlinks_created">Library symlinks created</string>
+
+    <string name="pixiedust_authkey_removed">AuthKey скрыт в логах - используется альтернативный ключ</string>
+    <string name="pixiedust_authkey_not_found">AuthKey не найден в логах</string>
+    <string name="pixiedust_incomplete_handshake">WPS обмен данными не завершен</string>
+    <string name="pixiedust_data_extraction_failed">Не удалось извлечь данные для атаки</string>
+
+    <string name="support_state_supported">Supported</string>
+    <string name="support_state_unlikely">Unlikely</string>
+    <string name="support_state_unsupported">Unsupported</string>
+    <string name="error_network_connection">Network connection error</string>
+    <string name="error_no_internet">No internet connection available</string>
+    <string name="error_network_unreachable">Network is unreachable. Please check your connection.</string>
+    <string name="error_connection_failed">Connection failed. Please try again later.</string>
+
+
+    <!-- QR Code Generator -->
+    <string name="menu_qr_generator">QR Generator</string>
+    <string name="qr_generator_title">WiFi QR Generator</string>
+    <string name="qr_code_gen_description">Generate QR code for WiFi connection</string>
+    <string name="network_name">Network Name (SSID)</string>
+    <string name="network_password">Password</string>
+    <string name="security_type">Security Type</string>
+    <string name="security_none">None (Open)</string>
+    <string name="security_wep">WEP</string>
+    <string name="security_wpa">WPA/WPA2</string>
+    <string name="security_wpa3">WPA3</string>
+    <string name="hidden_network">Hidden Network</string>
+    <string name="generate_qr">Generate QR Code</string>
+    <string name="save_to_gallery">Save to Gallery</string>
+    <string name="share_qr">Share QR Code</string>
+    <string name="qr_saved_successfully">QR code saved to gallery</string>
+    <string name="qr_save_failed">Failed to save QR code</string>
+    <string name="enter_network_name_hint">Enter WiFi network name</string>
+    <string name="enter_password_hint">Enter network password</string>
+    <string name="qr_code_generated">QR code generated successfully</string>
+    <string name="invalid_network_data">Please enter valid network data</string>
+    <string name="share_qr_title">Share WiFi QR Code</string>
+    <string name="password_required">Password is required for secured networks</string>
+    <string name="generating_qr_code">Generating QR code…</string>
+
+    <string name="generate_qr_code">Generate QR Code</string>
+    <string name="qr_code_generated_for">QR code generated for %s</string>
+    <string name="qr_code_generation_failed">Failed to generate QR code</string>
+    <string name="insufficient_data_for_qr">Insufficient data to generate QR code</string>
+    <string name="action_generate_qr">Generate QR</string>
+    <string name="menu_saved_passwords">Saved Passwords</string>
+
+
+    <!-- Основные строки -->
+    <string name="saved_passwords_title">Saved WiFi Passwords</string>
+
+    <!-- Состояния и сообщения -->
+    <string name="root_required_passwords">Root access required to view saved passwords</string>
+    <string name="no_saved_passwords">No saved passwords found</string>
+    <string name="loading_passwords">Loading saved passwords…</string>
+    <string name="error_loading_passwords">Error loading passwords: %s</string>
+
+    <!-- Методы извлечения -->
+    <string name="root_method">Root method</string>
+    <string name="non_root_method">Non-root method</string>
+    <string name="extraction_method">Extraction method</string>
+    <string name="refresh_passwords">Refresh passwords</string>
+
+    <!-- Копирование -->
+    <string name="copy_password_clipboard">Copy password to clipboard</string>
+    <string name="copy_ssid_clipboard">Copy SSID to clipboard</string>
+    <string name="password_copied">Password copied to clipboard</string>
+    <string name="ssid_copied">SSID copied to clipboard</string>
+
+    <!-- Экспорт -->
+    <string name="export_passwords">Export passwords</string>
+    <string name="passwords_exported">Passwords exported successfully</string>
+    <string name="export_failed_passwords">Failed to export passwords: %s</string>
+    <string name="select_export_method">Select export method</string>
+    <string name="export_as_json">Export as JSON</string>
+    <string name="export_as_csv">Export as CSV</string>
+    <string name="export_as_txt">Export as TXT</string>
+
+    <!-- Форматирование -->
+    <string name="security_type_format">Security: %s</string>
+
+    <!-- QR код -->
+    <string name="show_qr_code">Show QR code</string>
+
+    <!-- Root access strings -->
+    <string name="checking_root_access">Checking root access…</string>
+    <string name="root_access_required">Root Access Required</string>
+    <string name="root_access_required_message">This feature requires root access to read WiFi configuration files. Without root access, only basic network information will be available.</string>
+    <string name="error_checking_root_access">Error checking root access</string>
+
+    <!-- Export strings -->
+    <string name="passwords_exported_to">Passwords exported to: %s</string>
+    <string name="no_data_to_copy">No data to copy</string>
+    <string name="qr_code_for_wifi">QR code for WiFi: %s</string>
+
+    <string name="shell_initialization_failed">Failed to initialize shell</string>
+    <string name="root_access_checking">Checking root access…</string>
+    <string name="root_shell_ready">Root shell ready</string>
+
+    <string name="show_passwords">Show Passwords</string>
+    <string name="hide_passwords">Hide Passwords</string>
+
+    <string name="category_root_functions">Root функции</string>
+    <string name="category_generators">Генераторы</string>
+    <string name="category_utilities">Утилиты</string>
+
+
 </resources>

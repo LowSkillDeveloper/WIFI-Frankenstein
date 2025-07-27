@@ -542,7 +542,7 @@ class DbSetupFragment : Fragment() {
                     importType
                 ) { message, progress ->
                     launch(Dispatchers.Main) {
-                        if (isAdded && progressDialog.isShowing) {
+                        if (isAdded && progressDialog.isShowing && _binding != null) {
                             progressText?.text = message
                             progressBar?.progress = progress
                         }
@@ -550,7 +550,7 @@ class DbSetupFragment : Fragment() {
                 }
 
                 withContext(Dispatchers.Main) {
-                    if (isAdded) {
+                    if (isAdded && _binding != null) {
                         progressDialog.dismiss()
                         updateLocalDbStats()
 
@@ -568,7 +568,7 @@ class DbSetupFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e("RouterScanImport", "Import error", e)
                 withContext(Dispatchers.Main) {
-                    if (isAdded) {
+                    if (isAdded && _binding != null) {
                         progressDialog.dismiss()
                         showSnackbar("Ошибка импорта: ${e.message}")
                     }

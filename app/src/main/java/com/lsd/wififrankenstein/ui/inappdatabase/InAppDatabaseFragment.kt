@@ -497,7 +497,7 @@ class InAppDatabaseFragment : Fragment() {
             try {
                 val stats = viewModel.importFromRouterScanWithProgress(uri, importType) { message, progress ->
                     launch(Dispatchers.Main) {
-                        if (isAdded && progressDialog.isShowing) {
+                        if (isAdded && progressDialog.isShowing && _binding != null) {
                             progressText?.text = message
                             progressBar?.progress = progress
                         }
@@ -505,7 +505,7 @@ class InAppDatabaseFragment : Fragment() {
                 }
 
                 withContext(Dispatchers.Main) {
-                    if (isAdded) {
+                    if (isAdded && _binding != null) {
                         progressDialog.dismiss()
                         adapter.refresh()
                         updateStats()

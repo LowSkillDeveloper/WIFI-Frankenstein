@@ -19,6 +19,9 @@
         android:id="@+id/action_show_location"
         android:title="@string/show_on_map" />
     <item
+        android:id="@+id/action_generate_qr"
+        android:title="@string/action_generate_qr" />
+    <item
         android:id="@+id/action_generate_wps"
         android:title="@string/generate_wps_pins" />
     <item

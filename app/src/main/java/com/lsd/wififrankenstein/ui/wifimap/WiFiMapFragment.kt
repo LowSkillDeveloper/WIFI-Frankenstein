@@ -265,6 +265,8 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun updateUserLocationMarker(location: GeoPoint) {
+        if (_binding == null) return
+
         userLocationMarker?.let { marker ->
             binding.map.overlays.remove(marker)
         }
@@ -707,6 +709,8 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun clearMarkers() {
+        if (_binding == null) return
+
         canvasOverlay.updatePoints(emptyList())
         binding.map.postInvalidate()
         binding.legendCard.visibility = View.GONE

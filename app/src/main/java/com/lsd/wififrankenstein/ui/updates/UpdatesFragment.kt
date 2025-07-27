@@ -106,13 +106,15 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.updateInfo.collectLatest { updateInfoList ->
-                        adapter.submitList(updateInfoList)
-                        val anyUpdatesAvailable = updateInfoList.any { it.needsUpdate }
-                        binding.buttonUpdateAll.visibility = View.VISIBLE
-                        binding.buttonUpdateAll.text =
-                            if (anyUpdatesAvailable) getString(R.string.update_all) else getString(R.string.check_for_updates)
-                        binding.textViewErrorMessage.visibility = View.GONE
-                        binding.recyclerViewUpdates.visibility = View.VISIBLE
+                        if (_binding != null) {
+                            adapter.submitList(updateInfoList)
+                            val anyUpdatesAvailable = updateInfoList.any { it.needsUpdate }
+                            binding.buttonUpdateAll.visibility = View.VISIBLE
+                            binding.buttonUpdateAll.text =
+                                if (anyUpdatesAvailable) getString(R.string.update_all) else getString(R.string.check_for_updates)
+                            binding.textViewErrorMessage.visibility = View.GONE
+                            binding.recyclerViewUpdates.visibility = View.VISIBLE
+                        }
                     }
                 }
 

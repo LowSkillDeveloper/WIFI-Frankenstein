@@ -2,6 +2,7 @@ package com.lsd.wififrankenstein.ui.wifianalysis
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -208,7 +209,11 @@ class WiFiAnalysisFragment : Fragment() {
 
     private fun startWifiScan() {
         binding.swipeRefreshLayout.isRefreshing = true
-        wifiScannerViewModel.startWifiScan()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            wifiScannerViewModel.startWifiScan()
+        } else {
+            wifiScannerViewModel.startLegacyWifiScan()
+        }
     }
 
     private fun checkInitialData() {

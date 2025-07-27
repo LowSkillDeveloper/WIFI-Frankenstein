@@ -42,6 +42,7 @@ import com.lsd.wififrankenstein.util.NetworkBandwidth
 import com.lsd.wififrankenstein.util.SecurityProtocol
 import com.lsd.wififrankenstein.databinding.ItemWpaResultBinding
 import com.lsd.wififrankenstein.databinding.ItemWpsResultBinding
+import com.lsd.wififrankenstein.util.QrNavigationHelper
 
 class WifiAdapter(private var wifiList: List<ScanResult>, private val context: Context) :
     RecyclerView.Adapter<WifiAdapter.WifiViewHolder>() {
@@ -469,10 +470,10 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
 
                 if (wpsPin.sugg) {
                     binding.statusIcon.setImageResource(R.drawable.ic_star)
-                    binding.statusIcon.setColorFilter(itemView.context.getColor(R.color.orange_dark))
+                    binding.statusIcon.setColorFilter(ContextCompat.getColor(itemView.context, R.color.orange_dark))
                 } else {
                     binding.statusIcon.setImageResource(R.drawable.ic_help)
-                    binding.statusIcon.setColorFilter(itemView.context.getColor(R.color.orange_dark))
+                    binding.statusIcon.setColorFilter(ContextCompat.getColor(itemView.context, R.color.orange_dark))
                 }
 
                 binding.experimentalChip.visibility = if (wpsPin.isExperimental) View.VISIBLE else View.GONE
@@ -500,10 +501,26 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
             popupMenu.menu.findItem(R.id.action_copy_wifi_key).isEnabled = wifiKey.isNotEmpty()
             popupMenu.menu.findItem(R.id.action_copy_wps_pin).isEnabled = wpsPin.isNotEmpty()
 
+            val hasValidCredentials = QrNavigationHelper.hasValidCredentials(wifiKey, wpsPin)
+            popupMenu.menu.findItem(R.id.action_generate_qr)?.isVisible = hasValidCredentials
+
             popupMenu.setOnMenuItemClickListener { menuItem ->
                 when (menuItem.itemId) {
                     R.id.action_copy_wifi_key -> copyToClipboard(view.context, "WiFi Key", wifiKey)
                     R.id.action_copy_wps_pin -> copyToClipboard(view.context, "WPS PIN", wpsPin)
+                    R.id.action_generate_qr -> {
+                        val fragment = (view.context as? androidx.fragment.app.FragmentActivity)
+                            ?.supportFragmentManager?.fragments?.find { it.isVisible }
+                        if (fragment != null) {
+                            val security = QrNavigationHelper.determineSecurityType(result.network.capabilities)
+                            QrNavigationHelper.navigateToQrGenerator(
+                                fragment,
+                                result.network.SSID,
+                                wifiKey,
+                                security
+                            )
+                        }
+                    }
                     R.id.action_connect_wps -> {
                         val wifiManager = view.context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
                         val wpsConfig = WpsInfo().apply {

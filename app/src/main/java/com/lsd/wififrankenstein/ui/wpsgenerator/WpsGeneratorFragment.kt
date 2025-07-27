@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.wpsgenerator
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
@@ -164,7 +165,7 @@ class WpsGeneratorFragment : Fragment() {
                 binding.progressBar.visibility = View.VISIBLE
                 binding.buttonScan.isEnabled = false
 
-                val wifiManager = requireContext().applicationContext.getSystemService(WifiManager::class.java)
+                val wifiManager = requireContext().applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
                 withContext(Dispatchers.IO) {
                     wifiManager.startScan()
                 }

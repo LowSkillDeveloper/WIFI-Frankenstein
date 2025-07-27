@@ -20,7 +20,7 @@ orgJetbrainsKotlinPluginSerializationGradlePlugin = "2.2.10-RC"
 kotlinxSerializationJson = "1.9.0"
 kotlinxCoroutinesAndroid = "1.10.2"
 pagingRuntimeKtx = "3.3.6"
-opencsv = "5.11.2"
+opencsv = "5.12.0"
 okhttp = "5.1.0"
 osmdroidAndroid = "6.1.20"
 kotlinxSerializationProtobuf = "1.9.0"
@@ -28,6 +28,8 @@ glide = "5.0.0-rc01"
 commonsCompress = "1.27.1"
 xz = "1.10"
 flexbox = "3.0.0"
+libsu = "6.0.0"
+core = "3.5.3"
 #protobufKotlin = "4.30.0"
 
 
@@ -60,6 +62,10 @@ glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "gl
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
 xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
 flexbox = { group = "com.google.android.flexbox", name = "flexbox", version.ref = "flexbox" }
+libsu-core = { group = "com.github.topjohnwu.libsu", name = "core", version.ref = "libsu" }
+libsu-service = { group = "com.github.topjohnwu.libsu", name = "service", version.ref = "libsu" }
+libsu-nio = { group = "com.github.topjohnwu.libsu", name = "nio", version.ref = "libsu" }
+core = { group = "com.google.zxing", name = "core", version.ref = "core" }
 #protobuf-kotlin = { group = "com.google.protobuf", name = "protobuf-kotlin", version.ref = "protobufKotlin" }
 
 [plugins]

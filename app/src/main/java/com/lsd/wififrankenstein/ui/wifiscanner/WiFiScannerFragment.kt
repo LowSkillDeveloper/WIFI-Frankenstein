@@ -65,7 +65,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import androidx.core.net.toUri
-
+import com.lsd.wififrankenstein.util.QrNavigationHelper
 
 class WiFiScannerFragment : Fragment() {
 
@@ -577,10 +577,14 @@ class WiFiScannerFragment : Fragment() {
         wifiAdapter = WifiAdapter(emptyList(), requireContext())
 
         wifiAdapter.setOnScrollToTopListener {
-            binding.recyclerViewWifi.post {
-                binding.recyclerViewWifi.postDelayed({
-                    binding.recyclerViewWifi.scrollToPosition(0)
-                }, 300)
+            if (_binding != null) {
+                binding.recyclerViewWifi.post {
+                    binding.recyclerViewWifi.postDelayed({
+                        if (_binding != null) {
+                            binding.recyclerViewWifi.scrollToPosition(0)
+                        }
+                    }, 300)
+                }
             }
         }
 
@@ -863,31 +867,39 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun startWifiScan() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // For Android 11+
-            if (ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            } else {
-                viewModel.clearResults()
-                wifiAdapter.clearDatabaseResults()
-                startWifiScanInternal()
-                hasScanned = true
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                if (ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                } else {
+                    viewModel.clearResults()
+                    wifiAdapter.clearDatabaseResults()
+                    startWifiScanInternal()
+                    hasScanned = true
+                }
             }
-        } else {
-            if (ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissions(
-                    arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
-                    REQUEST_LOCATION_PERMISSION
-                )
-            } else {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
+                if (ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    requestPermissions(
+                        arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
+                        REQUEST_LOCATION_PERMISSION
+                    )
+                } else {
+                    viewModel.clearResults()
+                    wifiAdapter.clearDatabaseResults()
+                    startWifiScanInternal()
+                    hasScanned = true
+                }
+            }
+            else -> {
                 viewModel.clearResults()
                 wifiAdapter.clearDatabaseResults()
                 startWifiScanInternal()
@@ -898,12 +910,10 @@ class WiFiScannerFragment : Fragment() {
 
     private fun startWifiScanInternal() {
         wifiAdapter.clearDatabaseResults()
-        val wifiManager = requireContext().applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             viewModel.startWifiScan()
         } else {
-            wifiManager.startScan()
-            viewModel.refreshWifiList()
+            viewModel.startLegacyWifiScan()
         }
     }
 
@@ -930,18 +940,24 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun showProgressBar() {
+        if (_binding == null) return
+
         binding.progressBarDatabaseCheck.visibility = View.VISIBLE
         binding.progressBarDatabaseCheck.isIndeterminate = true
     }
 
     private fun hideProgressBar() {
+        if (_binding == null) return
+
         binding.progressBarDatabaseCheck.isIndeterminate = false
         binding.progressBarDatabaseCheck.progress = 0
         ObjectAnimator.ofInt(binding.progressBarDatabaseCheck, "progress", 100)
             .setDuration(1000)
             .start()
         binding.progressBarDatabaseCheck.postDelayed({
-            binding.progressBarDatabaseCheck.visibility = View.GONE
+            _binding?.let { binding ->
+                binding.progressBarDatabaseCheck.visibility = View.GONE
+            }
         }, 1300)
     }
 
@@ -999,6 +1015,32 @@ class WiFiScannerFragment : Fragment() {
             }
             Log.d("WiFiScannerFragment", "Selected BSSID: ${selectedWifi?.BSSID}")
             startActivity(intent)
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.action_generate_qr)?.setOnClickListener {
+            selectedWifi?.let { wifi ->
+                val databaseResults = viewModel.databaseResults.value?.get(wifi.BSSID.lowercase(Locale.ROOT))
+
+                val password = databaseResults?.firstNotNullOfOrNull { result ->
+                    result.databaseInfo["WiFiKey"] as? String
+                        ?: result.databaseInfo["key"] as? String
+                }?.takeIf { it.isNotBlank() }
+
+                val finalPassword = password ?: ""
+                val security = if (finalPassword.isNotEmpty()) {
+                    QrNavigationHelper.determineSecurityType(wifi.capabilities)
+                } else {
+                    "NONE"
+                }
+
+                QrNavigationHelper.navigateToQrGenerator(
+                    this@WiFiScannerFragment,
+                    wifi.SSID,
+                    finalPassword,
+                    security
+                )
+            }
             dialog.dismiss()
         }
 
