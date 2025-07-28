@@ -247,6 +247,10 @@ class PixieDustHelper(
                 forceStopAllProcesses()
                 delay(2000)
 
+                callbacks.onLogEntry(LogEntry("Cleaning isolated files...", LogColorType.INFO))
+                cleanupIsolatedFiles()
+                delay(1000)
+
                 callbacks.onLogEntry(LogEntry("Restoring system WiFi services...", LogColorType.INFO))
                 restoreSystemWifiServices()
                 delay(3000)
@@ -267,7 +271,7 @@ class PixieDustHelper(
     private suspend fun restoreSystemWifiServices() {
         withContext(Dispatchers.IO) {
             try {
-                callbacks.onLogEntry(LogEntry("Starting system WiFi services...", LogColorType.INFO))
+                callbacks.onLogEntry(LogEntry("Safely starting system WiFi services...", LogColorType.INFO))
 
                 val restoreSettings = listOf(
                     "settings put global wifi_networks_available_notification_on 1",
@@ -308,11 +312,36 @@ class PixieDustHelper(
                     delay(1000)
                 }
 
-                callbacks.onLogEntry(LogEntry("System WiFi services restored", LogColorType.SUCCESS))
+                callbacks.onLogEntry(LogEntry("System WiFi services restored safely", LogColorType.SUCCESS))
 
             } catch (e: Exception) {
                 Log.w(TAG, "Error restoring system services", e)
                 callbacks.onLogEntry(LogEntry("Error restoring services: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+    private suspend fun cleanupIsolatedFiles() {
+        withContext(Dispatchers.IO) {
+            try {
+                callbacks.onLogEntry(LogEntry("Cleaning up isolated files...", LogColorType.INFO))
+
+                val cleanupCommands = listOf(
+                    "rm -rf $binaryDir/isolated_config/",
+                    "rm -rf /data/misc/wifi/wififrankenstein/",
+                    "rm -rf /data/vendor/wifi/wpa/wififrankenstein/"
+                )
+
+                cleanupCommands.forEach { command ->
+                    Shell.cmd(command).exec()
+                    delay(100)
+                }
+
+                callbacks.onLogEntry(LogEntry("Isolated files cleaned", LogColorType.SUCCESS))
+
+            } catch (e: Exception) {
+                Log.w(TAG, "Error cleaning isolated files", e)
+                callbacks.onLogEntry(LogEntry("Error cleaning files: ${e.message}", LogColorType.ERROR))
             }
         }
     }
@@ -460,8 +489,8 @@ class PixieDustHelper(
     private suspend fun startSupplicant(socketDir: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Starting wpa_supplicant")
-                callbacks.onLogEntry(LogEntry("Starting wpa_supplicant", LogColorType.INFO))
+                Log.d(TAG, "Starting completely isolated wpa_supplicant")
+                callbacks.onLogEntry(LogEntry("Starting isolated wpa_supplicant", LogColorType.INFO))
 
                 val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
 
@@ -469,12 +498,32 @@ class PixieDustHelper(
                 Shell.cmd("mkdir -p $socketDir").exec()
                 Shell.cmd("chmod 777 $socketDir").exec()
 
+                val isolatedConfigDir = "$binaryDir/isolated_config"
+                var isolatedConfigPath = "$isolatedConfigDir/wpa_supplicant.conf"
+
+                callbacks.onLogEntry(LogEntry("Creating isolated configuration...", LogColorType.INFO))
+                createCompletelyIsolatedConfig(isolatedConfigPath)
+
+                delay(1000)
+
+                if (!Shell.cmd("test -f $isolatedConfigPath").exec().isSuccess) {
+                    callbacks.onLogEntry(LogEntry("Config file not created, using default config", LogColorType.ERROR))
+                    isolatedConfigPath = "$binaryDir/$CONFIG_FILE"
+                }
+
                 val command = """
                 cd $binaryDir && \
                 export LD_LIBRARY_PATH=$binaryDir && \
                 export WPA_TRACE_LEVEL=99 && \
-                ./wpa_supplicant$arch -dd -K -Dnl80211,wext,hostapd,wired -i wlan0 -c$binaryDir/$CONFIG_FILE -O$socketDir
+                unset ANDROID_DATA && \
+                unset ANDROID_ROOT && \
+                unset ANDROID_STORAGE && \
+                export HOME=$isolatedConfigDir && \
+                export TMPDIR=$isolatedConfigDir && \
+                ./wpa_supplicant$arch -dd -K -Dnl80211,wext,hostapd,wired -i wlan0 -c$isolatedConfigPath -O$socketDir -P$isolatedConfigDir/wpa_supplicant.pid
             """.trimIndent()
+
+                callbacks.onLogEntry(LogEntry("Starting wpa_supplicant with config: $isolatedConfigPath", LogColorType.INFO))
 
                 supplicantProcess = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
                 supplicantOutput = BufferedReader(InputStreamReader(supplicantProcess!!.inputStream))
@@ -489,21 +538,113 @@ class PixieDustHelper(
 
                 val socketFile = "$socketDir/wlan0"
                 val startTime = System.currentTimeMillis()
-                while (System.currentTimeMillis() - startTime < 10000) {
+                while (System.currentTimeMillis() - startTime < 15000) {
                     if (Shell.cmd("test -S $socketFile").exec().isSuccess) {
                         Log.d(TAG, "Control socket created")
-                        callbacks.onLogEntry(LogEntry("Successfully initialized wpa_supplicant", LogColorType.INFO))
+                        callbacks.onLogEntry(LogEntry("Successfully started isolated wpa_supplicant", LogColorType.INFO))
                         return@withContext true
                     }
                     delay(500)
                 }
-                Log.e(TAG, "Failed to create control socket")
-                callbacks.onLogEntry(LogEntry("Failed to create control socket", LogColorType.ERROR))
+
+                Log.e(TAG, "Failed to create control socket within timeout")
+                callbacks.onLogEntry(LogEntry("Failed to create control socket within timeout", LogColorType.ERROR))
+
+                callbacks.onLogEntry(LogEntry("Checking wpa_supplicant process status...", LogColorType.INFO))
+                val psResult = Shell.cmd("ps aux | grep wpa_supplicant | grep -v grep").exec()
+                if (psResult.isSuccess && psResult.out.isNotEmpty()) {
+                    callbacks.onLogEntry(LogEntry("wpa_supplicant process is running", LogColorType.INFO))
+                } else {
+                    callbacks.onLogEntry(LogEntry("wpa_supplicant process not found", LogColorType.ERROR))
+                }
+
                 return@withContext false
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start wpa_supplicant", e)
                 callbacks.onLogEntry(LogEntry("Failed to start wpa_supplicant: ${e.message}", LogColorType.ERROR))
                 return@withContext false
+            }
+        }
+    }
+
+    private suspend fun createConfigViaShell(configPath: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                callbacks.onLogEntry(LogEntry("Creating config via shell commands...", LogColorType.INFO))
+
+                val configDir = java.io.File(configPath).parent
+
+                val createCommands = listOf(
+                    "mkdir -p $configDir",
+                    "chmod 755 $configDir",
+                    "cat > $configPath << 'EOF'\nctrl_interface_group=wifi\nupdate_config=0\nap_scan=1\neapol_version=1\nfast_reauth=1\nEOF",
+                    "chmod 644 $configPath"
+                )
+
+                createCommands.forEach { command ->
+                    val result = Shell.cmd(command).exec()
+                    if (!result.isSuccess) {
+                        Log.w(TAG, "Command failed: $command")
+                        callbacks.onLogEntry(LogEntry("Warning: $command failed", LogColorType.ERROR))
+                    }
+                    delay(100)
+                }
+
+                val verifyResult = Shell.cmd("test -f $configPath && echo 'EXISTS' || echo 'MISSING'").exec()
+                if (verifyResult.isSuccess && verifyResult.out.contains("EXISTS")) {
+                    callbacks.onLogEntry(LogEntry("Config created successfully via shell", LogColorType.SUCCESS))
+                } else {
+                    callbacks.onLogEntry(LogEntry("Config creation via shell failed", LogColorType.ERROR))
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to create config via shell", e)
+                callbacks.onLogEntry(LogEntry("Shell config creation error: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+
+    private suspend fun createCompletelyIsolatedConfig(configPath: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                val isolatedConfig = """
+ctrl_interface_group=wifi
+update_config=0
+            """.trimIndent()
+
+                val configDir = java.io.File(configPath).parent
+
+                Shell.cmd("mkdir -p $configDir").exec()
+                Shell.cmd("chmod 755 $configDir").exec()
+
+                val tempConfigPath = "$binaryDir/temp_isolated_config.txt"
+
+                try {
+                    context.openFileOutput("temp_isolated_config.txt", Context.MODE_PRIVATE).use { output ->
+                        output.write(isolatedConfig.toByteArray())
+                    }
+
+                    Shell.cmd("cp $tempConfigPath $configPath").exec()
+                    Shell.cmd("chmod 644 $configPath").exec()
+                    Shell.cmd("rm -f $tempConfigPath").exec()
+
+                    val verifyResult = Shell.cmd("test -f $configPath && echo 'OK' || echo 'FAIL'").exec()
+                    if (verifyResult.isSuccess && verifyResult.out.contains("OK")) {
+                        callbacks.onLogEntry(LogEntry("Created isolated config at: $configPath", LogColorType.SUCCESS))
+                    } else {
+                        throw Exception("Config file verification failed")
+                    }
+
+                } catch (e: Exception) {
+                    Log.w(TAG, "Standard method failed, trying shell method", e)
+                    createConfigViaShell(configPath)
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "All config creation methods failed", e)
+                callbacks.onLogEntry(LogEntry("Failed to create isolated config: ${e.message}", LogColorType.ERROR))
+                callbacks.onLogEntry(LogEntry("Using default config as fallback", LogColorType.ERROR))
             }
         }
     }
@@ -536,6 +677,12 @@ class PixieDustHelper(
             line.contains("WPS: M8 received") || line.contains("WPS: Building Message M8") -> {
                 callbacks.onLogEntry(LogEntry(">>> WPS M8 Message", LogColorType.INFO))
             }
+            line.contains("CTRL-EVENT-ASSOC-REJECT") -> {
+                val statusCode = extractStatusCode(line)
+                val bssid = extractBssid(line)
+                val message = getAssocRejectMessage(statusCode)
+                callbacks.onLogEntry(LogEntry("⚠ $message (BSSID: $bssid)", LogColorType.ERROR))
+            }
             line.contains("EAPOL: enable timer tick") -> {
                 callbacks.onLogEntry(LogEntry("--- New WPS cycle started ---", LogColorType.HIGHLIGHT))
             }
@@ -548,6 +695,7 @@ class PixieDustHelper(
             line.contains("Association info event") -> {
                 callbacks.onLogEntry(LogEntry("Connected to AP", LogColorType.SUCCESS))
             }
+            // Существующие обработчики для WPS данных...
             line.contains("Enrollee Nonce") && line.contains("hexdump(len=16):") -> {
                 val hex = extractHexDataClean(line)
                 if (hex != null) {
@@ -600,6 +748,54 @@ class PixieDustHelper(
                     }
                 }
             }
+        }
+    }
+
+    private fun extractStatusCode(line: String): Int {
+        return try {
+            val statusMatch = "status_code=(\\d+)".toRegex().find(line)
+            statusMatch?.groupValues?.get(1)?.toInt() ?: -1
+        } catch (e: Exception) {
+            -1
+        }
+    }
+
+    private fun extractBssid(line: String): String {
+        return try {
+            val bssidMatch = "bssid=([0-9a-fA-F:]{17})".toRegex().find(line)
+            bssidMatch?.groupValues?.get(1) ?: "unknown"
+        } catch (e: Exception) {
+            "unknown"
+        }
+    }
+
+    private fun getAssocRejectMessage(statusCode: Int): String {
+        return when (statusCode) {
+            1 -> context.getString(R.string.assoc_reject_unspecified)
+            2 -> context.getString(R.string.assoc_reject_prev_auth_invalid)
+            3 -> context.getString(R.string.assoc_reject_deauth_leaving)
+            4 -> context.getString(R.string.assoc_reject_inactivity)
+            5 -> context.getString(R.string.assoc_reject_ap_overload)
+            6 -> context.getString(R.string.assoc_reject_class2_frame)
+            7 -> context.getString(R.string.assoc_reject_class3_frame)
+            8 -> context.getString(R.string.assoc_reject_leaving_bss)
+            9 -> context.getString(R.string.assoc_reject_not_authenticated)
+            10 -> context.getString(R.string.assoc_reject_power_capability)
+            11 -> context.getString(R.string.assoc_reject_supported_channels)
+            13 -> context.getString(R.string.assoc_reject_invalid_ie)
+            14 -> context.getString(R.string.assoc_reject_mic_failure)
+            15 -> context.getString(R.string.assoc_reject_4way_timeout)
+            16 -> context.getString(R.string.assoc_reject_group_timeout)
+            17 -> context.getString(R.string.assoc_reject_ie_different)
+            18 -> context.getString(R.string.assoc_reject_invalid_group_cipher)
+            19 -> context.getString(R.string.assoc_reject_invalid_pairwise_cipher)
+            20 -> context.getString(R.string.assoc_reject_invalid_akmp)
+            21 -> context.getString(R.string.assoc_reject_unsupported_rsn)
+            22 -> context.getString(R.string.assoc_reject_invalid_rsn_capabilities)
+            23 -> context.getString(R.string.assoc_reject_8021x_failed)
+            24 -> context.getString(R.string.assoc_reject_cipher_rejected)
+            32 -> context.getString(R.string.assoc_reject_load_balancing)
+            else -> context.getString(R.string.assoc_reject_unknown, statusCode)
         }
     }
 
@@ -688,10 +884,10 @@ class PixieDustHelper(
     private suspend fun stopExistingProcesses() {
         withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Aggressively stopping system WiFi services")
-                callbacks.onLogEntry(LogEntry("Stopping system WiFi services...", LogColorType.INFO))
+                Log.d(TAG, "Safely stopping system WiFi services")
+                callbacks.onLogEntry(LogEntry("Safely stopping system WiFi services...", LogColorType.INFO))
 
-                callbacks.onLogEntry(LogEntry("Disabling saved network auto-connect...", LogColorType.INFO))
+                callbacks.onLogEntry(LogEntry("Disabling auto-connect temporarily...", LogColorType.INFO))
                 val disableAutoConnect = listOf(
                     "settings put global wifi_networks_available_notification_on 0",
                     "settings put global wifi_scan_always_enabled 0",
@@ -733,8 +929,8 @@ class PixieDustHelper(
                     "killall -9 wpa_supplicant",
                     "killall -9 hostapd",
                     "killall -9 dhcpcd",
-                    "ps aux | grep wpa | grep -v grep | awk '{print $2}' | xargs kill -9",
-                    "ps aux | grep wifi | grep -v grep | awk '{print $2}' | xargs kill -9"
+                    "ps aux | grep wpa | grep -v grep | awk '{print \$2}' | xargs kill -9 2>/dev/null || true",
+                    "ps aux | grep wifi | grep -v grep | awk '{print \$2}' | xargs kill -9 2>/dev/null || true"
                 )
 
                 killCommands.forEach { command ->
@@ -746,22 +942,25 @@ class PixieDustHelper(
                     }
                 }
 
-                callbacks.onLogEntry(LogEntry("Taking down WiFi interface...", LogColorType.INFO))
+                callbacks.onLogEntry(LogEntry("Preparing isolated WiFi interface...", LogColorType.INFO))
                 val interfaceCommands = listOf(
                     "ifconfig wlan0 down",
                     "ip link set wlan0 down",
-                    "iw dev wlan0 disconnect"
+                    "iw dev wlan0 disconnect",
+                    "sleep 2",
+                    "ifconfig wlan0 up",
+                    "ip link set wlan0 up"
                 )
 
                 interfaceCommands.forEach { command ->
                     Shell.cmd(command).exec()
-                    delay(200)
+                    delay(500)
                 }
 
-                callbacks.onLogEntry(LogEntry("Clearing temporary files...", LogColorType.INFO))
+                callbacks.onLogEntry(LogEntry("Clearing our temporary files only...", LogColorType.INFO))
                 val clearCommands = listOf(
                     "rm -rf /data/misc/wifi/wififrankenstein/",
-                    "rm -rf /data/vendor/wifi/wpa/wififrankenstein/",
+                    "rm -rf /data/vendor/wifi/wpa/wififrankenstein/"
                 )
 
                 clearCommands.forEach { command ->
@@ -769,7 +968,7 @@ class PixieDustHelper(
                 }
 
                 delay(3000)
-                callbacks.onLogEntry(LogEntry("System WiFi services stopped", LogColorType.SUCCESS))
+                callbacks.onLogEntry(LogEntry("System safely isolated", LogColorType.SUCCESS))
 
             } catch (e: Exception) {
                 Log.w(TAG, "Error stopping system services", e)

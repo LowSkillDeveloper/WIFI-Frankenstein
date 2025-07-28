@@ -1184,4 +1184,35 @@
     <string name="pixiedust_reset_defaults">Reset to Defaults</string>
 
 
+    <!-- Association Reject Status Codes -->
+    <string name="assoc_reject_unspecified">Association rejected: Unspecified failure</string>
+    <string name="assoc_reject_prev_auth_invalid">Association rejected: Previous authentication no longer valid</string>
+    <string name="assoc_reject_deauth_leaving">Association rejected: Station is leaving network</string>
+    <string name="assoc_reject_inactivity">Association rejected: Due to inactivity</string>
+    <string name="assoc_reject_ap_overload">Association rejected: AP cannot handle more stations</string>
+    <string name="assoc_reject_class2_frame">Association rejected: Unauthorized frame received</string>
+    <string name="assoc_reject_class3_frame">Association rejected: Unassociated frame received</string>
+    <string name="assoc_reject_leaving_bss">Association rejected: Station leaving BSS</string>
+    <string name="assoc_reject_not_authenticated">Association rejected: Station not authenticated</string>
+    <string name="assoc_reject_power_capability">Association rejected: Power capability unacceptable</string>
+    <string name="assoc_reject_supported_channels">Association rejected: Supported channels unacceptable</string>
+    <string name="assoc_reject_invalid_ie">Association rejected: Invalid information element</string>
+    <string name="assoc_reject_mic_failure">Association rejected: MIC failure</string>
+    <string name="assoc_reject_4way_timeout">Association rejected: 4-Way handshake timeout</string>
+    <string name="assoc_reject_group_timeout">Association rejected: Group key handshake timeout</string>
+    <string name="assoc_reject_ie_different">Association rejected: IE mismatch</string>
+    <string name="assoc_reject_invalid_group_cipher">Association rejected: Invalid group cipher</string>
+    <string name="assoc_reject_invalid_pairwise_cipher">Association rejected: Invalid pairwise cipher</string>
+    <string name="assoc_reject_invalid_akmp">Association rejected: Invalid AKMP</string>
+    <string name="assoc_reject_unsupported_rsn">Association rejected: Unsupported RSN version</string>
+    <string name="assoc_reject_invalid_rsn_capabilities">Association rejected: Invalid RSN capabilities</string>
+    <string name="assoc_reject_8021x_failed">Association rejected: 802.1X authentication failed</string>
+    <string name="assoc_reject_cipher_rejected">Association rejected: Cipher suite rejected</string>
+    <string name="assoc_reject_load_balancing">Association rejected: Load balancing</string>
+    <string name="assoc_reject_unknown">Association rejected: Status code %d</string>
+    <string name="assoc_reject_wps_timeout">WPS association timeout - AP may not support WPS or PIN is incorrect</string>
+
+    <string name="pixiedust_isolated_environment">Creating completely isolated environment</string>
+    <string name="pixiedust_safe_cleanup">Safely cleaning up without affecting saved passwords</string>
+
 </resources>
