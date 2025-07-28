@@ -1007,11 +1007,9 @@
     <string name="pixiedust_error_copying_binaries">Error copying binary files</string>
     <string name="pixiedust_preparing_binaries">Preparing binary files…</string>
     <string name="pixiedust_preparing_attack">Preparing attack…</string>
-    <string name="pixiedust_failed_start_supplicant">Failed to start WPA supplicant</string>
     <string name="pixiedust_extracting_handshake">Extracting handshake data…</string>
     <string name="pixiedust_failed_extract_data">Failed to extract handshake data</string>
     <string name="pixiedust_computing_pin">Computing PIN…</string>
-    <string name="pixiedust_attack_error">Attack error: %1$s</string>
     <string name="pixiedust_attack_stopped">Attack stopped</string>
 
     <string name="pixiedust_critical_binaries_missing">Critical binary files are missing</string>
@@ -1124,6 +1122,54 @@
     <string name="category_root_functions">Root функции</string>
     <string name="category_generators">Генераторы</string>
     <string name="category_utilities">Утилиты</string>
+    <string name="system_files_updates">System Files Updates</string>
+    <string name="local_size">Local size: %1$s</string>
+
+    <string name="pixiedust_disabling_wifi">Отключение WiFi…</string>
+    <string name="pixiedust_stopping_processes">Остановка процессов…</string>
+    <string name="pixiedust_creating_socket_dir">Создание сокет директории…</string>
+    <string name="pixiedust_starting_supplicant">Запуск wpa_supplicant…</string>
+    <string name="pixiedust_waiting_supplicant">Ожидание запуска supplicant…</string>
+    <string name="pixiedust_supplicant_started">WPA supplicant запущен успешно</string>
+    <string name="pixiedust_supplicant_failed">Не удалось запустить WPA supplicant</string>
+    <string name="pixiedust_supplicant_error">Ошибка supplicant: %1$s</string>
+    <string name="pixiedust_executing_wps_reg">Выполнение WPS регистрации…</string>
+    <string name="pixiedust_wps_reg_failed">Ошибка WPS регистрации: %1$s</string>
+    <string name="pixiedust_analyzing_output">Анализ вывода supplicant…</string>
+    <string name="pixiedust_found_enrollee_nonce">Найден Enrollee Nonce</string>
+    <string name="pixiedust_found_own_public_key">Найден DH own Public Key</string>
+    <string name="pixiedust_found_peer_public_key">Найден DH peer Public Key</string>
+    <string name="pixiedust_found_auth_key">Найден AuthKey</string>
+    <string name="pixiedust_found_hash1">Найден E-Hash1</string>
+    <string name="pixiedust_found_hash2">Найден E-Hash2</string>
+    <string name="pixiedust_extracted_values">Извлечено %1$d/%2$d значений</string>
+    <string name="pixiedust_data_validation_success">Данные прошли валидацию</string>
+    <string name="pixiedust_data_validation_failed">Данные не прошли валидацию</string>
+    <string name="pixiedust_starting_pixiedust">Запуск pixiedust…</string>
+    <string name="pixiedust_no_pin_in_output">PIN не найден в выводе pixiedust</string>
+    <string name="pixiedust_execution_error">Ошибка выполнения pixiedust: %1$s</string>
+    <string name="pixiedust_failed_start_supplicant">Не удалось запустить supplicant</string>
+    <string name="pixiedust_attack_error">Ошибка атаки: %1$s</string>
+
+    <string name="pixiedust_incomplete_data">Incomplete WPS handshake data received</string>
+
+    <string name="pixiedust_manual_network_entry">Manual Network Entry</string>
+    <string name="pixiedust_enter_network_details">Enter Network Details</string>
+    <string name="pixiedust_network_ssid">Network SSID</string>
+    <string name="pixiedust_network_bssid">Network BSSID (MAC Address)</string>
+    <string name="pixiedust_add_network">Add Network</string>
+    <string name="pixiedust_invalid_bssid">Invalid BSSID format</string>
+    <string name="pixiedust_restarting_wifi">Restarting WiFi module…</string>
+    <string name="pixiedust_cleaning_up">Cleaning up processes…</string>
+    <string name="pixiedust_wifi_restarted">WiFi module restarted</string>
+    <string name="pixiedust_attack_log">Attack Log</string>
+    <string name="pixiedust_clear_log">Clear Log</string>
+    <string name="pixiedust_log_empty">No log entries</string>
+
+    <string name="pixiedust_stopping_system_services">Stopping system WiFi services</string>
+    <string name="pixiedust_restoring_system_services">Restoring system WiFi services</string>
+    <string name="pixiedust_full_wifi_reset">Performing full WiFi reset</string>
+    <string name="pixiedust_module_reload">Reloading WiFi module</string>
 
 
 </resources>

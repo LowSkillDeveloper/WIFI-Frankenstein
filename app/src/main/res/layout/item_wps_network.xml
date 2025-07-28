@@ -1,22 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginVertical="4dp"
-    android:clickable="true"
-    android:focusable="true"
+    android:layout_margin="8dp"
     app:cardCornerRadius="8dp"
     app:cardElevation="2dp"
-    app:strokeColor="?attr/colorControlNormal"
-    app:strokeWidth="1dp">
+    app:strokeWidth="1dp"
+    app:strokeColor="?attr/colorOnSurface">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -24,58 +21,38 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_wifi"
-                app:tint="?attr/colorOnSurface" />
-
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="12dp"
                 android:orientation="vertical">
 
                 <TextView
                     android:id="@+id/textViewSSID"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:text="Network Name"
                     android:textAppearance="?attr/textAppearanceSubtitle1"
-                    android:textStyle="bold"
-                    tools:text="WiFi Network Name" />
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/textViewBSSID"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:text="00:00:00:00:00:00"
                     android:textAppearance="?attr/textAppearanceCaption"
-                    android:fontFamily="monospace"
-                    tools:text="AA:BB:CC:DD:EE:FF" />
+                    android:fontFamily="monospace" />
 
             </LinearLayout>
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/iconSelected"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="end">
-
-                <TextView
-                    android:id="@+id/textViewSignal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceCaption"
-                    tools:text="-45 dBm" />
-
-                <TextView
-                    android:id="@+id/textViewFrequency"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceCaption"
-                    tools:text="2412 MHz" />
-
-            </LinearLayout>
+                android:text="✓"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="20sp"
+                android:visibility="gone" />
 
         </LinearLayout>
 
@@ -86,37 +63,42 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <com.google.android.material.chip.Chip
+            <TextView
+                android:id="@+id/textViewSignal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-50 dBm"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:layout_marginEnd="16dp" />
+
+            <TextView
+                android:id="@+id/textViewFrequency"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2400 MHz"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:layout_marginEnd="16dp" />
+
+            <TextView
                 android:id="@+id/chipSecurity"
-                style="@style/Widget.MaterialComponents.Chip.Entry"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:textSize="10sp"
-                tools:text="WPA2" />
+                android:text="WPA2"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:textSize="12sp"
+                android:textColor="?attr/colorOnSurface" />
 
-            <com.google.android.material.chip.Chip
+            <TextView
                 android:id="@+id/chipWPS"
-                style="@style/Widget.MaterialComponents.Chip.Entry"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
                 android:text="@string/pixiedust_wps_enabled"
-                android:textSize="10sp"
-                app:chipBackgroundColor="?attr/colorSecondary"
-                app:chipStrokeColor="?attr/colorSecondary" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
-            <ImageView
-                android:id="@+id/iconSelected"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_check"
-                android:visibility="gone"
-                app:tint="?attr/colorPrimary" />
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:textSize="12sp"
+                android:textColor="?attr/colorOnSurface" />
 
         </LinearLayout>
 

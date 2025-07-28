@@ -2,7 +2,6 @@ package com.lsd.wififrankenstein.ui.pixiedust
 
 import android.app.Application
 import android.content.Context
-import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
@@ -39,6 +38,9 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val _binariesReady = MutableLiveData<Boolean>()
     val binariesReady: LiveData<Boolean> = _binariesReady
+
+    private val _logEntries = MutableLiveData<List<LogEntry>>(emptyList())
+    val logEntries: LiveData<List<LogEntry>> = _logEntries
 
     init {
         pixieHelper = PixieDustHelper(getApplication(), this)
@@ -119,7 +121,7 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                     return@launch
                 }
 
-                kotlinx.coroutines.delay(3000)
+                delay(3000)
 
                 val scanResults = wifiManager.scanResults
                 val wpsNetworks = scanResults
@@ -136,7 +138,11 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                     }
                     .sortedByDescending { it.level }
 
-                _wpsNetworks.value = wpsNetworks
+                val currentNetworks = _wpsNetworks.value?.toMutableList() ?: mutableListOf()
+                currentNetworks.removeAll { !it.isManual }
+                currentNetworks.addAll(wpsNetworks)
+
+                _wpsNetworks.value = currentNetworks
                 _progressMessage.value = getApplication<Application>().getString(
                     R.string.pixiedust_networks_found,
                     wpsNetworks.size
@@ -150,8 +156,30 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun addManualNetwork(ssid: String, bssid: String) {
+        val manualNetwork = WpsNetwork(
+            ssid = ssid,
+            bssid = bssid.uppercase(),
+            capabilities = "WPS",
+            level = -50,
+            frequency = 2400,
+            isManual = true
+        )
+
+        val currentNetworks = _wpsNetworks.value?.toMutableList() ?: mutableListOf()
+        currentNetworks.removeAll { it.bssid.equals(bssid, ignoreCase = true) }
+        currentNetworks.add(0, manualNetwork)
+        _wpsNetworks.value = currentNetworks
+
+        addLogEntry(LogEntry("Manual network added: $ssid ($bssid)"))
+    }
+
     fun selectNetwork(network: WpsNetwork) {
         _selectedNetwork.value = network
+        if (_attackState.value is PixieAttackState.Completed || _attackState.value is PixieAttackState.Failed) {
+            _attackState.value = PixieAttackState.Idle
+        }
+        addLogEntry(LogEntry("Selected network: ${network.ssid} (${network.bssid})"))
     }
 
     fun startPixieAttack() {
@@ -176,8 +204,6 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun stopAttack() {
         pixieHelper.stopAttack()
-        _attackState.value = PixieAttackState.Idle
-        _progressMessage.value = "Attack stopped"
     }
 
     fun saveResult(result: PixieResult) {
@@ -196,56 +222,81 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                     _progressMessage.postValue(
                         getApplication<Application>().getString(R.string.pixiedust_result_saved)
                     )
+                    addLogEntry(LogEntry("Result saved for ${result.network.ssid}", LogColorType.INFO))
                 } catch (e: Exception) {
                     _progressMessage.postValue("Failed to save result: ${e.message}")
+                    addLogEntry(LogEntry("Failed to save result: ${e.message}", LogColorType.ERROR))
                 }
             }
         }
     }
 
-    override fun onStateChanged(state: PixieAttackState) {
-        _attackState.postValue(state)
+    fun clearLog() {
+        _logEntries.value = emptyList()
+    }
 
-        val message = when (state) {
-            is PixieAttackState.Idle -> {
-                recheckBinaries()
-                ""
-            }
-            is PixieAttackState.Scanning -> getApplication<Application>().getString(R.string.pixiedust_scanning)
-            is PixieAttackState.CheckingRoot -> getApplication<Application>().getString(R.string.pixiedust_checking_root)
-            is PixieAttackState.Preparing -> getApplication<Application>().getString(R.string.pixiedust_preparing)
-            is PixieAttackState.ExtractingData -> getApplication<Application>().getString(R.string.pixiedust_extracting_data)
-            is PixieAttackState.RunningAttack -> getApplication<Application>().getString(R.string.pixiedust_running_attack)
-            is PixieAttackState.Completed -> getApplication<Application>().getString(R.string.pixiedust_attack_completed)
-            is PixieAttackState.Failed -> getApplication<Application>().getString(R.string.pixiedust_attack_failed, state.error)
+    private fun addLogEntry(logEntry: LogEntry) {
+        val currentEntries = _logEntries.value?.toMutableList() ?: mutableListOf()
+        currentEntries.add(0, logEntry)
+        if (currentEntries.size > 100) {
+            currentEntries.removeAt(currentEntries.size - 1)
         }
+        _logEntries.value = currentEntries
+    }
 
-        _progressMessage.postValue(message)
+    override fun onStateChanged(state: PixieAttackState) {
+        viewModelScope.launch(Dispatchers.Main) {
+            _attackState.value = state
+
+            val message = when (state) {
+                is PixieAttackState.Idle -> {
+                    recheckBinaries()
+                    ""
+                }
+                is PixieAttackState.Scanning -> getApplication<Application>().getString(R.string.pixiedust_scanning)
+                is PixieAttackState.CheckingRoot -> getApplication<Application>().getString(R.string.pixiedust_checking_root)
+                is PixieAttackState.Preparing -> getApplication<Application>().getString(R.string.pixiedust_preparing)
+                is PixieAttackState.ExtractingData -> getApplication<Application>().getString(R.string.pixiedust_extracting_data)
+                is PixieAttackState.RunningAttack -> getApplication<Application>().getString(R.string.pixiedust_running_attack)
+                is PixieAttackState.Completed -> getApplication<Application>().getString(R.string.pixiedust_attack_completed)
+                is PixieAttackState.Failed -> getApplication<Application>().getString(R.string.pixiedust_attack_failed, state.error)
+            }
+
+            _progressMessage.value = message
+        }
     }
 
     override fun onProgressUpdate(message: String) {
-        _progressMessage.postValue(message)
+        viewModelScope.launch(Dispatchers.Main) {
+            _progressMessage.value = message
+        }
     }
 
     override fun onAttackCompleted(result: PixieResult) {
-        _attackState.postValue(PixieAttackState.Completed(result))
+        viewModelScope.launch(Dispatchers.Main) {
+            _attackState.value = PixieAttackState.Completed(result)
 
-        if (result.success && result.pin != null) {
-            _progressMessage.postValue(
-                getApplication<Application>().getString(R.string.pixiedust_pin_found, result.pin)
-            )
-        } else {
-            _progressMessage.postValue(
-                getApplication<Application>().getString(R.string.pixiedust_pin_not_found)
-            )
+            if (result.success && result.pin != null) {
+                _progressMessage.value = getApplication<Application>().getString(R.string.pixiedust_pin_found, result.pin)
+            } else {
+                _progressMessage.value = getApplication<Application>().getString(R.string.pixiedust_pin_not_found)
+            }
         }
     }
 
     override fun onAttackFailed(error: String, errorCode: Int) {
-        _attackState.postValue(PixieAttackState.Failed(error, errorCode))
-        _progressMessage.postValue(
-            getApplication<Application>().getString(R.string.pixiedust_attack_failed, error)
-        )
+        viewModelScope.launch(Dispatchers.Main) {
+            _attackState.value = PixieAttackState.Failed(error, errorCode)
+            _progressMessage.value = getApplication<Application>().getString(R.string.pixiedust_attack_failed, error)
+
+            pixieHelper.forceCleanup()
+        }
+    }
+
+    override fun onLogEntry(logEntry: LogEntry) {
+        viewModelScope.launch(Dispatchers.Main) {
+            addLogEntry(logEntry)
+        }
     }
 
     override fun onCleared() {

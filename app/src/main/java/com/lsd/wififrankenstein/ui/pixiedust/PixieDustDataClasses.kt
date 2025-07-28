@@ -8,14 +8,9 @@ data class WpsNetwork(
     val capabilities: String,
     val level: Int,
     val frequency: Int,
-    val scanResult: ScanResult
+    val scanResult: ScanResult? = null,
+    val isManual: Boolean = false
 ) {
-    val isWpsEnabled: Boolean
-        get() = capabilities.contains("WPS")
-
-    val signalStrength: Int
-        get() = level
-
     val securityType: String
         get() = when {
             capabilities.contains("WPA3") -> "WPA3"
@@ -24,28 +19,10 @@ data class WpsNetwork(
             capabilities.contains("WEP") -> "WEP"
             else -> "Open"
         }
-}
 
-data class PixieAttackData(
-    val peerPublicKey: String,
-    val ownPublicKey: String,
-    val hashOne: String,
-    val hashTwo: String,
-    val authenticationKey: String,
-    val enrolleeNonce: String
-) {
-    fun toCommandArgs(): String {
-        return "--pke $peerPublicKey --pkr $ownPublicKey --e-hash1 $hashOne --e-hash2 $hashTwo --authkey $authenticationKey --e-nonce $enrolleeNonce"
-    }
+    val isWpsEnabled: Boolean
+        get() = capabilities.contains("WPS")
 }
-
-data class PixieResult(
-    val network: WpsNetwork,
-    val pin: String?,
-    val success: Boolean,
-    val duration: Long,
-    val timestamp: Long = System.currentTimeMillis()
-)
 
 sealed class PixieAttackState {
     object Idle : PixieAttackState()
@@ -55,5 +32,26 @@ sealed class PixieAttackState {
     object ExtractingData : PixieAttackState()
     object RunningAttack : PixieAttackState()
     data class Completed(val result: PixieResult) : PixieAttackState()
-    data class Failed(val error: String, val errorCode: Int = -1) : PixieAttackState()
+    data class Failed(val error: String, val errorCode: Int) : PixieAttackState()
+}
+
+data class PixieResult(
+    val network: WpsNetwork,
+    val pin: String?,
+    val success: Boolean,
+    val timestamp: Long = System.currentTimeMillis(),
+    val duration: Long = 0
+)
+
+data class PixieAttackData(
+    val enrolleeNonce: String,
+    val ownPublicKey: String,
+    val peerPublicKey: String,
+    val authenticationKey: String,
+    val hashOne: String,
+    val hashTwo: String
+) {
+    fun toCommandArgs(): String {
+        return "--pke $ownPublicKey --pkr $peerPublicKey --e-hash1 $hashOne --e-hash2 $hashTwo --authkey $authenticationKey --e-nonce $enrolleeNonce"
+    }
 }

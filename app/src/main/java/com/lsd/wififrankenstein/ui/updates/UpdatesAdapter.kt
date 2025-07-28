@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.ItemFileUpdateBinding
 
 class UpdatesAdapter(
@@ -28,11 +29,10 @@ class UpdatesAdapter(
         RecyclerView.ViewHolder(binding.root) {
         fun bind(fileInfo: FileUpdateInfo) {
             binding.apply {
-                // Нужно убрать потом харкодед текст и заменить на использование стрингс
                 textViewFileName.text = fileInfo.fileName
-                textViewLocalVersion.text = "Local version: ${fileInfo.localVersion}"
-                textViewServerVersion.text = "Server version: ${fileInfo.serverVersion}"
-                textViewLocalSize.text = "Local size: ${fileInfo.localSize}"
+                textViewLocalVersion.text = root.context.getString(R.string.local_version, fileInfo.localVersion)
+                textViewServerVersion.text = root.context.getString(R.string.server_version, fileInfo.serverVersion)
+                textViewLocalSize.text = root.context.getString(R.string.local_size, fileInfo.localSize)
 
                 if (fileInfo.needsUpdate) {
                     buttonUpdate.isEnabled = true
@@ -40,7 +40,13 @@ class UpdatesAdapter(
                     buttonRevert.visibility = View.GONE
                 } else {
                     buttonUpdate.isEnabled = false
-                    if (fileInfo.localVersion != "1.0") {
+                    val shouldShowRevert = if (fileInfo.fileName == "RouterKeygen.dic") {
+                        fileInfo.localVersion != "0.0"
+                    } else {
+                        fileInfo.localVersion != "1.0"
+                    }
+
+                    if (shouldShowRevert) {
                         buttonRevert.visibility = View.VISIBLE
                         buttonRevert.setOnClickListener { onRevertClick(fileInfo) }
                     } else {

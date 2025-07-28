@@ -26,6 +26,7 @@ class PixieDustFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel by viewModels<PixieDustViewModel>()
     private lateinit var networkAdapter: WpsNetworkAdapter
+    private lateinit var logAdapter: LogAdapter
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -53,13 +54,13 @@ class PixieDustFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupRecyclerView()
+        setupRecyclerViews()
         setupClickListeners()
         observeViewModel()
         showWarningDialog()
     }
 
-    private fun setupRecyclerView() {
+    private fun setupRecyclerViews() {
         networkAdapter = WpsNetworkAdapter { network ->
             viewModel.selectNetwork(network)
         }
@@ -68,11 +69,24 @@ class PixieDustFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = networkAdapter
         }
+
+        logAdapter = LogAdapter()
+        binding.recyclerViewLog.apply {
+            layoutManager = LinearLayoutManager(requireContext()).apply {
+                reverseLayout = true
+                stackFromEnd = true
+            }
+            adapter = logAdapter
+        }
     }
 
     private fun setupClickListeners() {
         binding.buttonScanNetworks.setOnClickListener {
             checkLocationPermissionAndScan()
+        }
+
+        binding.buttonManualNetwork.setOnClickListener {
+            showManualNetworkDialog()
         }
 
         binding.buttonStartAttack.setOnClickListener {
@@ -96,6 +110,10 @@ class PixieDustFragment : Fragment() {
                 viewModel.saveResult(state.result)
             }
         }
+
+        binding.buttonClearLog.setOnClickListener {
+            viewModel.clearLog()
+        }
     }
 
     private fun observeViewModel() {
@@ -103,7 +121,7 @@ class PixieDustFragment : Fragment() {
             networkAdapter.submitList(networks)
             binding.cardViewNetworks.visibility = if (networks.isNotEmpty()) View.VISIBLE else View.GONE
 
-            if (networks.isEmpty() && !viewModel.isScanning.value!!) {
+            if (networks.isEmpty() && viewModel.isScanning.value == false) {
                 binding.textViewScanStatus.text = getString(R.string.pixiedust_no_networks)
             }
         }
@@ -118,9 +136,10 @@ class PixieDustFragment : Fragment() {
             binding.cardViewAttackControl.visibility = if (network != null) View.VISIBLE else View.GONE
 
             if (network != null) {
+                val networkName = if (network.ssid.isBlank()) getString(R.string.pixiedust_unknown_network) else network.ssid
                 binding.textViewSelectedNetwork.text = getString(
                     R.string.pixiedust_network_info,
-                    network.ssid.ifBlank { getString(R.string.pixiedust_unknown_network) },
+                    networkName,
                     network.bssid
                 )
             }
@@ -143,6 +162,16 @@ class PixieDustFragment : Fragment() {
 
         viewModel.binariesReady.observe(viewLifecycleOwner) { ready ->
             updateSystemStatus()
+        }
+
+        viewModel.logEntries.observe(viewLifecycleOwner) { logEntries ->
+            logAdapter.submitList(logEntries) {
+                if (logEntries.isNotEmpty()) {
+                    binding.recyclerViewLog.scrollToPosition(0)
+                }
+            }
+            binding.recyclerViewLog.visibility = if (logEntries.isNotEmpty()) View.VISIBLE else View.GONE
+            binding.textViewLogEmpty.visibility = if (logEntries.isEmpty()) View.VISIBLE else View.GONE
         }
     }
 
@@ -202,7 +231,6 @@ class PixieDustFragment : Fragment() {
             }
 
             is PixieAttackState.Completed -> {
-                updateSystemStatus()
                 binding.buttonStopAttack.isEnabled = false
                 binding.progressBarAttack.visibility = View.GONE
                 binding.cardViewResult.visibility = View.VISIBLE
@@ -215,16 +243,33 @@ class PixieDustFragment : Fragment() {
                     binding.textViewResult.text = getString(R.string.pixiedust_pin_not_found)
                     binding.layoutResultActions.visibility = View.GONE
                 }
+
+                updateSystemStatus()
             }
 
             is PixieAttackState.Failed -> {
-                updateSystemStatus()
                 binding.buttonStopAttack.isEnabled = false
                 binding.progressBarAttack.visibility = View.GONE
                 binding.cardViewResult.visibility = View.VISIBLE
                 binding.textViewResult.text = getString(R.string.pixiedust_attack_failed, state.error)
                 binding.layoutResultActions.visibility = View.GONE
+
+                updateSystemStatus()
+
+                if (state.errorCode == -4) {
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("Attack Failed")
+                        .setMessage("Could not extract WPS handshake data. The target network may not be vulnerable or WPS may be disabled.")
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
             }
+        }
+    }
+
+    private fun showManualNetworkDialog() {
+        ManualNetworkDialog(requireContext()) { ssid, bssid ->
+            viewModel.addManualNetwork(ssid, bssid)
         }
     }
 

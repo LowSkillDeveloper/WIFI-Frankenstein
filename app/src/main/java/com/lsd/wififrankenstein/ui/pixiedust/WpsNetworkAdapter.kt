@@ -53,9 +53,9 @@ class WpsNetworkAdapter(
         private val textViewBSSID: TextView = itemView.findViewById(R.id.textViewBSSID)
         private val textViewSignal: TextView = itemView.findViewById(R.id.textViewSignal)
         private val textViewFrequency: TextView = itemView.findViewById(R.id.textViewFrequency)
-        private val chipSecurity: Chip = itemView.findViewById(R.id.chipSecurity)
-        private val chipWPS: Chip = itemView.findViewById(R.id.chipWPS)
-        private val iconSelected: ImageView = itemView.findViewById(R.id.iconSelected)
+        private val chipSecurity: TextView = itemView.findViewById(R.id.chipSecurity)
+        private val chipWPS: TextView = itemView.findViewById(R.id.chipWPS)
+        private val iconSelected: TextView = itemView.findViewById(R.id.iconSelected)
 
         fun bind(network: WpsNetwork, isSelected: Boolean) {
             textViewSSID.text = if (network.ssid.isNotBlank()) network.ssid else "Unknown Network"
@@ -63,7 +63,7 @@ class WpsNetworkAdapter(
             textViewSignal.text = itemView.context.getString(R.string.pixiedust_signal_strength, network.level)
             textViewFrequency.text = itemView.context.getString(R.string.pixiedust_frequency, network.frequency)
 
-            chipSecurity.text = network.securityType
+            (chipSecurity as TextView).text = network.securityType
             chipWPS.visibility = if (network.isWpsEnabled) View.VISIBLE else View.GONE
 
             iconSelected.visibility = if (isSelected) View.VISIBLE else View.GONE

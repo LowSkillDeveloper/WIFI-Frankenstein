@@ -88,21 +88,42 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
                 )
 
                 val fileUpdates = json.getJSONArray("files")
-                _updateInfo.value = (0 until fileUpdates.length()).map { i ->
+                val serverFilesList = (0 until fileUpdates.length()).map { i ->
                     val fileInfo = fileUpdates.getJSONObject(i)
                     val fileName = fileInfo.getString("name")
                     val serverVersion = fileInfo.getString("version")
                     val localFile = File(context.filesDir, fileName)
+                    val localVersion = getFileVersion(context, fileName)
 
                     FileUpdateInfo(
                         fileName = fileName,
-                        localVersion = getFileVersion(context, fileName),
+                        localVersion = localVersion,
                         serverVersion = serverVersion,
                         localSize = formatFileSize(if (localFile.exists()) localFile.length() else 0),
                         downloadUrl = fileInfo.getString("download_url"),
-                        needsUpdate = serverVersion != getFileVersion(context, fileName)
+                        needsUpdate = serverVersion != localVersion
+                    )
+                }.toMutableList()
+
+                val routerKeygenFileName = "RouterKeygen.dic"
+                val hasRouterKeygen = serverFilesList.any { it.fileName == routerKeygenFileName }
+
+                if (!hasRouterKeygen) {
+                    val localFile = File(context.filesDir, routerKeygenFileName)
+                    val localVersion = getFileVersion(context, routerKeygenFileName)
+                    serverFilesList.add(
+                        FileUpdateInfo(
+                            fileName = routerKeygenFileName,
+                            localVersion = localVersion,
+                            serverVersion = "0.0",
+                            localSize = formatFileSize(if (localFile.exists()) localFile.length() else 0),
+                            downloadUrl = "",
+                            needsUpdate = false
+                        )
                     )
                 }
+
+                _updateInfo.value = serverFilesList
                 _errorMessage.value = null
             } catch (e: Exception) {
                 _errorMessage.value = context.getString(R.string.error_connection_failed)
@@ -118,7 +139,7 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 Log.d("UpdatesViewModel", "Starting SmartLink DB updates check...")
-                val dbList = dbSetupViewModel.getSmartLinkDatabases()  // Этот метод уже исправлен
+                val dbList = dbSetupViewModel.getSmartLinkDatabases()
                 Log.d("UpdatesViewModel", "Found ${dbList.size} SmartLink databases")
 
                 val updateInfoList = dbList.mapNotNull { dbItem ->
@@ -191,6 +212,11 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
         val context = getApplication<Application>().applicationContext
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                if (fileInfo.downloadUrl.isBlank()) {
+                    _errorMessage.value = "Download URL not available for ${fileInfo.fileName}"
+                    return@launch
+                }
+
                 val file = File(context.filesDir, fileInfo.fileName)
                 val url = URL(fileInfo.downloadUrl)
                 val connection = url.openConnection() as HttpURLConnection
@@ -222,16 +248,23 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
         val context = getApplication<Application>().applicationContext
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val assetManager = context.assets
                 val file = File(context.filesDir, fileInfo.fileName)
 
-                assetManager.open(fileInfo.fileName).use { input ->
-                    FileOutputStream(file).use { output ->
-                        input.copyTo(output)
+                if (fileInfo.fileName == "RouterKeygen.dic") {
+                    if (file.exists()) {
+                        file.delete()
                     }
+                    updateFileVersion(context, fileInfo.fileName, "0.0")
+                } else {
+                    val assetManager = context.assets
+                    assetManager.open(fileInfo.fileName).use { input ->
+                        FileOutputStream(file).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    updateFileVersion(context, fileInfo.fileName, "1.0")
                 }
 
-                updateFileVersion(context, fileInfo.fileName, "1.0")
                 _fileUpdateProgress.value = mapOf(fileInfo.fileName to 100)
                 checkUpdates()
             } catch (e: Exception) {
@@ -351,15 +384,22 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
     private fun getFileVersion(context: Context, fileName: String): String {
         val versionFileName = "${fileName.substringBeforeLast(".")}_version.json"
         val versionFile = File(context.filesDir, versionFileName)
+        val actualFile = File(context.filesDir, fileName)
+
         return if (versionFile.exists()) {
             try {
                 JSONObject(versionFile.readText()).getString("version")
             } catch (_: Exception) {
-                "1.0"
+                if (fileName == "RouterKeygen.dic") "0.0" else "1.0"
             }
         } else {
-            createVersionFile(context, fileName, "1.0")
-            "1.0"
+            val defaultVersion = if (fileName == "RouterKeygen.dic") {
+                if (actualFile.exists()) "1.0" else "0.0"
+            } else {
+                "1.0"
+            }
+            createVersionFile(context, fileName, defaultVersion)
+            defaultVersion
         }
     }
 
