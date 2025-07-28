@@ -1171,5 +1171,17 @@
     <string name="pixiedust_full_wifi_reset">Performing full WiFi reset</string>
     <string name="pixiedust_module_reload">Reloading WiFi module</string>
 
+    <string name="pixiedust_ssid_required">SSID cannot be empty</string>
+
+    <string name="pixiedust_advanced_settings">Advanced Settings</string>
+    <string name="pixiedust_wps_timeout">WPS Registration Timeout</string>
+    <string name="pixiedust_wps_timeout_desc">Maximum time to wait for WPS handshake completion</string>
+    <string name="pixiedust_extraction_timeout">Data Extraction Timeout</string>
+    <string name="pixiedust_extraction_timeout_desc">Maximum time to wait for extracting handshake data</string>
+    <string name="pixiedust_computation_timeout">Computation Timeout</string>
+    <string name="pixiedust_computation_timeout_desc">Maximum time for PIN computation</string>
+    <string name="pixiedust_seconds">seconds</string>
+    <string name="pixiedust_reset_defaults">Reset to Defaults</string>
+
 
 </resources>

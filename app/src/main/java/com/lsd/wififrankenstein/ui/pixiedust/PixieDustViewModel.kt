@@ -42,6 +42,10 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
     private val _logEntries = MutableLiveData<List<LogEntry>>(emptyList())
     val logEntries: LiveData<List<LogEntry>> = _logEntries
 
+    private var wpsTimeout = 40000L
+    private var extractionTimeout = 30000L
+    private var computationTimeout = 300000L
+
     init {
         pixieHelper = PixieDustHelper(getApplication(), this)
         checkSystemRequirements()
@@ -99,6 +103,22 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
+
+    fun setWpsTimeout(timeout: Long) {
+        wpsTimeout = timeout
+    }
+
+    fun setExtractionTimeout(timeout: Long) {
+        extractionTimeout = timeout
+    }
+
+    fun setComputationTimeout(timeout: Long) {
+        computationTimeout = timeout
+    }
+
+    fun getWpsTimeout() = wpsTimeout
+    fun getExtractionTimeout() = extractionTimeout
+    fun getComputationTimeout() = computationTimeout
 
     fun scanForWpsNetworks() {
         if (_isScanning.value == true) return
@@ -199,7 +219,7 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
             return
         }
 
-        pixieHelper.startPixieAttack(network)
+        pixieHelper.startPixieAttack(network, wpsTimeout, extractionTimeout, computationTimeout)
     }
 
     fun stopAttack() {

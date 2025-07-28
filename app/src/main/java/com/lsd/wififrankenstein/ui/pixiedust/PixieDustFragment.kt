@@ -6,10 +6,12 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.text.InputFilter
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -19,6 +21,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentPixiedustBinding
+import java.util.regex.Pattern
 
 class PixieDustFragment : Fragment() {
 
@@ -81,6 +84,29 @@ class PixieDustFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
+        binding.layoutAdvancedHeader.setOnClickListener {
+            toggleAdvancedSettings()
+        }
+
+        binding.sliderWpsTimeout.addOnChangeListener { _, value, _ ->
+            binding.textWpsTimeout.text = value.toInt().toString()
+            viewModel.setWpsTimeout(value.toLong() * 1000)
+        }
+
+        binding.sliderExtractionTimeout.addOnChangeListener { _, value, _ ->
+            binding.textExtractionTimeout.text = value.toInt().toString()
+            viewModel.setExtractionTimeout(value.toLong() * 1000)
+        }
+
+        binding.sliderComputationTimeout.addOnChangeListener { _, value, _ ->
+            binding.textComputationTimeout.text = value.toInt().toString()
+            viewModel.setComputationTimeout(value.toLong() * 1000)
+        }
+
+        binding.buttonResetDefaults.setOnClickListener {
+            resetToDefaults()
+        }
+
         binding.buttonScanNetworks.setOnClickListener {
             checkLocationPermissionAndScan()
         }
@@ -114,6 +140,32 @@ class PixieDustFragment : Fragment() {
         binding.buttonClearLog.setOnClickListener {
             viewModel.clearLog()
         }
+    }
+
+    private fun toggleAdvancedSettings() {
+        val isExpanded = binding.layoutAdvancedContent.visibility == View.VISIBLE
+
+        if (isExpanded) {
+            binding.layoutAdvancedContent.visibility = View.GONE
+            binding.iconAdvancedExpand.setImageResource(R.drawable.ic_expand_more)
+        } else {
+            binding.layoutAdvancedContent.visibility = View.VISIBLE
+            binding.iconAdvancedExpand.setImageResource(R.drawable.ic_expand_less)
+        }
+    }
+
+    private fun resetToDefaults() {
+        binding.sliderWpsTimeout.value = 40f
+        binding.sliderExtractionTimeout.value = 30f
+        binding.sliderComputationTimeout.value = 300f
+
+        binding.textWpsTimeout.text = "40"
+        binding.textExtractionTimeout.text = "30"
+        binding.textComputationTimeout.text = "300"
+
+        viewModel.setWpsTimeout(40000)
+        viewModel.setExtractionTimeout(30000)
+        viewModel.setComputationTimeout(300000)
     }
 
     private fun observeViewModel() {
@@ -268,9 +320,41 @@ class PixieDustFragment : Fragment() {
     }
 
     private fun showManualNetworkDialog() {
-        ManualNetworkDialog(requireContext()) { ssid, bssid ->
-            viewModel.addManualNetwork(ssid, bssid)
-        }
+        val view = layoutInflater.inflate(R.layout.dialog_manual_network, null)
+        val ssidEdit = view.findViewById<EditText>(R.id.editTextSSID)
+        val bssidEdit = view.findViewById<EditText>(R.id.editTextBSSID)
+
+        bssidEdit.filters = arrayOf(
+            InputFilter.AllCaps(),
+            InputFilter.LengthFilter(17)
+        )
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.pixiedust_manual_network_entry)
+            .setView(view)
+            .setPositiveButton(R.string.pixiedust_add_network) { _, _ ->
+                val ssid = ssidEdit.text.toString().trim()
+                val bssid = bssidEdit.text.toString().trim()
+
+                if (ssid.isEmpty()) {
+                    Toast.makeText(requireContext(), R.string.pixiedust_ssid_required, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                if (!isValidBSSID(bssid)) {
+                    Toast.makeText(requireContext(), R.string.pixiedust_invalid_bssid, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                viewModel.addManualNetwork(ssid, bssid)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun isValidBSSID(bssid: String): Boolean {
+        val pattern = Pattern.compile("^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$")
+        return pattern.matcher(bssid).matches()
     }
 
     private fun checkLocationPermissionAndScan() {

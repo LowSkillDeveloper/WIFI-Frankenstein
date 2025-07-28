@@ -204,7 +204,7 @@
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardViewNetworks"
+            android:id="@+id/cardViewAdvancedSettings"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
@@ -214,6 +214,226 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/cardViewScanControl"
+            app:strokeColor="?attr/colorControlNormal"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:id="@+id/layoutAdvancedHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/pixiedust_advanced_settings"
+                        android:textAppearance="?attr/textAppearanceSubtitle1" />
+
+                    <ImageView
+                        android:id="@+id/iconAdvancedExpand"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_expand_more"
+                        app:tint="?attr/colorOnSurface" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layoutAdvancedContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/pixiedust_wps_timeout"
+                        android:textAppearance="?attr/textAppearanceBody1"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/pixiedust_wps_timeout_desc"
+                        android:textAppearance="?attr/textAppearanceCaption" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/sliderWpsTimeout"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:valueFrom="10"
+                            android:valueTo="120"
+                            android:value="40"
+                            android:stepSize="5" />
+
+                        <TextView
+                            android:id="@+id/textWpsTimeout"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="40"
+                            android:textAppearance="?attr/textAppearanceBody2"
+                            android:minWidth="48dp"
+                            android:gravity="center" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/pixiedust_seconds"
+                            android:textAppearance="?attr/textAppearanceCaption" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/pixiedust_extraction_timeout"
+                        android:textAppearance="?attr/textAppearanceBody1"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/pixiedust_extraction_timeout_desc"
+                        android:textAppearance="?attr/textAppearanceCaption" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/sliderExtractionTimeout"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:valueFrom="10"
+                            android:valueTo="60"
+                            android:value="30"
+                            android:stepSize="5" />
+
+                        <TextView
+                            android:id="@+id/textExtractionTimeout"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="30"
+                            android:textAppearance="?attr/textAppearanceBody2"
+                            android:minWidth="48dp"
+                            android:gravity="center" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/pixiedust_seconds"
+                            android:textAppearance="?attr/textAppearanceCaption" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/pixiedust_computation_timeout"
+                        android:textAppearance="?attr/textAppearanceBody1"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/pixiedust_computation_timeout_desc"
+                        android:textAppearance="?attr/textAppearanceCaption" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/sliderComputationTimeout"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:valueFrom="60"
+                            android:valueTo="600"
+                            android:value="300"
+                            android:stepSize="30" />
+
+                        <TextView
+                            android:id="@+id/textComputationTimeout"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="300"
+                            android:textAppearance="?attr/textAppearanceBody2"
+                            android:minWidth="48dp"
+                            android:gravity="center" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/pixiedust_seconds"
+                            android:textAppearance="?attr/textAppearanceCaption" />
+
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/buttonResetDefaults"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/pixiedust_reset_defaults"
+                        android:layout_gravity="end" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardViewNetworks"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/cardViewAdvancedSettings"
             app:strokeColor="?attr/colorControlNormal"
             app:strokeWidth="1dp"
             android:visibility="gone">

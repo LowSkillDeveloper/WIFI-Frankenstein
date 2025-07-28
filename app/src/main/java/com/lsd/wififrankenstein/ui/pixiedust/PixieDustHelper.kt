@@ -141,7 +141,7 @@ class PixieDustHelper(
         }
     }
 
-    fun startPixieAttack(network: WpsNetwork) {
+    fun startPixieAttack(network: WpsNetwork, wpsTimeout: Long = 40000L, extractionTimeout: Long = 30000L, computationTimeout: Long = 300000L) {
         if (attackJob?.isActive == true) {
             Log.w(TAG, "Attack already in progress")
             return
