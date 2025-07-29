@@ -8,6 +8,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.net.Uri
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
@@ -16,6 +17,7 @@ import android.os.Build
 import android.os.Bundle
 import android.text.method.LinkMovementMethod
 import android.util.Log
+import android.util.TypedValue
 import android.view.ContextMenu
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -27,7 +29,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.DrawableRes
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -38,6 +43,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.lsd.wififrankenstein.R
@@ -968,77 +974,117 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun showCustomContextMenu() {
-        val dialogView =
-            LayoutInflater.from(requireContext()).inflate(R.layout.dialog_context_menu, null)
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_context_menu, null)
         val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogView)
             .create()
 
-        dialogView.findViewById<Button>(R.id.action_copy_ssid).setOnClickListener {
-            copyToClipboard(getString(R.string.ssid), selectedWifi?.SSID)
-            dialog.dismiss()
+        val theme = requireContext().theme
+        val typedValue = TypedValue()
+        requireContext().theme.resolveAttribute(android.R.attr.colorPrimary, typedValue, true)
+        val colorPrimary = typedValue.data
+
+        fun TextView.tintDrawableStart(@DrawableRes drawableRes: Int) {
+            val drawable = AppCompatResources.getDrawable(context, drawableRes)?.mutate()
+            drawable?.let {
+                DrawableCompat.setTint(it, colorPrimary)
+                setCompoundDrawablesWithIntrinsicBounds(it, null, null, null)
+            }
         }
 
-        dialogView.findViewById<Button>(R.id.action_copy_bssid).setOnClickListener {
-            copyToClipboard(getString(R.string.bssid), selectedWifi?.BSSID)
-            dialog.dismiss()
-        }
-
-        dialogView.findViewById<Button>(R.id.action_check_vendor).setOnClickListener {
-            selectedWifi?.BSSID?.let { showVendorDialog(it.uppercase(Locale.getDefault())) }
-            dialog.dismiss()
-        }
-
-        dialogView.findViewById<Button>(R.id.action_calculate_distance).setOnClickListener {
-            selectedWifi?.let { showDistanceDialog(it) }
-            dialog.dismiss()
-        }
-
-        dialogView.findViewById<Button>(R.id.action_connect_wps).setOnClickListener {
-            selectedWifi?.let { connectUsingWPSButton(it) }
-            dialog.dismiss()
-        }
-
-        dialogView.findViewById<Button>(R.id.action_connect_wps_pin).setOnClickListener {
-            selectedWifi?.let { wifi ->
-                showWpsPinDialog(wifi)
+        dialogView.findViewById<TextView>(R.id.action_copy_ssid)?.apply {
+            tintDrawableStart(R.drawable.ic_content_copy)
+            setOnClickListener {
+                copyToClipboard(getString(R.string.ssid), selectedWifi?.SSID)
                 dialog.dismiss()
-            } ?: Toast.makeText(requireContext(), "Wi-Fi network is not selected", Toast.LENGTH_SHORT).show()
-        }
-
-        dialogView.findViewById<Button>(R.id.action_generate_wps).setOnClickListener {
-            val intent = Intent(requireContext(), WpsGeneratorActivity::class.java).apply {
-                putExtra("BSSID", selectedWifi?.BSSID)
             }
-            Log.d("WiFiScannerFragment", "Selected BSSID: ${selectedWifi?.BSSID}")
-            startActivity(intent)
-            dialog.dismiss()
         }
 
-        dialogView.findViewById<Button>(R.id.action_generate_qr)?.setOnClickListener {
-            selectedWifi?.let { wifi ->
-                val databaseResults = viewModel.databaseResults.value?.get(wifi.BSSID.lowercase(Locale.ROOT))
+        dialogView.findViewById<TextView>(R.id.action_copy_bssid)?.apply {
+            tintDrawableStart(R.drawable.ic_content_copy)
+            setOnClickListener {
+                copyToClipboard(getString(R.string.bssid), selectedWifi?.BSSID)
+                dialog.dismiss()
+            }
+        }
 
-                val password = databaseResults?.firstNotNullOfOrNull { result ->
-                    result.databaseInfo["WiFiKey"] as? String
-                        ?: result.databaseInfo["key"] as? String
-                }?.takeIf { it.isNotBlank() }
+        dialogView.findViewById<TextView>(R.id.action_check_vendor)?.apply {
+            tintDrawableStart(R.drawable.ic_info)
+            setOnClickListener {
+                selectedWifi?.BSSID?.let { showVendorDialog(it.uppercase(Locale.getDefault())) }
+                dialog.dismiss()
+            }
+        }
 
-                val finalPassword = password ?: ""
-                val security = if (finalPassword.isNotEmpty()) {
-                    QrNavigationHelper.determineSecurityType(wifi.capabilities)
-                } else {
-                    "NONE"
+        dialogView.findViewById<TextView>(R.id.action_calculate_distance)?.apply {
+            tintDrawableStart(R.drawable.ic_analytics)
+            setOnClickListener {
+                selectedWifi?.let { showDistanceDialog(it) }
+                dialog.dismiss()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_connect_wps)?.apply {
+            tintDrawableStart(R.drawable.ic_wifi)
+            setOnClickListener {
+                selectedWifi?.let { connectUsingWPSButton(it) }
+                dialog.dismiss()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_connect_wps_pin)?.apply {
+            tintDrawableStart(R.drawable.ic_lock_open)
+            setOnClickListener {
+                selectedWifi?.let { wifi ->
+                    showWpsPinDialog(wifi)
+                    dialog.dismiss()
+                } ?: Toast.makeText(
+                    requireContext(),
+                    "Wi-Fi network is not selected",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_generate_wps)?.apply {
+            tintDrawableStart(R.drawable.ic_key)
+            setOnClickListener {
+                val intent = Intent(requireContext(), WpsGeneratorActivity::class.java).apply {
+                    putExtra("BSSID", selectedWifi?.BSSID)
                 }
-
-                QrNavigationHelper.navigateToQrGenerator(
-                    this@WiFiScannerFragment,
-                    wifi.SSID,
-                    finalPassword,
-                    security
-                )
+                Log.d("WiFiScannerFragment", "Selected BSSID: ${selectedWifi?.BSSID}")
+                startActivity(intent)
+                dialog.dismiss()
             }
-            dialog.dismiss()
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_generate_qr)?.apply {
+            tintDrawableStart(R.drawable.ic_qr_code)
+            setOnClickListener {
+                selectedWifi?.let { wifi ->
+                    val databaseResults = viewModel.databaseResults.value?.get(wifi.BSSID.lowercase(Locale.ROOT))
+
+                    val password = databaseResults?.firstNotNullOfOrNull { result ->
+                        result.databaseInfo["WiFiKey"] as? String
+                            ?: result.databaseInfo["key"] as? String
+                    }?.takeIf { it.isNotBlank() }
+
+                    val finalPassword = password ?: ""
+                    val security = if (finalPassword.isNotEmpty()) {
+                        QrNavigationHelper.determineSecurityType(wifi.capabilities)
+                    } else {
+                        "NONE"
+                    }
+
+                    QrNavigationHelper.navigateToQrGenerator(
+                        this@WiFiScannerFragment,
+                        wifi.SSID,
+                        finalPassword,
+                        security
+                    )
+                }
+                dialog.dismiss()
+            }
         }
 
         dialog.show()

@@ -378,7 +378,7 @@ class ExternalIndexManager(private val context: Context) {
         tableName: String,
         columnMap: Map<String, String>,
         macDecimal: Long
-    ): Map<String, Any?>? = withContext(Dispatchers.IO) {
+    ): List<Map<String, Any?>>? = withContext(Dispatchers.IO) {
         try {
             val macString = convertDecimalToMac(macDecimal)
             Log.d(TAG, "Getting info for MAC: $macString (decimal: $macDecimal)")
@@ -387,7 +387,6 @@ class ExternalIndexManager(private val context: Context) {
 
             try {
                 val macColumn = columnMap["mac"] ?: return@withContext null
-
 
                 val formats = listOf(
                     macString,
@@ -398,22 +397,27 @@ class ExternalIndexManager(private val context: Context) {
                 )
 
                 val whereClause = formats.joinToString(" OR ") { "$macColumn = ?" }
-
-                val query = "SELECT * FROM $tableName WHERE $whereClause LIMIT 1"
+                val query = "SELECT * FROM $tableName WHERE $whereClause"
 
                 db.rawQuery(query, formats.toTypedArray()).use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        return@withContext buildMap {
-                            for (i in 0 until cursor.columnCount) {
-                                val columnName = cursor.getColumnName(i)
-                                val value = when (cursor.getType(i)) {
-                                    android.database.Cursor.FIELD_TYPE_INTEGER -> cursor.getLong(i)
-                                    android.database.Cursor.FIELD_TYPE_FLOAT -> cursor.getDouble(i)
-                                    else -> cursor.getString(i)
+                    if (cursor.count > 0) {
+                        val results = mutableListOf<Map<String, Any?>>()
+                        while (cursor.moveToNext()) {
+                            val result = buildMap {
+                                for (i in 0 until cursor.columnCount) {
+                                    val columnName = cursor.getColumnName(i)
+                                    val value = when (cursor.getType(i)) {
+                                        android.database.Cursor.FIELD_TYPE_INTEGER -> cursor.getLong(i)
+                                        android.database.Cursor.FIELD_TYPE_FLOAT -> cursor.getDouble(i)
+                                        else -> cursor.getString(i)
+                                    }
+                                    put(columnName, value)
                                 }
-                                put(columnName, value)
                             }
+                            results.add(result)
                         }
+                        Log.d(TAG, "Found ${results.size} records for MAC: $macString")
+                        return@withContext results
                     } else {
                         Log.d(TAG, "No data found for MAC: $macString")
                         null

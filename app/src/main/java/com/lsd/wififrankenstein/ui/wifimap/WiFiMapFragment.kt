@@ -1,6 +1,9 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.Color
@@ -12,7 +15,9 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
@@ -23,7 +28,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.lsd.wififrankenstein.R
@@ -31,6 +38,7 @@ import com.lsd.wififrankenstein.databinding.FragmentWifiMapBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import com.lsd.wififrankenstein.util.QrNavigationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -688,24 +696,103 @@ class WiFiMapFragment : Fragment() {
 
     private fun showNetworkInfo(point: NetworkPoint) {
         val dialog = BottomSheetDialog(requireContext())
-        val dialogView = layoutInflater.inflate(R.layout.dialog_network_info, null)
+        val dialogView = layoutInflater.inflate(R.layout.dialog_network_details, null)
 
         val macAddress = viewModel.convertBssidToString(point.bssidDecimal)
+        val database = viewModel.availableDatabases.value?.find { it.id == point.databaseId }
+        val databaseName = database?.let { formatSourcePath(it.path) } ?: getString(R.string.unknown_database)
 
         dialogView.apply {
             findViewById<View>(R.id.viewDatabaseColor).setBackgroundColor(getColorForDatabase(point.databaseId))
-            findViewById<android.widget.TextView>(R.id.textViewEssid).text = point.essid ?: getString(R.string.unknown_ssid)
-            findViewById<android.widget.TextView>(R.id.textViewBssid).text = macAddress
-            findViewById<android.widget.TextView>(R.id.textViewPassword).text =
-                point.password?.let { getString(R.string.password_format, it) } ?: getString(R.string.not_available)
-            findViewById<android.widget.TextView>(R.id.textViewWpsPin).text =
-                point.wpsPin?.let { getString(R.string.wps_pin_format, it) } ?: getString(R.string.not_available)
-            findViewById<android.widget.TextView>(R.id.textViewSource).text = getString(R.string.source_format, point.source)
+            findViewById<TextView>(R.id.textViewBssid).text = macAddress
+            findViewById<TextView>(R.id.textViewDatabaseName).text = databaseName
+            findViewById<TextView>(R.id.textViewRecordCount).text = getString(R.string.multiple_records, point.allRecords.size)
+
+            val recyclerView = findViewById<RecyclerView>(R.id.recyclerViewRecords)
+            recyclerView.layoutManager = LinearLayoutManager(requireContext())
+            val adapter = NetworkRecordsAdapter(point.allRecords, requireContext(), macAddress)
+            recyclerView.adapter = adapter
+
+            findViewById<ImageButton>(R.id.buttonCopyCoordinates).setOnClickListener {
+                val coordinates = "${point.latitude}, ${point.longitude}"
+                val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText(getString(R.string.coordinates), coordinates)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(requireContext(), getString(R.string.coordinates_copied), Toast.LENGTH_SHORT).show()
+            }
+
+            findViewById<ImageButton>(R.id.buttonOpenMap).setOnClickListener {
+                val geoUri = "geo:${point.latitude},${point.longitude}?q=${point.latitude},${point.longitude}(${point.essid ?: macAddress})"
+                val mapIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(geoUri))
+                mapIntent.setPackage("com.google.android.apps.maps")
+
+                try {
+                    startActivity(mapIntent)
+                } catch (e: Exception) {
+                    val genericMapIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(geoUri))
+                    if (genericMapIntent.resolveActivity(requireContext().packageManager) != null) {
+                        startActivity(genericMapIntent)
+                    } else {
+                        Toast.makeText(requireContext(), getString(R.string.no_map_app_found), Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
+            findViewById<ImageButton>(R.id.buttonCreateQr).setOnClickListener {
+                val firstValidRecord = point.allRecords.firstOrNull { !it.password.isNullOrBlank() }
+                if (firstValidRecord != null) {
+                    adapter.showQrForRecord(firstValidRecord)
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.password_not_available), Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            findViewById<ImageButton>(R.id.buttonShareData).setOnClickListener {
+                val firstRecord = point.allRecords.firstOrNull()
+                val shareText = buildString {
+                    append("Network: ${firstRecord?.essid ?: getString(R.string.unknown_ssid)}\n")
+                    append("BSSID: $macAddress\n")
+                    append("Password: ${firstRecord?.password ?: getString(R.string.not_available)}")
+                    if (!firstRecord?.wpsPin.isNullOrBlank()) {
+                        append("\nWPS PIN: ${firstRecord?.wpsPin}")
+                    }
+                }
+
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                }
+                startActivity(Intent.createChooser(shareIntent, getString(R.string.share_network_data)))
+            }
         }
 
         dialog.setContentView(dialogView)
         dialog.show()
     }
+
+    private fun formatSourcePath(path: String): String {
+        return try {
+            when {
+                path.startsWith("content://") -> {
+                    val uri = android.net.Uri.parse(path)
+                    uri.lastPathSegment?.let { lastSegment ->
+                        val decodedSegment = android.net.Uri.decode(lastSegment)
+                        decodedSegment.substringAfterLast('/')
+                    } ?: path
+                }
+                path.startsWith("file://") -> {
+                    val uri = android.net.Uri.parse(path)
+                    uri.lastPathSegment ?: path
+                }
+                else -> {
+                    path.substringAfterLast('/')
+                }
+            }.substringAfterLast("%2F")
+        } catch (e: Exception) {
+            path
+        }
+    }
+
 
     private fun clearMarkers() {
         if (_binding == null) return

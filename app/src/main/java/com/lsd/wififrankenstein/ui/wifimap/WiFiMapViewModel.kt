@@ -18,6 +18,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -150,7 +151,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 Log.d(TAG, "Background caching completed for ${database.id}")
 
             } catch (e: Exception) {
-                if (e !is kotlinx.coroutines.CancellationException) {
+                if (e !is CancellationException) {
                     Log.e(TAG, "Background caching error for ${database.id}", e)
                 }
             }
@@ -622,7 +623,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 Log.d(TAG, "=== LOAD COMPLETE ===")
 
             } catch (e: Exception) {
-                if (e !is kotlinx.coroutines.CancellationException) {
+                if (e !is CancellationException) {
                     Log.e(TAG, "Error loading points", e)
                     _error.postValue(getApplication<Application>().getString(
                         R.string.database_error,
@@ -911,12 +912,35 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             )
 
                             if (results.isNotEmpty()) {
-                                val network = results.first()
-                                point.essid = network.wifiName
-                                point.password = network.wifiPassword
-                                point.wpsPin = network.wpsCode
+                                val records = results.map { network ->
+                                    NetworkRecord(
+                                        essid = network.wifiName,
+                                        password = network.wifiPassword,
+                                        wpsPin = network.wpsCode,
+                                        routerModel = null,
+                                        adminCredentials = parseAdminCredentials(network.adminPanel),
+                                        isHidden = false,
+                                        isWifiDisabled = false,
+                                        timeAdded = null,
+                                        rawData = mapOf(
+                                            "id" to network.id,
+                                            "wifiName" to network.wifiName,
+                                            "macAddress" to network.macAddress,
+                                            "wifiPassword" to network.wifiPassword,
+                                            "wpsCode" to network.wpsCode,
+                                            "adminPanel" to network.adminPanel,
+                                            "latitude" to network.latitude,
+                                            "longitude" to network.longitude
+                                        )
+                                    )
+                                }
+
+                                point.allRecords = records
+                                point.essid = records.firstOrNull()?.essid
+                                point.password = results.firstOrNull()?.wifiPassword
+                                point.wpsPin = results.firstOrNull()?.wpsCode
                                 point.isDataLoaded = true
-                                Log.d(TAG, "Retrieved info from local database: ESSID=${network.wifiName}")
+                                Log.d(TAG, "Retrieved ${records.size} records from local database")
                             } else {
                                 Log.w(TAG, "No info found in local database for BSSID: $bssidStr")
                             }
@@ -941,31 +965,46 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             }
 
                             Log.d(TAG, "Getting point info from external index manager")
-                            val info = externalIndexManager.getPointInfo(
+                            val infoList = externalIndexManager.getPointInfo(
                                 database.directPath,
                                 database.tableName,
                                 database.columnMap,
                                 point.bssidDecimal
                             )
 
-                            if (info != null) {
-                                Log.d(TAG, "Retrieved info for point: $info")
+                            if (infoList != null && infoList.isNotEmpty()) {
+                                Log.d(TAG, "Retrieved ${infoList.size} records for point")
 
-                                database.columnMap["essid"]?.let { essidCol ->
-                                    point.essid = info[essidCol]?.toString()
-                                    Log.d(TAG, "Set ESSID from column $essidCol: ${point.essid}")
+                                val records = infoList.map { info ->
+                                    val essid = database.columnMap["essid"]?.let { info[it]?.toString() }
+                                    val password = database.columnMap["wifi_pass"]?.let { info[it]?.toString() }
+                                    val wpsPin = database.columnMap["wps_pin"]?.let { info[it]?.toString() }
+                                    val routerModel = info["name"]?.toString()
+                                    val authData = info["Authorization"]?.toString()
+                                    val hiddenData = info["Hidden"]?.toString()
+                                    val radioOffData = info["RadioOff"]?.toString()
+                                    val timeData = info["time"]?.toString()
+
+                                    NetworkRecord(
+                                        essid = essid,
+                                        password = password,
+                                        wpsPin = wpsPin,
+                                        routerModel = routerModel,
+                                        adminCredentials = parseAdminCredentials(authData),
+                                        isHidden = hiddenData == "b1",
+                                        isWifiDisabled = radioOffData == "b1",
+                                        timeAdded = timeData,
+                                        rawData = info
+                                    )
                                 }
 
-                                database.columnMap["wifi_pass"]?.let { passCol ->
-                                    point.password = info[passCol]?.toString()
-                                    Log.d(TAG, "Set password from column $passCol: ${point.password}")
-                                }
-
-                                database.columnMap["wps_pin"]?.let { wpsCol ->
-                                    point.wpsPin = info[wpsCol]?.toString()
-                                    Log.d(TAG, "Set WPS PIN from column $wpsCol: ${point.wpsPin}")
-                                }
-
+                                point.allRecords = records
+                                point.essid = records.firstOrNull()?.essid
+                                point.password = records.firstOrNull()?.password
+                                point.wpsPin = records.firstOrNull()?.wpsPin
+                                point.routerModel = records.firstOrNull()?.routerModel
+                                point.isHidden = records.any { it.isHidden }
+                                point.isWifiDisabled = records.any { it.isWifiDisabled }
                                 point.isDataLoaded = true
                             } else {
                                 Log.w(TAG, "No info found for point")
@@ -982,9 +1021,25 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                                     if (info != null) {
                                         Log.d(TAG, "Retrieved info from SQLite3WiFiHelper: $info")
-                                        point.essid = info["ESSID"] as? String
-                                        point.password = info["WiFiKey"] as? String
-                                        point.wpsPin = info["WPSPIN"]?.toString()
+                                        val record = NetworkRecord(
+                                            essid = info["ESSID"] as? String,
+                                            password = info["WiFiKey"] as? String,
+                                            wpsPin = info["WPSPIN"]?.toString(),
+                                            routerModel = info["name"] as? String,
+                                            adminCredentials = parseAdminCredentials(info["Authorization"] as? String),
+                                            isHidden = info["Hidden"]?.toString() == "b1",
+                                            isWifiDisabled = info["RadioOff"]?.toString() == "b1",
+                                            timeAdded = info["time"] as? String,
+                                            rawData = info
+                                        )
+
+                                        point.allRecords = listOf(record)
+                                        point.essid = record.essid
+                                        point.password = record.password
+                                        point.wpsPin = record.wpsPin
+                                        point.routerModel = record.routerModel
+                                        point.isHidden = record.isHidden
+                                        point.isWifiDisabled = record.isWifiDisabled
                                         point.isDataLoaded = true
                                     } else {
                                         Log.w(TAG, "No info found from SQLite3WiFiHelper")
@@ -995,20 +1050,47 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                         Log.d(TAG, "Searching network by BSSID in SQLiteCustomHelper")
                                         val bssidStr = convertBssidToString(point.bssidDecimal)
 
-                                        val info = helper.searchNetworksByBSSIDAndFields(
+                                        val infoList = helper.searchNetworksByBSSIDAndFields(
                                             database.tableName,
                                             database.columnMap,
                                             bssidStr,
                                             setOf("mac"),
                                             true
-                                        ).firstOrNull()
+                                        )
 
-                                        if (info != null) {
-                                            Log.d(TAG, "Retrieved info from SQLiteCustomHelper: $info")
+                                        if (infoList.isNotEmpty()) {
+                                            Log.d(TAG, "Retrieved ${infoList.size} records from SQLiteCustomHelper")
 
-                                            point.essid = info["essid"] as? String
-                                            point.password = info["wifi_pass"] as? String
-                                            point.wpsPin = info["wps_pin"]?.toString()
+                                            val records = infoList.map { info ->
+                                                val essid = database.columnMap["essid"]?.let { info[it]?.toString() }
+                                                val password = database.columnMap["wifi_pass"]?.let { info[it]?.toString() }
+                                                val wpsPin = database.columnMap["wps_pin"]?.let { info[it]?.toString() }
+                                                val routerModel = info["name"]?.toString()
+                                                val authData = info["Authorization"]?.toString()
+                                                val hiddenData = info["Hidden"]?.toString()
+                                                val radioOffData = info["RadioOff"]?.toString()
+                                                val timeData = info["time"]?.toString()
+
+                                                NetworkRecord(
+                                                    essid = essid,
+                                                    password = password,
+                                                    wpsPin = wpsPin,
+                                                    routerModel = routerModel,
+                                                    adminCredentials = parseAdminCredentials(authData),
+                                                    isHidden = hiddenData == "b1",
+                                                    isWifiDisabled = radioOffData == "b1",
+                                                    timeAdded = timeData,
+                                                    rawData = info
+                                                )
+                                            }
+
+                                            point.allRecords = records
+                                            point.essid = records.firstOrNull()?.essid
+                                            point.password = records.firstOrNull()?.password
+                                            point.wpsPin = records.firstOrNull()?.wpsPin
+                                            point.routerModel = records.firstOrNull()?.routerModel
+                                            point.isHidden = records.any { it.isHidden }
+                                            point.isWifiDisabled = records.any { it.isWifiDisabled }
                                             point.isDataLoaded = true
                                         } else {
                                             Log.w(TAG, "No info found from SQLiteCustomHelper for BSSID: $bssidStr")
@@ -1032,6 +1114,19 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading point info", e)
                 _error.postValue(getApplication<Application>().getString(R.string.point_loading_error))
+            }
+        }
+    }
+
+    private fun parseAdminCredentials(authString: String?): List<AdminCredential> {
+        if (authString.isNullOrBlank()) return emptyList()
+
+        return authString.split(" ").mapNotNull { credential ->
+            val parts = credential.split(":")
+            if (parts.size == 2) {
+                AdminCredential(parts[0], parts[1])
+            } else {
+                null
             }
         }
     }
