@@ -428,6 +428,95 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
             }
         }
 
+        private fun generateQrCode(content: String): android.graphics.Bitmap? {
+            return try {
+                val writer = com.google.zxing.qrcode.QRCodeWriter()
+                val hints = hashMapOf<com.google.zxing.EncodeHintType, Any>()
+                hints[com.google.zxing.EncodeHintType.MARGIN] = 1
+
+                val bitMatrix = writer.encode(content, com.google.zxing.BarcodeFormat.QR_CODE, 512, 512, hints)
+                val width = bitMatrix.width
+                val height = bitMatrix.height
+                val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.RGB_565)
+
+                for (x in 0 until width) {
+                    for (y in 0 until height) {
+                        bitmap.setPixel(x, y, if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+                    }
+                }
+                bitmap
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        private fun showQrDialog(context: Context, ssid: String, qrBitmap: android.graphics.Bitmap) {
+            val builder = AlertDialog.Builder(context)
+            val imageView = android.widget.ImageView(context)
+            imageView.setImageBitmap(qrBitmap)
+            imageView.setPadding(32, 32, 32, 32)
+
+            builder.setTitle(context.getString(R.string.qr_code_generated_for, ssid))
+                .setView(imageView)
+                .setPositiveButton(context.getString(R.string.ok)) { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .setNegativeButton(context.getString(R.string.save_to_gallery)) { _, _ ->
+                    saveQrToGallery(context, qrBitmap, ssid)
+                }
+                .show()
+        }
+
+        private fun saveQrToGallery(context: Context, bitmap: android.graphics.Bitmap, ssid: String) {
+            try {
+                val filename = "wifi_qr_${ssid.replace("[^a-zA-Z0-9]".toRegex(), "_")}_${System.currentTimeMillis()}.png"
+
+                val saved = android.provider.MediaStore.Images.Media.insertImage(
+                    context.contentResolver,
+                    bitmap,
+                    filename,
+                    context.getString(R.string.qr_code_for_wifi, ssid)
+                )
+
+                if (saved != null) {
+                    Toast.makeText(context, context.getString(R.string.qr_saved_successfully), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, context.getString(R.string.qr_save_failed), Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, context.getString(R.string.qr_save_failed), Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        private fun showQrCode(context: Context, result: NetworkDatabaseResult) {
+            try {
+                val wifiKey = result.databaseInfo["WiFiKey"]?.toString()
+                    ?: result.databaseInfo["wifi_pass"]?.toString()
+                    ?: result.databaseInfo["key"]?.toString()
+                    ?: ""
+
+                val qrContent = if (wifiKey.isEmpty()) {
+                    "WIFI:S:${result.network.SSID};T:nopass;;"
+                } else {
+                    val securityType = when {
+                        result.network.capabilities.contains("WEP") -> "WEP"
+                        result.network.capabilities.contains("WPA3") -> "WPA3"
+                        else -> "WPA"
+                    }
+                    "WIFI:S:${result.network.SSID};T:$securityType;P:$wifiKey;;"
+                }
+
+                val qrBitmap = generateQrCode(qrContent)
+                if (qrBitmap != null) {
+                    showQrDialog(context, result.network.SSID, qrBitmap)
+                } else {
+                    Toast.makeText(context, context.getString(R.string.qr_code_generation_failed), Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, context.getString(R.string.qr_code_generation_failed), Toast.LENGTH_SHORT).show()
+            }
+        }
+
         inner class WpaViewHolder(private val binding: ItemWpaResultBinding) : RecyclerView.ViewHolder(binding.root) {
             fun bind(result: NetworkDatabaseResult) {
                 val wpaResult = result.wpaResult ?: return
@@ -504,17 +593,7 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
                     R.id.action_copy_wifi_key -> copyToClipboard(view.context, "WiFi Key", wifiKey)
                     R.id.action_copy_wps_pin -> copyToClipboard(view.context, "WPS PIN", wpsPin)
                     R.id.action_generate_qr -> {
-                        val fragment = (view.context as? androidx.fragment.app.FragmentActivity)
-                            ?.supportFragmentManager?.fragments?.find { it.isVisible }
-                        if (fragment != null) {
-                            val security = QrNavigationHelper.determineSecurityType(result.network.capabilities)
-                            QrNavigationHelper.navigateToQrGenerator(
-                                fragment,
-                                result.network.SSID,
-                                wifiKey,
-                                security
-                            )
-                        }
+                        showQrCode(view.context, result)
                     }
                     R.id.action_connect_wps -> {
                         val wifiManager = view.context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
