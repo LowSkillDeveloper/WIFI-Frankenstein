@@ -1208,4 +1208,48 @@
     <string name="pixiedust_aggressive_cleanup">Enable aggressive system process termination (not recommended)</string>
     <string name="pixiedust_aggressive_cleanup_desc">Uses aggressive method to stop system WiFi services. May cause system instability but increases attack success rate.</string>
 
+    <!-- Network Info Dialog -->
+    <string name="network_details">Network Details:</string>
+    <string name="router_model">Model</string>
+    <string name="admin_credentials">Admin Panel:</string>
+    <string name="network_status">Network Status:</string>
+    <string name="hidden_network_status">Hidden Network</string>
+    <string name="wifi_disabled_status">WiFi Disabled</string>
+    <string name="multiple_records">%d records found</string>
+    <string name="copy_coordinates">Copy Coordinates</string>
+    <string name="share_network_data">Share Network Data</string>
+    <string name="create_qr_code">Create QR Code</string>
+    <string name="admin_login">Login</string>
+    <string name="admin_password">Password</string>
+    <string name="coordinates_copied">Coordinates copied to clipboard</string>
+    <string name="network_data_shared">Network: %1$s\nBSSID: %2$s\nPassword: %3$s</string>
+    <string name="record_number">Record %d</string>
+    <string name="expand_record">Expand record</string>
+    <string name="collapse_record">Collapse record</string>
+
+    <string name="network_data">Network Data:</string>
+    <string name="time_added">Time Added</string>
+
+    <string name="copy_login">Copy Login</string>
+    <string name="copy_admin_password">Copy Admin Password</string>
+    <string name="copy_credentials">Copy Credentials</string>
+    <string name="time_added_format">Added: %s</string>
+
+
+    <string name="empty_field_message">При входе возможно потребуется оставить поле пустым</string>
+    <string name="open_in_map">Open in Map</string>
+    <string name="no_map_app_found">No map application found</string>
+    <string name="unknown_database">Unknown Database</string>
+    <string name="other_actions">Прочие действия</string>
+
+
+    <string name="pixiedust_cleanup_binaries">Cleanup Binaries</string>
+    <string name="pixiedust_cleanup_binaries_title">Cleanup Binary Files</string>
+    <string name="pixiedust_cleanup_binaries_message">This will remove all binary files, symlinks and temporary directories. The files will be re-extracted on next attack. Continue?</string>
+    <string name="pixiedust_cleanup_confirm">Cleanup</string>
+    <string name="pixiedust_cleaning_binaries">Cleaning binary files...</string>
+    <string name="pixiedust_cleanup_completed">Binary cleanup completed</string>
+    <string name="pixiedust_cleanup_error">Binary cleanup failed</string>
+    <string name="pixiedust_binaries_cleaned">Binary files cleaned. They will be re-extracted on next attack.</string>
+
 </resources>
