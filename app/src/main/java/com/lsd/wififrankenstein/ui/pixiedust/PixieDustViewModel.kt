@@ -101,6 +101,22 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         pixieHelper.setAggressiveCleanup(enabled)
     }
 
+    fun cleanupBinaries() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_cleaning_binaries))
+
+            pixieHelper.cleanupAllBinaries()
+            delay(3000)
+
+            val hasBinaries = pixieHelper.checkBinaryFiles()
+            _binariesReady.postValue(hasBinaries)
+
+            if (!hasBinaries) {
+                _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binaries_cleaned))
+            }
+        }
+    }
+
     fun getAggressiveCleanup() = useAggressiveCleanup
 
     fun recheckBinaries() {

@@ -373,6 +373,80 @@ class PixieDustHelper(
         }
     }
 
+    fun cleanupAllBinaries() {
+        scope.launch {
+            try {
+                callbacks.onProgressUpdate(context.getString(R.string.pixiedust_cleaning_binaries))
+                callbacks.onLogEntry(LogEntry("=== CLEANING ALL BINARIES ===", LogColorType.INFO))
+
+                forceStopAllProcesses()
+                delay(2000)
+
+                val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
+                val filesToRemove = listOf(
+                    "wpa_supplicant$arch",
+                    "wpa_cli$arch",
+                    "pixiedust$arch",
+                    CONFIG_FILE,
+                    "temp_isolated_config.txt",
+                    "libssl.so.1.1",
+                    "libssl.so.3",
+                    "libcrypto.so.1.1",
+                    "libcrypto.so.3",
+                    "libnl-3.so$arch",
+                    "libnl-genl-3.so$arch",
+                    "libnl-route-3.so$arch",
+                    "libnl-3.so",
+                    "libnl-genl-3.so",
+                    "libnl-route-3.so"
+                )
+
+                callbacks.onLogEntry(LogEntry("Removing binary files...", LogColorType.INFO))
+                filesToRemove.forEach { fileName ->
+                    try {
+                        val file = java.io.File(binaryDir, fileName)
+                        if (file.exists()) {
+                            file.delete()
+                            callbacks.onLogEntry(LogEntry("Removed: $fileName", LogColorType.SUCCESS))
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to remove $fileName", e)
+                    }
+                }
+
+                callbacks.onLogEntry(LogEntry("Removing symlinks...", LogColorType.INFO))
+                val symlinkCommands = listOf(
+                    "rm -f $binaryDir/libnl-3.so",
+                    "rm -f $binaryDir/libnl-genl-3.so",
+                    "rm -f $binaryDir/libnl-route-3.so"
+                )
+
+                symlinkCommands.forEach { command ->
+                    Shell.cmd(command).exec()
+                }
+
+                callbacks.onLogEntry(LogEntry("Cleaning isolated directories...", LogColorType.INFO))
+                val cleanupCommands = listOf(
+                    "rm -rf $binaryDir/isolated_config/",
+                    "rm -rf /data/misc/wifi/wififrankenstein/",
+                    "rm -rf /data/vendor/wifi/wpa/wififrankenstein/"
+                )
+
+                cleanupCommands.forEach { command ->
+                    Shell.cmd(command).exec()
+                }
+
+                callbacks.onLogEntry(LogEntry("=== CLEANUP COMPLETED ===", LogColorType.SUCCESS))
+                callbacks.onProgressUpdate(context.getString(R.string.pixiedust_cleanup_completed))
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during binary cleanup", e)
+                callbacks.onLogEntry(LogEntry("Cleanup error: ${e.message}", LogColorType.ERROR))
+                callbacks.onProgressUpdate(context.getString(R.string.pixiedust_cleanup_error))
+            }
+        }
+    }
+
     suspend fun forceStopAllProcesses() {
         withContext(Dispatchers.IO) {
             try {

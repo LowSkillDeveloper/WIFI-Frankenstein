@@ -114,6 +114,10 @@ class PixieDustFragment : Fragment() {
             resetToDefaults()
         }
 
+        binding.buttonCleanupBinaries.setOnClickListener {
+            showCleanupConfirmationDialog()
+        }
+
         binding.buttonScanNetworks.setOnClickListener {
             checkLocationPermissionAndScan()
         }
@@ -147,6 +151,17 @@ class PixieDustFragment : Fragment() {
         binding.buttonClearLog.setOnClickListener {
             viewModel.clearLog()
         }
+    }
+
+    private fun showCleanupConfirmationDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.pixiedust_cleanup_binaries_title)
+            .setMessage(R.string.pixiedust_cleanup_binaries_message)
+            .setPositiveButton(R.string.pixiedust_cleanup_confirm) { _, _ ->
+                viewModel.cleanupBinaries()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun toggleAdvancedSettings() {
