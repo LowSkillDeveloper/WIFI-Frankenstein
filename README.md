@@ -78,7 +78,7 @@ The application combines various WiFi tools and functionality into one powerful 
 | WPS Generators | ✅ Supported | ⚠️ Limited |
 | Neighbor-based WPS PIN suggestions | ✅ Supported | ❌ Not supported |
 | WiFi Channel Analysis | ✅ Supported | ❌ Not supported |
-| Additional WiFi Information | ✅ Yes | ⚠️ Only security protocol |
+| Additional WiFi Information | ✅ Yes | ⚠️ Limited |
 | Custom SQLite Databases | ✅ Supported | ❌ Not supported |
 | WiFi Maps | ✅ Yes | ❌ Not supported |
 | WiFi Location by MAC | ✅ Yes | ❌ Not supported |
