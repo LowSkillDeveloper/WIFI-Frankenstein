@@ -14,7 +14,6 @@ import com.lsd.wififrankenstein.data.SavedPasswordsRepository
 import com.lsd.wififrankenstein.data.SavedWifiPassword
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileWriter

@@ -1,7 +1,6 @@
 package com.lsd.wififrankenstein.ui.wifiscanner
 
 import android.Manifest
-import android.R.attr.entries
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -32,17 +31,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.ItemCredentialBinding
 import com.lsd.wififrankenstein.databinding.ItemWifiBinding
-import java.util.Locale
-import com.lsd.wififrankenstein.util.NetworkDetailsExtractor
-import com.lsd.wififrankenstein.util.NetworkProtocol
-import com.lsd.wififrankenstein.util.calculateDistanceString
-import com.lsd.wififrankenstein.util.NetworkSecurityInfo
-import com.lsd.wififrankenstein.util.NetworkFrequencyBand
-import com.lsd.wififrankenstein.util.NetworkBandwidth
-import com.lsd.wififrankenstein.util.SecurityProtocol
 import com.lsd.wififrankenstein.databinding.ItemWpaResultBinding
 import com.lsd.wififrankenstein.databinding.ItemWpsResultBinding
+import com.lsd.wififrankenstein.util.NetworkDetailsExtractor
+import com.lsd.wififrankenstein.util.NetworkProtocol
 import com.lsd.wififrankenstein.util.QrNavigationHelper
+import com.lsd.wififrankenstein.util.calculateDistanceString
+import java.util.Locale
 
 class WifiAdapter(private var wifiList: List<ScanResult>, private val context: Context) :
     RecyclerView.Adapter<WifiAdapter.WifiViewHolder>() {

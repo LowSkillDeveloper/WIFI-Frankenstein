@@ -8,10 +8,10 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.ItemNetworkBinding
 import com.lsd.wififrankenstein.databinding.ItemResultBinding
 import com.lsd.wififrankenstein.databinding.ItemResultHeaderBinding
-import com.lsd.wififrankenstein.R
 
 class NetworksAdapter(
     private val onNetworkClick: (WpaGeneratorFragment.NetworkInfo) -> Unit,

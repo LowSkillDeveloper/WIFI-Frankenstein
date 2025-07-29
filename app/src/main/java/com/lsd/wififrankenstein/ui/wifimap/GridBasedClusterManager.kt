@@ -1,10 +1,9 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
-import kotlin.math.floor
 import kotlin.math.cos
+import kotlin.math.floor
 import kotlin.math.sin
 import kotlin.math.sqrt
-import kotlin.math.abs
 
 class GridBasedClusterManager(
     private val maxClusterSize: Int = 1000,

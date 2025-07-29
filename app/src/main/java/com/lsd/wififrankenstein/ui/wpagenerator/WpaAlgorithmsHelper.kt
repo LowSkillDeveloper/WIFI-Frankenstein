@@ -3,12 +3,9 @@ package com.lsd.wififrankenstein.ui.wpagenerator
 import android.content.Context
 import android.util.Base64
 import com.lsd.wififrankenstein.ui.wpagenerator.WpaResult.Companion.LIKELY_SUPPORTED
-import java.io.ByteArrayInputStream
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.util.*
 import java.util.zip.ZipInputStream
-import kotlin.collections.ArrayList
 
 data class WpaResult(
     val keys: List<String>,

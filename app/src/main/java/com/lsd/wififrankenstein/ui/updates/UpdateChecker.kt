@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
 import com.lsd.wififrankenstein.network.NetworkClient
-import com.lsd.wififrankenstein.network.NetworkException
 import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.SmartLinkDbInfo

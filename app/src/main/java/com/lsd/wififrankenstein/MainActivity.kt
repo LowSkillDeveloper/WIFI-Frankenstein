@@ -1,33 +1,31 @@
 package com.lsd.wififrankenstein
 
+import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
+import android.util.Log
+import android.view.MenuItem
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.findNavController
 import androidx.navigation.NavController
+import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.NavigationUI
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
-import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.snackbar.Snackbar
 import com.lsd.wififrankenstein.databinding.ActivityMainBinding
+import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
+import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import android.content.Context
-import com.topjohnwu.superuser.Shell
 import org.osmdroid.library.BuildConfig
-import android.net.ConnectivityManager
-import android.util.Log
-import com.lsd.wififrankenstein.network.NetworkUtils
-import android.view.MenuItem
 
 class ShellInitializer : Shell.Initializer() {
     override fun onInit(context: Context, shell: Shell): Boolean {
