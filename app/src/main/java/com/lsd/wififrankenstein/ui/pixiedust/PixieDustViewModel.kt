@@ -46,6 +46,9 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
     private var extractionTimeout = 30000L
     private var computationTimeout = 300000L
 
+    private var useAggressiveCleanup = false
+
+
     init {
         pixieHelper = PixieDustHelper(getApplication(), this)
         checkSystemRequirements()
@@ -92,6 +95,13 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
+
+    fun setAggressiveCleanup(enabled: Boolean) {
+        useAggressiveCleanup = enabled
+        pixieHelper.setAggressiveCleanup(enabled)
+    }
+
+    fun getAggressiveCleanup() = useAggressiveCleanup
 
     fun recheckBinaries() {
         viewModelScope.launch(Dispatchers.IO) {
