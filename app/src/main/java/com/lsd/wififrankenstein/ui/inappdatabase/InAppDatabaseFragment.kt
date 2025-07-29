@@ -24,7 +24,6 @@ import com.lsd.wififrankenstein.databinding.FragmentInAppDatabaseBinding
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 

@@ -13,7 +13,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.network.NetworkClient
-import com.lsd.wififrankenstein.network.NetworkException
 import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import kotlinx.coroutines.Dispatchers
@@ -29,10 +28,6 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.math.log10
 import kotlin.math.pow
-import com.lsd.wififrankenstein.ui.dbsetup.DbType
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
-import javax.net.ssl.SSLException
 
 
 class UpdatesViewModel(application: Application) : AndroidViewModel(application) {

@@ -1,8 +1,6 @@
 package com.lsd.wififrankenstein.util
 
 import kotlin.math.floor
-import java.security.MessageDigest
-import java.util.zip.CRC32
 
 class WpsPinGenerator {
 

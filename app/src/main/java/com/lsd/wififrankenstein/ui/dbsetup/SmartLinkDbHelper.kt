@@ -15,19 +15,17 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.File
-import java.io.FileOutputStream
-import java.util.UUID
 import org.apache.commons.compress.archivers.ArchiveEntry
-import org.apache.commons.compress.archivers.ArchiveInputStream
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.json.JSONObject
 import java.io.BufferedInputStream
+import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.net.URL
-import java.nio.channels.FileChannel
+import java.util.UUID
 
 @Serializable
 data class SmartLinkDbInfo(

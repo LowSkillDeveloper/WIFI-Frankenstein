@@ -18,8 +18,6 @@ import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
-import com.lsd.wififrankenstein.util.DatabaseIndices
-import com.lsd.wififrankenstein.util.DatabaseTypeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -31,8 +29,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.osmdroid.util.BoundingBox
 import java.util.Collections
-import kotlin.collections.containsKey
-import kotlin.text.set
 
 class WiFiMapViewModel(application: Application) : AndroidViewModel(application) {
     private val TAG = "WiFiMapViewModel"

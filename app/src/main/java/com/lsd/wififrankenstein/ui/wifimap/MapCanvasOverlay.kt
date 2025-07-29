@@ -3,9 +3,9 @@ package com.lsd.wififrankenstein.ui.wifimap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Point
+import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Overlay
-import org.osmdroid.util.GeoPoint
 import kotlin.math.pow
 import kotlin.math.sqrt
 

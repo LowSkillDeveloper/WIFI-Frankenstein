@@ -2,6 +2,7 @@ package com.lsd.wififrankenstein.ui.databasefinder
 
 import android.app.Application
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -13,6 +14,10 @@ import androidx.paging.cachedIn
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
+import com.lsd.wififrankenstein.ui.wifimap.ExternalIndexManager
+import com.lsd.wififrankenstein.util.DatabaseIndices
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,11 +26,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
-import com.lsd.wififrankenstein.util.DatabaseIndices
-import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
-import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
-import com.lsd.wififrankenstein.ui.wifimap.ExternalIndexManager
-import androidx.core.net.toUri
 
 class DatabaseFinderViewModel(application: Application) : AndroidViewModel(application) {
 

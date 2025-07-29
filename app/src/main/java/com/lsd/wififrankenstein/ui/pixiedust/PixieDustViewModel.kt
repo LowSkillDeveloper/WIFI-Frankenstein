@@ -8,10 +8,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import com.lsd.wififrankenstein.R
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class PixieDustViewModel(application: Application) : AndroidViewModel(application), PixieDustHelper.PixieDustCallbacks {
 

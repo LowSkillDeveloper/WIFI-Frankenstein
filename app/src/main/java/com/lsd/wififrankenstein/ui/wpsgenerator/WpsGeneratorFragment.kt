@@ -22,11 +22,11 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentWpsGeneratorBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
-import com.lsd.wififrankenstein.util.WpsPinGenerator
 import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.util.MacAddressUtils
+import com.lsd.wififrankenstein.util.WpsPinGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

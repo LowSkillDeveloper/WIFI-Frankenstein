@@ -12,7 +12,6 @@ import com.lsd.wififrankenstein.models.WifiDevice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.protobuf.ProtoBuf
 import org.json.JSONObject
 import java.net.URL

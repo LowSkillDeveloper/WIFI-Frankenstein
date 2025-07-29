@@ -9,11 +9,11 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.InetAddress
 import java.net.UnknownHostException
+import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
-import java.security.cert.X509Certificate
 
 class NetworkClient(private val context: Context) {
 

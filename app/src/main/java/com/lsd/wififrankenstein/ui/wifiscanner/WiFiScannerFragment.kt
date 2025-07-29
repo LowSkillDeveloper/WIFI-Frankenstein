@@ -28,6 +28,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -44,28 +45,24 @@ import com.lsd.wififrankenstein.WpsGeneratorActivity
 import com.lsd.wififrankenstein.databinding.FragmentWifiScannerBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
+import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.notification.NotificationMessage
 import com.lsd.wififrankenstein.ui.notification.NotificationService
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
+import com.lsd.wififrankenstein.ui.wpagenerator.WpaAlgorithmsHelper
+import com.lsd.wififrankenstein.ui.wpsgenerator.WPSPin
+import com.lsd.wififrankenstein.util.MacAddressUtils
+import com.lsd.wififrankenstein.util.QrNavigationHelper
 import com.lsd.wififrankenstein.util.VendorChecker
+import com.lsd.wififrankenstein.util.WpsPinGenerator
 import com.lsd.wififrankenstein.util.calculateDistanceString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.util.Locale
-import kotlinx.coroutines.flow.collect
-
-import com.lsd.wififrankenstein.ui.wpagenerator.WpaAlgorithmsHelper
-import com.lsd.wififrankenstein.util.WpsPinGenerator
-import com.lsd.wififrankenstein.ui.wpsgenerator.WPSPin
-import com.lsd.wififrankenstein.util.MacAddressUtils
-import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
-import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
-import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
-import androidx.core.net.toUri
-import com.lsd.wififrankenstein.util.QrNavigationHelper
 
 class WiFiScannerFragment : Fragment() {
 

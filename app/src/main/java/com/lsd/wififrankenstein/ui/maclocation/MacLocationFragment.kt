@@ -26,7 +26,6 @@ import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
-import androidx.core.net.toUri
 
 class MacLocationFragment : Fragment() {
 

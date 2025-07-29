@@ -14,6 +14,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lsd.wififrankenstein.R
@@ -21,8 +23,6 @@ import com.lsd.wififrankenstein.databinding.FragmentDatabaseFinderBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import androidx.navigation.fragment.findNavController
-import androidx.paging.LoadState
 
 class DatabaseFinderFragment : Fragment() {
 

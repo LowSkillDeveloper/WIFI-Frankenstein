@@ -16,6 +16,7 @@ import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.fragment.app.Fragment
@@ -30,6 +31,7 @@ import com.lsd.wififrankenstein.databinding.FragmentWifiMapBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -41,9 +43,6 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.overlay.Marker
-import androidx.core.content.edit
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class WiFiMapFragment : Fragment() {
     private val TAG = "WiFiMapFragment"

@@ -12,13 +12,20 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lsd.wififrankenstein.databinding.ActivityWpsGeneratorBinding
 import com.lsd.wififrankenstein.databinding.ContentWpsGeneratorBinding
+import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
+import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
+import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
+import com.lsd.wififrankenstein.util.WpsPinGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,14 +37,6 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
-import com.lsd.wififrankenstein.util.WpsPinGenerator
-
-import androidx.core.net.toUri
-import com.lsd.wififrankenstein.ui.dbsetup.DbItem
-import com.lsd.wififrankenstein.ui.dbsetup.DbType
-import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
-import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
-import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 
 data class WPSPin(
     var mode: Int,

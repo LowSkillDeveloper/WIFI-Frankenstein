@@ -62,7 +62,6 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.isActive
 
 class DbSetupFragment : Fragment() {
 
