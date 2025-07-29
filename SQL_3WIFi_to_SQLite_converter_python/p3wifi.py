@@ -64,6 +64,356 @@ def select_sql_file():
         except (ValueError, KeyboardInterrupt):
             return None
 
+def extract_insert_statements(content, table_name):
+    print(f"Extracting INSERT statements for table: {table_name}")
+    
+    patterns = [
+        rf'INSERT\s+INTO\s+`?{re.escape(table_name)}`?\s*\([^)]+\)\s*VALUES\s*(.+?)(?=INSERT\s+INTO|$)',
+        rf'INSERT\s+INTO\s+`?{re.escape(table_name)}`?\s+VALUES\s*(.+?)(?=INSERT\s+INTO|$)'
+    ]
+    
+    all_values_blocks = []
+    
+    for pattern in patterns:
+        matches = re.finditer(pattern, content, re.IGNORECASE | re.DOTALL)
+        for match in matches:
+            values_block = match.group(1).strip()
+            if values_block and values_block not in [block for block, _ in all_values_blocks]:
+                all_values_blocks.append((values_block, table_name))
+    
+    print(f"Found {len(all_values_blocks)} INSERT blocks for table {table_name}")
+    return all_values_blocks
+
+def parse_values_block_robust(values_text):
+    try:
+        values_text = values_text.strip()
+        
+        if values_text.endswith(';'):
+            values_text = values_text[:-1].strip()
+        
+        rows = []
+        current_row = ""
+        paren_count = 0
+        in_string = False
+        string_char = None
+        escape_next = False
+        
+        i = 0
+        while i < len(values_text):
+            char = values_text[i]
+            
+            if escape_next:
+                current_row += char
+                escape_next = False
+                i += 1
+                continue
+                
+            if char == '\\' and in_string:
+                current_row += char
+                escape_next = True
+                i += 1
+                continue
+            
+            if not in_string:
+                if char in ('"', "'"):
+                    in_string = True
+                    string_char = char
+                elif char == '(':
+                    paren_count += 1
+                elif char == ')':
+                    paren_count -= 1
+                    if paren_count == 0:
+                        current_row += char
+                        rows.append(current_row.strip())
+                        current_row = ""
+                        
+                        i += 1
+                        while i < len(values_text) and values_text[i] in ', \t\n\r':
+                            i += 1
+                        continue
+            else:
+                if char == string_char and not escape_next:
+                    in_string = False
+                    string_char = None
+            
+            current_row += char
+            i += 1
+        
+        if current_row.strip():
+            rows.append(current_row.strip())
+        
+        parsed_rows = []
+        for row in rows:
+            parsed_row = parse_single_row(row)
+            if parsed_row is not None:
+                parsed_rows.append(parsed_row)
+        
+        return parsed_rows
+        
+    except Exception as e:
+        print(f"Error parsing values block: {str(e)}")
+        return []
+
+def parse_single_row(row_text):
+    try:
+        row_text = row_text.strip()
+        
+        if row_text.startswith('(') and row_text.endswith(')'):
+            row_text = row_text[1:-1]
+        
+        values = []
+        current_value = ""
+        in_string = False
+        string_char = None
+        escape_next = False
+        paren_count = 0
+        
+        i = 0
+        while i < len(row_text):
+            char = row_text[i]
+            
+            if escape_next:
+                current_value += char
+                escape_next = False
+                i += 1
+                continue
+                
+            if char == '\\' and in_string:
+                current_value += char
+                escape_next = True
+                i += 1
+                continue
+            
+            if not in_string:
+                if char in ('"', "'"):
+                    in_string = True
+                    string_char = char
+                    current_value += char
+                elif char == '(':
+                    paren_count += 1
+                    current_value += char
+                elif char == ')':
+                    paren_count -= 1
+                    current_value += char
+                elif char == ',' and paren_count == 0:
+                    values.append(process_value(current_value.strip()))
+                    current_value = ""
+                else:
+                    current_value += char
+            else:
+                if char == string_char and not escape_next:
+                    in_string = False
+                    string_char = None
+                current_value += char
+            
+            i += 1
+        
+        if current_value.strip():
+            values.append(process_value(current_value.strip()))
+        
+        return values
+        
+    except Exception as e:
+        print(f"Error parsing single row: {str(e)}")
+        return None
+
+def process_value(val):
+    if not val:
+        return None
+        
+    val = val.strip()
+
+    if val.upper() == 'NULL':
+        return None
+
+    if (val.startswith("b'") and val.endswith("'")) or (val.startswith('b"') and val.endswith('"')):
+        bin_val = val[2:-1]
+        if bin_val == '0': 
+            return 0
+        if bin_val == '1': 
+            return 1
+        return bin_val
+
+    if val.upper() == 'TRUE':
+        return 1
+    if val.upper() == 'FALSE':
+        return 0
+
+    if (val.startswith("'") and val.endswith("'")) or (val.startswith('"') and val.endswith('"')):
+        inner_val = val[1:-1]
+        inner_val = inner_val.replace("''", "'").replace('\\"', '"').replace("\\'", "'")
+        return inner_val
+
+    if re.match(r'\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}', val):
+        return val
+
+    try:
+        if '.' in val or 'e' in val.lower():
+            return float(val)
+        else:
+            num = int(val)
+            if num > 9223372036854775807 or num < -9223372036854775808:
+                return str(num)
+            return num
+    except ValueError:
+        pass
+
+    return val
+
+def process_insert_data(args):
+    values_block, table_name, expected_columns, error_file = args
+    
+    try:
+        parsed_rows = parse_values_block_robust(values_block)
+        
+        valid_rows = []
+        error_count = 0
+        
+        for row in parsed_rows:
+            if row is None:
+                error_count += 1
+                continue
+                
+            if len(row) < expected_columns:
+                row.extend([None] * (expected_columns - len(row)))
+            elif len(row) > expected_columns:
+                row = row[:expected_columns]
+            
+            valid_rows.append(row)
+        
+        return valid_rows, error_count
+        
+    except Exception as e:
+        print(f"Error processing insert block: {str(e)}")
+        with open(error_file, 'a', encoding='utf-8') as err_file:
+            err_file.write(f"Error processing block for {table_name}: {str(e)}\n")
+        return [], 1
+
+def execute_inserts_improved(db_file, sql_file, table_name, num_columns, error_file):
+    print(f"\nProcessing {table_name} table...")
+    
+    print("Reading SQL file...")
+    content = None
+    encodings = ['utf-8', 'latin1', 'cp1251', 'utf-8-sig']
+    
+    for encoding in encodings:
+        try:
+            with open(sql_file, 'r', encoding=encoding) as f:
+                content = f.read()
+            print(f"Successfully read file with {encoding} encoding")
+            break
+        except UnicodeDecodeError:
+            continue
+    
+    if content is None:
+        print("Failed to read file with any encoding")
+        return 0, 0
+    
+    print(f"File size: {len(content):,} characters")
+
+    print("Cleaning MySQL comments...")
+    content = re.sub(r'/\*!\d+.*?\*/', '', content, flags=re.DOTALL)
+    content = re.sub(r'^--.*', '', content, flags=re.MULTILINE)
+    
+    insert_blocks = extract_insert_statements(content, table_name)
+    
+    if not insert_blocks:
+        print(f"No INSERT statements found for table {table_name}")
+        return 0, 0
+    
+    print(f"Found {len(insert_blocks)} INSERT blocks for table {table_name}")
+    
+    num_processes = max(1, multiprocessing.cpu_count() - 1)
+    print(f"Using {num_processes} processes for parallel processing...")
+    
+    all_rows = []
+    total_errors = 0
+    
+    process_args = [(block, table_name, num_columns, error_file) for block, _ in insert_blocks]
+    
+    with ProcessPoolExecutor(max_workers=num_processes) as executor:
+        futures = [executor.submit(process_insert_data, args) for args in process_args]
+        
+        with tqdm(total=len(futures), desc=f"Processing {table_name} blocks", unit="block") as pbar:
+            for future in as_completed(futures):
+                try:
+                    valid_rows, error_count = future.result()
+                    all_rows.extend(valid_rows)
+                    total_errors += error_count
+                    pbar.update(1)
+                except Exception as e:
+                    print(f"Error processing block: {str(e)}")
+                    total_errors += 1
+                    pbar.update(1)
+    
+    print(f"Total valid rows extracted: {len(all_rows):,}")
+    print(f"Total errors: {total_errors:,}")
+    
+    if not all_rows:
+        print("No valid rows to insert")
+        return 0, total_errors
+    
+    conn = sqlite3.connect(db_file, timeout=60)
+    cursor = conn.cursor()
+    
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.execute("PRAGMA cache_size=10000")
+    cursor.execute("PRAGMA temp_store=MEMORY")
+    cursor.execute("PRAGMA foreign_keys=OFF")
+    
+    processed_records = 0
+    batch_size = 5000
+    
+    try:
+        placeholders = ', '.join(['?'] * num_columns)
+        sql = f'INSERT INTO {table_name} VALUES ({placeholders})'
+        
+        print(f"Inserting data into database...")
+        with tqdm(total=len(all_rows), desc=f"Inserting {table_name} data", unit="row") as pbar:
+            for i in range(0, len(all_rows), batch_size):
+                batch = all_rows[i:i+batch_size]
+                
+                try:
+                    cursor.executemany(sql, batch)
+                    conn.commit()
+                    processed_records += len(batch)
+                    pbar.update(len(batch))
+                    
+                except sqlite3.Error as e:
+                    print(f"\nDatabase error with batch starting at row {i}: {str(e)}")
+                    for j, record in enumerate(batch):
+                        try:
+                            cursor.execute(sql, record)
+                            conn.commit()
+                            processed_records += 1
+                        except sqlite3.Error as single_error:
+                            total_errors += 1
+                            with open(error_file, 'a', encoding='utf-8') as err_file:
+                                err_file.write(f"Single insert error at row {i+j}: {str(single_error)}\n")
+                                err_file.write(f"Failed record: {record}\n\n")
+                    pbar.update(len(batch))
+    
+    finally:
+        conn.close()
+        
+        verification_conn = sqlite3.connect(db_file)
+        verification_cursor = verification_conn.cursor()
+        verification_cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+        actual_count = verification_cursor.fetchone()[0]
+        verification_conn.close()
+        
+        print(f"Final verification: {actual_count:,} records in {table_name} table")
+        
+        with open(error_file, 'a', encoding='utf-8') as err_file:
+            err_file.write(f"\n\n{'='*50}\nSUMMARY for {table_name}\n{'='*50}\n")
+            err_file.write(f"Total valid rows extracted: {len(all_rows)}\n")
+            err_file.write(f"Total failed records: {total_errors}\n")
+            err_file.write(f"Total successfully processed records: {processed_records}\n")
+            err_file.write(f"Actual records in database: {actual_count}\n")
+        
+    return processed_records, total_errors
+
 def check_archiver_availability():
     available_tools = {'python': True}
     
@@ -240,214 +590,6 @@ def show_compression_stats(original_file, compressed_file):
     
     return True
 
-def find_insert_blocks(content):
-    insert_blocks = []
-    
-    pattern = r'INSERT INTO\s+`?(\w+)`?\s*\([^)]+\)\s*VALUES'
-    
-    for match in re.finditer(pattern, content, re.IGNORECASE):
-        start_pos = match.start()
-        table_name = match.group(1)
-        
-        next_insert = content.find('INSERT INTO', start_pos + 1)
-        if next_insert == -1:
-            end_pos = len(content)
-        else:
-            end_pos = next_insert
-        
-        insert_block = content[start_pos:end_pos].strip()
-        insert_block = re.sub(r'[;\s]+$', ';', insert_block)
-        
-        insert_blocks.append((table_name, insert_block))
-        
-    return insert_blocks
-
-def parse_insert_block(insert_block):
-    table_match = re.search(r'INSERT INTO\s+`?(\w+)`?', insert_block, re.IGNORECASE)
-    if not table_match:
-        return None, None, None
-        
-    table_name = table_match.group(1)
-    
-    cols_match = re.search(r'INSERT INTO\s+`?\w+`?\s*\(([^)]+)\)', insert_block, re.IGNORECASE)
-    if not cols_match:
-        return None, None, None
-        
-    columns = [col.strip().strip('`') for col in cols_match.group(1).split(',')]
-    
-    values_match = re.search(r'VALUES\s*(.+)', insert_block, re.IGNORECASE | re.DOTALL)
-    if not values_match:
-        return None, None, None
-        
-    values_text = values_match.group(1).strip()
-    if values_text.endswith(';'):
-        values_text = values_text[:-1]
-        
-    all_values = parse_multiple_values(values_text)
-    
-    return table_name, columns, all_values
-
-def parse_multiple_values(values_text):
-    all_values = []
-    
-    i = 0
-    while i < len(values_text):
-        while i < len(values_text) and values_text[i] in ' \t\n\r':
-            i += 1
-            
-        if i >= len(values_text):
-            break
-            
-        if values_text[i] == '(':
-            row_start = i
-            i += 1
-            paren_count = 1
-            in_string = False
-            string_char = None
-            escape_next = False
-            
-            while i < len(values_text) and paren_count > 0:
-                char = values_text[i]
-                
-                if escape_next:
-                    escape_next = False
-                    i += 1
-                    continue
-                    
-                if char == '\\' and in_string:
-                    escape_next = True
-                    i += 1
-                    continue
-                    
-                if not in_string:
-                    if char in ["'", '"']:
-                        in_string = True
-                        string_char = char
-                    elif char == '(':
-                        paren_count += 1
-                    elif char == ')':
-                        paren_count -= 1
-                else:
-                    if char == string_char and not escape_next:
-                        in_string = False
-                        string_char = None
-                        
-                i += 1
-            
-            if paren_count == 0:
-                row_content = values_text[row_start+1:i-1]
-                row_values = parse_row_values(row_content)
-                all_values.append(row_values)
-            
-            while i < len(values_text) and values_text[i] in ', \t\n\r':
-                i += 1
-        else:
-            i += 1
-            
-    return all_values
-
-def parse_row_values(row_content):
-    values = []
-    current_value = []
-    in_string = False
-    escape_next = False
-    string_char = None
-
-    i = 0
-    while i < len(row_content):
-        char = row_content[i]
-
-        if escape_next:
-            if char == 'n':
-                current_value.append('\n')
-            elif char == 't':
-                current_value.append('\t')
-            elif char == 'r':
-                current_value.append('\r')
-            elif char == '\\':
-                current_value.append('\\')
-            elif char == "'":
-                current_value.append("'")
-            elif char == '"':
-                current_value.append('"')
-            else:
-                current_value.append(char)
-            escape_next = False
-            i += 1
-            continue
-
-        if char == '\\':
-            if in_string:
-                escape_next = True
-            else:
-                current_value.append(char)
-            i += 1
-            continue
-
-        if not in_string:
-            if char in ("'", '"'):
-                in_string = True
-                string_char = char
-            elif char == ',':
-                val_str = ''.join(current_value).strip()
-                values.append(process_value(val_str))
-                current_value = []
-            else:
-                current_value.append(char)
-        else:
-            if char == string_char:
-                in_string = False
-                string_char = None
-            else:
-                current_value.append(char)
-        i += 1
-
-    val_str = ''.join(current_value).strip()
-    values.append(process_value(val_str))
-
-    return values
-
-def process_value(val):
-    if not val:
-        return ''
-        
-    val = val.strip()
-
-    if val.upper() == 'NULL':
-        return None
-
-    if (val.startswith("b'") and val.endswith("'")) or (val.startswith('b"') and val.endswith('"')):
-        bin_val = val[2:-1]
-        if bin_val == '0': 
-            return 0
-        if bin_val == '1': 
-            return 1
-        return bin_val
-
-    if val.upper() == 'TRUE':
-        return 1
-    if val.upper() == 'FALSE':
-        return 0
-
-    if (val.startswith("'") and val.endswith("'")) or (val.startswith('"') and val.endswith('"')):
-        return val[1:-1]
-
-    try:
-        if '.' in val:
-            return float(val)
-        else:
-            num = int(val)
-            if num > 9223372036854775807 or num < -9223372036854775808:
-                return str(num)
-            return num
-    except ValueError:
-        pass
-
-    if val == '<empty>':
-        return ''
-
-    return val
-
 def create_indices(cursor, option):
     if option == 1:
         print("\nCreating full indexes...")
@@ -473,142 +615,6 @@ def create_indices(cursor, option):
         print("Skipping index creation as per user choice.")
     else:
         print("Invalid option selected for index creation.")
-
-def process_insert_block_data(block_data):
-    try:
-        table_name, insert_block, num_columns, error_file = block_data
-        
-        parsed_table, columns, values = parse_insert_block(insert_block)
-        
-        if not parsed_table or not columns or not values:
-            return [], []
-        
-        valid_rows = []
-        errors = []
-        
-        for row in values:
-            if len(row) == num_columns:
-                valid_rows.append(row)
-            else:
-                errors.append((str(row), f"Invalid column count: expected {num_columns}, got {len(row)}"))
-
-        if errors:
-            with open(error_file, 'a', encoding='utf-8') as err_file:
-                for error_line, error_msg in errors:
-                    err_file.write(f"Error in {table_name}: {error_msg}\nLine: {error_line}\n\n")
-        
-        return valid_rows, errors
-        
-    except Exception as e:
-        print(f"Error processing INSERT block: {str(e)}")
-        return [], []
-
-def execute_inserts(db_file, sql_file, table_name, num_columns, error_file):
-    print(f"\nProcessing {table_name} table...")
-    
-    print("Reading SQL file...")
-    try:
-        with open(sql_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-    except UnicodeDecodeError:
-        try:
-            with open(sql_file, 'r', encoding='latin1') as f:
-                content = f.read()
-        except UnicodeDecodeError:
-            with open(sql_file, 'r', encoding='cp1251') as f:
-                content = f.read()
-    
-    print(f"File size: {len(content):,}")
-    
-    print("Cleaning MySQL comments...")
-    content = re.sub(r'/\*!\d+\s+SET[^*]+\*/', '', content)
-    content = re.sub(r'/\*!\d+\s+(.+?)\s+\*/', r'\1', content)
-    content = re.sub(r'^--.*$', '', content, flags=re.MULTILINE)
-    
-    print("Finding INSERT blocks...")
-    insert_blocks = find_insert_blocks(content)
-    
-    table_blocks = [(name, block) for name, block in insert_blocks if name == table_name]
-    
-    if not table_blocks:
-        print(f"No INSERT blocks found for table {table_name}")
-        return 0, 0
-    
-    print(f"Found {len(table_blocks)} INSERT blocks for table {table_name}")
-    
-    num_processes = max(1, multiprocessing.cpu_count() - 1)
-    print(f"Using {num_processes} processes for parallel processing...")
-    
-    conn = sqlite3.connect(db_file, timeout=60)
-    cursor = conn.cursor()
-    
-    cursor.execute("PRAGMA journal_mode=WAL")
-    cursor.execute("PRAGMA synchronous=NORMAL")
-    cursor.execute("PRAGMA cache_size=10000")
-    cursor.execute("PRAGMA temp_store=MEMORY")
-    cursor.execute("PRAGMA foreign_keys=OFF")
-    
-    processed_records = 0
-    error_records = 0
-    batch_size = 5000
-    
-    try:
-        block_data_list = []
-        for table_name_block, insert_block in table_blocks:
-            block_data_list.append((table_name_block, insert_block, num_columns, error_file))
-        
-        with ProcessPoolExecutor(max_workers=num_processes) as executor:
-            futures = [executor.submit(process_insert_block_data, block_data) for block_data in block_data_list]
-            
-            all_valid_rows = []
-            with tqdm(total=len(futures), desc=f"Processing {table_name} blocks", unit="block") as pbar:
-                for future in as_completed(futures):
-                    try:
-                        valid_rows, errors = future.result()
-                        error_records += len(errors)
-                        all_valid_rows.extend(valid_rows)
-                        pbar.update(1)
-                    except Exception as e:
-                        print(f"Error processing block: {str(e)}")
-                        pbar.update(1)
-        
-        print(f"Total valid rows extracted: {len(all_valid_rows):,}")
-        
-        if all_valid_rows:
-            placeholders = ', '.join(['?'] * num_columns)
-            sql = f'INSERT OR IGNORE INTO {table_name} VALUES ({placeholders})'
-            
-            print(f"Inserting data into database...")
-            with tqdm(total=len(all_valid_rows), desc=f"Inserting {table_name} data", unit="row") as pbar:
-                for i in range(0, len(all_valid_rows), batch_size):
-                    batch = all_valid_rows[i:i+batch_size]
-                    
-                    try:
-                        cursor.executemany(sql, batch)
-                        conn.commit()
-                        processed_records += len(batch)
-                        pbar.update(len(batch))
-                        
-                    except sqlite3.Error as e:
-                        with open(error_file, 'a', encoding='utf-8') as err_file:
-                            err_file.write(f"Batch insert error: {str(e)}\n")
-                            err_file.write("Failed records:\n")
-                            for record in batch:
-                                err_file.write(f"{record}\n")
-                            err_file.write("\n")
-                        
-                        error_records += len(batch)
-                        pbar.update(len(batch))
-    
-    finally:
-        conn.close()
-        
-        with open(error_file, 'a', encoding='utf-8') as err_file:
-            err_file.write(f"\n\n{'='*50}\nSUMMARY for {table_name}\n{'='*50}\n")
-            err_file.write(f"Total failed records: {error_records}\n")
-            err_file.write(f"Total successfully processed records: {processed_records}\n")
-            
-    return processed_records, error_records
 
 def optimize_and_vacuum(db_file):
     print("\nOptimizing and vacuuming database...")
@@ -645,14 +651,11 @@ def optimize_and_vacuum(db_file):
             print(f"Optimization attempt {attempt}/{max_attempts} failed: {str(e)}")
             
             if attempt < max_attempts:
-                force_close_connections(db_file)
+                time.sleep(2)
             else:
                 print("\nCould not optimize database after multiple attempts.")
                 print("The database is still usable, but not optimized.")
                 return False
-
-def force_close_connections(db_file):
-    time.sleep(2)
 
 def create_tables(cursor):
     cursor.execute('''
@@ -1060,8 +1063,8 @@ def main():
     sqlite3.connect(':memory:', timeout=60).close()
 
     print("╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗")
-    print("║                              p3WiFi Database Converter v3                                         ║")
-    print("║                           SQL to SQLite for WIFI Frankenstein                                     ║")
+    print("║                                  p3WiFi Database Converter v3                                     ║")
+    print("║                               SQL to SQLite for WIFI Frankenstein                                 ║")
     print("╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝")
 
     sql_file = 'input.sql'
@@ -1097,8 +1100,8 @@ def main():
             cursor = conn.cursor()
             create_tables(cursor)
 
-        records_geo, errors_geo = execute_inserts(db_file, sql_file, 'geo', 4, error_file_geo)
-        records_nets, errors_nets = execute_inserts(db_file, sql_file, 'nets', 25, error_file_nets)
+        records_geo, errors_geo = execute_inserts_improved(db_file, sql_file, 'geo', 4, error_file_geo)
+        records_nets, errors_nets = execute_inserts_improved(db_file, sql_file, 'nets', 25, error_file_nets)
 
         with sqlite3.connect(db_file) as conn:
             cursor = conn.cursor()
