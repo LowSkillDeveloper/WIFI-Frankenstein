@@ -943,8 +943,6 @@
     <string name="keys_copied_to_clipboard">Keys copied to clipboard</string>
     <string name="pin_copied_to_clipboard">PIN copied to clipboard</string>
 
-
-    <!-- PixieDust Fragment -->
     <string name="pixiedust_title">PixieDust Attack</string>
     <string name="pixiedust_description">PixieDust is a WPS attack that exploits weak randomness in some WPS implementations to recover the WPS PIN</string>
     <string name="pixiedust_requires_wps">This attack only works on networks with WPS enabled and vulnerable implementations</string>
@@ -962,16 +960,12 @@
     <string name="pixiedust_copy_pin">Copy PIN</string>
     <string name="pixiedust_save_result">Save Result</string>
     <string name="pixiedust_wps_enabled">WPS</string>
-
-    <!-- PixieDust States -->
     <string name="pixiedust_scanning">Scanning for networks…</string>
     <string name="pixiedust_preparing">Preparing attack…</string>
     <string name="pixiedust_extracting_data">Extracting handshake data…</string>
     <string name="pixiedust_running_attack">Running PixieDust attack…</string>
     <string name="pixiedust_attack_completed">Attack completed</string>
     <string name="pixiedust_attack_failed">Attack failed: %s</string>
-
-    <!-- PixieDust Messages -->
     <string name="pixiedust_networks_found">Found %d WPS networks</string>
     <string name="pixiedust_no_networks">No WPS networks found</string>
     <string name="pixiedust_select_network">Please select a network</string>
@@ -984,42 +978,27 @@
     <string name="pixiedust_network_info">%s (%s)</string>
     <string name="pixiedust_signal_strength">%d dBm</string>
     <string name="pixiedust_frequency">%d MHz</string>
-
-    <!-- Dialog Messages -->
     <string name="pixiedust_warning_title">Warning</string>
     <string name="pixiedust_warning_message">This tool is for educational purposes only. Only use on networks you own or have explicit permission to test. Unauthorized access to wireless networks is illegal.</string>
     <string name="pixiedust_understand_risks">I Understand</string>
-
-    <!-- Permissions -->
     <string name="permission_required">Permission Required</string>
-
-    <!-- Common -->
-
     <string name="pixiedust_root_available">Root access: Available</string>
     <string name="pixiedust_binary_files_ready">Binary files: Ready</string>
     <string name="pixiedust_binary_files_not_available">Binary files: Not available</string>
     <string name="pixiedust_unknown_network">Unknown</string>
-
     <string name="menu_pixiedust">PixieDust</string>
-
     <string name="pixiedust_copying_binaries">Copying binary files…</string>
     <string name="pixiedust_binaries_ready">Binary files ready</string>
     <string name="pixiedust_error_copying_binaries">Error copying binary files</string>
-    <string name="pixiedust_preparing_binaries">Preparing binary files…</string>
     <string name="pixiedust_preparing_attack">Preparing attack…</string>
     <string name="pixiedust_extracting_handshake">Extracting handshake data…</string>
     <string name="pixiedust_computing_pin">Computing PIN…</string>
-
-    <string name="pixiedust_data_extraction_failed">Не удалось извлечь данные для атаки</string>
-
+    <string name="pixiedust_data_extraction_failed">Failed to extract data for attack</string>
     <string name="support_state_supported">Supported</string>
     <string name="support_state_unlikely">Unlikely</string>
     <string name="support_state_unsupported">Unsupported</string>
     <string name="error_no_internet">No internet connection available</string>
     <string name="error_connection_failed">Connection failed. Please try again later.</string>
-
-
-    <!-- QR Code Generator -->
     <string name="menu_qr_generator">QR Generator</string>
     <string name="qr_code_gen_description">Generate QR code for WiFi connection</string>
     <string name="network_name">Network Name (SSID)</string>
@@ -1038,62 +1017,38 @@
     <string name="qr_code_generated">QR code generated successfully</string>
     <string name="invalid_network_data">Please enter valid network data</string>
     <string name="password_required">Password is required for secured networks</string>
-
     <string name="qr_code_generated_for">QR code generated for %s</string>
     <string name="qr_code_generation_failed">Failed to generate QR code</string>
     <string name="action_generate_qr">Generate QR</string>
     <string name="menu_saved_passwords">Saved Passwords</string>
-
-
-    <!-- Основные строки -->
-
-    <!-- Состояния и сообщения -->
     <string name="root_required_passwords">Root access required to view saved passwords</string>
     <string name="no_saved_passwords">No saved passwords found</string>
     <string name="error_loading_passwords">Error loading passwords: %s</string>
-
-    <!-- Методы извлечения -->
-
-    <!-- Копирование -->
     <string name="password_copied">Password copied to clipboard</string>
     <string name="ssid_copied">SSID copied to clipboard</string>
-
-    <!-- Экспорт -->
     <string name="export_passwords">Export passwords</string>
     <string name="export_failed_passwords">Failed to export passwords: %s</string>
     <string name="select_export_method">Select export method</string>
     <string name="export_as_json">Export as JSON</string>
     <string name="export_as_csv">Export as CSV</string>
     <string name="export_as_txt">Export as TXT</string>
-
-    <!-- Форматирование -->
     <string name="security_type_format">Security: %s</string>
-
-    <!-- QR код -->
     <string name="show_qr_code">Show QR code</string>
-
-    <!-- Root access strings -->
     <string name="checking_root_access">Checking root access…</string>
     <string name="root_access_required">Root Access Required</string>
     <string name="root_access_required_message">This feature requires root access to read WiFi configuration files. Without root access, only basic network information will be available.</string>
     <string name="error_checking_root_access">Error checking root access</string>
-
-    <!-- Export strings -->
     <string name="passwords_exported_to">Passwords exported to: %s</string>
     <string name="no_data_to_copy">No data to copy</string>
     <string name="qr_code_for_wifi">QR code for WiFi: %s</string>
-
     <string name="show_passwords">Show Passwords</string>
-
-    <string name="category_root_functions">Root функции</string>
-    <string name="category_generators">Генераторы</string>
-    <string name="category_utilities">Утилиты</string>
+    <string name="category_root_functions">Root Functions</string>
+    <string name="category_generators">Generators</string>
+    <string name="category_utilities">Utilities</string>
     <string name="system_files_updates">System Files Updates</string>
     <string name="local_size">Local size: %1$s</string>
-
-    <string name="pixiedust_failed_start_supplicant">Не удалось запустить supplicant</string>
-    <string name="pixiedust_attack_error">Ошибка атаки: %1$s</string>
-
+    <string name="pixiedust_failed_start_supplicant">Failed to start supplicant</string>
+    <string name="pixiedust_attack_error">Attack error: %1$s</string>
     <string name="pixiedust_manual_network_entry">Manual Network Entry</string>
     <string name="pixiedust_network_ssid">Network SSID</string>
     <string name="pixiedust_network_bssid">Network BSSID (MAC Address)</string>
@@ -1103,113 +1058,16 @@
     <string name="pixiedust_attack_log">Attack Log</string>
     <string name="pixiedust_clear_log">Clear Log</string>
     <string name="pixiedust_log_empty">No log entries</string>
-
     <string name="pixiedust_ssid_required">SSID cannot be empty</string>
-
     <string name="pixiedust_advanced_settings">Advanced Settings</string>
-    <string name="pixiedust_wps_timeout">WPS Registration Timeout</string>
-    <string name="pixiedust_wps_timeout_desc">Maximum time to wait for WPS handshake completion</string>
     <string name="pixiedust_extraction_timeout">Data Extraction Timeout</string>
     <string name="pixiedust_extraction_timeout_desc">Maximum time to wait for extracting handshake data</string>
     <string name="pixiedust_computation_timeout">Computation Timeout</string>
     <string name="pixiedust_computation_timeout_desc">Maximum time for PIN computation</string>
     <string name="pixiedust_seconds">seconds</string>
     <string name="pixiedust_reset_defaults">Reset to Defaults</string>
-
-
-    <!-- Association Reject Status Codes -->
-    <string name="assoc_reject_unspecified">Association rejected: Unspecified failure</string>
-    <string name="assoc_reject_prev_auth_invalid">Association rejected: Previous authentication no longer valid</string>
-    <string name="assoc_reject_deauth_leaving">Association rejected: Station is leaving network</string>
-    <string name="assoc_reject_inactivity">Association rejected: Due to inactivity</string>
-    <string name="assoc_reject_ap_overload">Association rejected: AP cannot handle more stations</string>
-    <string name="assoc_reject_class2_frame">Association rejected: Unauthorized frame received</string>
-    <string name="assoc_reject_class3_frame">Association rejected: Unassociated frame received</string>
-    <string name="assoc_reject_leaving_bss">Association rejected: Station leaving BSS</string>
-    <string name="assoc_reject_not_authenticated">Association rejected: Station not authenticated</string>
-    <string name="assoc_reject_power_capability">Association rejected: Power capability unacceptable</string>
-    <string name="assoc_reject_supported_channels">Association rejected: Supported channels unacceptable</string>
-    <string name="assoc_reject_invalid_ie">Association rejected: Invalid information element</string>
-    <string name="assoc_reject_mic_failure">Association rejected: MIC failure</string>
-    <string name="assoc_reject_4way_timeout">Association rejected: 4-Way handshake timeout</string>
-    <string name="assoc_reject_group_timeout">Association rejected: Group key handshake timeout</string>
-    <string name="assoc_reject_ie_different">Association rejected: IE mismatch</string>
-    <string name="assoc_reject_invalid_group_cipher">Association rejected: Invalid group cipher</string>
-    <string name="assoc_reject_invalid_pairwise_cipher">Association rejected: Invalid pairwise cipher</string>
-    <string name="assoc_reject_invalid_akmp">Association rejected: Invalid AKMP</string>
-    <string name="assoc_reject_unsupported_rsn">Association rejected: Unsupported RSN version</string>
-    <string name="assoc_reject_invalid_rsn_capabilities">Association rejected: Invalid RSN capabilities</string>
-    <string name="assoc_reject_8021x_failed">Association rejected: 802.1X authentication failed</string>
-    <string name="assoc_reject_cipher_rejected">Association rejected: Cipher suite rejected</string>
-    <string name="assoc_reject_load_balancing">Association rejected: Load balancing</string>
-    <string name="assoc_reject_unknown">Association rejected: Status code %d</string>
-
-    <string name="pixie_log_waiting_target">[?] Waiting for target</string>
-    <string name="pixie_log_auth_request">[+] Sending authentication request</string>
-    <string name="pixie_log_assoc_request">[+] Sending association request</string>
-    <string name="pixie_log_associated">[+] Associated with %1$s (ESSID: %2$s)</string>
-    <string name="pixie_log_eapol_start">[+] Sending EAPOL START request</string>
-    <string name="pixie_log_identity_request">[+] Received identity request</string>
-    <string name="pixie_log_identity_response">[+] Sending identity response</string>
-    <string name="pixie_log_m1_received">[+] Received M1 message</string>
-    <string name="pixie_log_m2_sending">[+] Sending M2 message</string>
-    <string name="pixie_log_m3_received">[+] Received M3 message</string>
-    <string name="pixie_log_m4_sending">[+] Sending M4 message</string>
-    <string name="pixie_log_m5_received">[+] Received M5 message</string>
-    <string name="pixie_log_m6_sending">[+] Sending M6 message</string>
-    <string name="pixie_log_m7_received">[+] Received M7 message</string>
-    <string name="pixie_log_m8_received">[+] Received M8 message</string>
-    <string name="pixie_log_wsc_nack_received">[-] Received WSC_NACK</string>
-    <string name="pixie_log_wsc_nack_sending">[+] Sending WSC_NACK response</string>
-    <string name="pixie_log_deauth_reason">[!] Deauthenticated reason: %1$s</string>
-    <string name="pixie_log_enrollee_nonce">[+] Enrollee Nonce found</string>
-    <string name="pixie_log_own_public_key">[+] Own Public Key found</string>
-    <string name="pixie_log_peer_public_key">[+] Peer Public Key found</string>
-    <string name="pixie_log_authkey">[+] AuthKey found</string>
-    <string name="pixie_log_e_hash1">[+] E-Hash1 found</string>
-    <string name="pixie_log_e_hash2">[+] E-Hash2 found</string>
-    <string name="pixie_log_psk1">[+] PSK1 found</string>
-    <string name="pixie_log_psk2">[+] PSK2 found</string>
-    <string name="pixie_log_r_s1">[+] R-S1 found</string>
-    <string name="pixie_log_r_s2">[+] R-S2 found</string>
-    <string name="pixie_log_r_hash1">[+] R-Hash1 found</string>
-    <string name="pixie_log_r_hash2">[+] R-Hash2 found</string>
-    <string name="pixie_log_all_data_collected">[+++] All required pixie data collected successfully!</string>
-    <string name="pixie_log_starting_pixiewps">[+] Starting PixieWps computing</string>
-    <string name="pixie_log_pin_not_found">[-] WPS pin not found!</string>
-    <string name="pixie_log_time_taken">[*] Time taken: %1$s</string>
-    <string name="pixie_log_possibly_not_vulnerable">[!] Possible point not vulnerable, locked or has a bad signal</string>
-    <string name="pixie_log_wps_cycle_started">[+] New WPS cycle started</string>
-    <string name="pixie_log_wps_cycle_ended">[+] WPS cycle ended</string>
-    <string name="pixie_log_connection_lost">[-] DISCONNECTED, retrying…</string>
-    <string name="pixie_log_connected_to_ap">[+] Connected to AP</string>
-
-    <string name="wps_config_error_0">No error</string>
-    <string name="wps_config_error_1">OOB Interface Read Error</string>
-    <string name="wps_config_error_2">Decryption CRC Failure</string>
-    <string name="wps_config_error_3">2.4 channel not supported</string>
-    <string name="wps_config_error_4">5.0 channel not supported</string>
-    <string name="wps_config_error_5">Signal too weak</string>
-    <string name="wps_config_error_6">Network auth failure</string>
-    <string name="wps_config_error_7">Network association failure</string>
-    <string name="wps_config_error_8">No DHCP response</string>
-    <string name="wps_config_error_9">Failed DHCP config</string>
-    <string name="wps_config_error_10">IP address conflict</string>
-    <string name="wps_config_error_11">Could not connect to registrar</string>
-    <string name="wps_config_error_12">Multiple PBC sessions detected</string>
-    <string name="wps_config_error_13">Rogue activity suspected</string>
-    <string name="wps_config_error_14">Device busy</string>
-    <string name="wps_config_error_15">Setup locked</string>
-    <string name="wps_config_error_16">Message timeout</string>
-    <string name="wps_config_error_17">Registration session timeout</string>
-    <string name="wps_config_error_18">Device password authentication failure</string>
-    <string name="wps_config_error_default">Unknown error (code %1$d)</string>
-
     <string name="pixiedust_aggressive_cleanup">Enable aggressive system process termination (not recommended)</string>
     <string name="pixiedust_aggressive_cleanup_desc">Uses aggressive method to stop system WiFi services. May cause system instability but increases attack success rate.</string>
-
-    <!-- Network Info Dialog -->
-    <string name="network_details">Network Details:</string>
     <string name="router_model">Model</string>
     <string name="admin_credentials">Admin Panel:</string>
     <string name="network_status">Network Status:</string>
@@ -1222,34 +1080,124 @@
     <string name="admin_login">Login</string>
     <string name="admin_password">Password</string>
     <string name="coordinates_copied">Coordinates copied to clipboard</string>
-    <string name="network_data_shared">Network: %1$s\nBSSID: %2$s\nPassword: %3$s</string>
-    <string name="record_number">Record %d</string>
     <string name="expand_record">Expand record</string>
-    <string name="collapse_record">Collapse record</string>
-
     <string name="network_data">Network Data:</string>
     <string name="time_added">Time Added</string>
-
     <string name="copy_login">Copy Login</string>
     <string name="copy_admin_password">Copy Admin Password</string>
-    <string name="copy_credentials">Copy Credentials</string>
     <string name="time_added_format">Added: %s</string>
-
-
-    <string name="empty_field_message">При входе возможно потребуется оставить поле пустым</string>
+    <string name="empty_field_message">You may need to leave the field empty during login</string>
     <string name="open_in_map">Open in Map</string>
     <string name="no_map_app_found">No map application found</string>
     <string name="unknown_database">Unknown Database</string>
-    <string name="other_actions">Прочие действия</string>
-
-
+    <string name="other_actions">Other Actions</string>
     <string name="pixiedust_cleanup_binaries">Cleanup Binaries</string>
     <string name="pixiedust_cleanup_binaries_title">Cleanup Binary Files</string>
     <string name="pixiedust_cleanup_binaries_message">This will remove all binary files, symlinks and temporary directories. The files will be re-extracted on next attack. Continue?</string>
     <string name="pixiedust_cleanup_confirm">Cleanup</string>
-    <string name="pixiedust_cleaning_binaries">Cleaning binary files...</string>
+    <string name="pixiedust_cleaning_binaries">Cleaning binary files…</string>
     <string name="pixiedust_cleanup_completed">Binary cleanup completed</string>
     <string name="pixiedust_cleanup_error">Binary cleanup failed</string>
-    <string name="pixiedust_binaries_cleaned">Binary files cleaned. They will be re-extracted on next attack.</string>
+    <string name="pixiedust_copy_binaries">Copy Binaries</string>
+    <string name="root_access_setup">Root Access</string>
+    <string name="root_access_description">If you have root permissions, the application can use additional features</string>
+    <string name="root_question">Do you have root permissions on the device?</string>
+    <string name="yes_i_have_root">Yes, I have root</string>
+    <string name="no_root_access">No, I don\'t have root</string>
+    <string name="root_benefits_explanation">Root permissions allow the application to obtain advanced information about Wi-Fi networks and use additional tools for analysis.</string>
+    <string name="root_note">You can change this setting later in the application settings.</string>
+    <string name="permissions_not_required_version">On your Android version, permissions are granted automatically</string>
+    <string name="permissions_granted_automatically">All necessary permissions are already available for your application</string>
+    <string name="storage_permission_legacy">Storage Permission</string>
+    <string name="storage_permission_description_legacy">Required for reading and writing database files</string>
+    <string name="api_servers">API Servers</string>
+
+    <!-- Association Reject Status Codes -->
+    <string name="assoc_reject_unspecified" translatable="false">Association rejected: Unspecified failure</string>
+    <string name="assoc_reject_prev_auth_invalid" translatable="false">Association rejected: Previous authentication no longer valid</string>
+    <string name="assoc_reject_deauth_leaving" translatable="false">Association rejected: Station is leaving network</string>
+    <string name="assoc_reject_inactivity" translatable="false">Association rejected: Due to inactivity</string>
+    <string name="assoc_reject_ap_overload" translatable="false">Association rejected: AP cannot handle more stations</string>
+    <string name="assoc_reject_class2_frame" translatable="false">Association rejected: Unauthorized frame received</string>
+    <string name="assoc_reject_class3_frame" translatable="false">Association rejected: Unassociated frame received</string>
+    <string name="assoc_reject_leaving_bss" translatable="false">Association rejected: Station leaving BSS</string>
+    <string name="assoc_reject_not_authenticated" translatable="false">Association rejected: Station not authenticated</string>
+    <string name="assoc_reject_power_capability" translatable="false">Association rejected: Power capability unacceptable</string>
+    <string name="assoc_reject_supported_channels" translatable="false">Association rejected: Supported channels unacceptable</string>
+    <string name="assoc_reject_invalid_ie" translatable="false">Association rejected: Invalid information element</string>
+    <string name="assoc_reject_mic_failure" translatable="false">Association rejected: MIC failure</string>
+    <string name="assoc_reject_4way_timeout" translatable="false">Association rejected: 4-Way handshake timeout</string>
+    <string name="assoc_reject_group_timeout" translatable="false">Association rejected: Group key handshake timeout</string>
+    <string name="assoc_reject_ie_different" translatable="false">Association rejected: IE mismatch</string>
+    <string name="assoc_reject_invalid_group_cipher" translatable="false">Association rejected: Invalid group cipher</string>
+    <string name="assoc_reject_invalid_pairwise_cipher" translatable="false">Association rejected: Invalid pairwise cipher</string>
+    <string name="assoc_reject_invalid_akmp" translatable="false">Association rejected: Invalid AKMP</string>
+    <string name="assoc_reject_unsupported_rsn" translatable="false">Association rejected: Unsupported RSN version</string>
+    <string name="assoc_reject_invalid_rsn_capabilities" translatable="false">Association rejected: Invalid RSN capabilities</string>
+    <string name="assoc_reject_8021x_failed" translatable="false">Association rejected: 802.1X authentication failed</string>
+    <string name="assoc_reject_cipher_rejected" translatable="false">Association rejected: Cipher suite rejected</string>
+    <string name="assoc_reject_load_balancing" translatable="false">Association rejected: Load balancing</string>
+    <string name="assoc_reject_unknown" translatable="false">Association rejected: Status code %d</string>
+
+    <string name="pixie_log_waiting_target" translatable="false">[?] Waiting for target</string>
+    <string name="pixie_log_auth_request" translatable="false">[+] Sending authentication request</string>
+    <string name="pixie_log_assoc_request" translatable="false">[+] Sending association request</string>
+    <string name="pixie_log_associated" translatable="false">[+] Associated with %1$s (ESSID: %2$s)</string>
+    <string name="pixie_log_eapol_start" translatable="false">[+] Sending EAPOL START request</string>
+    <string name="pixie_log_identity_request" translatable="false">[+] Received identity request</string>
+    <string name="pixie_log_identity_response" translatable="false">[+] Sending identity response</string>
+    <string name="pixie_log_m1_received" translatable="false">[+] Received M1 message</string>
+    <string name="pixie_log_m2_sending" translatable="false">[+] Sending M2 message</string>
+    <string name="pixie_log_m3_received" translatable="false">[+] Received M3 message</string>
+    <string name="pixie_log_m4_sending" translatable="false">[+] Sending M4 message</string>
+    <string name="pixie_log_m5_received" translatable="false">[+] Received M5 message</string>
+    <string name="pixie_log_m6_sending" translatable="false">[+] Sending M6 message</string>
+    <string name="pixie_log_m7_received" translatable="false">[+] Received M7 message</string>
+    <string name="pixie_log_m8_received" translatable="false">[+] Received M8 message</string>
+    <string name="pixie_log_wsc_nack_received" translatable="false">[-] Received WSC_NACK</string>
+    <string name="pixie_log_wsc_nack_sending" translatable="false">[+] Sending WSC_NACK response</string>
+    <string name="pixie_log_deauth_reason" translatable="false">[!] Deauthenticated reason: %1$s</string>
+    <string name="pixie_log_enrollee_nonce" translatable="false">[+] Enrollee Nonce found</string>
+    <string name="pixie_log_own_public_key" translatable="false">[+] Own Public Key found</string>
+    <string name="pixie_log_peer_public_key" translatable="false">[+] Peer Public Key found</string>
+    <string name="pixie_log_authkey" translatable="false">[+] AuthKey found</string>
+    <string name="pixie_log_e_hash1" translatable="false">[+] E-Hash1 found</string>
+    <string name="pixie_log_e_hash2" translatable="false">[+] E-Hash2 found</string>
+    <string name="pixie_log_psk1" translatable="false">[+] PSK1 found</string>
+    <string name="pixie_log_psk2" translatable="false">[+] PSK2 found</string>
+    <string name="pixie_log_r_s1" translatable="false">[+] R-S1 found</string>
+    <string name="pixie_log_r_s2" translatable="false">[+] R-S2 found</string>
+    <string name="pixie_log_r_hash1" translatable="false">[+] R-Hash1 found</string>
+    <string name="pixie_log_r_hash2" translatable="false">[+] R-Hash2 found</string>
+    <string name="pixie_log_all_data_collected" translatable="false">[+++] All required pixie data collected successfully!</string>
+    <string name="pixie_log_starting_pixiewps" translatable="false">[+] Starting PixieWps computing</string>
+    <string name="pixie_log_pin_not_found" translatable="false">[-] WPS pin not found!</string>
+    <string name="pixie_log_time_taken" translatable="false">[*] Time taken: %1$s</string>
+    <string name="pixie_log_possibly_not_vulnerable" translatable="false">[!] Possible point not vulnerable, locked or has a bad signal</string>
+    <string name="pixie_log_wps_cycle_started" translatable="false">[+] New WPS cycle started</string>
+    <string name="pixie_log_wps_cycle_ended" translatable="false">[+] WPS cycle ended</string>
+    <string name="pixie_log_connection_lost" translatable="false">[-] DISCONNECTED, retrying…</string>
+    <string name="pixie_log_connected_to_ap" translatable="false">[+] Connected to AP</string>
+
+    <string name="wps_config_error_0" translatable="false">No error</string>
+    <string name="wps_config_error_1" translatable="false">OOB Interface Read Error</string>
+    <string name="wps_config_error_2" translatable="false">Decryption CRC Failure</string>
+    <string name="wps_config_error_3" translatable="false">2.4 channel not supported</string>
+    <string name="wps_config_error_4" translatable="false">5.0 channel not supported</string>
+    <string name="wps_config_error_5" translatable="false">Signal too weak</string>
+    <string name="wps_config_error_6" translatable="false">Network auth failure</string>
+    <string name="wps_config_error_7" translatable="false">Network association failure</string>
+    <string name="wps_config_error_8" translatable="false">No DHCP response</string>
+    <string name="wps_config_error_9" translatable="false">Failed DHCP config</string>
+    <string name="wps_config_error_10" translatable="false">IP address conflict</string>
+    <string name="wps_config_error_11" translatable="false">Could not connect to registrar</string>
+    <string name="wps_config_error_12" translatable="false">Multiple PBC sessions detected</string>
+    <string name="wps_config_error_13" translatable="false">Rogue activity suspected</string>
+    <string name="wps_config_error_14" translatable="false">Device busy</string>
+    <string name="wps_config_error_15" translatable="false">Setup locked</string>
+    <string name="wps_config_error_16" translatable="false">Message timeout</string>
+    <string name="wps_config_error_17" translatable="false">Registration session timeout</string>
+    <string name="wps_config_error_18" translatable="false">Device password authentication failure</string>
+    <string name="wps_config_error_default" translatable="false">Unknown error (code %1$d)</string>
 
 </resources>
