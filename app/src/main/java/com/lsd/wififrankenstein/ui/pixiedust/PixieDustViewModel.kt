@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 
 class PixieDustViewModel(application: Application) : AndroidViewModel(application), PixieDustHelper.PixieDustCallbacks {
 
-    private val wifiManager = application.getSystemService(Context.WIFI_SERVICE) as WifiManager
+    private val wifiManager = application.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     private lateinit var pixieHelper: PixieDustHelper
 
     private val _wpsNetworks = MutableLiveData<List<WpsNetwork>>()
@@ -42,12 +42,16 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
     private val _logEntries = MutableLiveData<List<LogEntry>>(emptyList())
     val logEntries: LiveData<List<LogEntry>> = _logEntries
 
-    private var wpsTimeout = 40000L
+    private val _isCopyingBinaries = MutableLiveData<Boolean>(false)
+    val isCopyingBinaries: LiveData<Boolean> = _isCopyingBinaries
+
+    private val _isCleaningBinaries = MutableLiveData<Boolean>(false)
+    val isCleaningBinaries: LiveData<Boolean> = _isCleaningBinaries
+
     private var extractionTimeout = 30000L
     private var computationTimeout = 300000L
 
     private var useAggressiveCleanup = false
-
 
     init {
         pixieHelper = PixieDustHelper(getApplication(), this)
@@ -64,30 +68,13 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
             if (hasRoot) {
                 _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_checking_binaries))
 
-                var hasBinaries = pixieHelper.checkBinaryFiles()
+                val hasBinaries = pixieHelper.checkBinaryFiles()
                 _binariesReady.postValue(hasBinaries)
 
-                if (!hasBinaries) {
-                    _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_preparing_binaries))
-
-                    try {
-                        pixieHelper.copyBinariesFromAssets()
-                        delay(5000)
-
-                        hasBinaries = pixieHelper.checkBinaryFiles()
-                        _binariesReady.postValue(hasBinaries)
-
-                        if (hasBinaries) {
-                            _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binaries_ready))
-                        } else {
-                            _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binary_files_not_available))
-                        }
-                    } catch (e: Exception) {
-                        Log.e("PixieDustViewModel", "Error during binary setup", e)
-                        _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_error_copying_binaries))
-                    }
-                } else {
+                if (hasBinaries) {
                     _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binaries_ready))
+                } else {
+                    _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binary_files_not_available))
                 }
             } else {
                 _binariesReady.postValue(false)
@@ -96,24 +83,63 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun copyBinariesManually() {
+        if (pixieHelper.isCopyingBinaries()) {
+            Log.w("PixieDustViewModel", "Binary copying already in progress")
+            return
+        }
+
+        _isCopyingBinaries.value = true
+        pixieHelper.copyBinariesFromAssets()
+
+        viewModelScope.launch {
+            delay(1000)
+            while (pixieHelper.isCopyingBinaries()) {
+                delay(500)
+            }
+            _isCopyingBinaries.value = false
+
+            delay(1000)
+            val hasBinaries = pixieHelper.checkBinaryFiles()
+            _binariesReady.value = hasBinaries
+        }
+    }
+
     fun setAggressiveCleanup(enabled: Boolean) {
         useAggressiveCleanup = enabled
         pixieHelper.setAggressiveCleanup(enabled)
     }
 
+    fun setExtractionTimeout(timeout: Long) {
+        extractionTimeout = timeout
+    }
+
+    fun setComputationTimeout(timeout: Long) {
+        computationTimeout = timeout
+    }
+
+    fun getExtractionTimeout() = extractionTimeout
+    fun getComputationTimeout() = computationTimeout
+
     fun cleanupBinaries() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_cleaning_binaries))
+        if (pixieHelper.isCleaningBinaries()) {
+            Log.w("PixieDustViewModel", "Binary cleanup already in progress")
+            return
+        }
 
-            pixieHelper.cleanupAllBinaries()
-            delay(3000)
+        _isCleaningBinaries.value = true
+        pixieHelper.cleanupAllBinaries()
 
-            val hasBinaries = pixieHelper.checkBinaryFiles()
-            _binariesReady.postValue(hasBinaries)
-
-            if (!hasBinaries) {
-                _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binaries_cleaned))
+        viewModelScope.launch {
+            delay(1000)
+            while (pixieHelper.isCleaningBinaries()) {
+                delay(500)
             }
+            _isCleaningBinaries.value = false
+
+            delay(1000)
+            val hasBinaries = pixieHelper.checkBinaryFiles()
+            _binariesReady.value = hasBinaries
         }
     }
 
@@ -130,22 +156,6 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun setWpsTimeout(timeout: Long) {
-        wpsTimeout = timeout
-    }
-
-    fun setExtractionTimeout(timeout: Long) {
-        extractionTimeout = timeout
-    }
-
-    fun setComputationTimeout(timeout: Long) {
-        computationTimeout = timeout
-    }
-
-    fun getWpsTimeout() = wpsTimeout
-    fun getExtractionTimeout() = extractionTimeout
-    fun getComputationTimeout() = computationTimeout
-
     fun scanForWpsNetworks() {
         if (_isScanning.value == true) return
 
@@ -154,6 +164,7 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             try {
+                @Suppress("DEPRECATION")
                 if (!wifiManager.isWifiEnabled) {
                     _progressMessage.value = "WiFi is disabled"
                     _isScanning.value = false
@@ -245,10 +256,20 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
             return
         }
 
-        pixieHelper.startPixieAttack(network, wpsTimeout, extractionTimeout, computationTimeout)
+        if (pixieHelper.isAttackRunning()) {
+            Log.w("PixieDustViewModel", "Attack already running")
+            return
+        }
+
+        pixieHelper.startPixieAttack(network, extractionTimeout, computationTimeout)
     }
 
     fun stopAttack() {
+        if (pixieHelper.isStoppingAttack()) {
+            Log.w("PixieDustViewModel", "Attack stopping already in progress")
+            return
+        }
+
         pixieHelper.stopAttack()
     }
 

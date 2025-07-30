@@ -95,11 +95,6 @@ class PixieDustFragment : Fragment() {
             viewModel.setAggressiveCleanup(isChecked)
         }
 
-        binding.sliderWpsTimeout.addOnChangeListener { _, value, _ ->
-            binding.textWpsTimeout.text = value.toInt().toString()
-            viewModel.setWpsTimeout(value.toLong() * 1000)
-        }
-
         binding.sliderExtractionTimeout.addOnChangeListener { _, value, _ ->
             binding.textExtractionTimeout.text = value.toInt().toString()
             viewModel.setExtractionTimeout(value.toLong() * 1000)
@@ -116,6 +111,10 @@ class PixieDustFragment : Fragment() {
 
         binding.buttonCleanupBinaries.setOnClickListener {
             showCleanupConfirmationDialog()
+        }
+
+        binding.buttonCopyBinaries.setOnClickListener {
+            viewModel.copyBinariesManually()
         }
 
         binding.buttonScanNetworks.setOnClickListener {
@@ -177,20 +176,16 @@ class PixieDustFragment : Fragment() {
     }
 
     private fun resetToDefaults() {
-
         binding.switchAggressiveCleanup.isChecked = false
         useAggressiveCleanup = false
         viewModel.setAggressiveCleanup(false)
 
-        binding.sliderWpsTimeout.value = 40f
         binding.sliderExtractionTimeout.value = 30f
         binding.sliderComputationTimeout.value = 300f
 
-        binding.textWpsTimeout.text = "40"
         binding.textExtractionTimeout.text = "30"
         binding.textComputationTimeout.text = "300"
 
-        viewModel.setWpsTimeout(40000)
         viewModel.setExtractionTimeout(30000)
         viewModel.setComputationTimeout(300000)
     }
@@ -243,6 +238,24 @@ class PixieDustFragment : Fragment() {
             updateSystemStatus()
         }
 
+        viewModel.isCopyingBinaries.observe(viewLifecycleOwner) { isCopying ->
+            binding.buttonCopyBinaries.isEnabled = !isCopying
+            binding.buttonCopyBinaries.text = if (isCopying) {
+                getString(R.string.pixiedust_copying_binaries)
+            } else {
+                getString(R.string.pixiedust_copy_binaries)
+            }
+        }
+
+        viewModel.isCleaningBinaries.observe(viewLifecycleOwner) { isCleaning ->
+            binding.buttonCleanupBinaries.isEnabled = !isCleaning
+            binding.buttonCleanupBinaries.text = if (isCleaning) {
+                getString(R.string.pixiedust_cleaning_binaries)
+            } else {
+                getString(R.string.pixiedust_cleanup_binaries)
+            }
+        }
+
         viewModel.logEntries.observe(viewLifecycleOwner) { logEntries ->
             logAdapter.submitList(logEntries) {
                 if (logEntries.isNotEmpty()) {
@@ -280,6 +293,8 @@ class PixieDustFragment : Fragment() {
         binding.iconBinaryStatus.setImageResource(
             if (hasBinaries) R.drawable.ic_check else R.drawable.ic_close
         )
+
+        binding.buttonCopyBinaries.visibility = if (hasBinaries) View.GONE else View.VISIBLE
 
         val canAttack = hasRoot && hasBinaries && hasSelectedNetwork
         val isIdle = attackState is PixieAttackState.Idle

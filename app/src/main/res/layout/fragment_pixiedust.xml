@@ -136,6 +136,16 @@
 
                 </LinearLayout>
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonCopyBinaries"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/pixiedust_copy_binaries"
+                    android:visibility="gone"
+                    app:icon="@drawable/ic_file_download" />
+
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
@@ -256,55 +266,6 @@
                     android:layout_marginTop="16dp"
                     android:orientation="vertical"
                     android:visibility="gone">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/pixiedust_wps_timeout"
-                        android:textAppearance="?attr/textAppearanceBody1"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/pixiedust_wps_timeout_desc"
-                        android:textAppearance="?attr/textAppearanceCaption" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <com.google.android.material.slider.Slider
-                            android:id="@+id/sliderWpsTimeout"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:valueFrom="10"
-                            android:valueTo="120"
-                            android:value="40"
-                            android:stepSize="5" />
-
-                        <TextView
-                            android:id="@+id/textWpsTimeout"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="40"
-                            android:textAppearance="?attr/textAppearanceBody2"
-                            android:minWidth="48dp"
-                            android:gravity="center" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/pixiedust_seconds"
-                            android:textAppearance="?attr/textAppearanceCaption" />
-
-                    </LinearLayout>
 
                     <TextView
                         android:layout_width="match_parent"

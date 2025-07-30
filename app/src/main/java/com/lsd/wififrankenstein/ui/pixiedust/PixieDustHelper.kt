@@ -28,14 +28,16 @@ class PixieDustHelper(
         private const val TAG = "PixieDustHelper"
         private const val CONFIG_FILE = "wpa_supplicant.conf"
         private const val DEFAULT_PIN = "12345670"
-        private const val TIMEOUT = 40000L
-        private const val APP_PACKAGE = "com.lsd.wififrankenstein"
     }
 
     private var attackJob: Job? = null
+    private var copyingJob: Job? = null
+    private var cleanupJob: Job? = null
+    private var stoppingJob: Job? = null
+
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val binaryDir = context.filesDir.absolutePath
-    private val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+    private val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
     private var supplicantProcess: Process? = null
     private var supplicantOutput: BufferedReader? = null
@@ -64,24 +66,208 @@ class PixieDustHelper(
     }
 
     fun checkBinaryFiles(): Boolean {
-        val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
-        val requiredBinaries = listOf(
-            "wpa_supplicant$arch",
-            "wpa_cli$arch",
-            "pixiedust$arch",
-            CONFIG_FILE
-        )
+        return try {
+            Log.d(TAG, "Starting comprehensive binary files check with symlink diagnostics")
 
-        return requiredBinaries.all { fileName ->
-            val file = java.io.File(binaryDir, fileName)
-            val exists = file.exists() && file.canRead() && file.length() > 0
-            Log.d(TAG, "Binary $fileName: exists=$exists, size=${file.length()}")
-            exists
+            val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
+
+            val requiredBinaries = listOf(
+                "wpa_supplicant$arch",
+                "wpa_cli$arch",
+                "pixiedust$arch",
+                "wpa_supplicant.conf"
+            )
+
+            val criticalLibraries = if (arch.isEmpty()) {
+                listOf(
+                    "libssl.so.1.1",
+                    "libssl.so.3",
+                    "libcrypto.so.1.1",
+                    "libcrypto.so.3",
+                    "libnl-3.so",
+                    "libnl-genl-3.so"
+                )
+            } else {
+                listOf(
+                    "libssl.so.1.1",
+                    "libssl.so.3",
+                    "libcrypto.so.1.1",
+                    "libcrypto.so.3",
+                    "libnl-3.so-32",
+                    "libnl-genl-3.so-32"
+                )
+            }
+
+            val optionalLibraries = listOf(
+                "libnl-route-3.so"
+            )
+
+            val criticalSymlinks = if (arch.isEmpty()) {
+                emptyList()
+            } else {
+                listOf(
+                    "libnl-3.so",
+                    "libnl-genl-3.so"
+                )
+            }
+
+            val optionalSymlinks = emptyList<String>()
+
+            Log.d(TAG, "Checking ${requiredBinaries.size} binaries, ${criticalLibraries.size} critical + ${optionalLibraries.size} optional libraries, ${criticalSymlinks.size} critical + ${optionalSymlinks.size} optional symlinks")
+
+            var allFilesOk = true
+            var criticalMissing = false
+
+            requiredBinaries.forEach { fileName ->
+                val file = java.io.File(binaryDir, fileName)
+                val exists = file.exists()
+                val readable = exists && file.canRead()
+                val executable = exists && file.canExecute()
+                val size = if (exists) file.length() else 0
+
+                val status = when {
+                    !exists -> {
+                        criticalMissing = true
+                        "MISSING"
+                    }
+                    size == 0L -> {
+                        criticalMissing = true
+                        "EMPTY"
+                    }
+                    !readable -> {
+                        criticalMissing = true
+                        "NOT_READABLE"
+                    }
+                    fileName.contains("wpa_supplicant") && !executable -> {
+                        criticalMissing = true
+                        "NOT_EXECUTABLE"
+                    }
+                    else -> "OK"
+                }
+
+                Log.d(TAG, "Binary $fileName: $status, size=$size, readable=$readable, executable=$executable")
+
+                if (status != "OK") {
+                    allFilesOk = false
+                }
+            }
+
+            criticalLibraries.forEach { fileName ->
+                val file = java.io.File(binaryDir, fileName)
+                val exists = file.exists()
+                val size = if (exists) file.length() else 0
+                val readable = exists && file.canRead()
+
+                val status = when {
+                    !exists -> "MISSING_CRITICAL"
+                    size == 0L -> "EMPTY_CRITICAL"
+                    !readable -> "NOT_READABLE_CRITICAL"
+                    else -> "OK"
+                }
+
+                Log.d(TAG, "Critical library $fileName: $status, size=$size, readable=$readable")
+
+                if (status.contains("CRITICAL")) {
+                    criticalMissing = true
+                    allFilesOk = false
+                }
+            }
+
+            optionalLibraries.forEach { fileName ->
+                val file = java.io.File(binaryDir, fileName)
+                val exists = file.exists()
+                val size = if (exists) file.length() else 0
+                val readable = exists && file.canRead()
+
+                val status = when {
+                    !exists -> "MISSING_OPTIONAL"
+                    size == 0L -> "EMPTY_OPTIONAL"
+                    !readable -> "NOT_READABLE_OPTIONAL"
+                    else -> "OK"
+                }
+
+                Log.d(TAG, "Optional library $fileName: $status, size=$size, readable=$readable")
+            }
+
+            Log.d(TAG, "=== SYMLINK DIAGNOSTICS ===")
+
+            criticalSymlinks.forEach { linkName ->
+                val symlinkStatus = checkSymlinkHealth(linkName)
+                Log.d(TAG, "Critical symlink $linkName: $symlinkStatus")
+
+                if (symlinkStatus.contains("BROKEN") || symlinkStatus.contains("MISSING") || symlinkStatus.contains("LOOP")) {
+                    Log.e(TAG, "CRITICAL SYMLINK ISSUE: $linkName is $symlinkStatus")
+                    allFilesOk = false
+                    criticalMissing = true
+                }
+            }
+
+            optionalSymlinks.forEach { linkName ->
+                val symlinkStatus = checkSymlinkHealth(linkName)
+                Log.d(TAG, "Optional symlink $linkName: $symlinkStatus")
+            }
+
+            Log.d(TAG, "=== END SYMLINK DIAGNOSTICS ===")
+
+            Log.d(TAG, "Binary files check result: allFilesOk=$allFilesOk, criticalMissing=$criticalMissing")
+
+            allFilesOk && !criticalMissing
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during binary files check", e)
+            false
+        }
+    }
+
+    private fun checkSymlinkHealth(linkName: String): String {
+        return try {
+            val linkPath = "$binaryDir/$linkName"
+
+            val existsResult = Shell.cmd("test -e $linkPath && echo 'EXISTS' || echo 'MISSING'").exec()
+            if (existsResult.out.contains("MISSING")) {
+                return "MISSING"
+            }
+
+            val isLinkResult = Shell.cmd("test -L $linkPath && echo 'SYMLINK' || echo 'NOT_SYMLINK'").exec()
+            if (isLinkResult.out.contains("NOT_SYMLINK")) {
+                return "NOT_SYMLINK"
+            }
+
+            val targetExistsResult = Shell.cmd("test -e $linkPath && echo 'TARGET_EXISTS' || echo 'TARGET_MISSING'").exec()
+            if (targetExistsResult.out.contains("TARGET_MISSING")) {
+                return "BROKEN_TARGET"
+            }
+
+            val realPathResult = Shell.cmd("readlink -f $linkPath 2>/dev/null || echo 'CANNOT_RESOLVE'").exec()
+            if (realPathResult.out.contains("CANNOT_RESOLVE")) {
+                return "LOOP_OR_ERROR"
+            }
+
+            val finalPath = realPathResult.out.joinToString().trim()
+            val readableResult = Shell.cmd("test -r '$finalPath' && echo 'READABLE' || echo 'NOT_READABLE'").exec()
+            if (readableResult.out.contains("NOT_READABLE")) {
+                return "TARGET_NOT_READABLE"
+            }
+
+            val linkInfoResult = Shell.cmd("ls -la $linkPath").exec()
+            val linkInfo = linkInfoResult.out.joinToString()
+            Log.d(TAG, "Symlink $linkName info: $linkInfo -> $finalPath")
+
+            "OK"
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking symlink $linkName: ${e.message}", e)
+            "CHECK_ERROR"
         }
     }
 
     fun copyBinariesFromAssets() {
-        scope.launch {
+        if (copyingJob?.isActive == true) {
+            Log.w(TAG, "Binary copying already in progress")
+            return
+        }
+
+        copyingJob = scope.launch {
             try {
                 callbacks.onProgressUpdate(context.getString(R.string.pixiedust_copying_binaries))
 
@@ -93,15 +279,27 @@ class PixieDustHelper(
                     CONFIG_FILE
                 )
 
-                val libraries = listOf(
-                    "libssl.so.1.1",
-                    "libssl.so.3",
-                    "libcrypto.so.1.1",
-                    "libcrypto.so.3",
-                    "libnl-3.so$arch",
-                    "libnl-genl-3.so$arch",
-                    "libnl-route-3.so$arch"
-                )
+                val libraries = if (arch.isEmpty()) {
+                    listOf(
+                        "libssl.so.1.1",
+                        "libssl.so.3",
+                        "libcrypto.so.1.1",
+                        "libcrypto.so.3",
+                        "libnl-3.so",
+                        "libnl-genl-3.so",
+                        "libnl-route-3.so"
+                    )
+                } else {
+                    listOf(
+                        "libssl.so.1.1",
+                        "libssl.so.3",
+                        "libcrypto.so.1.1",
+                        "libcrypto.so.3",
+                        "libnl-3.so-32",
+                        "libnl-genl-3.so-32",
+                        "libnl-route-3.so"
+                    )
+                }
 
                 binaries.forEach { fileName ->
                     if (copyAssetToInternalStorage(fileName, fileName)) {
@@ -114,31 +312,69 @@ class PixieDustHelper(
                     Shell.cmd("chmod 755 $binaryDir/$libName").exec()
                 }
 
-                createLibrarySymlinks()
+                if (arch.isNotEmpty()) {
+                    createLibrarySymlinks()
+                }
                 callbacks.onProgressUpdate(context.getString(R.string.pixiedust_binaries_ready))
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error copying binaries", e)
                 callbacks.onAttackFailed(context.getString(R.string.pixiedust_error_copying_binaries), -10)
+            } finally {
+                copyingJob = null
             }
+        }
+    }
+
+    private fun createLibrarySymlinks() {
+        val symlinkConfigs = listOf(
+            Pair("libnl-3.so-32", "libnl-3.so"),
+            Pair("libnl-genl-3.so-32", "libnl-genl-3.so")
+        )
+
+        symlinkConfigs.forEach { (sourceFile, linkName) ->
+            createSafeSymlink(sourceFile, linkName)
+        }
+    }
+
+    private fun createSafeSymlink(sourceFile: String, linkName: String) {
+        try {
+            val sourcePath = "$binaryDir/$sourceFile"
+            val linkPath = "$binaryDir/$linkName"
+
+            val sourceExists = Shell.cmd("test -f $sourcePath && echo 'EXISTS' || echo 'MISSING'").exec()
+            if (sourceExists.out.contains("MISSING")) {
+                Log.w(TAG, "Source file missing for symlink: $sourceFile")
+                return
+            }
+
+            Shell.cmd("rm -f $linkPath").exec()
+
+            val createResult = Shell.cmd("cd $binaryDir && ln -sf $sourceFile $linkName").exec()
+
+            if (createResult.isSuccess) {
+                val verifyResult = Shell.cmd("test -L $linkPath && test -e $linkPath && echo 'VALID' || echo 'INVALID'").exec()
+
+                if (verifyResult.out.contains("VALID")) {
+                    Log.d(TAG, "✓ Created valid symlink: $linkName -> $sourceFile")
+
+                    val linkInfo = Shell.cmd("ls -la $linkPath").exec()
+                    Log.d(TAG, "Symlink info: ${linkInfo.out.joinToString()}")
+                } else {
+                    Log.e(TAG, "✗ Created invalid symlink: $linkName")
+                    Shell.cmd("rm -f $linkPath").exec()
+                }
+            } else {
+                Log.e(TAG, "✗ Failed to create symlink: $linkName -> $sourceFile")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating symlink $linkName: ${e.message}", e)
         }
     }
 
     fun setAggressiveCleanup(enabled: Boolean) {
         useAggressiveCleanup = enabled
-    }
-
-    private fun createLibrarySymlinks() {
-        val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
-        val symlinkCommands = listOf(
-            "cd $binaryDir && ln -sf libnl-3.so$arch libnl-3.so",
-            "cd $binaryDir && ln -sf libnl-genl-3.so$arch libnl-genl-3.so",
-            "cd $binaryDir && ln -sf libnl-route-3.so$arch libnl-route-3.so"
-        )
-
-        symlinkCommands.forEach { command ->
-            Shell.cmd(command).exec()
-        }
     }
 
     private fun copyAssetToInternalStorage(assetName: String, fileName: String): Boolean {
@@ -155,13 +391,7 @@ class PixieDustHelper(
         }
     }
 
-    fun startPixieAttack(network: WpsNetwork, wpsTimeout: Long = 40000L, extractionTimeout: Long = 30000L, computationTimeout: Long = 300000L) {
-        pixieData.clear()
-        pixieDataProgress = 0
-        wpsProcessStarted = false
-        notVulnerableWarningShown = false
-        currentBssid = ""
-        currentEssid = ""
+    fun startPixieAttack(network: WpsNetwork, extractionTimeout: Long = 30000L, computationTimeout: Long = 300000L) {
         if (attackJob?.isActive == true) {
             Log.w(TAG, "Attack already in progress")
             return
@@ -169,6 +399,10 @@ class PixieDustHelper(
 
         pixieData.clear()
         pixieDataProgress = 0
+        wpsProcessStarted = false
+        notVulnerableWarningShown = false
+        currentBssid = ""
+        currentEssid = ""
 
         attackJob = scope.launch {
             try {
@@ -215,7 +449,7 @@ class PixieDustHelper(
                 performWpsRegistration(network, socketDir)
                 delay(8000)
 
-                val attackData = extractPixieData()
+                val attackData = extractPixieData(extractionTimeout)
                 if (attackData == null) {
                     Log.w(TAG, "Failed to extract complete pixie data set")
                     forceStopAllProcesses()
@@ -226,7 +460,7 @@ class PixieDustHelper(
                 callbacks.onStateChanged(PixieAttackState.RunningAttack)
                 callbacks.onProgressUpdate(context.getString(R.string.pixiedust_computing_pin))
 
-                val pin = executePixieAttack(attackData)
+                val pin = executePixieAttack(attackData, computationTimeout)
                 val duration = System.currentTimeMillis() - startTime
 
                 val result = PixieResult(
@@ -253,6 +487,8 @@ class PixieDustHelper(
                 cleanupAfterAttack()
                 callbacks.onLogEntry(LogEntry("Attack failed: ${e.message}", LogColorType.ERROR))
                 callbacks.onAttackFailed(context.getString(R.string.pixiedust_attack_error, e.message ?: "Unknown"), -5)
+            } finally {
+                attackJob = null
             }
         }
     }
@@ -374,75 +610,330 @@ class PixieDustHelper(
     }
 
     fun cleanupAllBinaries() {
-        scope.launch {
+        if (cleanupJob?.isActive == true) {
+            Log.w(TAG, "Binary cleanup already in progress")
+            return
+        }
+
+        cleanupJob = scope.launch {
             try {
                 callbacks.onProgressUpdate(context.getString(R.string.pixiedust_cleaning_binaries))
                 callbacks.onLogEntry(LogEntry("=== CLEANING ALL BINARIES ===", LogColorType.INFO))
 
-                forceStopAllProcesses()
+                callbacks.onLogEntry(LogEntry("Phase 1: Ensuring our processes are stopped", LogColorType.INFO))
+                ensureOurProcessesStopped()
                 delay(2000)
 
-                val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
-                val filesToRemove = listOf(
-                    "wpa_supplicant$arch",
-                    "wpa_cli$arch",
-                    "pixiedust$arch",
-                    CONFIG_FILE,
-                    "temp_isolated_config.txt",
-                    "libssl.so.1.1",
-                    "libssl.so.3",
-                    "libcrypto.so.1.1",
-                    "libcrypto.so.3",
-                    "libnl-3.so$arch",
-                    "libnl-genl-3.so$arch",
-                    "libnl-route-3.so$arch",
-                    "libnl-3.so",
-                    "libnl-genl-3.so",
-                    "libnl-route-3.so"
-                )
+                callbacks.onLogEntry(LogEntry("Phase 2: Unlocking our files", LogColorType.INFO))
+                unlockOurFiles()
+                delay(1000)
 
-                callbacks.onLogEntry(LogEntry("Removing binary files...", LogColorType.INFO))
-                filesToRemove.forEach { fileName ->
-                    try {
-                        val file = java.io.File(binaryDir, fileName)
-                        if (file.exists()) {
-                            file.delete()
-                            callbacks.onLogEntry(LogEntry("Removed: $fileName", LogColorType.SUCCESS))
-                        }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to remove $fileName", e)
-                    }
-                }
+                callbacks.onLogEntry(LogEntry("Phase 3: Removing broken symlinks", LogColorType.INFO))
+                removeOurSymlinks()
+                delay(500)
 
-                callbacks.onLogEntry(LogEntry("Removing symlinks...", LogColorType.INFO))
-                val symlinkCommands = listOf(
-                    "rm -f $binaryDir/libnl-3.so",
-                    "rm -f $binaryDir/libnl-genl-3.so",
-                    "rm -f $binaryDir/libnl-route-3.so"
-                )
+                callbacks.onLogEntry(LogEntry("Phase 4: Removing our binary files", LogColorType.INFO))
+                removeOurBinaryFiles()
+                delay(500)
 
-                symlinkCommands.forEach { command ->
-                    Shell.cmd(command).exec()
-                }
+                callbacks.onLogEntry(LogEntry("Phase 5: Cleaning our temporary directories", LogColorType.INFO))
+                cleanOurTemporaryDirectories()
+                delay(500)
 
-                callbacks.onLogEntry(LogEntry("Cleaning isolated directories...", LogColorType.INFO))
-                val cleanupCommands = listOf(
-                    "rm -rf $binaryDir/isolated_config/",
-                    "rm -rf /data/misc/wifi/wififrankenstein/",
-                    "rm -rf /data/vendor/wifi/wpa/wififrankenstein/"
-                )
+                callbacks.onLogEntry(LogEntry("Phase 6: Restoring directory permissions", LogColorType.INFO))
+                restoreOurDirectoryPermissions()
+                delay(500)
 
-                cleanupCommands.forEach { command ->
-                    Shell.cmd(command).exec()
-                }
+                callbacks.onLogEntry(LogEntry("Phase 7: Final verification", LogColorType.INFO))
+                performFinalBinaryVerification()
 
-                callbacks.onLogEntry(LogEntry("=== CLEANUP COMPLETED ===", LogColorType.SUCCESS))
+                callbacks.onLogEntry(LogEntry("=== BINARY CLEANUP COMPLETED ===", LogColorType.SUCCESS))
                 callbacks.onProgressUpdate(context.getString(R.string.pixiedust_cleanup_completed))
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error during binary cleanup", e)
                 callbacks.onLogEntry(LogEntry("Cleanup error: ${e.message}", LogColorType.ERROR))
                 callbacks.onProgressUpdate(context.getString(R.string.pixiedust_cleanup_error))
+            } finally {
+                cleanupJob = null
+            }
+        }
+    }
+
+    private suspend fun ensureOurProcessesStopped() {
+        withContext(Dispatchers.IO) {
+            try {
+                try {
+                    supplicantProcess?.destroy()
+                    supplicantOutput?.close()
+                    supplicantProcess = null
+                    supplicantOutput = null
+                    callbacks.onLogEntry(LogEntry("✓ Closed our process handles", LogColorType.SUCCESS))
+                } catch (_: Exception) {
+                    callbacks.onLogEntry(LogEntry("ℹ Process handles already closed", LogColorType.INFO))
+                }
+
+                val ourProcesses = Shell.cmd("ps aux | grep $binaryDir | grep -v grep").exec()
+                if (ourProcesses.out.isNotEmpty()) {
+                    callbacks.onLogEntry(LogEntry("Found ${ourProcesses.out.size} processes using our directory:", LogColorType.INFO))
+                    ourProcesses.out.forEach { process ->
+                        callbacks.onLogEntry(LogEntry("  $process", LogColorType.INFO))
+                    }
+
+                    val killResult = Shell.cmd("pkill -9 -f $binaryDir").exec()
+                    if (killResult.isSuccess) {
+                        callbacks.onLogEntry(LogEntry("✓ Terminated our processes", LogColorType.SUCCESS))
+                    }
+                } else {
+                    callbacks.onLogEntry(LogEntry("✓ No processes using our directory", LogColorType.SUCCESS))
+                }
+
+            } catch (e: Exception) {
+                callbacks.onLogEntry(LogEntry("Process cleanup error: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+    private suspend fun unlockOurFiles() {
+        withContext(Dispatchers.IO) {
+            try {
+                val lockedFiles = Shell.cmd("lsof $binaryDir/* 2>/dev/null || echo 'No locked files'").exec()
+
+                if (lockedFiles.out.any { !it.contains("No locked files") && it.isNotBlank() }) {
+                    callbacks.onLogEntry(LogEntry("Found locked files in our directory:", LogColorType.INFO))
+                    lockedFiles.out.forEach { line ->
+                        if (!line.contains("No locked files") && line.isNotBlank()) {
+                            callbacks.onLogEntry(LogEntry("  $line", LogColorType.INFO))
+                        }
+                    }
+
+                    Shell.cmd("fuser -k $binaryDir/* 2>/dev/null || true").exec()
+                    delay(1000)
+
+                    callbacks.onLogEntry(LogEntry("✓ Unlocked our files", LogColorType.SUCCESS))
+                } else {
+                    callbacks.onLogEntry(LogEntry("✓ No locked files in our directory", LogColorType.SUCCESS))
+                }
+
+                val ourSocketDirs = listOf(
+                    "/data/vendor/wifi/wpa/wififrankenstein/",
+                    "/data/misc/wifi/wififrankenstein/"
+                )
+
+                ourSocketDirs.forEach { dir ->
+                    val result = Shell.cmd("rm -rf $dir").exec()
+                    if (result.isSuccess) {
+                        callbacks.onLogEntry(LogEntry("✓ Cleaned our socket directory: $dir", LogColorType.SUCCESS))
+                    }
+                }
+
+            } catch (e: Exception) {
+                callbacks.onLogEntry(LogEntry("File unlock error: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+    private suspend fun removeOurSymlinks() {
+        withContext(Dispatchers.IO) {
+            try {
+                val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
+                val ourSymlinks = if (arch.isEmpty()) {
+                    emptyList()
+                } else {
+                    listOf(
+                        "libnl-3.so",
+                        "libnl-genl-3.so"
+                    )
+                }
+
+                ourSymlinks.forEach { linkName ->
+                    val linkPath = "$binaryDir/$linkName"
+
+                    val exists = Shell.cmd("test -e $linkPath && echo 'EXISTS' || echo 'NOT_EXISTS'").exec()
+
+                    if (exists.out.contains("EXISTS")) {
+                        val linkInfo = Shell.cmd("ls -la $linkPath 2>/dev/null || echo 'Cannot read'").exec()
+                        callbacks.onLogEntry(LogEntry("Symlink $linkName: ${linkInfo.out.joinToString()}", LogColorType.INFO))
+
+                        val removeResult = Shell.cmd("rm -f $linkPath").exec()
+                        if (removeResult.isSuccess) {
+                            callbacks.onLogEntry(LogEntry("✓ Removed symlink: $linkName", LogColorType.SUCCESS))
+                        } else {
+                            callbacks.onLogEntry(LogEntry("⚠ Failed to remove symlink: $linkName", LogColorType.ERROR))
+                        }
+                    } else {
+                        callbacks.onLogEntry(LogEntry("ℹ Symlink not found: $linkName", LogColorType.INFO))
+                    }
+                }
+
+            } catch (e: Exception) {
+                callbacks.onLogEntry(LogEntry("Symlink cleanup error: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+    private suspend fun removeOurBinaryFiles() {
+        withContext(Dispatchers.IO) {
+            try {
+                val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
+                val filesToRemove = mutableListOf(
+                    "wpa_supplicant$arch",
+                    "wpa_cli$arch",
+                    "pixiedust$arch",
+                    "wpa_supplicant.conf",
+                    "libssl.so.1.1",
+                    "libssl.so.3",
+                    "libcrypto.so.1.1",
+                    "libcrypto.so.3",
+                    "libnl-route-3.so",
+                    "temp_isolated_config.txt",
+                    "wpa_supplicant.pid"
+                )
+
+                if (arch.isEmpty()) {
+                    filesToRemove.addAll(listOf(
+                        "libnl-3.so",
+                        "libnl-genl-3.so"
+                    ))
+                } else {
+                    filesToRemove.addAll(listOf(
+                        "libnl-3.so-32",
+                        "libnl-genl-3.so-32",
+                        "libnl-3.so",        // symlink
+                        "libnl-genl-3.so"   // symlink
+                    ))
+                }
+
+                var removedCount = 0
+                var notFoundCount = 0
+
+                filesToRemove.forEach { fileName ->
+                    try {
+                        val file = java.io.File(binaryDir, fileName)
+                        if (file.exists()) {
+                            Shell.cmd("chmod 666 $binaryDir/$fileName 2>/dev/null || true").exec()
+
+                            if (file.delete()) {
+                                callbacks.onLogEntry(LogEntry("✓ Removed: $fileName", LogColorType.SUCCESS))
+                                removedCount++
+                            } else {
+                                val shellResult = Shell.cmd("rm -f $binaryDir/$fileName").exec()
+                                if (shellResult.isSuccess) {
+                                    callbacks.onLogEntry(LogEntry("✓ Force removed: $fileName", LogColorType.SUCCESS))
+                                    removedCount++
+                                } else {
+                                    callbacks.onLogEntry(LogEntry("✗ Failed to remove: $fileName", LogColorType.ERROR))
+                                }
+                            }
+                        } else {
+                            callbacks.onLogEntry(LogEntry("ℹ File not found: $fileName", LogColorType.INFO))
+                            notFoundCount++
+                        }
+                    } catch (e: Exception) {
+                        callbacks.onLogEntry(LogEntry("✗ Error removing $fileName: ${e.message}", LogColorType.ERROR))
+                    }
+                }
+
+                callbacks.onLogEntry(LogEntry("Binary cleanup: $removedCount removed, $notFoundCount not found", LogColorType.INFO))
+
+                val wildcardCleanup = listOf(
+                    "rm -f $binaryDir/temp_wpa_config*.conf",
+                    "rm -f $binaryDir/*.pid"
+                )
+
+                wildcardCleanup.forEach { command ->
+                    Shell.cmd(command).exec()
+                }
+
+            } catch (e: Exception) {
+                callbacks.onLogEntry(LogEntry("Binary removal error: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+    private suspend fun cleanOurTemporaryDirectories() {
+        withContext(Dispatchers.IO) {
+            try {
+                val ourDirectories = listOf(
+                    "$binaryDir/isolated_config/",
+                    "/data/misc/wifi/wififrankenstein/",
+                    "/data/vendor/wifi/wpa/wififrankenstein/"
+                )
+
+                ourDirectories.forEach { dir ->
+                    try {
+                        val result = Shell.cmd("rm -rf $dir").exec()
+                        if (result.isSuccess) {
+                            callbacks.onLogEntry(LogEntry("✓ Cleaned directory: $dir", LogColorType.SUCCESS))
+                        } else {
+                            callbacks.onLogEntry(LogEntry("ℹ Directory not found: $dir", LogColorType.INFO))
+                        }
+                    } catch (e: Exception) {
+                        callbacks.onLogEntry(LogEntry("⚠ Error cleaning $dir: ${e.message}", LogColorType.ERROR))
+                    }
+                }
+
+            } catch (e: Exception) {
+                callbacks.onLogEntry(LogEntry("Directory cleanup error: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+    private suspend fun restoreOurDirectoryPermissions() {
+        withContext(Dispatchers.IO) {
+            try {
+                val result = Shell.cmd("chmod 755 $binaryDir").exec()
+                if (result.isSuccess) {
+                    callbacks.onLogEntry(LogEntry("✓ Restored directory permissions", LogColorType.SUCCESS))
+                } else {
+                    callbacks.onLogEntry(LogEntry("⚠ Failed to restore directory permissions", LogColorType.ERROR))
+                }
+
+                val checkPerms = Shell.cmd("ls -ld $binaryDir").exec()
+                if (checkPerms.isSuccess) {
+                    callbacks.onLogEntry(LogEntry("Directory permissions: ${checkPerms.out.joinToString()}", LogColorType.INFO))
+                }
+
+            } catch (e: Exception) {
+                callbacks.onLogEntry(LogEntry("Permission restore error: ${e.message}", LogColorType.ERROR))
+            }
+        }
+    }
+
+    private suspend fun performFinalBinaryVerification() {
+        withContext(Dispatchers.IO) {
+            try {
+                val remainingFiles = Shell.cmd("ls -la $binaryDir/ | grep -E 'wpa_|pixiedust|lib.*\\.so' || echo 'No binary files found'").exec()
+
+                if (remainingFiles.out.any { it.contains("No binary files found") }) {
+                    callbacks.onLogEntry(LogEntry("✓ All binary files removed successfully", LogColorType.SUCCESS))
+                } else {
+                    callbacks.onLogEntry(LogEntry("ℹ Some files still present (may be system files):", LogColorType.INFO))
+                    remainingFiles.out.forEach { file ->
+                        if (!file.contains("No binary files found")) {
+                            callbacks.onLogEntry(LogEntry("  $file", LogColorType.INFO))
+                        }
+                    }
+                }
+
+                val writeTest = Shell.cmd("touch $binaryDir/cleanup_test.tmp && rm -f $binaryDir/cleanup_test.tmp").exec()
+                if (writeTest.isSuccess) {
+                    callbacks.onLogEntry(LogEntry("✓ Directory is writable", LogColorType.SUCCESS))
+                } else {
+                    callbacks.onLogEntry(LogEntry("⚠ Directory write test failed", LogColorType.ERROR))
+                }
+
+                val ourProcessCheck = Shell.cmd("ps aux | grep $binaryDir | grep -v grep").exec()
+                if (ourProcessCheck.out.isEmpty()) {
+                    callbacks.onLogEntry(LogEntry("✓ No processes using our directory", LogColorType.SUCCESS))
+                } else {
+                    callbacks.onLogEntry(LogEntry("⚠ Some processes still using our directory", LogColorType.ERROR))
+                }
+
+                callbacks.onLogEntry(LogEntry("✓ Binary cleanup verification completed", LogColorType.SUCCESS))
+
+            } catch (e: Exception) {
+                callbacks.onLogEntry(LogEntry("Final verification error: ${e.message}", LogColorType.ERROR))
             }
         }
     }
@@ -531,6 +1022,7 @@ class PixieDustHelper(
                 callbacks.onLogEntry(LogEntry("Enabling WiFi...", LogColorType.INFO))
 
                 try {
+                    @Suppress("DEPRECATION")
                     wifiManager.isWifiEnabled = true
                     delay(5000)
                     callbacks.onLogEntry(LogEntry("WiFi enabled", LogColorType.SUCCESS))
@@ -548,8 +1040,8 @@ class PixieDustHelper(
                         try {
                             Shell.cmd(command).exec()
                             delay(1000)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Enable command failed: $command", e)
+                        } catch (_: Exception) {
+                            Log.w(TAG, "Enable command failed: $command")
                         }
                     }
 
@@ -578,8 +1070,8 @@ class PixieDustHelper(
                     try {
                         Shell.cmd(command).exec()
                         delay(1000)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "RF kill command failed: $command", e)
+                    } catch (_: Exception) {
+                        Log.w(TAG, "RF kill command failed: $command")
                     }
                 }
 
@@ -595,15 +1087,17 @@ class PixieDustHelper(
                     try {
                         Shell.cmd(command).exec()
                         delay(2000)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Module command failed: $command", e)
+                    } catch (_: Exception) {
+                        Log.w(TAG, "Module command failed: $command")
                     }
                 }
 
                 callbacks.onLogEntry(LogEntry("Software WiFi reset...", LogColorType.INFO))
                 try {
+                    @Suppress("DEPRECATION")
                     wifiManager.isWifiEnabled = false
                     delay(5000)
+                    @Suppress("DEPRECATION")
                     wifiManager.isWifiEnabled = true
                     delay(5000)
                     callbacks.onLogEntry(LogEntry("WiFi software reset completed", LogColorType.SUCCESS))
@@ -711,11 +1205,11 @@ class PixieDustHelper(
                     callbacks.onLogEntry(LogEntry("wpa_supplicant process not found", LogColorType.ERROR))
                 }
 
-                return@withContext false
+                false
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start wpa_supplicant", e)
                 callbacks.onLogEntry(LogEntry("Failed to start wpa_supplicant: ${e.message}", LogColorType.ERROR))
-                return@withContext false
+                false
             }
         }
     }
@@ -783,8 +1277,7 @@ update_config=0
                     Shell.cmd("rm -f $tempConfigPath").exec()
 
                     val verifyResult = Shell.cmd("test -f $configPath && echo 'OK' || echo 'FAIL'").exec()
-                    if (verifyResult.isSuccess && verifyResult.out.contains("OK")) {
-                    } else {
+                    if (!verifyResult.isSuccess || !verifyResult.out.contains("OK")) {
                         throw Exception("Config file verification failed")
                     }
 
@@ -1064,7 +1557,7 @@ update_config=0
         return try {
             val statusMatch = "status_code=(\\d+)".toRegex().find(line)
             statusMatch?.groupValues?.get(1)?.toInt() ?: -1
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             -1
         }
     }
@@ -1073,7 +1566,7 @@ update_config=0
         return try {
             val bssidMatch = "bssid=([0-9a-fA-F:]{17})".toRegex().find(line)
             bssidMatch?.groupValues?.get(1) ?: "unknown"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "unknown"
         }
     }
@@ -1212,6 +1705,7 @@ update_config=0
                 callbacks.onLogEntry(LogEntry("Disabling WiFi...", LogColorType.INFO))
 
                 try {
+                    @Suppress("DEPRECATION")
                     wifiManager.isWifiEnabled = false
                     delay(3000)
                     callbacks.onLogEntry(LogEntry("WiFi disabled", LogColorType.SUCCESS))
@@ -1226,8 +1720,8 @@ update_config=0
                         try {
                             Shell.cmd(command).exec()
                             delay(500)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Disable command failed: $command", e)
+                        } catch (_: Exception) {
+                            Log.w(TAG, "Disable command failed: $command")
                         }
                     }
 
@@ -1298,8 +1792,8 @@ update_config=0
                     try {
                         Shell.cmd(command).exec()
                         delay(300)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Kill command failed: $command", e)
+                    } catch (_: Exception) {
+                        Log.w(TAG, "Kill command failed: $command")
                     }
                 }
 
@@ -1336,11 +1830,11 @@ update_config=0
         }
     }
 
-    private suspend fun extractPixieData(): PixieAttackData? {
+    private suspend fun extractPixieData(extractionTimeout: Long = 30000L): PixieAttackData? {
         return withContext(Dispatchers.IO) {
             val startTime = System.currentTimeMillis()
 
-            while (System.currentTimeMillis() - startTime < 30000) {
+            while (System.currentTimeMillis() - startTime < extractionTimeout) {
                 Log.d(TAG, "Current pixieData size: ${pixieData.size}, keys: ${pixieData.keys}")
 
                 if (pixieData.size >= 6) {
@@ -1401,7 +1895,7 @@ update_config=0
     }
 
     @SuppressLint("LongLogTag")
-    private suspend fun executePixieAttack(data: PixieAttackData): String? {
+    private suspend fun executePixieAttack(data: PixieAttackData, computationTimeout: Long = 300000L): String? {
         return withContext(Dispatchers.IO) {
             try {
                 callbacks.onLogEntry(LogEntry("Executing pixiedust binary", LogColorType.INFO))
@@ -1440,7 +1934,7 @@ update_config=0
                         while (errorReader.readLine().also { line = it } != null) {
                             line?.let {
                                 errorLines.add(it)
-                                Log.w("$TAG-PIXIEDUST_ERR", it)
+                                Log.w("${TAG}_PIXIEDUST_ERR", it)
                             }
                         }
                     } catch (e: Exception) {
@@ -1449,9 +1943,9 @@ update_config=0
                 }
 
                 val timeoutJob = scope.async {
-                    delay(300000)
+                    delay(computationTimeout)
                     if (isProcessAlive(process)) {
-                        Log.w(TAG, "PixieDust timeout reached (5 min), killing process")
+                        Log.w(TAG, "PixieDust timeout reached (${computationTimeout/1000} sec), killing process")
                         callbacks.onLogEntry(LogEntry("PixieDust timeout - some devices need more time", LogColorType.ERROR))
                         process.destroy()
                     }
@@ -1469,7 +1963,7 @@ update_config=0
                 Log.d(TAG, "pixiedust finished with exit code: $exitCode")
                 callbacks.onLogEntry(LogEntry("PixieDust computation completed", LogColorType.INFO))
 
-                return@withContext parsePixieOutput(outputLines.joinToString("\n"))
+                parsePixieOutput(outputLines.joinToString("\n"))
 
             } catch (e: Exception) {
                 Log.e(TAG, "PixieDust execution error", e)
@@ -1483,7 +1977,7 @@ update_config=0
         return try {
             process.exitValue()
             false
-        } catch (e: IllegalThreadStateException) {
+        } catch (_: IllegalThreadStateException) {
             true
         }
     }
@@ -1552,19 +2046,28 @@ update_config=0
     }
 
     fun stopAttack() {
+        if (stoppingJob?.isActive == true) {
+            Log.w(TAG, "Attack stopping already in progress")
+            return
+        }
+
         Log.d(TAG, "Stopping attack manually")
         callbacks.onLogEntry(LogEntry("Attack stopped by user", LogColorType.ERROR))
 
         attackJob?.cancel()
 
-        scope.launch {
-            forceStopAllProcesses()
-            delay(2000)
-            cleanupAfterAttack()
+        stoppingJob = scope.launch {
+            try {
+                forceStopAllProcesses()
+                delay(2000)
+                cleanupAfterAttack()
 
-            withContext(Dispatchers.Main) {
-                callbacks.onStateChanged(PixieAttackState.Idle)
-                callbacks.onProgressUpdate("Attack stopped")
+                withContext(Dispatchers.Main) {
+                    callbacks.onStateChanged(PixieAttackState.Idle)
+                    callbacks.onProgressUpdate("Attack stopped")
+                }
+            } finally {
+                stoppingJob = null
             }
         }
     }
@@ -1573,4 +2076,9 @@ update_config=0
         stopAttack()
         scope.cancel()
     }
+
+    fun isCopyingBinaries(): Boolean = copyingJob?.isActive == true
+    fun isCleaningBinaries(): Boolean = cleanupJob?.isActive == true
+    fun isAttackRunning(): Boolean = attackJob?.isActive == true
+    fun isStoppingAttack(): Boolean = stoppingJob?.isActive == true
 }
