@@ -31,6 +31,9 @@ class WelcomeViewModel(application: Application) : AndroidViewModel(application)
     private val _storagePermissionGranted = MutableLiveData<Boolean>()
     val storagePermissionGranted: LiveData<Boolean> = _storagePermissionGranted
 
+    private val _rootEnabled = MutableLiveData<Boolean>()
+    val rootEnabled: LiveData<Boolean> = _rootEnabled
+
     init {
         viewModelScope.launch(Dispatchers.Main) {
             val locationPermission = withContext(Dispatchers.IO) {
@@ -39,9 +42,13 @@ class WelcomeViewModel(application: Application) : AndroidViewModel(application)
             val storagePermission = withContext(Dispatchers.IO) {
                 sharedPreferences.getBoolean("storage_permission_granted", false)
             }
+            val rootEnabled = withContext(Dispatchers.IO) {
+                sharedPreferences.getBoolean("enable_root", false)
+            }
 
             _locationPermissionGranted.value = locationPermission
             _storagePermissionGranted.value = storagePermission
+            _rootEnabled.value = rootEnabled
         }
     }
 
@@ -89,6 +96,15 @@ class WelcomeViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch(Dispatchers.IO) {
             sharedPreferences.edit {
                 putBoolean("storage_permission_granted", granted)
+            }
+        }
+    }
+
+    fun setRootEnabled(enabled: Boolean) {
+        _rootEnabled.value = enabled
+        viewModelScope.launch(Dispatchers.IO) {
+            sharedPreferences.edit {
+                putBoolean("enable_root", enabled)
             }
         }
     }

@@ -59,6 +59,8 @@ class WelcomePermissionsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupPermissionCards()
+
         binding.buttonRequestLocationPermission.setOnClickListener {
             requestLocationPermission()
         }
@@ -85,12 +87,39 @@ class WelcomePermissionsFragment : Fragment() {
         )
     }
 
+    private fun setupPermissionCards() {
+        val locationNeeded = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+        val storageNeeded = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+
+        if (!locationNeeded) {
+            binding.cardViewLocationPermission.visibility = View.GONE
+            welcomeViewModel.setLocationPermissionGranted(true)
+        }
+
+        if (!storageNeeded) {
+            binding.cardViewStoragePermission.visibility = View.GONE
+            welcomeViewModel.setStoragePermissionGranted(true)
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            binding.textViewStorageTitle.text = getString(R.string.storage_permission_legacy)
+            binding.textViewStorageDescription.text = getString(R.string.storage_permission_description_legacy)
+        }
+
+        if (!locationNeeded && !storageNeeded) {
+            binding.textViewPermissionsDescription.text = getString(R.string.permissions_not_required_version)
+            binding.textViewPermissionsFooter.text = getString(R.string.permissions_granted_automatically)
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
 
     private fun hasLocationPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+
         val fineLocation = ContextCompat.checkSelfPermission(
             requireContext(),
             Manifest.permission.ACCESS_FINE_LOCATION
@@ -105,6 +134,8 @@ class WelcomePermissionsFragment : Fragment() {
     }
 
     private fun hasStoragePermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
+
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Environment.isExternalStorageManager()
         } else {
@@ -116,6 +147,8 @@ class WelcomePermissionsFragment : Fragment() {
     }
 
     private fun requestLocationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+
         val permissions = arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
@@ -138,6 +171,8 @@ class WelcomePermissionsFragment : Fragment() {
     }
 
     private fun requestStoragePermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
                 val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
@@ -180,7 +215,12 @@ class WelcomePermissionsFragment : Fragment() {
     }
 
     private fun updateLocationPermissionUI(granted: Boolean) {
-        if (granted) {
+        var finalGranted = granted
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            finalGranted = true
+        }
+
+        if (finalGranted) {
             binding.imageViewLocationStatus.setImageResource(R.drawable.ic_check_circle)
             binding.imageViewLocationStatus.setColorFilter(
                 ContextCompat.getColor(requireContext(), R.color.green_500)
@@ -198,7 +238,12 @@ class WelcomePermissionsFragment : Fragment() {
     }
 
     private fun updateStoragePermissionUI(granted: Boolean) {
-        if (granted) {
+        var finalGranted = granted
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            finalGranted = true
+        }
+
+        if (finalGranted) {
             binding.imageViewStorageStatus.setImageResource(R.drawable.ic_check_circle)
             binding.imageViewStorageStatus.setColorFilter(
                 ContextCompat.getColor(requireContext(), R.color.green_500)
