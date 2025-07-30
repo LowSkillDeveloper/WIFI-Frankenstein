@@ -504,14 +504,18 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
             when (field) {
                 "BSSID" -> {
                     val possibleFormats = generateMacFormats(query)
+                    var bssidConditionAdded = false
+
                     possibleFormats.forEach { format ->
-                        val decimalValue = macToDecimal(format)
+                        val decimalValue = macToDecimalSafe(format)
                         if (decimalValue != -1L) {
                             conditions.add("n.BSSID = ?")
                             args.add(decimalValue.toString())
+                            bssidConditionAdded = true
                         }
                     }
-                    if (conditions.isEmpty()) {
+
+                    if (!bssidConditionAdded) {
                         conditions.add("CAST(n.BSSID AS TEXT) LIKE ?")
                         args.add(if (wholeWords) query else "%$query%")
                     }
@@ -561,6 +565,21 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         return database?.rawQuery(baseQuery, args.toTypedArray())?.use { cursor ->
             cursor.toSearchResultsRaw()
         } ?: emptyList()
+    }
+
+    private fun macToDecimalSafe(mac: String): Long {
+        return try {
+            when {
+                mac.contains(":") || mac.contains("-") ->
+                    mac.replace(":", "").replace("-", "").toLong(16)
+                mac.matches("\\d+".toRegex()) -> mac.toLong()
+                mac.matches("[0-9A-Fa-f]{12}".toRegex()) -> mac.toLong(16)
+                else -> -1L
+            }
+        } catch (e: NumberFormatException) {
+            Log.d(TAG, "Could not convert MAC to decimal: $mac")
+            -1L
+        }
     }
 
     fun searchNetworksByBSSIDAndFieldsRaw(
@@ -732,38 +751,72 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     private fun generateMacFormats(input: String): List<String> {
         val cleanInput = input.replace("[^a-fA-F0-9]".toRegex(), "").uppercase()
+        val formats = mutableListOf<String>()
 
-        return when {
-            input.matches("[0-9]+".toRegex()) -> listOf(input)
+        formats.add(input.trim())
+
+        when {
+            input.matches("\\d+".toRegex()) -> {
+                formats.add(input)
+                try {
+                    val decimal = input.toLong()
+                    val hex = String.format("%012X", decimal)
+                    if (hex.length <= 12) {
+                        formats.add(hex)
+                        formats.add(hex.lowercase())
+                        formats.add(hex.replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                        formats.add(hex.replace("(.{2})".toRegex(), "$1-").dropLast(1))
+                    }
+                } catch (e: NumberFormatException) {
+                    Log.d(TAG, "Could not convert decimal $input to hex")
+                }
+            }
 
             input.matches("([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})".toRegex()) -> {
-                listOf(
-                    input,
-                    input.replace(":", "").replace("-", ""),
-                    input.replace(":", "").replace("-", "").toLongOrNull(16)?.toString() ?: ""
-                ).filter { it.isNotEmpty() }
+                formats.add(input)
+                formats.add(input.replace(":", "").replace("-", ""))
+                try {
+                    val decimal = input.replace(":", "").replace("-", "").toLong(16)
+                    formats.add(decimal.toString())
+                } catch (e: NumberFormatException) {
+                    Log.d(TAG, "Could not convert MAC $input to decimal")
+                }
             }
 
             input.matches("[0-9A-Fa-f]{12}".toRegex()) -> {
-                listOf(
-                    input,
-                    input.toLongOrNull(16)?.toString() ?: "",
-                    input.replace("(.{2})".toRegex(), "$1:").dropLast(1),
-                    input.replace("(.{2})".toRegex(), "$1-").dropLast(1)
-                ).filter { it.isNotEmpty() }
+                formats.add(input)
+                formats.add(input.lowercase())
+                formats.add(input.replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(input.replace("(.{2})".toRegex(), "$1-").dropLast(1))
+                try {
+                    val decimal = input.toLong(16)
+                    formats.add(decimal.toString())
+                } catch (e: NumberFormatException) {
+                    Log.d(TAG, "Could not convert hex $input to decimal")
+                }
             }
 
             cleanInput.length == 12 -> {
-                listOf(
-                    cleanInput,
-                    cleanInput.toLongOrNull(16)?.toString() ?: "",
-                    cleanInput.replace("(.{2})".toRegex(), "$1:").dropLast(1),
-                    cleanInput.replace("(.{2})".toRegex(), "$1-").dropLast(1)
-                ).filter { it.isNotEmpty() }
+                formats.add(cleanInput)
+                formats.add(cleanInput.lowercase())
+                formats.add(cleanInput.replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(cleanInput.replace("(.{2})".toRegex(), "$1-").dropLast(1))
+                try {
+                    val decimal = cleanInput.toLong(16)
+                    formats.add(decimal.toString())
+                } catch (e: NumberFormatException) {
+                    Log.d(TAG, "Could not convert hex $cleanInput to decimal")
+                }
             }
 
-            else -> listOf(input, cleanInput).filter { it.isNotEmpty() }
+            else -> {
+                if (cleanInput.isNotEmpty() && cleanInput.length >= 2) {
+                    formats.add(cleanInput)
+                }
+            }
         }
+
+        return formats.filter { it.isNotEmpty() && it.length >= 2 }.distinct()
     }
 
     private fun searchByEssid(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
@@ -897,13 +950,14 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
             val result = when {
                 mac.contains(":") || mac.contains("-") ->
                     mac.replace(":", "").replace("-", "").toLong(16)
-                mac.toLongOrNull() != null -> mac.toLong()
-                else -> throw NumberFormatException("Invalid MAC format")
+                mac.matches("\\d+".toRegex()) -> mac.toLong()
+                mac.matches("[0-9A-Fa-f]{12}".toRegex()) -> mac.toLong(16)
+                else -> throw NumberFormatException("Invalid MAC format: $mac")
             }
             Log.d(TAG, "Converted MAC $mac to decimal: $result")
             result
         } catch (e: NumberFormatException) {
-            Log.e(TAG, "Invalid MAC address: $mac", e)
+            Log.d(TAG, "Could not convert MAC to decimal: $mac - ${e.message}")
             -1
         }
     }

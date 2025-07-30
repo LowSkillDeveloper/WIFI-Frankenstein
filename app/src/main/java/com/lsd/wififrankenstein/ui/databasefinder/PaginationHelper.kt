@@ -58,7 +58,8 @@ class PaginationHelper(
 
     private suspend fun process3WiFiDatabase(dbItem: DbItem, offset: Int, limit: Int): List<SearchResult> {
         return try {
-            SQLite3WiFiHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
+            val helper = SQLite3WiFiHelper(context, dbItem.path.toUri(), dbItem.directPath)
+            try {
                 val db = helper.database ?: return emptyList()
 
                 val indexLevel = DatabaseIndices.determineIndexLevel(db)
@@ -96,6 +97,8 @@ class PaginationHelper(
                         rawBssid = rawBssid
                     )
                 }
+            } finally {
+                helper.close()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error processing 3WiFi database", e)
@@ -108,7 +111,8 @@ class PaginationHelper(
             val tableName = dbItem.tableName ?: return emptyList()
             val columnMap = dbItem.columnMap ?: return emptyList()
 
-            SQLiteCustomHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
+            val helper = SQLiteCustomHelper(context, dbItem.path.toUri(), dbItem.directPath)
+            try {
                 val searchFields = filters.mapNotNull { filter ->
                     when(filter) {
                         R.string.filter_bssid -> columnMap["mac"]
@@ -141,6 +145,8 @@ class PaginationHelper(
                         longitude = result[lonField] as? Double ?: (result[lonField] as? String)?.toDoubleOrNull()
                     )
                 }
+            } finally {
+                helper.close()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error processing custom database", e)
