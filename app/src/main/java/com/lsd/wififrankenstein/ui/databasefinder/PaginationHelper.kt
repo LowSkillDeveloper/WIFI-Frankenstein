@@ -57,18 +57,32 @@ class PaginationHelper(
     }
 
     private suspend fun process3WiFiDatabase(dbItem: DbItem, offset: Int, limit: Int): List<SearchResult> {
+        Log.d(TAG, "=== Starting process3WiFiDatabase ===")
+        Log.d(TAG, "DbItem: ${dbItem.path}, Offset: $offset, Limit: $limit")
+
         return try {
             val helper = SQLite3WiFiHelper(context, dbItem.path.toUri(), dbItem.directPath)
             try {
-                val db = helper.database ?: return emptyList()
+                val db = helper.database
+                if (db == null) {
+                    Log.e(TAG, "Database is null")
+                    return emptyList()
+                }
+
+                Log.d(TAG, "Database opened successfully")
 
                 val indexLevel = DatabaseIndices.determineIndexLevel(db)
                 val dbType = DatabaseTypeUtils.determineDbType(db)
                 val searchTable = when (dbType) {
                     DatabaseTypeUtils.WiFiDbType.TYPE_NETS -> "nets"
                     DatabaseTypeUtils.WiFiDbType.TYPE_BASE -> "base"
-                    else -> return emptyList()
+                    else -> {
+                        Log.e(TAG, "Unknown database type: $dbType")
+                        return emptyList()
+                    }
                 }
+
+                Log.d(TAG, "Search table: $searchTable, Index level: $indexLevel")
 
                 val searchFields = filters.mapNotNull { filter ->
                     when(filter) {
@@ -80,12 +94,18 @@ class PaginationHelper(
                     }
                 }.toSet()
 
+                Log.d(TAG, "Search fields: $searchFields")
+
                 val dbResults = helper.searchNetworksByBSSIDAndFieldsPaginated(
                     query, searchFields, searchWholeWords, offset, limit
                 )
 
-                dbResults.map { result ->
+                Log.d(TAG, "Raw database results: ${dbResults.size} items")
+
+                val searchResults = dbResults.map { result ->
                     val rawBssid = result["BSSID"] as? Long
+                    Log.d(TAG, "Processing result: rawBssid=$rawBssid, ESSID=${result["ESSID"]}")
+
                     SearchResult(
                         ssid = result["ESSID"] as? String ?: "",
                         bssid = rawBssid?.toString() ?: "",
@@ -97,6 +117,9 @@ class PaginationHelper(
                         rawBssid = rawBssid
                     )
                 }
+
+                Log.d(TAG, "Final search results: ${searchResults.size} items")
+                searchResults
             } finally {
                 helper.close()
             }

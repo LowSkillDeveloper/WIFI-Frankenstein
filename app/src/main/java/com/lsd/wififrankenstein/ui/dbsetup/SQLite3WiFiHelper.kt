@@ -525,8 +525,8 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                         conditions.add("n.ESSID = ? COLLATE NOCASE")
                         args.add(query)
                     } else {
-                        conditions.add("n.ESSID LIKE ? ESCAPE '\\'")
-                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                        conditions.add("n.ESSID LIKE ? COLLATE NOCASE")
+                        args.add("%$query%")
                     }
                 }
                 "WiFiKey" -> {
@@ -534,8 +534,8 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                         conditions.add("n.WiFiKey = ? COLLATE NOCASE")
                         args.add(query)
                     } else {
-                        conditions.add("n.WiFiKey LIKE ? ESCAPE '\\'")
-                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                        conditions.add("n.WiFiKey LIKE ? COLLATE NOCASE")
+                        args.add("%$query%")
                     }
                 }
                 "WPSPIN" -> {
@@ -547,20 +547,10 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
         if (conditions.isEmpty()) return emptyList()
 
-        val baseQuery = when {
-            indexLevel >= DatabaseIndices.IndexLevel.BASIC -> {
-                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
-                        "FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID " +
-                        "WHERE (${conditions.joinToString(" OR ")}) " +
-                        "LIMIT $limit OFFSET $offset"
-            }
-            else -> {
-                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
-                        "FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID " +
-                        "WHERE (${conditions.joinToString(" OR ")}) " +
-                        "LIMIT $limit OFFSET $offset"
-            }
-        }
+        val baseQuery = "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                "FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                "WHERE (${conditions.joinToString(" OR ")}) " +
+                "LIMIT $limit OFFSET $offset"
 
         return database?.rawQuery(baseQuery, args.toTypedArray())?.use { cursor ->
             cursor.toSearchResultsRaw()
@@ -588,8 +578,6 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         wholeWords: Boolean
     ): List<Map<String, Any?>> {
         val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
-        Log.d(TAG, "Index level: $indexLevel")
-
         val tableName = if (getTableNames().contains("nets")) "nets" else "base"
         val allResults = mutableSetOf<Map<String, Any?>>()
 
@@ -615,9 +603,9 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         Log.d(TAG, "BSSID raw search - Generated formats: $possibleFormats")
 
         possibleFormats.forEach { format ->
-            val decimalValue = macToDecimal(format)
+            val decimalValue = macToDecimalSafe(format)
             if (decimalValue != -1L) {
-                val sql = DatabaseIndices.getOptimalBssidSearchQuery(indexLevel, tableName)
+                val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
                 Log.d(TAG, "BSSID raw search - Using query: $sql with decimal: $decimalValue")
 
                 database?.rawQuery(sql, arrayOf(decimalValue.toString()))?.use { cursor ->
@@ -627,7 +615,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         }
 
         if (results.isEmpty() && !query.matches("[0-9]+".toRegex())) {
-            val fallbackSql = DatabaseIndices.getOptimalBssidFallbackQuery(indexLevel, tableName)
+            val fallbackSql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE CAST(n.BSSID AS TEXT) LIKE ?"
             Log.d(TAG, "BSSID raw search - Using fallback query: $fallbackSql")
 
             database?.rawQuery(fallbackSql, arrayOf("%$query%"))?.use { cursor ->
@@ -641,7 +629,13 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     private fun searchByEssidRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
         val searchValue = if (wholeWords) query else "%$query%"
-        val sql = DatabaseIndices.getOptimalEssidSearchQuery(indexLevel, tableName, wholeWords)
+        val essidCondition = if (wholeWords) {
+            "n.ESSID = ? COLLATE NOCASE"
+        } else {
+            "n.ESSID LIKE ? ESCAPE '\\'"
+        }
+
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE $essidCondition"
 
         Log.d(TAG, "ESSID raw search - Using query: $sql")
         Log.d(TAG, "ESSID raw search - Search value: $searchValue")
@@ -653,7 +647,13 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     private fun searchByWifiKeyRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
         val searchValue = if (wholeWords) query else "%$query%"
-        val sql = DatabaseIndices.getOptimalWifiKeySearchQuery(indexLevel, tableName, wholeWords)
+        val wifiKeyCondition = if (wholeWords) {
+            "n.WiFiKey = ? COLLATE NOCASE"
+        } else {
+            "n.WiFiKey LIKE ? ESCAPE '\\'"
+        }
+
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE $wifiKeyCondition"
 
         Log.d(TAG, "WiFiKey raw search - Using query: $sql")
         Log.d(TAG, "WiFiKey raw search - Search value: $searchValue")
@@ -664,7 +664,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     }
 
     private fun searchByWpsPinRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String): List<Map<String, Any?>> {
-        val sql = DatabaseIndices.getOptimalWpsPinSearchQuery(indexLevel, tableName)
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.WPSPIN = ?"
 
         Log.d(TAG, "WPSPIN raw search - Using query: $sql")
         Log.d(TAG, "WPSPIN raw search - Search value: $query")
@@ -698,8 +698,6 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         wholeWords: Boolean
     ): List<Map<String, Any?>> {
         val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
-        Log.d(TAG, "Index level: $indexLevel")
-
         val tableName = if (getTableNames().contains("nets")) "nets" else "base"
         val allResults = mutableSetOf<Map<String, Any?>>()
 
@@ -725,9 +723,9 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         Log.d(TAG, "BSSID search - Generated formats: $possibleFormats")
 
         possibleFormats.forEach { format ->
-            val decimalValue = macToDecimal(format)
+            val decimalValue = macToDecimalSafe(format)
             if (decimalValue != -1L) {
-                val sql = DatabaseIndices.getOptimalBssidSearchQuery(indexLevel, tableName)
+                val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
                 Log.d(TAG, "BSSID search - Using query: $sql with decimal: $decimalValue")
 
                 database?.rawQuery(sql, arrayOf(decimalValue.toString()))?.use { cursor ->
@@ -737,7 +735,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         }
 
         if (results.isEmpty() && !query.matches("[0-9]+".toRegex())) {
-            val fallbackSql = DatabaseIndices.getOptimalBssidFallbackQuery(indexLevel, tableName)
+            val fallbackSql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE CAST(n.BSSID AS TEXT) LIKE ?"
             Log.d(TAG, "BSSID search - Using fallback query: $fallbackSql")
 
             database?.rawQuery(fallbackSql, arrayOf("%$query%"))?.use { cursor ->
@@ -821,7 +819,13 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     private fun searchByEssid(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
         val searchValue = if (wholeWords) query else "%$query%"
-        val sql = DatabaseIndices.getOptimalEssidSearchQuery(indexLevel, tableName, wholeWords)
+        val essidCondition = if (wholeWords) {
+            "n.ESSID = ? COLLATE NOCASE"
+        } else {
+            "n.ESSID LIKE ? ESCAPE '\\'"
+        }
+
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE $essidCondition"
 
         Log.d(TAG, "ESSID search - Using query: $sql")
         Log.d(TAG, "ESSID search - Search value: $searchValue")
@@ -833,7 +837,13 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     private fun searchByWifiKey(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
         val searchValue = if (wholeWords) query else "%$query%"
-        val sql = DatabaseIndices.getOptimalWifiKeySearchQuery(indexLevel, tableName, wholeWords)
+        val wifiKeyCondition = if (wholeWords) {
+            "n.WiFiKey = ? COLLATE NOCASE"
+        } else {
+            "n.WiFiKey LIKE ? ESCAPE '\\'"
+        }
+
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE $wifiKeyCondition"
 
         Log.d(TAG, "WiFiKey search - Using query: $sql")
         Log.d(TAG, "WiFiKey search - Search value: $searchValue")
@@ -844,7 +854,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     }
 
     private fun searchByWpsPin(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String): List<Map<String, Any?>> {
-        val sql = DatabaseIndices.getOptimalWpsPinSearchQuery(indexLevel, tableName)
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.WPSPIN = ?"
 
         Log.d(TAG, "WPSPIN search - Using query: $sql")
         Log.d(TAG, "WPSPIN search - Search value: $query")

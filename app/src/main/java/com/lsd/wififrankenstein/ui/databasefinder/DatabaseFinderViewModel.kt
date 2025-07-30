@@ -134,11 +134,11 @@ class DatabaseFinderViewModel(application: Application) : AndroidViewModel(appli
             try {
                 val pagerFlow = Pager(
                     config = PagingConfig(
-                        pageSize = 20,
+                        pageSize = 10,
                         enablePlaceholders = false,
-                        prefetchDistance = 20,
-                        initialLoadSize = 20,
-                        maxSize = 200
+                        prefetchDistance = 7,
+                        initialLoadSize = 5,
+                        maxSize = 100
                     ),
                     pagingSourceFactory = {
                         DatabaseFinderPagingSource(

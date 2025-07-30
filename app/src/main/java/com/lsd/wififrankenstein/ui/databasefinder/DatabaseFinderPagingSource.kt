@@ -19,7 +19,7 @@ class DatabaseFinderPagingSource(
         private const val TAG = "DatabaseFinder"
     }
 
-    private val pageSize = 20
+    private val pageSize = 10
     private val paginationHelper by lazy {
         PaginationHelper(context, query, dbList, selectedSources, filters, searchWholeWords)
     }
