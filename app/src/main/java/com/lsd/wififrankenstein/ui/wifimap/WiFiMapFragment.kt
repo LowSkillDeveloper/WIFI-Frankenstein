@@ -407,7 +407,7 @@ class WiFiMapFragment : Fragment() {
             when {
                 count < 100 -> {
                     binding.progressBar.visibility = View.VISIBLE
-                    binding.progressBar.isIndeterminate = true
+                    binding.progressBar.startAnimation()
                     binding.textViewProgress.visibility = View.VISIBLE
                     binding.textViewProgress.text = when {
                         count < 50 -> getString(R.string.loading_points_progress)
@@ -416,7 +416,7 @@ class WiFiMapFragment : Fragment() {
                     }
                 }
                 else -> {
-                    binding.progressBar.visibility = View.GONE
+                    binding.progressBar.stopAnimation()
                     binding.textViewProgress.visibility = View.GONE
                 }
             }
@@ -479,7 +479,7 @@ class WiFiMapFragment : Fragment() {
         if (zoom < minZoom) {
             Log.d(TAG, "Zoom too low, clearing markers")
             clearMarkers()
-            binding.progressBar.visibility = View.GONE
+            binding.progressBar.stopAnimation()
             binding.textViewProgress.text = getString(R.string.zoom_in_message)
             binding.textViewProgress.visibility = View.VISIBLE
             return
@@ -488,7 +488,7 @@ class WiFiMapFragment : Fragment() {
         if (selectedDatabases.isEmpty()) {
             Log.d(TAG, "No databases selected")
             clearMarkers()
-            binding.progressBar.visibility = View.GONE
+            binding.progressBar.stopAnimation()
             binding.textViewProgress.text = getString(R.string.select_database_message)
             binding.textViewProgress.visibility = View.VISIBLE
             return
@@ -496,6 +496,7 @@ class WiFiMapFragment : Fragment() {
 
         binding.textViewProgress.visibility = View.GONE
         binding.progressBar.visibility = View.VISIBLE
+        binding.progressBar.startAnimation()
 
         if (boundingBox == null) {
             Log.d(TAG, "Bounding box is null")
@@ -528,7 +529,7 @@ class WiFiMapFragment : Fragment() {
             binding.map.postInvalidate()
             updateLegend()
 
-            binding.progressBar.visibility = View.GONE
+            binding.progressBar.stopAnimation()
             binding.textViewProgress.visibility = View.GONE
         }
     }

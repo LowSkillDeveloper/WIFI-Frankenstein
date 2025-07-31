@@ -69,6 +69,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import com.lsd.wififrankenstein.util.AnimatedLoadingBar
 
 class WiFiScannerFragment : Fragment() {
 
@@ -944,24 +945,12 @@ class WiFiScannerFragment : Fragment() {
 
     private fun showProgressBar() {
         if (_binding == null) return
-
-        binding.progressBarDatabaseCheck.visibility = View.VISIBLE
-        binding.progressBarDatabaseCheck.isIndeterminate = true
+        binding.progressBarDatabaseCheck.startAnimation()
     }
 
     private fun hideProgressBar() {
         if (_binding == null) return
-
-        binding.progressBarDatabaseCheck.isIndeterminate = false
-        binding.progressBarDatabaseCheck.progress = 0
-        ObjectAnimator.ofInt(binding.progressBarDatabaseCheck, "progress", 100)
-            .setDuration(1000)
-            .start()
-        binding.progressBarDatabaseCheck.postDelayed({
-            _binding?.let { binding ->
-                binding.progressBarDatabaseCheck.visibility = View.GONE
-            }
-        }, 1300)
+        binding.progressBarDatabaseCheck.stopAnimation()
     }
 
     override fun onCreateContextMenu(
