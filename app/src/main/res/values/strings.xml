@@ -1200,4 +1200,8 @@
     <string name="wps_config_error_18" translatable="false">Device password authentication failure</string>
     <string name="wps_config_error_default" translatable="false">Unknown error (code %1$d)</string>
 
+    <string name="mac_column_required">MAC column is required for indexing</string>
+    <string name="indexing_no_geo_warning">Warning: No latitude/longitude columns found. Location-based features will be unavailable.</string>
+
+
 </resources>

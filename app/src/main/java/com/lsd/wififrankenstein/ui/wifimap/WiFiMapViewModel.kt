@@ -471,7 +471,14 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 _addReadOnlyDb.postValue(dbItem)
             } else {
                 Log.e(TAG, "Failed to create external indexes for ${dbItem.id}")
-                _error.postValue(getApplication<Application>().getString(R.string.indexing_failed))
+                val hasGeoData = dbItem.columnMap?.containsKey("latitude") == true &&
+                        dbItem.columnMap?.containsKey("longitude") == true
+                val errorMessage = if (!hasGeoData) {
+                    getApplication<Application>().getString(R.string.indexing_no_geo_warning)
+                } else {
+                    getApplication<Application>().getString(R.string.indexing_failed)
+                }
+                _error.postValue(errorMessage)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Exception creating external indexes for ${dbItem.id}", e)
@@ -976,23 +983,29 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                 Log.d(TAG, "Retrieved ${infoList.size} records for point")
 
                                 val records = infoList.map { info ->
-                                    val essid = database.columnMap["essid"]?.let { info[it]?.toString() }
-                                    val password = database.columnMap["wifi_pass"]?.let { info[it]?.toString() }
-                                    val wpsPin = database.columnMap["wps_pin"]?.let { info[it]?.toString() }
+                                    val essid = database.columnMap?.get("essid")?.let { colName ->
+                                        info[colName]?.toString()
+                                    }
+                                    val password = database.columnMap?.get("wifi_pass")?.let { colName ->
+                                        info[colName]?.toString()
+                                    }
+                                    val wpsPin = database.columnMap?.get("wps_pin")?.let { colName ->
+                                        info[colName]?.toString()
+                                    }
                                     val routerModel = info["name"]?.toString()
-                                    val authData = info["Authorization"]?.toString()
+                                    val authData = info["Authorization"]?.toString() ?: info["admin_panel"]?.toString()
                                     val hiddenData = info["Hidden"]?.toString()
                                     val radioOffData = info["RadioOff"]?.toString()
-                                    val timeData = info["time"]?.toString()
+                                    val timeData = info["time"]?.toString() ?: info["timestamp"]?.toString()
 
                                     NetworkRecord(
-                                        essid = essid,
+                                        essid = essid ?: "Unknown SSID",
                                         password = password,
                                         wpsPin = wpsPin,
                                         routerModel = routerModel,
                                         adminCredentials = parseAdminCredentials(authData),
-                                        isHidden = hiddenData == "b1",
-                                        isWifiDisabled = radioOffData == "b1",
+                                        isHidden = hiddenData == "b1" || hiddenData == "1" || hiddenData?.lowercase() == "true",
+                                        isWifiDisabled = radioOffData == "b1" || radioOffData == "1" || radioOffData?.lowercase() == "true",
                                         timeAdded = timeData,
                                         rawData = info
                                     )

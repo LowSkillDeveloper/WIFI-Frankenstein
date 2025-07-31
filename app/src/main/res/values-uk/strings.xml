@@ -1007,5 +1007,7 @@
     <string name="storage_permission_legacy">Дозвіл на сховище</string>
     <string name="storage_permission_description_legacy">Потрібен для читання та запису файлів бази даних</string>
     <string name="api_servers">API-сервери</string>
+    <string name="mac_column_required">Попередження: не знайдено стовпців широти/довготи. Функції, пов\'язані з розташуванням, будуть недоступні.</string>
+    <string name="indexing_no_geo_warning">Потрібна колонка MAC для індексації</string>
 
 </resources>
