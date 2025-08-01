@@ -193,12 +193,11 @@
                     android:text="@string/pixiedust_manual_network_entry"
                     app:icon="@drawable/ic_add" />
 
-                <com.google.android.material.progressindicator.LinearProgressIndicator
+                <com.lsd.wififrankenstein.util.AnimatedLoadingBar
                     android:id="@+id/progressBarScanning"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="5dp"
                     android:layout_marginTop="8dp"
-                    android:indeterminate="true"
                     android:visibility="gone" />
 
                 <TextView
@@ -540,12 +539,11 @@
 
                 </LinearLayout>
 
-                <com.google.android.material.progressindicator.LinearProgressIndicator
+                <com.lsd.wififrankenstein.util.AnimatedLoadingBar
                     android:id="@+id/progressBarAttack"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="5dp"
                     android:layout_marginTop="8dp"
-                    android:indeterminate="true"
                     android:visibility="gone" />
 
                 <TextView

@@ -78,6 +78,21 @@ class InAppDatabaseFragment : Fragment() {
             binding.recyclerViewRecords.visibility = if (isEmpty) View.GONE else View.VISIBLE
         }
 
+        adapter.addLoadStateListener { loadState ->
+            binding.swipeRefreshLayout.isRefreshing = loadState.source.refresh is LoadState.Loading
+
+            val isLoading = loadState.source.refresh is LoadState.Loading
+            if (isLoading) {
+                binding.progressBarDatabaseCheck.startAnimation()
+            } else {
+                binding.progressBarDatabaseCheck.stopAnimation()
+            }
+
+            val isEmpty = loadState.source.refresh is LoadState.NotLoading && adapter.itemCount == 0
+            binding.layoutEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
+            binding.recyclerViewRecords.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        }
+
         lifecycleScope.launch {
             viewModel.records.collectLatest { pagingData ->
                 adapter.submitData(pagingData)
@@ -532,6 +547,7 @@ class InAppDatabaseFragment : Fragment() {
     }
 
     private fun showProgressDialog(message: String) {
+        binding.progressBarDatabaseCheck.startAnimation()
         hideProgressDialog()
 
         progressDialog = MaterialAlertDialogBuilder(requireContext())
@@ -542,6 +558,7 @@ class InAppDatabaseFragment : Fragment() {
     }
 
     private fun hideProgressDialog() {
+        binding.progressBarDatabaseCheck.stopAnimation()
         progressDialog?.dismiss()
         progressDialog = null
     }

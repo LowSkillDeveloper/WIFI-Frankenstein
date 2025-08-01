@@ -108,7 +108,11 @@ class MacLocationFragment : Fragment() {
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.progressIndicator.visibility = if (isLoading) View.VISIBLE else View.GONE
+            if (isLoading) {
+                binding.progressIndicator.startAnimation()
+            } else {
+                binding.progressIndicator.stopAnimation()
+            }
         }
 
         viewModel.error.observe(viewLifecycleOwner) { error ->

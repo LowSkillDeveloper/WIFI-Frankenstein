@@ -202,7 +202,11 @@ class PixieDustFragment : Fragment() {
 
         viewModel.isScanning.observe(viewLifecycleOwner) { isScanning ->
             binding.buttonScanNetworks.isEnabled = !isScanning
-            binding.progressBarScanning.visibility = if (isScanning) View.VISIBLE else View.GONE
+            if (isScanning) {
+                binding.progressBarScanning.startAnimation()
+            } else {
+                binding.progressBarScanning.stopAnimation()
+            }
         }
 
         viewModel.selectedNetwork.observe(viewLifecycleOwner) { network ->
@@ -309,7 +313,7 @@ class PixieDustFragment : Fragment() {
             is PixieAttackState.Idle -> {
                 updateSystemStatus()
                 binding.buttonStopAttack.isEnabled = false
-                binding.progressBarAttack.visibility = View.GONE
+                binding.progressBarAttack.stopAnimation()
                 binding.cardViewResult.visibility = View.GONE
             }
 
@@ -320,13 +324,13 @@ class PixieDustFragment : Fragment() {
             is PixieAttackState.RunningAttack -> {
                 binding.buttonStartAttack.isEnabled = false
                 binding.buttonStopAttack.isEnabled = true
-                binding.progressBarAttack.visibility = View.VISIBLE
+                binding.progressBarAttack.startAnimation()
                 binding.cardViewResult.visibility = View.GONE
             }
 
             is PixieAttackState.Completed -> {
                 binding.buttonStopAttack.isEnabled = false
-                binding.progressBarAttack.visibility = View.GONE
+                binding.progressBarAttack.stopAnimation()
                 binding.cardViewResult.visibility = View.VISIBLE
 
                 val result = state.result
@@ -343,7 +347,7 @@ class PixieDustFragment : Fragment() {
 
             is PixieAttackState.Failed -> {
                 binding.buttonStopAttack.isEnabled = false
-                binding.progressBarAttack.visibility = View.GONE
+                binding.progressBarAttack.stopAnimation()
                 binding.cardViewResult.visibility = View.VISIBLE
                 binding.textViewResult.text = getString(R.string.pixiedust_attack_failed, state.error)
                 binding.layoutResultActions.visibility = View.GONE
