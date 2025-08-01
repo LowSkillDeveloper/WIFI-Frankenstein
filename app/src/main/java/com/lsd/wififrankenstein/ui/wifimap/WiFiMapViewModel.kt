@@ -582,7 +582,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                         _loadingProgress.postValue(60)
 
-                        val clusters = getClusterManager().createAdaptiveClusters(allPoints, zoom, mapCenter)
+                        val clusters = clusterManager.createAdaptiveClusters(allPoints, zoom, mapCenter)
                         val clusterTime = System.currentTimeMillis() - clusterStartTime
 
                         Log.d(TAG, "Created ${clusters.size} adaptive clusters from ${allPoints.size} points in ${clusterTime}ms")
@@ -643,10 +643,12 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
     private fun getMaxPointsForZoom(zoom: Double): Int {
         val maxPoints = when {
+            zoom >= 14.0 -> 50000
             zoom >= 12.0 -> Int.MAX_VALUE
-            zoom >= 10.0 -> 20000
-            zoom >= 8.0 -> 15000
-            else -> 10000
+            zoom >= 10.0 -> 15000
+            zoom >= 8.0 -> 8000
+            zoom >= 6.0 -> 5000
+            else -> 3000
         }
 
         Log.d(TAG, "Max points for zoom $zoom: ${if (maxPoints == Int.MAX_VALUE) "UNLIMITED" else maxPoints}")
@@ -663,6 +665,40 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         val willBeLimited = zoom < 12.0 && maxPoints != Int.MAX_VALUE
 
         Log.d(TAG, "Loading from DB: ${database.id}, maxPoints: $maxPoints, zoom: $zoom, willBeLimited: $willBeLimited")
+
+        if (zoom < 14.0 && clusterManager.canUsePointsCache(boundingBox) &&
+            !clusterManager.hasSignificantAreaChange(boundingBox)) {
+            Log.d(TAG, "Using cached points for ${database.id}")
+            val cachedPoints = clusterManager.getCachedPointsInBounds(boundingBox)
+                .filter { it.databaseId == database.id }
+
+            if (cachedPoints.isNotEmpty()) {
+                Log.d(TAG, "Found ${cachedPoints.size} cached points for ${database.id}")
+                return@withContext cachedPoints.take(maxPoints).map {
+                    Triple(it.bssidDecimal, it.latitude, it.longitude)
+                }
+            }
+        }
+
+        smartCache[cacheKey]?.let { cacheEntry ->
+            Log.d(TAG, "Cache hit: ${cacheEntry.points.size} cached points for ${database.id}")
+            val limitedPoints = if (willBeLimited && cacheEntry.points.size > maxPoints) {
+                Log.d(TAG, "Limiting cached points: ${cacheEntry.points.size} -> $maxPoints")
+                cacheEntry.points.take(maxPoints)
+            } else {
+                cacheEntry.points
+            }
+
+            if (zoom >= 10.0) {
+                launchBackgroundCaching(database, boundingBox, zoom)
+            }
+
+            return@withContext limitedPoints.map {
+                Triple(it.bssidDecimal, it.latitude, it.longitude)
+            }
+        }
+
+        Log.d(TAG, "Cache miss for ${database.id}, loading from database with limit $maxPoints")
 
         val containingCache = findContainingCache(database.id, boundingBox, zoom)
         if (containingCache != null) {

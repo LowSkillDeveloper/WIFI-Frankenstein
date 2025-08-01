@@ -225,6 +225,8 @@ class WiFiMapFragment : Fragment() {
 
     private fun shouldUpdateClusters(currentZoom: Double, currentCenter: GeoPoint?): Boolean {
         if (lastClusterUpdateZoom < 0 || currentCenter == null) {
+            lastClusterUpdateZoom = currentZoom
+            lastClusterUpdateCenter = currentCenter
             return true
         }
 
@@ -236,21 +238,48 @@ class WiFiMapFragment : Fragment() {
 
         val zoomDiff = kotlin.math.abs(currentZoom - lastClusterUpdateZoom)
         val centerDistance = lastClusterUpdateCenter?.let { lastCenter ->
-            MarkerCluster.calculateDistance(
-                lastCenter.latitude, lastCenter.longitude,
-                currentCenter.latitude, currentCenter.longitude
-            )
+            val geoPoint1 = GeoPoint(lastCenter.latitude, lastCenter.longitude)
+            val geoPoint2 = GeoPoint(currentCenter.latitude, currentCenter.longitude)
+            geoPoint1.distanceToAsDouble(geoPoint2)
         } ?: Double.MAX_VALUE
+
+        val currentBounds = binding.map.boundingBox
+        val viewportDiagonal = lastClusterUpdateCenter?.let { lastCenter ->
+            val corner1 = GeoPoint(currentBounds.latNorth, currentBounds.lonWest)
+            val corner2 = GeoPoint(currentBounds.latSouth, currentBounds.lonEast)
+            corner1.distanceToAsDouble(corner2)
+        } ?: 0.0
+
+        val zoomOut = currentZoom < lastClusterUpdateZoom
+        val movementThreshold = viewportDiagonal * 0.3
 
         val shouldUpdate = when {
             currentZoom >= 10.0 -> {
-                zoomDiff >= 2.0 || centerDistance > 50000
+                if (zoomOut && zoomDiff >= 0.5) {
+                    true
+                } else if (zoomDiff >= 2.0) {
+                    true
+                } else {
+                    centerDistance > movementThreshold
+                }
             }
             currentZoom >= 6.0 -> {
-                zoomDiff >= 3.0 || centerDistance > 100000
+                if (zoomOut && zoomDiff >= 0.8) {
+                    true
+                } else if (zoomDiff >= 2.5) {
+                    true
+                } else {
+                    centerDistance > movementThreshold
+                }
             }
             else -> {
-                zoomDiff >= 4.0 || centerDistance > 200000
+                if (zoomOut && zoomDiff >= 1.0) {
+                    true
+                } else if (zoomDiff >= 3.0) {
+                    true
+                } else {
+                    centerDistance > movementThreshold
+                }
             }
         }
 
