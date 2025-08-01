@@ -64,14 +64,18 @@ class DatabaseFinderFragment : Fragment() {
         viewModel.refreshDatabases()
 
         binding.progressBarDatabaseCheck.visibility = View.GONE
-        binding.progressBarDatabaseCheck.isIndeterminate = true
 
         if (DbSetupViewModel.needDataRefresh) {
             viewModel.refreshDatabases()
         }
 
         viewModel.isSearching.observe(viewLifecycleOwner) { isSearching ->
-            binding.progressBarDatabaseCheck.visibility = if (isSearching) View.VISIBLE else View.GONE
+            if (isSearching) {
+                binding.progressBarDatabaseCheck.visibility = View.VISIBLE
+                binding.progressBarDatabaseCheck.startAnimation()
+            } else {
+                binding.progressBarDatabaseCheck.stopAnimation()
+            }
         }
 
         binding.checkBoxWholeWord.setOnCheckedChangeListener { _, isChecked ->
@@ -127,7 +131,12 @@ class DatabaseFinderFragment : Fragment() {
             val isLoading = loadState.source.refresh is LoadState.Loading ||
                     loadState.source.append is LoadState.Loading
 
-            binding.progressBarDatabaseCheck.visibility = if (isLoading) View.VISIBLE else View.GONE
+            if (isLoading) {
+                binding.progressBarDatabaseCheck.visibility = View.VISIBLE
+                binding.progressBarDatabaseCheck.startAnimation()
+            } else {
+                binding.progressBarDatabaseCheck.stopAnimation()
+            }
 
             val errorState = loadState.source.refresh as? LoadState.Error
                 ?: loadState.source.append as? LoadState.Error
