@@ -36,10 +36,6 @@ data class SmartLinkDbInfo(
     val version: String,
     val type: String
 ) {
-    fun getDownloadUrls(): List<String> {
-        return downloadUrls
-    }
-
     fun isMultiPart(): Boolean {
         return downloadUrls.size > 1
     }
@@ -133,6 +129,22 @@ class SmartLinkDbHelper(private val context: Context) {
         }
     }
 
+    private fun parseDownloadUrls(jsonObject: JSONObject): List<String> {
+        val urls = mutableListOf<String>()
+
+        if (jsonObject.has("downloadUrl") && !jsonObject.isNull("downloadUrl")) {
+            urls.add(jsonObject.getString("downloadUrl"))
+        } else {
+            var urlIndex = 1
+            while (jsonObject.has("downloadUrl$urlIndex") && !jsonObject.isNull("downloadUrl$urlIndex")) {
+                urls.add(jsonObject.getString("downloadUrl$urlIndex"))
+                urlIndex++
+            }
+        }
+
+        return urls
+    }
+
     suspend fun fetchDatabases(url: String) {
         withContext(Dispatchers.IO) {
             jsonUrl = url
@@ -146,17 +158,6 @@ class SmartLinkDbHelper(private val context: Context) {
                 val databases = mutableListOf<SmartLinkDbInfo>()
                 for (i in 0 until databasesArray.length()) {
                     val dbObject = databasesArray.getJSONObject(i)
-                    val urls = mutableListOf<String>()
-
-                    if (dbObject.has("downloadUrl") && !dbObject.isNull("downloadUrl")) {
-                        urls.add(dbObject.getString("downloadUrl"))
-                    } else {
-                        var urlIndex = 1
-                        while (dbObject.has("downloadUrl$urlIndex") && !dbObject.isNull("downloadUrl$urlIndex")) {
-                            urls.add(dbObject.getString("downloadUrl$urlIndex"))
-                            urlIndex++
-                        }
-                    }
 
                     databases.add(SmartLinkDbInfo(
                         id = dbObject.getString("id"),
@@ -183,7 +184,7 @@ class SmartLinkDbHelper(private val context: Context) {
                 ensureActive()
                 Log.d(TAG, "Starting download for ${dbInfo.name}")
 
-                val downloadUrls = dbInfo.getDownloadUrls()
+                val downloadUrls = dbInfo.downloadUrls
                 val fileName = "${dbInfo.id}_${dbInfo.version}.db"
                 val finalFile = File(context.filesDir, fileName)
 
@@ -542,18 +543,6 @@ class SmartLinkDbHelper(private val context: Context) {
                 for (i in 0 until databasesArray.length()) {
                     val info = databasesArray.getJSONObject(i)
                     if (info.getString("id") == dbItem.idJson) {
-                        val urls = mutableListOf<String>()
-
-                        if (info.has("downloadUrl") && !info.isNull("downloadUrl")) {
-                            urls.add(info.getString("downloadUrl"))
-                        } else {
-                            var urlIndex = 1
-                            while (info.has("downloadUrl$urlIndex") && !info.isNull("downloadUrl$urlIndex")) {
-                                urls.add(info.getString("downloadUrl$urlIndex"))
-                                urlIndex++
-                            }
-                        }
-
                         dbInfo = SmartLinkDbInfo(
                             id = info.getString("id"),
                             name = info.getString("name"),
@@ -576,7 +565,7 @@ class SmartLinkDbHelper(private val context: Context) {
                 val fileName = "${dbItem.idJson}_$newVersion.db"
                 val file = File(context.filesDir, fileName)
 
-                val downloadUrls = dbInfo.getDownloadUrls()
+                val downloadUrls = dbInfo.downloadUrls
 
                 if (dbInfo.isMultiPart()) {
                     downloadMultiPartArchive(downloadUrls, file) { progress, _, _ ->
@@ -610,22 +599,6 @@ class SmartLinkDbHelper(private val context: Context) {
                 throw e
             }
         }
-    }
-
-    private fun parseDownloadUrls(jsonObject: JSONObject): List<String> {
-        val urls = mutableListOf<String>()
-
-        if (jsonObject.has("downloadUrl") && !jsonObject.isNull("downloadUrl")) {
-            urls.add(jsonObject.getString("downloadUrl"))
-        } else {
-            var urlIndex = 1
-            while (jsonObject.has("downloadUrl$urlIndex") && !jsonObject.isNull("downloadUrl$urlIndex")) {
-                urls.add(jsonObject.getString("downloadUrl$urlIndex"))
-                urlIndex++
-            }
-        }
-
-        return urls
     }
 
     companion object {
