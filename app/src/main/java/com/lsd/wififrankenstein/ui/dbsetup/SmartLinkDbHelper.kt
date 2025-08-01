@@ -95,8 +95,10 @@ class SmartLinkDbHelper(private val context: Context) {
 
     private fun clearDownloadMetadata(dbId: String) {
         getMetadataFile(dbId).delete()
+        File(context.cacheDir, "${dbId}_parts_status.json").delete()
         context.cacheDir.listFiles { file ->
-            file.name.startsWith("${dbId}_") && file.name.endsWith(".tmp")
+            (file.name.startsWith("${dbId}_") && file.name.endsWith(".tmp")) ||
+                    (file.name.startsWith("part_${dbId}_") && file.name.endsWith(".tmp"))
         }?.forEach { it.delete() }
     }
 
@@ -189,7 +191,7 @@ class SmartLinkDbHelper(private val context: Context) {
                 val finalFile = File(context.filesDir, fileName)
 
                 if (dbInfo.isMultiPart()) {
-                    downloadMultiPartArchive(downloadUrls, finalFile, progressCallback)
+                    downloadMultiPartArchiveWithResume(dbInfo, downloadUrls, finalFile, progressCallback)
                 } else {
                     val downloadUrl = downloadUrls.first()
                     if (downloadUrl.endsWith(".zip", true) || downloadUrl.endsWith(".7z", true)) {
@@ -396,19 +398,23 @@ class SmartLinkDbHelper(private val context: Context) {
             var totalDownloaded = 0L
 
             urls.forEachIndexed { index, url ->
-                val partFile = File(context.cacheDir, "part_${index + 1}.tmp")
+                val partFile = File(context.cacheDir, "part_${outputFile.nameWithoutExtension}_${index + 1}.tmp")
                 tempParts.add(partFile)
 
                 withContext(Dispatchers.Main) {
                     progressCallback(-2, index.toLong() + 1, urls.size.toLong())
                 }
 
-                downloadDirectFile(url, partFile) { progress, downloaded, total ->
-                    val overallProgress = ((index * 100 + progress) / urls.size)
-                    progressCallback(overallProgress, totalDownloaded + downloaded, null)
+                if (partFile.exists()) {
+                    Log.d(TAG, "Part ${index + 1} already exists, skipping download")
+                    totalDownloaded += partFile.length()
+                } else {
+                    downloadDirectFile(url, partFile) { progress, downloaded, total ->
+                        val overallProgress = ((index * 100 + progress) / urls.size)
+                        progressCallback(overallProgress, totalDownloaded + downloaded, null)
+                    }
+                    totalDownloaded += partFile.length()
                 }
-
-                totalDownloaded += partFile.length()
             }
 
             withContext(Dispatchers.Main) {
@@ -426,9 +432,92 @@ class SmartLinkDbHelper(private val context: Context) {
                 }
             }
             val mergedArchive = File(context.cacheDir, "${outputFile.nameWithoutExtension}.$archiveExtension")
-            mergeFiles(tempParts, mergedArchive)
+
+            if (!mergedArchive.exists() || mergedArchive.length() == 0L) {
+                mergeFiles(tempParts, mergedArchive)
+            }
 
             tempParts.forEach { it.delete() }
+
+            withContext(Dispatchers.Main) {
+                progressCallback(-1, 0, null)
+            }
+
+            extractArchive(mergedArchive, outputFile)
+            mergedArchive.delete()
+        }
+    }
+
+    private suspend fun downloadMultiPartArchiveWithResume(
+        dbInfo: SmartLinkDbInfo,
+        urls: List<String>,
+        outputFile: File,
+        progressCallback: (Int, Long, Long?) -> Unit
+    ) {
+        withContext(Dispatchers.IO) {
+            val metadata = loadDownloadMetadata(dbInfo.id)
+            val completedParts = metadata?.let {
+                json.decodeFromString<List<Boolean>>(
+                    File(context.cacheDir, "${dbInfo.id}_parts_status.json").takeIf { it.exists() }?.readText() ?: "[]"
+                )
+            } ?: List(urls.size) { false }
+
+            val tempParts = mutableListOf<File>()
+            var totalDownloaded = 0L
+
+            urls.forEachIndexed { index, url ->
+                val partFile = File(context.cacheDir, "part_${dbInfo.id}_${index + 1}.tmp")
+                tempParts.add(partFile)
+
+                if (completedParts.getOrElse(index) { false } && partFile.exists()) {
+                    withContext(Dispatchers.Main) {
+                        progressCallback(-2, index.toLong() + 1, urls.size.toLong())
+                    }
+                    totalDownloaded += partFile.length()
+                    Log.d(TAG, "Part ${index + 1} already downloaded, skipping")
+                } else {
+                    withContext(Dispatchers.Main) {
+                        progressCallback(-2, index.toLong() + 1, urls.size.toLong())
+                    }
+
+                    downloadDirectFile(url, partFile) { progress, downloaded, total ->
+                        val overallProgress = ((index * 100 + progress) / urls.size)
+                        progressCallback(overallProgress, totalDownloaded + downloaded, null)
+                    }
+
+                    val updatedStatus = completedParts.toMutableList()
+                    if (updatedStatus.size <= index) {
+                        while (updatedStatus.size <= index) updatedStatus.add(false)
+                    }
+                    updatedStatus[index] = true
+                    File(context.cacheDir, "${dbInfo.id}_parts_status.json").writeText(json.encodeToString(updatedStatus))
+
+                    totalDownloaded += partFile.length()
+                }
+            }
+
+            withContext(Dispatchers.Main) {
+                progressCallback(-3, 0, null)
+            }
+
+            val firstUrl = urls.firstOrNull() ?: throw Exception("No URLs provided")
+            val archiveExtension = when {
+                firstUrl.contains(".zip.", ignoreCase = true) -> "zip"
+                firstUrl.contains(".7z.", ignoreCase = true) -> "7z"
+                else -> {
+                    val fullName = firstUrl.substringAfterLast('/')
+                    val extensionMatch = Regex("\\.(zip|7z)\\.[0-9]+$", RegexOption.IGNORE_CASE).find(fullName)
+                    extensionMatch?.groupValues?.get(1)?.lowercase() ?: "zip"
+                }
+            }
+            val mergedArchive = File(context.cacheDir, "${outputFile.nameWithoutExtension}.$archiveExtension")
+
+            if (!mergedArchive.exists() || mergedArchive.length() == 0L) {
+                mergeFiles(tempParts, mergedArchive)
+            }
+
+            tempParts.forEach { it.delete() }
+            File(context.cacheDir, "${dbInfo.id}_parts_status.json").delete()
 
             withContext(Dispatchers.Main) {
                 progressCallback(-1, 0, null)
@@ -568,7 +657,7 @@ class SmartLinkDbHelper(private val context: Context) {
                 val downloadUrls = dbInfo.downloadUrls
 
                 if (dbInfo.isMultiPart()) {
-                    downloadMultiPartArchive(downloadUrls, file) { progress, _, _ ->
+                    downloadMultiPartArchiveWithResume(dbInfo, downloadUrls, file) { progress, _, _ ->
                         progressCallback(progress)
                     }
                 } else {
