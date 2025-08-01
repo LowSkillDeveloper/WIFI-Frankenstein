@@ -19,11 +19,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentWifiAnalysisBinding
 import com.lsd.wififrankenstein.ui.wifiscanner.WiFiScannerViewModel
+import com.lsd.wififrankenstein.util.AnimatedLoadingBar
 
 class WiFiAnalysisFragment : Fragment() {
 
     private var _binding: FragmentWifiAnalysisBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var analysisProgressBar: AnimatedLoadingBar
 
     private val viewModel: WiFiAnalysisViewModel by viewModels {
         object : ViewModelProvider.Factory {
@@ -58,6 +61,7 @@ class WiFiAnalysisFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentWifiAnalysisBinding.inflate(inflater, container, false)
+        analysisProgressBar = binding.progressBarAnalysis
         return binding.root
     }
 
@@ -138,6 +142,11 @@ class WiFiAnalysisFragment : Fragment() {
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.swipeRefreshLayout.isRefreshing = isLoading
+            if (isLoading) {
+                analysisProgressBar.startAnimation()
+            } else {
+                analysisProgressBar.stopAnimation()
+            }
         }
 
         viewModel.error.observe(viewLifecycleOwner) { error ->
@@ -209,6 +218,7 @@ class WiFiAnalysisFragment : Fragment() {
 
     private fun startWifiScan() {
         binding.swipeRefreshLayout.isRefreshing = true
+        analysisProgressBar.startAnimation()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             wifiScannerViewModel.startWifiScan()
         } else {

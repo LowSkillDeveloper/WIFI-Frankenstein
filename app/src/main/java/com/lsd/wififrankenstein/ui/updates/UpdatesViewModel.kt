@@ -59,11 +59,15 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
     val appUpdateProgress: StateFlow<Int> = _appUpdateProgress.asStateFlow()
 
     private val _smartLinkDbUpdates = MutableStateFlow<List<SmartLinkDbUpdateInfo>>(emptyList())
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     val smartLinkDbUpdates: StateFlow<List<SmartLinkDbUpdateInfo>> = _smartLinkDbUpdates.asStateFlow()
 
     private val networkClient = NetworkClient.getInstance(getApplication())
 
     fun checkUpdates() {
+        _isLoading.value = true
         val context = getApplication<Application>().applicationContext
         viewModelScope.launch {
             if (!NetworkUtils.hasActiveConnection(context)) {
@@ -120,8 +124,10 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
 
                 _updateInfo.value = serverFilesList
                 _errorMessage.value = null
+                _isLoading.value = false
             } catch (e: Exception) {
                 _errorMessage.value = context.getString(R.string.error_connection_failed)
+                _isLoading.value = false
             }
         }
     }
@@ -131,6 +137,7 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun checkSmartLinkDbUpdates() {
+        _isLoading.value = true
         viewModelScope.launch {
             try {
                 Log.d("UpdatesViewModel", "Starting SmartLink DB updates check...")
@@ -166,9 +173,11 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
 
                 Log.d("UpdatesViewModel", "SmartLink DB update results: ${updateInfoList.size} items, ${updateInfoList.count { it.needsUpdate }} need updates")
                 _smartLinkDbUpdates.value = updateInfoList
+                _isLoading.value = false
             } catch (e: Exception) {
                 Log.e("UpdatesViewModel", "Error checking SmartLink DB updates", e)
                 _errorMessage.value = e.message ?: "Failed to check SmartLink DB updates"
+                _isLoading.value = false
             }
         }
     }
