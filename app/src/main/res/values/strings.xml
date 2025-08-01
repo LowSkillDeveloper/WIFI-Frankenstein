@@ -1203,5 +1203,10 @@
     <string name="mac_column_required">MAC column is required for indexing</string>
     <string name="indexing_no_geo_warning">Warning: No latitude/longitude columns found. Location-based features will be unavailable.</string>
 
+    <string name="resuming_download">Resuming download</string>
+    <string name="download_resumed">Download resumed from %1$d%%</string>
+    <string name="clearing_old_download">Clearing old download</string>
+    <string name="version_changed_restarting">Version changed, restarting download</string>
+
 
 </resources>
