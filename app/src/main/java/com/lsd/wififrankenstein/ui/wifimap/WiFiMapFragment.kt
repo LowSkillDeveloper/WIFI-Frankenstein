@@ -90,6 +90,10 @@ class WiFiMapFragment : Fragment() {
 
     private var lastMapUpdateTime = 0L
     private val MAP_UPDATE_DEBOUNCE_MS = 300L
+    private var lastUpdateZoom = -1.0
+    private var lastUpdateCenter: GeoPoint? = null
+    private var lastClusterUpdateZoom = -1.0
+    private var lastClusterUpdateCenter: GeoPoint? = null
 
     companion object {
         private const val DEFAULT_ZOOM = 5.0
@@ -201,6 +205,14 @@ class WiFiMapFragment : Fragment() {
 
     private fun scheduleMapUpdate() {
         val currentTime = System.currentTimeMillis()
+        val currentZoom = binding.map.zoomLevelDouble
+        val currentCenter = binding.map.mapCenter as? GeoPoint
+
+        if (!shouldUpdateClusters(currentZoom, currentCenter)) {
+            Log.d(TAG, "Skipping cluster update - insufficient zoom/position change")
+            return
+        }
+
         lastMapUpdateTime = currentTime
 
         lifecycleScope.launch {
@@ -209,6 +221,45 @@ class WiFiMapFragment : Fragment() {
                 updateVisiblePoints()
             }
         }
+    }
+
+    private fun shouldUpdateClusters(currentZoom: Double, currentCenter: GeoPoint?): Boolean {
+        if (lastClusterUpdateZoom < 0 || currentCenter == null) {
+            return true
+        }
+
+        if (currentZoom >= 14.0) {
+            lastClusterUpdateZoom = currentZoom
+            lastClusterUpdateCenter = currentCenter
+            return true
+        }
+
+        val zoomDiff = kotlin.math.abs(currentZoom - lastClusterUpdateZoom)
+        val centerDistance = lastClusterUpdateCenter?.let { lastCenter ->
+            MarkerCluster.calculateDistance(
+                lastCenter.latitude, lastCenter.longitude,
+                currentCenter.latitude, currentCenter.longitude
+            )
+        } ?: Double.MAX_VALUE
+
+        val shouldUpdate = when {
+            currentZoom >= 10.0 -> {
+                zoomDiff >= 2.0 || centerDistance > 50000
+            }
+            currentZoom >= 6.0 -> {
+                zoomDiff >= 3.0 || centerDistance > 100000
+            }
+            else -> {
+                zoomDiff >= 4.0 || centerDistance > 200000
+            }
+        }
+
+        if (shouldUpdate) {
+            lastClusterUpdateZoom = currentZoom
+            lastClusterUpdateCenter = currentCenter
+        }
+
+        return shouldUpdate
     }
 
     private fun setupRecyclerView() {
@@ -459,6 +510,8 @@ class WiFiMapFragment : Fragment() {
 
     private fun updateVisiblePoints() {
         val zoom = binding.map.zoomLevelDouble
+        lastUpdateZoom = zoom
+        lastUpdateCenter = binding.map.mapCenter as? GeoPoint
         val minZoom = viewModel.getMinZoomForMarkers()
         val boundingBox = binding.map.boundingBox
 

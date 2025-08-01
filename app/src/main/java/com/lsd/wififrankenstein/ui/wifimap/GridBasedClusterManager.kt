@@ -11,6 +11,10 @@ class GridBasedClusterManager(
     private val preventClusterMerge: Boolean = false,
     private val forcePointSeparation: Boolean = true
 ) {
+    private var lastZoomLevel = -1.0
+    private var lastCenterLat = 0.0
+    private var lastCenterLon = 0.0
+    private var cachedClusters: List<MarkerCluster> = emptyList()
 
     private data class GridCell(
         val x: Int,
@@ -44,19 +48,65 @@ class GridBasedClusterManager(
     ): List<MarkerCluster> {
         if (points.isEmpty()) return emptyList()
 
+        if (canUseCachedClusters(zoomLevel, points)) {
+            return cachedClusters
+        }
+
         val processedPoints = if (forcePointSeparation) {
             spreadOverlappingPointsEfficient(points)
         } else {
             points
         }
 
-        return if (preventClusterMerge) {
+        val clusters = if (preventClusterMerge) {
             processedPoints.map { point ->
                 MarkerCluster().apply { addPoint(point) }
             }
         } else {
             performGridClustering(processedPoints, zoomLevel)
         }
+
+        updateCache(zoomLevel, points, clusters)
+        return clusters
+    }
+
+    private fun canUseCachedClusters(zoomLevel: Double, points: List<NetworkPoint>): Boolean {
+        if (cachedClusters.isEmpty() || lastZoomLevel < 0) {
+            return false
+        }
+
+        if (zoomLevel >= 14.0) {
+            return false
+        }
+
+        val zoomDiff = kotlin.math.abs(zoomLevel - lastZoomLevel)
+        val center = calculatePointsCenter(points)
+        val centerDistance = calculateDistance(
+            lastCenterLat, lastCenterLon,
+            center.first, center.second
+        )
+
+        return when {
+            zoomLevel >= 10.0 -> zoomDiff < 2.0 && centerDistance < 50000
+            zoomLevel >= 6.0 -> zoomDiff < 3.0 && centerDistance < 100000
+            else -> zoomDiff < 4.0 && centerDistance < 200000
+        }
+    }
+
+    private fun updateCache(zoomLevel: Double, points: List<NetworkPoint>, clusters: List<MarkerCluster>) {
+        lastZoomLevel = zoomLevel
+        val center = calculatePointsCenter(points)
+        lastCenterLat = center.first
+        lastCenterLon = center.second
+        cachedClusters = clusters
+    }
+
+    private fun calculatePointsCenter(points: List<NetworkPoint>): Pair<Double, Double> {
+        if (points.isEmpty()) return Pair(0.0, 0.0)
+
+        val avgLat = points.sumOf { it.displayLatitude } / points.size
+        val avgLon = points.sumOf { it.displayLongitude } / points.size
+        return Pair(avgLat, avgLon)
     }
 
     private fun performGridClustering(
@@ -134,19 +184,26 @@ class GridBasedClusterManager(
     ): List<MarkerCluster> {
         if (points.isEmpty()) return emptyList()
 
+        if (canUseCachedClusters(zoomLevel, points)) {
+            return cachedClusters
+        }
+
         val processedPoints = if (forcePointSeparation) {
             spreadOverlappingPointsEfficient(points)
         } else {
             points
         }
 
-        return if (preventClusterMerge) {
+        val clusters = if (preventClusterMerge) {
             processedPoints.map { point ->
                 MarkerCluster().apply { addPoint(point) }
             }
         } else {
             performAdaptiveGridClustering(processedPoints, zoomLevel, mapCenter)
         }
+
+        updateCache(zoomLevel, points, clusters)
+        return clusters
     }
 
     private fun performAdaptiveGridClustering(
