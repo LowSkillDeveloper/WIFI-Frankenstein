@@ -24,6 +24,11 @@
       "name": "wpspin.html",
       "version": "1.0",
       "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/wpspin.html"
+    },
+    {
+      "name": "RouterKeygen.dic",
+      "version": "1.0",
+      "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/refs/heads/service/RouterKeygen.dic"
     }
   ]
 }
