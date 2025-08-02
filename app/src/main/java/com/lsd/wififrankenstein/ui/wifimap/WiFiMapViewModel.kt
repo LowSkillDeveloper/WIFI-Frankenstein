@@ -903,7 +903,20 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     fun clearCache() {
         pointsCache.clear()
         smartCache.clear()
-        Log.d(TAG, "Cleared both regular and smart cache")
+        clusterManager.clearAllCache()
+
+        backgroundCachingJob?.cancel()
+        backgroundCachingJob = null
+        currentLoadingJob?.cancel()
+        currentLoadingJob = null
+
+        lastUpdateTime = 0L
+        Log.d(TAG, "Cleared all caches and cancelled background jobs")
+    }
+
+    fun forceRefresh() {
+        clearCache()
+        clusterManager.forceRefresh()
     }
 
     fun resetState() {

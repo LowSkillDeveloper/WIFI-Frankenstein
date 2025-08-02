@@ -332,6 +332,18 @@ class GridBasedClusterManager(
         }
     }
 
+    fun clearAllCache() {
+        lastZoomLevel = -1.0
+        cachedClusters = emptyList()
+        cachedPoints = emptyList()
+        cachedBounds = null
+        spatialIndex.clear()
+    }
+
+    fun forceRefresh() {
+        clearAllCache()
+    }
+
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val earthRadius = 6371000.0
         val dLat = Math.toRadians(lat2 - lat1)

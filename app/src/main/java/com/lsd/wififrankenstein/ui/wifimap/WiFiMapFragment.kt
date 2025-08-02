@@ -298,9 +298,23 @@ class WiFiMapFragment : Fragment() {
                 emptyList(),
                 selectedDatabases,
                 {
-                    viewModel.clearCache()
+                    binding.textViewProgress.visibility = View.VISIBLE
+                    binding.textViewProgress.text = getString(R.string.refreshing_map_data)
+                    binding.progressBar.visibility = View.VISIBLE
+                    binding.progressBar.startAnimation()
+
+                    viewModel.forceRefresh()
                     clearMarkers()
-                    scheduleMapUpdate()
+                    resetMapState()
+
+                    lifecycleScope.launch {
+                        delay(100)
+                        scheduleMapUpdate()
+                        delay(500)
+                        if (selectedDatabases.isNotEmpty()) {
+                            Snackbar.make(binding.root, getString(R.string.map_data_refreshed), Snackbar.LENGTH_SHORT).show()
+                        }
+                    }
                 },
                 viewModel
             )
@@ -313,9 +327,23 @@ class WiFiMapFragment : Fragment() {
                 filteredDatabases,
                 selectedDatabases,
                 {
-                    viewModel.clearCache()
+                    binding.textViewProgress.visibility = View.VISIBLE
+                    binding.textViewProgress.text = getString(R.string.refreshing_map_data)
+                    binding.progressBar.visibility = View.VISIBLE
+                    binding.progressBar.startAnimation()
+
+                    viewModel.forceRefresh()
                     clearMarkers()
-                    scheduleMapUpdate()
+                    resetMapState()
+
+                    lifecycleScope.launch {
+                        delay(100)
+                        scheduleMapUpdate()
+                        delay(500)
+                        if (selectedDatabases.isNotEmpty()) {
+                            Snackbar.make(binding.root, getString(R.string.map_data_refreshed), Snackbar.LENGTH_SHORT).show()
+                        }
+                    }
                 },
                 viewModel
             )
@@ -481,6 +509,17 @@ class WiFiMapFragment : Fragment() {
         }
     }
 
+    private fun resetMapState() {
+        lastMapUpdateTime = 0L
+        lastUpdateZoom = -1.0
+        lastUpdateCenter = null
+        lastClusterUpdateZoom = -1.0
+        lastClusterUpdateCenter = null
+
+        updateJob?.cancel()
+        updateJob = null
+    }
+
     private fun observeViewModel() {
         viewModel.loadingProgress.observe(viewLifecycleOwner) { count ->
             Log.d(TAG, "Loading progress updated: $count")
@@ -513,7 +552,13 @@ class WiFiMapFragment : Fragment() {
             dbItem?.let {
                 selectedDatabases.add(it)
                 databaseAdapter.notifyDataSetChanged()
+
+                viewModel.clearCache()
+                clearMarkers()
+                resetMapState()
                 scheduleMapUpdate()
+
+                Log.d(TAG, "Added read-only database and refreshed map")
             }
         }
 
@@ -550,6 +595,15 @@ class WiFiMapFragment : Fragment() {
         Log.d(TAG, "Bounding box: $boundingBox")
         Log.d(TAG, "Selected databases: ${selectedDatabases.size}")
 
+        if (selectedDatabases.isEmpty()) {
+            Log.d(TAG, "No databases selected, clearing everything")
+            clearMarkers()
+            binding.progressBar.stopAnimation()
+            binding.textViewProgress.text = getString(R.string.select_database_message)
+            binding.textViewProgress.visibility = View.VISIBLE
+            return
+        }
+
         val zoomCategory = when {
             zoom >= 12 -> "CITY+ (≥12) - NO LIMITS"
             zoom >= 10 -> "REGIONAL (10-11) - 20k points"
@@ -567,15 +621,6 @@ class WiFiMapFragment : Fragment() {
             return
         }
 
-        if (selectedDatabases.isEmpty()) {
-            Log.d(TAG, "No databases selected")
-            clearMarkers()
-            binding.progressBar.stopAnimation()
-            binding.textViewProgress.text = getString(R.string.select_database_message)
-            binding.textViewProgress.visibility = View.VISIBLE
-            return
-        }
-
         binding.textViewProgress.visibility = View.GONE
         binding.progressBar.visibility = View.VISIBLE
         binding.progressBar.startAnimation()
@@ -584,8 +629,6 @@ class WiFiMapFragment : Fragment() {
             Log.d(TAG, "Bounding box is null")
             return
         }
-
-        binding.textViewProgress.visibility = View.GONE
 
         updateJob?.cancel()
 
@@ -880,9 +923,17 @@ class WiFiMapFragment : Fragment() {
     private fun clearMarkers() {
         if (_binding == null) return
 
+        markers.forEach { marker ->
+            binding.map.overlays.remove(marker)
+        }
+        markers.clear()
+
         canvasOverlay.updatePoints(emptyList())
         binding.map.postInvalidate()
         binding.legendCard.visibility = View.GONE
+
+        databaseColors.clear()
+        nextColorIndex = 0
     }
 
     override fun onStart() {

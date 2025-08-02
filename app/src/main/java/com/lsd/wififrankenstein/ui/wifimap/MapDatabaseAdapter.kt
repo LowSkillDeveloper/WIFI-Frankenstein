@@ -61,15 +61,19 @@ class MapDatabaseAdapter(
             isChecked = selectedDatabases.contains(database)
 
             setOnCheckedChangeListener { _, isChecked ->
+                Log.d(TAG, "Database ${database.id} selection changed to: $isChecked")
+
                 if (isChecked) {
-                    if (database.dbType == DbType.SQLITE_FILE_CUSTOM) {
+                    if (database.dbType == DbType.SQLITE_FILE_CUSTOM || database.dbType == DbType.LOCAL_APP_DB) {
                         viewModel.handleCustomDbSelection(database, true, selectedDatabases)
                     } else {
                         selectedDatabases.add(database)
                     }
                 } else {
                     selectedDatabases.remove(database)
+                    Log.d(TAG, "Removed database ${database.id} from selection")
                 }
+
                 onSelectionChanged()
             }
         }

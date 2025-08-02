@@ -1208,5 +1208,7 @@
     <string name="clearing_old_download">Clearing old download</string>
     <string name="version_changed_restarting">Version changed, restarting download</string>
 
+    <string name="refreshing_map_data">Обновление данных карты…</string>
+    <string name="map_data_refreshed">Данные карты обновлены</string>
 
 </resources>
