@@ -35,6 +35,11 @@
             android:title="@string/menu_pixiedust"
             android:visible="false" />
         <item
+            android:id="@+id/nav_iw_scanner"
+            android:icon="@drawable/ic_wifi"
+            android:title="@string/menu_iw_scanner"
+            android:visible="false" />
+        <item
             android:id="@+id/nav_saved_passwords"
             android:icon="@drawable/ic_file"
             android:title="@string/menu_saved_passwords"

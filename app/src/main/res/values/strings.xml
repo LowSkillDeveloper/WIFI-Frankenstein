@@ -1211,4 +1211,62 @@
     <string name="refreshing_map_data">Обновление данных карты…</string>
     <string name="map_data_refreshed">Данные карты обновлены</string>
 
+    <string name="menu_iw_scanner">iw Scanner</string>
+    <string name="iw_hidden_ssid">[Hidden Network]</string>
+    <string name="iw_unknown_signal">Unknown</string>
+    <string name="iw_frequency_format">%s MHz</string>
+    <string name="iw_channel_format">Ch: %s</string>
+    <string name="iw_open_network">Open</string>
+    <string name="iw_connected_network">Connected network</string>
+    <string name="iw_expand_details">Expand details</string>
+
+    <string name="iw_link_info_title">Connection Status</string>
+    <string name="iw_refresh_link_info">Refresh connection info</string>
+    <string name="iw_not_connected">Not connected to any network</string>
+    <string name="iw_connected_to">Connected to: %s</string>
+    <string name="iw_ssid_format">SSID: %s</string>
+    <string name="iw_bssid_format">BSSID: %s</string>
+    <string name="iw_freq_format">Freq: %s</string>
+    <string name="iw_signal_format">Signal: %s</string>
+    <string name="iw_bitrate_format">Rate: %s</string>
+
+    <string name="iw_device_info_title">Device Information</string>
+    <string name="iw_refresh_device_info">Refresh device info</string>
+    <string name="iw_expand_device_info">Expand device info</string>
+    <string name="iw_loading_device_info">Loading device information…</string>
+    <string name="iw_device_info_unavailable">Device information unavailable</string>
+
+    <string name="iw_network_scan_title">Network Scanner</string>
+    <string name="iw_scan_networks">Scan Networks</string>
+    <string name="iw_scanning">Scanning…</string>
+    <string name="iw_ready_to_scan">Ready to scan for networks</string>
+    <string name="iw_no_networks_found">No networks found. Try scanning again.</string>
+
+    <string name="iw_ready">iw Scanner ready</string>
+    <string name="iw_root_required">Root access required for iw Scanner</string>
+    <string name="iw_binary_copy_failed">Failed to copy iw binaries</string>
+    <string name="iw_initial_load_failed">Failed to load initial data</string>
+    <string name="iw_scan_completed">Scan completed. Found %d networks.</string>
+    <string name="iw_scan_failed">Scan failed: %s</string>
+    <string name="iw_link_refresh_failed">Failed to refresh connection info</string>
+    <string name="iw_device_info_failed">Failed to load device information</string>
+
+    <string name="iw_root_required_title">Root Access Required</string>
+    <string name="iw_root_required_message">The iw Scanner requires root access to scan for networks and access device information. Please ensure your device is rooted and grant root permissions to this app.</string>
+
+    <string name="iw_error_title">Scanner Error</string>
+    <string name="iw_error_message">An error occurred: %s</string>
+
+    <string name="iw_interface_selector_title">Network Interface</string>
+    <string name="iw_refresh_interfaces">Refresh interfaces</string>
+    <string name="iw_manual_interface">Manual interface input</string>
+    <string name="iw_selected_interface">Interface:</string>
+    <string name="iw_interface_no_details">No additional details</string>
+    <string name="iw_interface_refresh_failed">Failed to refresh interfaces</string>
+
+    <string name="iw_manual_interface_title">Manual Interface</string>
+    <string name="iw_manual_interface_message">Enter the network interface name manually. This is useful if the interface is not detected automatically.</string>
+    <string name="iw_interface_hint">e.g. wlan0, wlan1, p2p0</string>
+    <string name="iw_set_interface">Set Interface</string>
+
 </resources>

@@ -149,6 +149,7 @@ class MainActivity : AppCompatActivity() {
                     Log.d("MainActivity", "Root functions category clicked")
                     toggleCategory("root_functions", listOf(
                         R.id.nav_pixiedust,
+                        R.id.nav_iw_scanner,
                         R.id.nav_saved_passwords
                     ), menuItem)
                     true
