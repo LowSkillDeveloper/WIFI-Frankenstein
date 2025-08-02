@@ -1269,4 +1269,18 @@
     <string name="iw_interface_hint">e.g. wlan0, wlan1, p2p0</string>
     <string name="iw_set_interface">Set Interface</string>
 
+    <string name="iw_device_wiphy_index">Wiphy Index</string>
+    <string name="iw_device_max_scan_ssids">Max Scan SSIDs</string>
+    <string name="iw_device_max_scan_ies_length">Max Scan IEs Length</string>
+    <string name="iw_device_coverage_class">Coverage Class</string>
+    <string name="iw_device_supports_tdls">Supports T-DLS</string>
+    <string name="iw_device_available_antennas">Available Antennas</string>
+    <string name="iw_device_supported_interface_modes">Supported Interface Modes</string>
+    <string name="iw_device_supported_ciphers">Supported Ciphers</string>
+    <string name="iw_device_capabilities">Capabilities</string>
+    <string name="iw_device_ht_support">HT Support</string>
+    <string name="iw_device_frequencies">Frequencies</string>
+    <string name="iw_device_bitrates">Bitrates</string>
+    <string name="iw_device_and_more">and %d more</string>
+
 </resources>

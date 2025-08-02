@@ -419,36 +419,240 @@ class IwScannerHelper(private val context: Context) {
     }
 
     private fun parseDeviceInfo(output: String): IwDeviceInfo {
+        Log.d(TAG, "Parsing device info, input length: ${output.length} chars")
+
         val lines = output.lines()
         var wiphy = ""
         val bands = mutableListOf<IwBand>()
         var currentBand: IwBand? = null
         var inBand = false
-        var capabilities: IwCapabilities? = null
+        var inFrequencies = false
+        var inBitrates = false
+        var inCommands = false
+        var inCiphers = false
+        var inInterfaceModes = false
 
-        lines.forEach { line ->
+        var wiphyIndex = ""
+        var maxScanSSIDs = ""
+        var maxScanIEsLength = ""
+        var maxSchedScanSSIDs = ""
+        var maxMatchSets = ""
+        var retryShortLimit = ""
+        var retryLongLimit = ""
+        var coverageClass = ""
+        var supportsTDLS = false
+        val supportedCiphers = mutableListOf<String>()
+        var availableAntennas = ""
+        val supportedInterfaceModes = mutableListOf<String>()
+        val supportedCommands = mutableListOf<String>()
+        val supportedTxFrameTypes = mutableListOf<String>()
+        val supportedRxFrameTypes = mutableListOf<String>()
+        val supportedExtendedFeatures = mutableListOf<String>()
+        val htCapabilityOverrides = mutableListOf<String>()
+        var maxScanPlans = ""
+        var maxScanPlanInterval = ""
+        var maxScanPlanIterations = ""
+
+        var currentBandCapabilities = IwBandCapabilities()
+        val currentFrequencies = mutableListOf<IwFrequency>()
+        val currentBitrates = mutableListOf<IwBitrate>()
+
+        lines.forEachIndexed { index, line ->
             val trimmed = line.trim()
+
             when {
                 trimmed.startsWith("Wiphy") -> {
                     wiphy = trimmed
+                    Log.d(TAG, "Found wiphy: $wiphy")
                 }
-                trimmed.startsWith("Band") -> {
-                    currentBand?.let { bands.add(it) }
-                    currentBand = IwBand(bandNumber = trimmed)
-                    inBand = true
+
+                trimmed.startsWith("wiphy index:") -> {
+                    wiphyIndex = trimmed.substringAfter(":").trim()
                 }
+
                 trimmed.startsWith("max # scan SSIDs:") -> {
                     inBand = false
-                    currentBand?.let { bands.add(it) }
-                    val maxScanSSIDs = trimmed.substring(17).trim()
-                    capabilities = IwCapabilities(maxScanSSIDs = maxScanSSIDs)
+                    currentBand?.let {
+                        bands.add(it.copy(
+                            capabilities = currentBandCapabilities,
+                            frequencies = currentFrequencies.toList(),
+                            bitrates = currentBitrates.toList()
+                        ))
+                    }
+                    maxScanSSIDs = trimmed.substringAfter(":").trim()
+                }
+
+                trimmed.startsWith("max scan IEs length:") -> {
+                    maxScanIEsLength = trimmed.substringAfter(":").trim()
+                }
+
+                trimmed.contains("supports T-DLS") -> {
+                    supportsTDLS = true
+                }
+
+                trimmed == "Supported Ciphers:" -> {
+                    inCiphers = true
+                    inCommands = false
+                    inInterfaceModes = false
+                }
+
+                trimmed.startsWith("Available Antennas:") -> {
+                    inCiphers = false
+                    availableAntennas = trimmed.substringAfter(":").trim()
+                }
+
+                trimmed == "Supported interface modes:" -> {
+                    inInterfaceModes = true
+                    inCiphers = false
+                    inCommands = false
+                }
+
+                trimmed.startsWith("Band") && trimmed.contains(":") -> {
+                    currentBand?.let {
+                        bands.add(it.copy(
+                            capabilities = currentBandCapabilities,
+                            frequencies = currentFrequencies.toList(),
+                            bitrates = currentBitrates.toList()
+                        ))
+                    }
+
+                    currentBand = IwBand(bandNumber = trimmed)
+                    currentBandCapabilities = IwBandCapabilities()
+                    currentFrequencies.clear()
+                    currentBitrates.clear()
+                    inBand = true
+                    inFrequencies = false
+                    inBitrates = false
+                    inInterfaceModes = false
+                    inCiphers = false
+                    inCommands = false
+                }
+
+                inBand && trimmed.startsWith("Capabilities:") -> {
+                    val capValue = trimmed.substringAfter(":").trim()
+                    val capDetails = mutableListOf<String>()
+
+                    var i = index + 1
+                    while (i < lines.size && (lines[i].startsWith("\t\t\t") || lines[i].startsWith("                "))) {
+                        capDetails.add(lines[i].trim())
+                        i++
+                    }
+
+                    currentBandCapabilities = currentBandCapabilities.copy(
+                        value = capValue,
+                        htSupport = capDetails
+                    )
+                }
+
+                inBand && trimmed.startsWith("Maximum RX AMPDU length") -> {
+                    currentBandCapabilities = currentBandCapabilities.copy(
+                        maxAmpduLength = trimmed
+                    )
+                }
+
+                inBand && trimmed.startsWith("Minimum RX AMPDU time spacing:") -> {
+                    currentBandCapabilities = currentBandCapabilities.copy(
+                        minAmpduTimeSpacing = trimmed
+                    )
+                }
+
+                inBand && (trimmed.startsWith("HT TX/RX MCS rate indexes") || trimmed.startsWith("HT RX MCS rate indexes")) -> {
+                    currentBandCapabilities = currentBandCapabilities.copy(
+                        htMcsRateIndexes = trimmed
+                    )
+                }
+
+                inBand && trimmed == "Frequencies:" -> {
+                    inFrequencies = true
+                    inBitrates = false
+                }
+
+                inBand && trimmed == "Bitrates (non-HT):" -> {
+                    inFrequencies = false
+                    inBitrates = true
+                }
+
+                inBand && inFrequencies && trimmed.startsWith("*") -> {
+                    val freqPattern = "\\* ([0-9.]+) MHz \\[([0-9]+)\\] \\(([^)]+)\\)(.*)".toRegex()
+                    val match = freqPattern.find(trimmed)
+                    if (match != null) {
+                        val freq = match.groupValues[1]
+                        val channel = match.groupValues[2]
+                        val power = match.groupValues[3]
+                        val flags = match.groupValues[4].trim().split(" ").filter { it.isNotBlank() }
+
+                        currentFrequencies.add(IwFrequency(freq, channel, power, flags))
+                    }
+                }
+
+                inBand && inBitrates && trimmed.startsWith("*") -> {
+                    val ratePattern = "\\* ([0-9.]+) Mbps(.*)".toRegex()
+                    val match = ratePattern.find(trimmed)
+                    if (match != null) {
+                        val rate = match.groupValues[1]
+                        val flags = match.groupValues[2].trim()
+                            .replace("(", "").replace(")", "")
+                            .split(",").map { it.trim() }.filter { it.isNotBlank() }
+
+                        currentBitrates.add(IwBitrate(rate, flags))
+                    }
+                }
+
+                trimmed == "Supported commands:" -> {
+                    inCommands = true
+                    inBand = false
+                    inInterfaceModes = false
+                    inCiphers = false
+                }
+
+                inCiphers && trimmed.startsWith("*") -> {
+                    supportedCiphers.add(trimmed.substring(1).trim())
+                }
+
+                inInterfaceModes && trimmed.startsWith("*") -> {
+                    supportedInterfaceModes.add(trimmed.substring(1).trim())
+                }
+
+                inCommands && trimmed.startsWith("*") -> {
+                    supportedCommands.add(trimmed.substring(1).trim())
                 }
             }
         }
 
-        currentBand?.let { bands.add(it) }
+        currentBand?.let {
+            bands.add(it.copy(
+                capabilities = currentBandCapabilities,
+                frequencies = currentFrequencies.toList(),
+                bitrates = currentBitrates.toList()
+            ))
+        }
 
-        return IwDeviceInfo(wiphy, bands, capabilities)
+        val capabilities = IwCapabilities(
+            wiphyIndex = wiphyIndex,
+            maxScanSSIDs = maxScanSSIDs,
+            maxScanIEsLength = maxScanIEsLength,
+            maxSchedScanSSIDs = maxSchedScanSSIDs,
+            maxMatchSets = maxMatchSets,
+            retryShortLimit = retryShortLimit,
+            retryLongLimit = retryLongLimit,
+            coverageClass = coverageClass,
+            supportsTDLS = supportsTDLS,
+            supportedCiphers = supportedCiphers,
+            availableAntennas = availableAntennas,
+            supportedInterfaceModes = supportedInterfaceModes,
+            supportedCommands = supportedCommands,
+            supportedTxFrameTypes = supportedTxFrameTypes,
+            supportedRxFrameTypes = supportedRxFrameTypes,
+            supportedExtendedFeatures = supportedExtendedFeatures,
+            htCapabilityOverrides = htCapabilityOverrides,
+            maxScanPlans = maxScanPlans,
+            maxScanPlanInterval = maxScanPlanInterval,
+            maxScanPlanIterations = maxScanPlanIterations
+        )
+
+        val deviceInfo = IwDeviceInfo(wiphy, bands, capabilities)
+        Log.d(TAG, "Parsed device info: wiphy=$wiphy, bands=${bands.size}, capabilities parsed")
+        return deviceInfo
     }
 
     private fun parseScanResults(output: String): List<IwNetworkInfo> {

@@ -10,19 +10,53 @@ data class IwLinkInfo(
 )
 
 data class IwCapabilities(
-    val capabilities: String = "",
+    val wiphyIndex: String = "",
     val maxScanSSIDs: String = "",
     val maxScanIEsLength: String = "",
+    val maxSchedScanSSIDs: String = "",
+    val maxMatchSets: String = "",
+    val retryShortLimit: String = "",
+    val retryLongLimit: String = "",
+    val coverageClass: String = "",
+    val supportsTDLS: Boolean = false,
     val supportedCiphers: List<String> = emptyList(),
+    val availableAntennas: String = "",
     val supportedInterfaceModes: List<String> = emptyList(),
-    val supportedCommands: List<String> = emptyList()
+    val supportedCommands: List<String> = emptyList(),
+    val supportedTxFrameTypes: List<String> = emptyList(),
+    val supportedRxFrameTypes: List<String> = emptyList(),
+    val supportedExtendedFeatures: List<String> = emptyList(),
+    val htCapabilityOverrides: List<String> = emptyList(),
+    val maxScanPlans: String = "",
+    val maxScanPlanInterval: String = "",
+    val maxScanPlanIterations: String = ""
+)
+
+data class IwBandCapabilities(
+    val value: String = "",
+    val htSupport: List<String> = emptyList(),
+    val maxAmpduLength: String = "",
+    val minAmpduTimeSpacing: String = "",
+    val htMcsRateIndexes: String = ""
+)
+
+data class IwFrequency(
+    val frequency: String = "",
+    val channel: String = "",
+    val power: String = "",
+    val flags: List<String> = emptyList()
+)
+
+data class IwBitrate(
+    val rate: String = "",
+    val flags: List<String> = emptyList()
 )
 
 data class IwBand(
     val bandNumber: String = "",
-    val capabilities: String = "",
-    val frequencies: List<String> = emptyList(),
-    val bitrates: List<String> = emptyList()
+    val capabilities: IwBandCapabilities = IwBandCapabilities(),
+    val frequencies: List<IwFrequency> = emptyList(),
+    val bitrates: List<IwBitrate> = emptyList()
 )
 
 data class IwDeviceInfo(

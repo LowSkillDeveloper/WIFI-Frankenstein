@@ -196,22 +196,99 @@ class IwScannerFragment : Fragment() {
 
             if (isDeviceInfoExpanded) {
                 val details = StringBuilder()
-                details.append("${deviceInfo.wiphy}\n\n")
-
-                deviceInfo.bands.forEach { band ->
-                    details.append("${band.bandNumber}\n")
-                    if (band.capabilities.isNotBlank()) {
-                        details.append("Capabilities: ${band.capabilities}\n")
-                    }
-                    details.append("\n")
-                }
+                details.append("${deviceInfo.wiphy}\n")
 
                 deviceInfo.capabilities?.let { caps ->
+                    if (caps.wiphyIndex.isNotBlank()) {
+                        details.append("${getString(R.string.iw_device_wiphy_index)}: ${caps.wiphyIndex}\n")
+                    }
                     if (caps.maxScanSSIDs.isNotBlank()) {
-                        details.append("Max scan SSIDs: ${caps.maxScanSSIDs}\n")
+                        details.append("${getString(R.string.iw_device_max_scan_ssids)}: ${caps.maxScanSSIDs}\n")
                     }
                     if (caps.maxScanIEsLength.isNotBlank()) {
-                        details.append("Max scan IEs length: ${caps.maxScanIEsLength}\n")
+                        details.append("${getString(R.string.iw_device_max_scan_ies_length)}: ${caps.maxScanIEsLength}\n")
+                    }
+                    if (caps.coverageClass.isNotBlank()) {
+                        details.append("${getString(R.string.iw_device_coverage_class)}: ${caps.coverageClass}\n")
+                    }
+                    if (caps.supportsTDLS) {
+                        details.append("${getString(R.string.iw_device_supports_tdls)}\n")
+                    }
+                    if (caps.availableAntennas.isNotBlank()) {
+                        details.append("${getString(R.string.iw_device_available_antennas)}: ${caps.availableAntennas}\n")
+                    }
+                    details.append("\n")
+
+                    if (caps.supportedInterfaceModes.isNotEmpty()) {
+                        details.append("${getString(R.string.iw_device_supported_interface_modes)}:\n")
+                        caps.supportedInterfaceModes.take(10).forEach { mode ->
+                            details.append("  • $mode\n")
+                        }
+                        if (caps.supportedInterfaceModes.size > 10) {
+                            details.append("  ${getString(R.string.iw_device_and_more, caps.supportedInterfaceModes.size - 10)}\n")
+                        }
+                        details.append("\n")
+                    }
+
+                    if (caps.supportedCiphers.isNotEmpty()) {
+                        details.append("${getString(R.string.iw_device_supported_ciphers)}:\n")
+                        caps.supportedCiphers.take(8).forEach { cipher ->
+                            details.append("  • $cipher\n")
+                        }
+                        if (caps.supportedCiphers.size > 8) {
+                            details.append("  ${getString(R.string.iw_device_and_more, caps.supportedCiphers.size - 8)}\n")
+                        }
+                        details.append("\n")
+                    }
+                }
+
+                deviceInfo.bands.forEachIndexed { index, band ->
+                    details.append("${band.bandNumber}\n")
+
+                    if (band.capabilities.value.isNotBlank()) {
+                        details.append("  ${getString(R.string.iw_device_capabilities)}: ${band.capabilities.value}\n")
+                    }
+
+                    if (band.capabilities.htSupport.isNotEmpty()) {
+                        details.append("  ${getString(R.string.iw_device_ht_support)}:\n")
+                        band.capabilities.htSupport.take(5).forEach { ht ->
+                            details.append("    • $ht\n")
+                        }
+                        if (band.capabilities.htSupport.size > 5) {
+                            details.append("    ${getString(R.string.iw_device_and_more, band.capabilities.htSupport.size - 5)}\n")
+                        }
+                    }
+
+                    if (band.frequencies.isNotEmpty()) {
+                        details.append("  ${getString(R.string.iw_device_frequencies)} (${band.frequencies.size}):\n")
+                        band.frequencies.take(6).forEach { freq ->
+                            details.append("    • ${freq.frequency} MHz [${freq.channel}] (${freq.power})")
+                            if (freq.flags.isNotEmpty()) {
+                                details.append(" ${freq.flags.joinToString(" ")}")
+                            }
+                            details.append("\n")
+                        }
+                        if (band.frequencies.size > 6) {
+                            details.append("    ${getString(R.string.iw_device_and_more, band.frequencies.size - 6)}\n")
+                        }
+                    }
+
+                    if (band.bitrates.isNotEmpty()) {
+                        details.append("  ${getString(R.string.iw_device_bitrates)} (${band.bitrates.size}):\n")
+                        band.bitrates.take(6).forEach { rate ->
+                            details.append("    • ${rate.rate} Mbps")
+                            if (rate.flags.isNotEmpty()) {
+                                details.append(" (${rate.flags.joinToString(", ")})")
+                            }
+                            details.append("\n")
+                        }
+                        if (band.bitrates.size > 6) {
+                            details.append("    ${getString(R.string.iw_device_and_more, band.bitrates.size - 6)}\n")
+                        }
+                    }
+
+                    if (index < deviceInfo.bands.size - 1) {
+                        details.append("\n")
                     }
                 }
 
