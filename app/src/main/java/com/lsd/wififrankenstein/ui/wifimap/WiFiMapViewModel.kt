@@ -75,6 +75,24 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
     private var currentLoadingJob: Job? = null
 
+    private val _databaseColors = mutableMapOf<String, Int>()
+    private val availableColors = listOf(
+        Color.RED,
+        Color.BLUE,
+        Color.GREEN,
+        Color.YELLOW,
+        Color.MAGENTA,
+        Color.CYAN,
+        Color.rgb(255, 165, 0),
+        Color.rgb(128, 0, 128),
+        Color.rgb(165, 42, 42),
+        Color.rgb(255, 192, 203)
+    )
+    private var nextColorIndex = 0
+
+    private val _databaseColorsLiveData = MutableLiveData<Map<String, Int>>()
+    val databaseColors: LiveData<Map<String, Int>> = _databaseColorsLiveData
+
     private data class CacheEntry(
         val points: List<NetworkPoint>,
         val boundingBox: BoundingBox,
@@ -83,6 +101,22 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     )
 
     private var backgroundCachingJob: Job? = null
+
+    private fun assignColorsToDatabase(databases: List<DbItem>) {
+        databases.forEach { database ->
+            if (!_databaseColors.containsKey(database.id)) {
+                val color = availableColors[nextColorIndex % availableColors.size]
+                _databaseColors[database.id] = color
+                nextColorIndex++
+                Log.d(TAG, "Assigned color to database ${database.id}: $color")
+            }
+        }
+        _databaseColorsLiveData.postValue(_databaseColors.toMap())
+    }
+
+    fun getColorForDatabase(databaseId: String): Int {
+        return _databaseColors[databaseId] ?: Color.GRAY
+    }
 
     private fun launchBackgroundCaching(database: DbItem, currentBox: BoundingBox, zoom: Double) {
         backgroundCachingJob?.cancel()
@@ -261,7 +295,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     init {
         viewModelScope.launch {
             dbSetupViewModel.dbList.observeForever { dbList ->
-                _availableDatabases.value = dbList ?: emptyList()
+                val databases = dbList ?: emptyList()
+                _availableDatabases.value = databases
+                assignColorsToDatabase(databases)
             }
         }
     }
@@ -489,8 +525,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     suspend fun loadPointsInBoundingBox(
         boundingBox: BoundingBox,
         zoom: Double,
-        selectedDatabases: Set<DbItem>,
-        databaseColors: Map<String, Int>
+        selectedDatabases: Set<DbItem>
     ) {
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
@@ -546,7 +581,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                         bssidDecimal = bssidDecimal,
                                         source = database.type,
                                         databaseId = database.id,
-                                        color = databaseColors[database.id] ?: Color.GRAY
+                                        color = getColorForDatabase(database.id)
                                     )
                                 }
 
@@ -610,7 +645,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                     source = "Cluster",
                                     databaseId = dominantDatabaseId,
                                     essid = "Cluster (${clusterItem.size} points)",
-                                    color = databaseColors[dominantDatabaseId] ?: Color.GRAY
+                                    color = getColorForDatabase(dominantDatabaseId)
                                 )
                             }
                         }
@@ -936,6 +971,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 dbSetupViewModel.loadDbList()
                 dbSetupViewModel.dbList.value?.let { dbList ->
                     _availableDatabases.postValue(dbList)
+                    assignColorsToDatabase(dbList)
                     Log.d(TAG, "Successfully reloaded available databases, count: ${dbList.size}")
                 }
             } catch (e: Exception) {

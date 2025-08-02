@@ -306,6 +306,7 @@ class WiFiMapFragment : Fragment() {
                     viewModel.forceRefresh()
                     clearMarkers()
                     resetMapState()
+                    updateLegend()
 
                     lifecycleScope.launch {
                         delay(100)
@@ -541,11 +542,18 @@ class WiFiMapFragment : Fragment() {
             }
         }
 
+        viewModel.databaseColors.observe(viewLifecycleOwner) { colors ->
+            if (selectedDatabases.isNotEmpty()) {
+                updateLegend()
+            }
+        }
+
         viewModel.points.observe(viewLifecycleOwner) { points ->
             Log.d(TAG, "Received ${points.size} points from ViewModel")
             updateMarkers(points)
             binding.loadingIndicator.visibility = View.GONE
             binding.textViewProgress.visibility = View.GONE
+            updateLegend()
         }
 
         viewModel.addReadOnlyDb.observe(viewLifecycleOwner) { dbItem ->
@@ -556,6 +564,7 @@ class WiFiMapFragment : Fragment() {
                 viewModel.clearCache()
                 clearMarkers()
                 resetMapState()
+                updateLegend()
                 scheduleMapUpdate()
 
                 Log.d(TAG, "Added read-only database and refreshed map")
@@ -640,8 +649,7 @@ class WiFiMapFragment : Fragment() {
             viewModel.loadPointsInBoundingBox(
                 boundingBox,
                 zoom,
-                selectedDatabases,
-                currentColors
+                selectedDatabases
             )
         }
     }
@@ -808,16 +816,18 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun updateLegend() {
-        val legendItems = selectedDatabases.map { database ->
-            Pair(database, getColorForDatabase(database.id))
+        if (selectedDatabases.isEmpty()) {
+            binding.legendCard.visibility = View.GONE
+            return
         }
 
-        if (legendItems.isEmpty()) {
-            binding.legendCard.visibility = View.GONE
-        } else {
-            binding.legendCard.visibility = View.VISIBLE
-            legendAdapter.updateLegend(legendItems)
+        val legendItems = selectedDatabases.map { database ->
+            Pair(database, viewModel.getColorForDatabase(database.id))
         }
+
+        binding.legendCard.visibility = View.VISIBLE
+        legendAdapter.updateLegend(legendItems)
+        Log.d(TAG, "Updated legend with ${legendItems.size} items")
     }
 
     private fun showNetworkInfo(point: NetworkPoint) {
@@ -930,10 +940,10 @@ class WiFiMapFragment : Fragment() {
 
         canvasOverlay.updatePoints(emptyList())
         binding.map.postInvalidate()
-        binding.legendCard.visibility = View.GONE
 
-        databaseColors.clear()
-        nextColorIndex = 0
+        if (selectedDatabases.isEmpty()) {
+            binding.legendCard.visibility = View.GONE
+        }
     }
 
     override fun onStart() {
@@ -947,6 +957,7 @@ class WiFiMapFragment : Fragment() {
         userLocationManager.startLocationUpdates()
 
         checkDatabaseValidity()
+        updateLegend()
 
         if (DbSetupViewModel.needDataRefresh) {
             Log.d(TAG, "Data refresh needed, reloading available databases")
