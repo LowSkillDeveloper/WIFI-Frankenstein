@@ -41,7 +41,6 @@
 
                     <Button
                         android:id="@+id/buttonRefreshInterfaces"
-                        style="@style/Widget.Material3.Button.IconButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:contentDescription="@string/iw_refresh_interfaces"
@@ -49,7 +48,6 @@
 
                     <Button
                         android:id="@+id/buttonManualInterface"
-                        style="@style/Widget.Material3.Button.IconButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:contentDescription="@string/iw_manual_interface"
@@ -114,7 +112,6 @@
 
                     <Button
                         android:id="@+id/buttonRefreshLink"
-                        style="@style/Widget.Material3.Button.IconButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:contentDescription="@string/iw_refresh_link_info"
@@ -196,7 +193,6 @@
 
                     <Button
                         android:id="@+id/buttonRefreshDevice"
-                        style="@style/Widget.Material3.Button.IconButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:contentDescription="@string/iw_refresh_device_info"
@@ -266,7 +262,6 @@
 
                     <Button
                         android:id="@+id/buttonScan"
-                        style="@style/Widget.Material3.Button"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/iw_scan_networks"
