@@ -4,6 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import androidx.core.content.edit
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -121,39 +122,70 @@ class ExternalIndexManager(private val context: Context) {
 
                 Log.d(TAG, "Database type detected: $dbType")
 
-                val macColumn = columnMap["mac"] ?: throw IllegalArgumentException("MAC column not specified in column map")
-                val latColumn = columnMap["latitude"] ?: throw IllegalArgumentException("Latitude column not specified in column map")
-                val lonColumn = columnMap["longitude"] ?: throw IllegalArgumentException("Longitude column not specified in column map")
+                val macColumn = columnMap["mac"] ?: throw IllegalArgumentException(context.getString(
+                    R.string.mac_column_required))
+
+                val availableColumns = mutableMapOf<String, String>()
+                availableColumns["mac"] = macColumn
+
+                columnMap["latitude"]?.let { availableColumns["latitude"] = it }
+                columnMap["longitude"]?.let { availableColumns["longitude"] = it }
+                columnMap["essid"]?.let { availableColumns["essid"] = it }
+                columnMap["wifi_pass"]?.let { availableColumns["password"] = it }
+                columnMap["wps_pin"]?.let { availableColumns["wpspin"] = it }
+
+                val hasGeoData = availableColumns.containsKey("latitude") && availableColumns.containsKey("longitude")
+                Log.d(TAG, "Available columns: ${availableColumns.keys}, Has geo data: $hasGeoData")
 
                 Log.d(TAG, "Creating mirror table with indexes")
 
-                indexDb.execSQL("""
-                CREATE TABLE indexed_data (
-                    id INTEGER PRIMARY KEY,
-                    mac TEXT,
-                    latitude REAL,
-                    longitude REAL,
-                    essid TEXT,
-                    password TEXT,
-                    wpspin TEXT
-                )
-            """.trimIndent())
+                val createTableColumns = mutableListOf("id INTEGER PRIMARY KEY", "mac TEXT")
+                if (hasGeoData) {
+                    createTableColumns.add("latitude REAL")
+                    createTableColumns.add("longitude REAL")
+                }
+                if (availableColumns.containsKey("essid")) createTableColumns.add("essid TEXT")
+                if (availableColumns.containsKey("password")) createTableColumns.add("password TEXT")
+                if (availableColumns.containsKey("wpspin")) createTableColumns.add("wpspin TEXT")
 
-                val essidCol = columnMap["essid"]
-                val passCol = columnMap["wifi_pass"]
-                val wpsCol = columnMap["wps_pin"]
+                val createTableSql = "CREATE TABLE indexed_data (${createTableColumns.joinToString(", ")})"
+                Log.d(TAG, "Creating table with SQL: $createTableSql")
+                indexDb.execSQL(createTableSql)
 
-                val selectFields = StringBuilder("$macColumn, $latColumn, $lonColumn")
-                if (essidCol != null) selectFields.append(", $essidCol")
-                if (passCol != null) selectFields.append(", $passCol")
-                if (wpsCol != null) selectFields.append(", $wpsCol")
+                val selectFields = mutableListOf(macColumn)
+                val insertFields = mutableListOf("mac")
 
-                Log.d(TAG, "Filling mirror table with data from main database")
+                if (hasGeoData) {
+                    selectFields.add(availableColumns["latitude"]!!)
+                    selectFields.add(availableColumns["longitude"]!!)
+                    insertFields.add("latitude")
+                    insertFields.add("longitude")
+                }
+
+                availableColumns["essid"]?.let { col ->
+                    selectFields.add(col)
+                    insertFields.add("essid")
+                }
+                availableColumns["password"]?.let { col ->
+                    selectFields.add(col)
+                    insertFields.add("password")
+                }
+                availableColumns["wpspin"]?.let { col ->
+                    selectFields.add(col)
+                    insertFields.add("wpspin")
+                }
+
+                val whereClause = if (hasGeoData) {
+                    "WHERE ${availableColumns["latitude"]} IS NOT NULL AND ${availableColumns["longitude"]} IS NOT NULL"
+                } else {
+                    "WHERE $macColumn IS NOT NULL"
+                }
+
                 val insertSQL = """
-                INSERT INTO indexed_data (mac, latitude, longitude${if (essidCol != null) ", essid" else ""}${if (passCol != null) ", password" else ""}${if (wpsCol != null) ", wpspin" else ""})
-                SELECT $selectFields
+                INSERT INTO indexed_data (${insertFields.joinToString(", ")})
+                SELECT ${selectFields.joinToString(", ")}
                 FROM maindb.$tableName
-                WHERE $latColumn IS NOT NULL AND $lonColumn IS NOT NULL
+                $whereClause
             """.trimIndent()
 
                 Log.d(TAG, "Insert SQL: $insertSQL")
@@ -169,35 +201,38 @@ class ExternalIndexManager(private val context: Context) {
                 indexDb.execSQL("CREATE INDEX idx_custom_mac ON indexed_data (mac)")
                 progressCallback(40)
 
-                indexDb.execSQL("CREATE INDEX idx_custom_latitude ON indexed_data (latitude)")
-                progressCallback(50)
+                if (hasGeoData) {
+                    indexDb.execSQL("CREATE INDEX idx_custom_latitude ON indexed_data (latitude)")
+                    progressCallback(50)
 
-                indexDb.execSQL("CREATE INDEX idx_custom_longitude ON indexed_data (longitude)")
-                progressCallback(60)
+                    indexDb.execSQL("CREATE INDEX idx_custom_longitude ON indexed_data (longitude)")
+                    progressCallback(60)
+                } else {
+                    progressCallback(60)
+                }
 
                 when (indexLevel) {
                     "FULL" -> {
-                        // Создаем все индексы для FULL уровня
-                        if (essidCol != null) {
+                        if (availableColumns.containsKey("essid")) {
                             Log.d(TAG, "Creating ESSID index (FULL)")
                             indexDb.execSQL("CREATE INDEX idx_custom_essid ON indexed_data (essid COLLATE NOCASE)")
                             progressCallback(70)
                         }
 
-                        if (passCol != null) {
+                        if (availableColumns.containsKey("password")) {
                             Log.d(TAG, "Creating password index (FULL)")
                             indexDb.execSQL("CREATE INDEX idx_custom_password ON indexed_data (password COLLATE NOCASE)")
                             progressCallback(80)
                         }
 
-                        if (wpsCol != null) {
+                        if (availableColumns.containsKey("wpspin")) {
                             Log.d(TAG, "Creating WPS PIN index (FULL)")
                             indexDb.execSQL("CREATE INDEX idx_custom_wpspin ON indexed_data (wpspin)")
                             progressCallback(85)
                         }
                     }
                     "BASIC" -> {
-                        if (essidCol != null) {
+                        if (availableColumns.containsKey("essid")) {
                             Log.d(TAG, "Creating ESSID index (BASIC)")
                             indexDb.execSQL("CREATE INDEX idx_custom_essid ON indexed_data (essid COLLATE NOCASE)")
                             progressCallback(70)
@@ -270,25 +305,41 @@ class ExternalIndexManager(private val context: Context) {
             )
 
             try {
+                val hasGeoColumns = indexDb.rawQuery("PRAGMA table_info(indexed_data)", null).use { cursor ->
+                    var hasLat = false
+                    var hasLon = false
+                    while (cursor.moveToNext()) {
+                        val colName = cursor.getString(1)
+                        if (colName == "latitude") hasLat = true
+                        if (colName == "longitude") hasLon = true
+                    }
+                    hasLat && hasLon
+                }
+
+                if (!hasGeoColumns) {
+                    Log.w(TAG, "No latitude/longitude columns in index database for $dbId")
+                    return@withContext emptyList()
+                }
+
                 val indexLevel = getIndexLevel(dbId)
 
                 val query = when (indexLevel) {
                     "FULL", "BASIC" -> {
                         """
-                    SELECT mac, latitude, longitude 
-                    FROM indexed_data 
-                    INDEXED BY idx_custom_latitude
-                    WHERE latitude BETWEEN ? AND ?
-                    AND longitude BETWEEN ? AND ?
-                    """.trimIndent()
+                SELECT mac, latitude, longitude 
+                FROM indexed_data 
+                INDEXED BY idx_custom_latitude
+                WHERE latitude BETWEEN ? AND ?
+                AND longitude BETWEEN ? AND ?
+                """.trimIndent()
                     }
                     else -> {
                         """
-                    SELECT mac, latitude, longitude 
-                    FROM indexed_data 
-                    WHERE latitude BETWEEN ? AND ?
-                    AND longitude BETWEEN ? AND ?
-                    """.trimIndent()
+                SELECT mac, latitude, longitude 
+                FROM indexed_data 
+                WHERE latitude BETWEEN ? AND ?
+                AND longitude BETWEEN ? AND ?
+                """.trimIndent()
                     }
                 }
 
@@ -378,7 +429,7 @@ class ExternalIndexManager(private val context: Context) {
         tableName: String,
         columnMap: Map<String, String>,
         macDecimal: Long
-    ): Map<String, Any?>? = withContext(Dispatchers.IO) {
+    ): List<Map<String, Any?>>? = withContext(Dispatchers.IO) {
         try {
             val macString = convertDecimalToMac(macDecimal)
             Log.d(TAG, "Getting info for MAC: $macString (decimal: $macDecimal)")
@@ -387,7 +438,6 @@ class ExternalIndexManager(private val context: Context) {
 
             try {
                 val macColumn = columnMap["mac"] ?: return@withContext null
-
 
                 val formats = listOf(
                     macString,
@@ -398,25 +448,30 @@ class ExternalIndexManager(private val context: Context) {
                 )
 
                 val whereClause = formats.joinToString(" OR ") { "$macColumn = ?" }
-
-                val query = "SELECT * FROM $tableName WHERE $whereClause LIMIT 1"
+                val query = "SELECT * FROM $tableName WHERE $whereClause"
 
                 db.rawQuery(query, formats.toTypedArray()).use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        return@withContext buildMap {
-                            for (i in 0 until cursor.columnCount) {
-                                val columnName = cursor.getColumnName(i)
-                                val value = when (cursor.getType(i)) {
-                                    android.database.Cursor.FIELD_TYPE_INTEGER -> cursor.getLong(i)
-                                    android.database.Cursor.FIELD_TYPE_FLOAT -> cursor.getDouble(i)
-                                    else -> cursor.getString(i)
+                    if (cursor.count > 0) {
+                        val results = mutableListOf<Map<String, Any?>>()
+                        while (cursor.moveToNext()) {
+                            val result = buildMap {
+                                for (i in 0 until cursor.columnCount) {
+                                    val columnName = cursor.getColumnName(i)
+                                    val value = when (cursor.getType(i)) {
+                                        android.database.Cursor.FIELD_TYPE_INTEGER -> cursor.getLong(i)
+                                        android.database.Cursor.FIELD_TYPE_FLOAT -> cursor.getDouble(i)
+                                        else -> cursor.getString(i)
+                                    }
+                                    put(columnName, value)
                                 }
-                                put(columnName, value)
                             }
+                            results.add(result)
                         }
+                        Log.d(TAG, "Found ${results.size} records for MAC: $macString")
+                        return@withContext results
                     } else {
                         Log.d(TAG, "No data found for MAC: $macString")
-                        null
+                        return@withContext null
                     }
                 }
             } finally {

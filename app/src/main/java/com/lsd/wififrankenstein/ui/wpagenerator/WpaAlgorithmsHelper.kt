@@ -3,12 +3,10 @@ package com.lsd.wififrankenstein.ui.wpagenerator
 import android.content.Context
 import android.util.Base64
 import com.lsd.wififrankenstein.ui.wpagenerator.WpaResult.Companion.LIKELY_SUPPORTED
-import java.io.ByteArrayInputStream
+import java.io.File
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.util.*
 import java.util.zip.ZipInputStream
-import kotlin.collections.ArrayList
 
 data class WpaResult(
     val keys: List<String>,
@@ -111,8 +109,9 @@ class WpaAlgorithmsHelper(private val context: Context) {
             }
 
             try {
-                context.assets.open("RouterKeygen.dic").use { input ->
-                    parseDictionary(input.readBytes(), thomsonDict)
+                val routerKeygenFile = File(context.filesDir, "RouterKeygen.dic")
+                if (routerKeygenFile.exists()) {
+                    parseDictionary(routerKeygenFile.readBytes(), thomsonDict)
                 }
             } catch (e: Exception) {
             }

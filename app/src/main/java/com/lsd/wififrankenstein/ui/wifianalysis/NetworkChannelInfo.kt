@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.wifianalysis
 
 import android.net.wifi.ScanResult
+import android.os.Build
 
 data class NetworkChannelInfo(
     val scanResult: ScanResult,
@@ -49,14 +50,18 @@ enum class ChannelBandwidth(val widthMHz: Int, val spreadRadius: Int) {
 
     companion object {
         fun fromScanResult(scanResult: ScanResult): ChannelBandwidth {
-            return when (scanResult.channelWidth) {
-                0 -> WIDTH_20
-                1 -> WIDTH_40
-                2 -> WIDTH_80
-                3 -> WIDTH_160
-                4 -> WIDTH_80
-                5 -> WIDTH_320
-                else -> WIDTH_20
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                when (scanResult.channelWidth) {
+                    0 -> WIDTH_20
+                    1 -> WIDTH_40
+                    2 -> WIDTH_80
+                    3 -> WIDTH_160
+                    4 -> WIDTH_80
+                    5 -> WIDTH_320
+                    else -> WIDTH_20
+                }
+            } else {
+                WIDTH_20
             }
         }
     }

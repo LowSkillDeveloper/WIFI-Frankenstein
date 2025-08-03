@@ -144,6 +144,13 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
+    <com.lsd.wififrankenstein.util.AnimatedLoadingBar
+        android:id="@+id/progressBarDatabaseCheck"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_gravity="top"
+        android:visibility="gone" />
+
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefreshLayout"
         android:layout_width="match_parent"

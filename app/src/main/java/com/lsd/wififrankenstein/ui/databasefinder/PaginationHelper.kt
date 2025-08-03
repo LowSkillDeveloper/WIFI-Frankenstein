@@ -4,14 +4,18 @@ import android.content.Context
 import android.util.Log
 import androidx.core.net.toUri
 import com.lsd.wififrankenstein.R
-import com.lsd.wififrankenstein.ui.dbsetup.*
+import com.lsd.wififrankenstein.ui.dbsetup.API3WiFiHelper
+import com.lsd.wififrankenstein.ui.dbsetup.DbItem
+import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
+import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.util.DatabaseIndices
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
 
 class PaginationHelper(
     private val context: Context,
@@ -53,17 +57,32 @@ class PaginationHelper(
     }
 
     private suspend fun process3WiFiDatabase(dbItem: DbItem, offset: Int, limit: Int): List<SearchResult> {
+        Log.d(TAG, "=== Starting process3WiFiDatabase ===")
+        Log.d(TAG, "DbItem: ${dbItem.path}, Offset: $offset, Limit: $limit")
+
         return try {
-            SQLite3WiFiHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
-                val db = helper.database ?: return emptyList()
+            val helper = SQLite3WiFiHelper(context, dbItem.path.toUri(), dbItem.directPath)
+            try {
+                val db = helper.database
+                if (db == null) {
+                    Log.e(TAG, "Database is null")
+                    return emptyList()
+                }
+
+                Log.d(TAG, "Database opened successfully")
 
                 val indexLevel = DatabaseIndices.determineIndexLevel(db)
                 val dbType = DatabaseTypeUtils.determineDbType(db)
                 val searchTable = when (dbType) {
                     DatabaseTypeUtils.WiFiDbType.TYPE_NETS -> "nets"
                     DatabaseTypeUtils.WiFiDbType.TYPE_BASE -> "base"
-                    else -> return emptyList()
+                    else -> {
+                        Log.e(TAG, "Unknown database type: $dbType")
+                        return emptyList()
+                    }
                 }
+
+                Log.d(TAG, "Search table: $searchTable, Index level: $indexLevel")
 
                 val searchFields = filters.mapNotNull { filter ->
                     when(filter) {
@@ -75,12 +94,18 @@ class PaginationHelper(
                     }
                 }.toSet()
 
+                Log.d(TAG, "Search fields: $searchFields")
+
                 val dbResults = helper.searchNetworksByBSSIDAndFieldsPaginated(
                     query, searchFields, searchWholeWords, offset, limit
                 )
 
-                dbResults.map { result ->
+                Log.d(TAG, "Raw database results: ${dbResults.size} items")
+
+                val searchResults = dbResults.map { result ->
                     val rawBssid = result["BSSID"] as? Long
+                    Log.d(TAG, "Processing result: rawBssid=$rawBssid, ESSID=${result["ESSID"]}")
+
                     SearchResult(
                         ssid = result["ESSID"] as? String ?: "",
                         bssid = rawBssid?.toString() ?: "",
@@ -92,6 +117,11 @@ class PaginationHelper(
                         rawBssid = rawBssid
                     )
                 }
+
+                Log.d(TAG, "Final search results: ${searchResults.size} items")
+                searchResults
+            } finally {
+                helper.close()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error processing 3WiFi database", e)
@@ -104,7 +134,8 @@ class PaginationHelper(
             val tableName = dbItem.tableName ?: return emptyList()
             val columnMap = dbItem.columnMap ?: return emptyList()
 
-            SQLiteCustomHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
+            val helper = SQLiteCustomHelper(context, dbItem.path.toUri(), dbItem.directPath)
+            try {
                 val searchFields = filters.mapNotNull { filter ->
                     when(filter) {
                         R.string.filter_bssid -> columnMap["mac"]
@@ -137,6 +168,8 @@ class PaginationHelper(
                         longitude = result[lonField] as? Double ?: (result[lonField] as? String)?.toDoubleOrNull()
                     )
                 }
+            } finally {
+                helper.close()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error processing custom database", e)

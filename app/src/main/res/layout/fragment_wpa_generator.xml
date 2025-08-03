@@ -65,13 +65,11 @@
         android:text="@string/generate_keys"
         app:icon="@drawable/ic_key" />
 
-    <ProgressBar
+    <com.lsd.wififrankenstein.util.AnimatedLoadingBar
         android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="8dp"
-        android:visibility="gone" />
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:layout_marginBottom="8dp" />
 
     <TextView
         android:id="@+id/statusText"

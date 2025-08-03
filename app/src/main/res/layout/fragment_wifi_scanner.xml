@@ -154,12 +154,10 @@
         app:layout_anchor="@id/bottom_app_bar"
         app:srcCompat="@drawable/baseline_refresh_24" />
 
-    <com.google.android.material.progressindicator.LinearProgressIndicator
+    <com.lsd.wififrankenstein.util.AnimatedLoadingBar
         android:id="@+id/progressBarDatabaseCheck"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:indeterminate="true"
-        android:visibility="gone"
+        android:layout_height="5dp"
         android:layout_gravity="top" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

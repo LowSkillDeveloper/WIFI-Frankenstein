@@ -62,7 +62,6 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.isActive
 
 class DbSetupFragment : Fragment() {
 
@@ -542,7 +541,7 @@ class DbSetupFragment : Fragment() {
                     importType
                 ) { message, progress ->
                     launch(Dispatchers.Main) {
-                        if (isAdded && progressDialog.isShowing) {
+                        if (isAdded && progressDialog.isShowing && _binding != null) {
                             progressText?.text = message
                             progressBar?.progress = progress
                         }
@@ -550,7 +549,7 @@ class DbSetupFragment : Fragment() {
                 }
 
                 withContext(Dispatchers.Main) {
-                    if (isAdded) {
+                    if (isAdded && _binding != null) {
                         progressDialog.dismiss()
                         updateLocalDbStats()
 
@@ -568,7 +567,7 @@ class DbSetupFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e("RouterScanImport", "Import error", e)
                 withContext(Dispatchers.Main) {
-                    if (isAdded) {
+                    if (isAdded && _binding != null) {
                         progressDialog.dismiss()
                         showSnackbar("Ошибка импорта: ${e.message}")
                     }

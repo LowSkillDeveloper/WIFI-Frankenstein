@@ -17,288 +17,321 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Шаг 1: Рекомендованные базы данных -->
-        <LinearLayout
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:fillViewport="true">
 
-            <TextView
-                android:id="@+id/textViewStep1Title"
-                style="@style/TextAppearance.MaterialComponents.Headline6"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="@string/title_welcome_db_step1" />
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/textViewStep1Description"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="@string/db_step1_description" />
+                <TextView
+                    android:id="@+id/textViewStep1Title"
+                    style="@style/TextAppearance.MaterialComponents.Headline6"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/title_welcome_db_step1" />
 
-            <ProgressBar
-                android:id="@+id/progressBarStep1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="16dp" />
+                <TextView
+                    android:id="@+id/textViewStep1Description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/db_step1_description" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerViewRecommendedDatabases"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:visibility="gone"
-                tools:visibility="visible" />
+                <ProgressBar
+                    android:id="@+id/progressBarStep1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="16dp" />
 
-            <TextView
-                android:id="@+id/textViewNoRecommendedDatabases"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:gravity="center"
-                android:text="@string/db_step1_no_databases"
-                android:visibility="gone" />
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerViewRecommendedDatabases"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
 
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/textViewNoRecommendedDatabases"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center"
+                    android:text="@string/db_step1_no_databases"
+                    android:visibility="gone" />
 
-        <!-- Шаг 2: SmartLink базы данных -->
-        <LinearLayout
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:fillViewport="true">
 
-            <TextView
-                android:id="@+id/textViewStep2Title"
-                style="@style/TextAppearance.MaterialComponents.Headline6"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="@string/title_welcome_db_step2" />
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/textViewStep2Description"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="@string/db_step2_description" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/textInputSmartLinkUrl"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="@string/db_step2_hint">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editTextSmartLinkUrl"
+                <TextView
+                    android:id="@+id/textViewStep2Title"
+                    style="@style/TextAppearance.MaterialComponents.Headline6"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textUri" />
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/title_welcome_db_step2" />
 
-            </com.google.android.material.textfield.TextInputLayout>
+                <TextView
+                    android:id="@+id/textViewStep2Description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/db_step2_description" />
 
-            <Button
-                android:id="@+id/buttonAddSmartLink"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:text="@string/db_step2_add" />
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/textInputSmartLinkUrl"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:hint="@string/db_step2_hint">
 
-            <!-- Выбранные базы данных -->
-            <TextView
-                android:id="@+id/textViewSelectedDatabasesStep2Title"
-                style="@style/TextAppearance.MaterialComponents.Subtitle1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="8dp"
-                android:text="@string/selected_databases" />
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editTextSmartLinkUrl"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textUri" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerViewSelectedDatabasesStep2"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-        </LinearLayout>
+                <Button
+                    android:id="@+id/buttonAddSmartLink"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:text="@string/db_step2_add" />
 
-        <!-- Step 3: Local SQLite Databases -->
-        <LinearLayout
+                <TextView
+                    android:id="@+id/textViewSelectedDatabasesStep2Title"
+                    style="@style/TextAppearance.MaterialComponents.Subtitle1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/selected_databases" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerViewSelectedDatabasesStep2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:fillViewport="true">
 
-            <TextView
-                android:id="@+id/textViewStep3Title"
-                style="@style/TextAppearance.MaterialComponents.Headline6"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="@string/title_welcome_db_step3" />
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/textViewStep3Description"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="@string/db_step3_description" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
-
-                <LinearLayout
+                <TextView
+                    android:id="@+id/textViewStep3Title"
+                    style="@style/TextAppearance.MaterialComponents.Headline6"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/title_welcome_db_step3" />
 
-                    <TextView
-                        style="@style/TextAppearance.MaterialComponents.Subtitle1"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="@string/db_type_sqlite_3wifi" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="@string/db_step3_3wifi_explanation" />
-
-                    <Button
-                        android:id="@+id/buttonSelect3WiFiDb"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/db_step3_select_3wifi" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
-
-                <LinearLayout
+                <TextView
+                    android:id="@+id/textViewStep3Description"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/db_step3_description" />
 
-                    <TextView
-                        style="@style/TextAppearance.MaterialComponents.Subtitle1"
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="@string/db_type_sqlite_custom" />
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                    <TextView
+                        <TextView
+                            style="@style/TextAppearance.MaterialComponents.Subtitle1"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/db_type_sqlite_3wifi" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/db_step3_3wifi_explanation" />
+
+                        <Button
+                            android:id="@+id/buttonSelect3WiFiDb"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/db_step3_select_3wifi" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="@string/db_step3_custom_explanation" />
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                    <Button
-                        android:id="@+id/buttonSelectCustomDb"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/db_step3_select_custom" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                        <TextView
+                            style="@style/TextAppearance.MaterialComponents.Subtitle1"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/db_type_sqlite_custom" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerViewSelectedDatabases"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/db_step3_custom_explanation" />
 
-        </LinearLayout>
+                        <Button
+                            android:id="@+id/buttonSelectCustomDb"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/db_step3_select_custom" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
-        <!-- Step 4: API Access -->
-        <LinearLayout
+                <TextView
+                    style="@style/TextAppearance.MaterialComponents.Subtitle1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/selected_databases" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerViewSelectedDatabases"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:fillViewport="true">
 
-            <TextView
-                android:id="@+id/textViewStep4Title"
-                style="@style/TextAppearance.MaterialComponents.Headline6"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="@string/title_welcome_db_step4" />
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/textViewStep4Description"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="@string/db_step4_description" />
-
-            <TextView
-                android:id="@+id/textViewApiNotRequired"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="@string/api_not_required"
-                android:textStyle="italic" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/textInputApiUrl"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="@string/db_step4_url_hint">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editTextApiUrl"
+                <TextView
+                    android:id="@+id/textViewStep4Title"
+                    style="@style/TextAppearance.MaterialComponents.Headline6"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textUri" />
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/title_welcome_db_step4" />
 
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/textInputApiKey"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="@string/db_step4_key_hint">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editTextApiKey"
+                <TextView
+                    android:id="@+id/textViewStep4Description"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text" />
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/db_step4_description" />
 
-            </com.google.android.material.textfield.TextInputLayout>
+                <TextView
+                    android:id="@+id/textViewApiNotRequired"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/api_not_required"
+                    android:textStyle="italic" />
 
-            <Button
-                android:id="@+id/buttonAddApi"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:text="@string/add" />
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/textInputApiUrl"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:hint="@string/db_step4_url_hint">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerViewApiServers"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_marginTop="16dp"
-                android:layout_weight="1" />
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editTextApiUrl"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textUri" />
 
-        </LinearLayout>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/textInputApiKey"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:hint="@string/db_step4_key_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editTextApiKey"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <Button
+                    android:id="@+id/buttonAddApi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:text="@string/add" />
+
+                <TextView
+                    style="@style/TextAppearance.MaterialComponents.Subtitle1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/api_servers" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerViewApiServers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
 
     </ViewFlipper>
 

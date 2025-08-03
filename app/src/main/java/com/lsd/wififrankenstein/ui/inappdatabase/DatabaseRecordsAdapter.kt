@@ -14,6 +14,7 @@ import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.fragment.app.FragmentActivity
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
@@ -21,6 +22,7 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.WpsGeneratorActivity
 import com.lsd.wififrankenstein.databinding.ItemDatabaseRecordBinding
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
+import com.lsd.wififrankenstein.util.QrNavigationHelper
 
 class DatabaseRecordsAdapter(
     private val onItemClick: (WifiNetwork) -> Unit,
@@ -118,6 +120,9 @@ class DatabaseRecordsAdapter(
             popup.menu.findItem(R.id.action_edit)?.isVisible = onItemEdit != null
             popup.menu.findItem(R.id.action_delete)?.isVisible = onItemDelete != null
 
+            val hasValidCredentials = QrNavigationHelper.hasValidCredentials(wifiNetwork.wifiPassword, wifiNetwork.wpsCode)
+            popup.menu.findItem(R.id.action_generate_qr)?.isVisible = hasValidCredentials
+
             popup.setOnMenuItemClickListener { menuItem ->
                 when (menuItem.itemId) {
                     R.id.action_copy_ssid -> {
@@ -152,6 +157,21 @@ class DatabaseRecordsAdapter(
                     }
                     R.id.action_generate_wps -> {
                         openWpsGenerator(wifiNetwork.macAddress)
+                        true
+                    }
+                    R.id.action_generate_qr -> {
+                        val activity = itemView.context as? FragmentActivity
+                        val fragment = activity?.supportFragmentManager?.fragments?.find { it.isVisible }
+                        if (fragment != null) {
+                            val password = wifiNetwork.wifiPassword ?: ""
+                            val security = if (password.isNotEmpty()) "WPA" else "NONE"
+                            QrNavigationHelper.navigateToQrGenerator(
+                                fragment,
+                                wifiNetwork.wifiName,
+                                password,
+                                security
+                            )
+                        }
                         true
                     }
                     R.id.action_edit -> {

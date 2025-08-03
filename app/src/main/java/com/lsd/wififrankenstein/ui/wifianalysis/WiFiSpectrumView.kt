@@ -1,7 +1,9 @@
 package com.lsd.wififrankenstein.ui.wifianalysis
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
 import android.net.wifi.ScanResult
 import android.util.AttributeSet
 import android.view.View

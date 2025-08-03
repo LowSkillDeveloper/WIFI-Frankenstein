@@ -14,6 +14,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lsd.wififrankenstein.R
@@ -21,8 +23,6 @@ import com.lsd.wififrankenstein.databinding.FragmentDatabaseFinderBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import androidx.navigation.fragment.findNavController
-import androidx.paging.LoadState
 
 class DatabaseFinderFragment : Fragment() {
 
@@ -64,14 +64,18 @@ class DatabaseFinderFragment : Fragment() {
         viewModel.refreshDatabases()
 
         binding.progressBarDatabaseCheck.visibility = View.GONE
-        binding.progressBarDatabaseCheck.isIndeterminate = true
 
         if (DbSetupViewModel.needDataRefresh) {
             viewModel.refreshDatabases()
         }
 
         viewModel.isSearching.observe(viewLifecycleOwner) { isSearching ->
-            binding.progressBarDatabaseCheck.visibility = if (isSearching) View.VISIBLE else View.GONE
+            if (isSearching) {
+                binding.progressBarDatabaseCheck.visibility = View.VISIBLE
+                binding.progressBarDatabaseCheck.startAnimation()
+            } else {
+                binding.progressBarDatabaseCheck.stopAnimation()
+            }
         }
 
         binding.checkBoxWholeWord.setOnCheckedChangeListener { _, isChecked ->
@@ -127,7 +131,12 @@ class DatabaseFinderFragment : Fragment() {
             val isLoading = loadState.source.refresh is LoadState.Loading ||
                     loadState.source.append is LoadState.Loading
 
-            binding.progressBarDatabaseCheck.visibility = if (isLoading) View.VISIBLE else View.GONE
+            if (isLoading) {
+                binding.progressBarDatabaseCheck.visibility = View.VISIBLE
+                binding.progressBarDatabaseCheck.startAnimation()
+            } else {
+                binding.progressBarDatabaseCheck.stopAnimation()
+            }
 
             val errorState = loadState.source.refresh as? LoadState.Error
                 ?: loadState.source.append as? LoadState.Error
@@ -138,10 +147,37 @@ class DatabaseFinderFragment : Fragment() {
             }
         }
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.searchResults.collectLatest { pagingData ->
-                searchResultsAdapter.submitData(pagingData)
+                if (_binding != null) {
+                    searchResultsAdapter.submitData(pagingData)
+                }
             }
+        }
+    }
+
+    private fun formatSourcePath(path: String): String {
+        return try {
+            when {
+                path.startsWith("content://") -> {
+                    val uri = android.net.Uri.parse(path)
+                    uri.lastPathSegment?.let { lastSegment ->
+                        val decodedSegment = android.net.Uri.decode(lastSegment)
+                        decodedSegment.substringAfterLast('/')
+                    } ?: path
+                }
+                path.startsWith("file://") -> {
+                    val uri = android.net.Uri.parse(path)
+                    uri.lastPathSegment ?: path
+                }
+                path == "local_db" -> getString(R.string.local_database)
+                else -> {
+                    path.substringAfterLast('/')
+                }
+            }.substringAfterLast("%2F")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error formatting source path: $path", e)
+            path
         }
     }
 
@@ -160,13 +196,15 @@ class DatabaseFinderFragment : Fragment() {
             Log.d(TAG, "Available sources: ${sources.joinToString()}")
             Log.d(TAG, "Selected sources: ${selectedSources.joinToString()}")
 
+            val formattedSources = sources.map { formatSourcePath(it) }.toTypedArray()
             val checkedItems = sources.map { it in selectedSources }.toBooleanArray()
 
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.select_sources)
-                .setMultiChoiceItems(sources.toTypedArray(), checkedItems) { _, which, isChecked ->
-                    viewModel.setSourceSelected(sources[which], isChecked)
-                    Log.d(TAG, "Source ${sources[which]} ${if (isChecked) "selected" else "unselected"}")
+                .setMultiChoiceItems(formattedSources, checkedItems) { _, which, isChecked ->
+                    val originalSource = sources[which]
+                    viewModel.setSourceSelected(originalSource, isChecked)
+                    Log.d(TAG, "Source $originalSource ${if (isChecked) "selected" else "unselected"}")
                 }
                 .setPositiveButton(R.string.ok) { _, _ ->
                     Log.d(TAG, "Sources dialog closed, selected sources: ${viewModel.getSelectedSources().joinToString()}")

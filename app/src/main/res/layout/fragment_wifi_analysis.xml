@@ -12,6 +12,14 @@
         android:layout_height="wrap_content"
         app:elevation="0dp">
 
+        <com.lsd.wififrankenstein.util.AnimatedLoadingBar
+            android:id="@+id/progressBarAnalysis"
+            android:layout_width="match_parent"
+            android:layout_height="5dp"
+            android:elevation="8dp"
+            app:layout_anchor="@id/appBarLayout"
+            app:layout_anchorGravity="bottom" />
+
         <com.google.android.material.appbar.CollapsingToolbarLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

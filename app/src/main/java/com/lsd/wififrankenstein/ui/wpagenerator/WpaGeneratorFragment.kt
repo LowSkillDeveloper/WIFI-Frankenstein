@@ -5,7 +5,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -149,7 +148,7 @@ class WpaGeneratorFragment : Fragment() {
     }
 
     private fun generateKeysForNetwork(network: NetworkInfo) {
-        binding.progressBar.visibility = View.VISIBLE
+        binding.progressBar.startAnimation()
         binding.generateButton.isEnabled = false
         binding.statusText.text = getString(R.string.generating_keys)
 
@@ -159,7 +158,7 @@ class WpaGeneratorFragment : Fragment() {
                     wpaHelper.generateKeys(network.ssid, network.bssid)
                 }
 
-                binding.progressBar.visibility = View.GONE
+                binding.progressBar.stopAnimation()
                 binding.generateButton.isEnabled = true
 
                 if (results.isEmpty()) {
@@ -170,7 +169,7 @@ class WpaGeneratorFragment : Fragment() {
                     networksAdapter.updateNetworkResults(network.bssid, results)
                 }
             } catch (e: Exception) {
-                binding.progressBar.visibility = View.GONE
+                binding.progressBar.stopAnimation()
                 binding.generateButton.isEnabled = true
                 binding.statusText.text = getString(R.string.error_general, e.message ?: "Unknown error")
             }
@@ -191,7 +190,7 @@ class WpaGeneratorFragment : Fragment() {
         if (isScanning) return
 
         isScanning = true
-        binding.progressBar.visibility = View.VISIBLE
+        binding.progressBar.startAnimation()
         binding.generateButton.isEnabled = false
         binding.statusText.text = getString(R.string.scanning_networks)
 
@@ -213,7 +212,7 @@ class WpaGeneratorFragment : Fragment() {
                     }.distinctBy { it.bssid }
 
                     isScanning = false
-                    binding.progressBar.visibility = View.GONE
+                    binding.progressBar.stopAnimation()
                     binding.generateButton.isEnabled = true
 
                     if (networks.isEmpty()) {
@@ -224,13 +223,13 @@ class WpaGeneratorFragment : Fragment() {
                     }
                 } else {
                     isScanning = false
-                    binding.progressBar.visibility = View.GONE
+                    binding.progressBar.stopAnimation()
                     binding.generateButton.isEnabled = true
                     binding.statusText.text = getString(R.string.failed_to_start_wifi_scan)
                 }
             } catch (e: Exception) {
                 isScanning = false
-                binding.progressBar.visibility = View.GONE
+                binding.progressBar.stopAnimation()
                 binding.generateButton.isEnabled = true
                 binding.statusText.text = getString(R.string.error_scanning_wifi)
             }

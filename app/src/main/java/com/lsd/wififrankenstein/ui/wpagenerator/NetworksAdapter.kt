@@ -8,10 +8,10 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.ItemNetworkBinding
 import com.lsd.wififrankenstein.databinding.ItemResultBinding
 import com.lsd.wififrankenstein.databinding.ItemResultHeaderBinding
-import com.lsd.wififrankenstein.R
 
 class NetworksAdapter(
     private val onNetworkClick: (WpaGeneratorFragment.NetworkInfo) -> Unit,
@@ -149,16 +149,16 @@ class NetworksAdapter(
             binding.generationTimeText.text = binding.root.context.getString(R.string.generation_time, result.generationTime)
 
             val supportText = when (result.supportState) {
-                WpaResult.SUPPORTED -> "Supported"
-                WpaResult.UNLIKELY_SUPPORTED -> "Unlikely"
-                else -> "Unsupported"
+                WpaResult.SUPPORTED -> binding.root.context.getString(R.string.support_state_supported)
+                WpaResult.UNLIKELY_SUPPORTED -> binding.root.context.getString(R.string.support_state_unlikely)
+                else -> binding.root.context.getString(R.string.support_state_unsupported)
             }
             binding.supportStateText.text = supportText
 
             val supportColor = when (result.supportState) {
-                WpaResult.SUPPORTED -> binding.root.context.getColor(android.R.color.holo_green_dark)
-                WpaResult.UNLIKELY_SUPPORTED -> binding.root.context.getColor(android.R.color.holo_orange_dark)
-                else -> binding.root.context.getColor(android.R.color.holo_red_dark)
+                WpaResult.SUPPORTED -> ContextCompat.getColor(binding.root.context, android.R.color.holo_green_dark)
+                WpaResult.UNLIKELY_SUPPORTED -> ContextCompat.getColor(binding.root.context, android.R.color.holo_orange_dark)
+                else -> ContextCompat.getColor(binding.root.context, android.R.color.holo_red_dark)
             }
             binding.supportStateText.setTextColor(supportColor)
 

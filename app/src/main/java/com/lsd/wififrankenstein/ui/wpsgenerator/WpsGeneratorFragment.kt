@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.wpsgenerator
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
@@ -21,11 +22,11 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentWpsGeneratorBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
-import com.lsd.wififrankenstein.util.WpsPinGenerator
 import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.util.MacAddressUtils
+import com.lsd.wififrankenstein.util.WpsPinGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -161,10 +162,10 @@ class WpsGeneratorFragment : Fragment() {
     private fun startWifiScan() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                binding.progressBar.visibility = View.VISIBLE
+                binding.progressBar.startAnimation()
                 binding.buttonScan.isEnabled = false
 
-                val wifiManager = requireContext().applicationContext.getSystemService(WifiManager::class.java)
+                val wifiManager = requireContext().applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
                 withContext(Dispatchers.IO) {
                     wifiManager.startScan()
                 }
@@ -182,7 +183,7 @@ class WpsGeneratorFragment : Fragment() {
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), getString(R.string.error_scanning_wifi), Toast.LENGTH_SHORT).show()
             } finally {
-                binding.progressBar.visibility = View.GONE
+                binding.progressBar.stopAnimation()
                 binding.buttonScan.isEnabled = true
             }
         }
@@ -203,7 +204,7 @@ class WpsGeneratorFragment : Fragment() {
 
     private fun generateForSingleBssid(bssid: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            binding.progressBar.visibility = View.VISIBLE
+            binding.progressBar.startAnimation()
 
             val results = mutableListOf<WpsGeneratorResult>()
             val includeExperimental = binding.switchIncludeExperimental.isChecked
@@ -263,13 +264,13 @@ class WpsGeneratorFragment : Fragment() {
 
             wpsGeneratorAdapter.submitList(results)
             binding.recyclerViewResults.visibility = View.VISIBLE
-            binding.progressBar.visibility = View.GONE
+            binding.progressBar.stopAnimation()
         }
     }
 
     private fun generateForAllNetworks() {
         viewLifecycleOwner.lifecycleScope.launch {
-            binding.progressBar.visibility = View.VISIBLE
+            binding.progressBar.startAnimation()
             binding.buttonGenerateAll.isEnabled = false
 
             val results = mutableListOf<WpsGeneratorResult>()
@@ -341,7 +342,7 @@ class WpsGeneratorFragment : Fragment() {
 
             wpsGeneratorAdapter.submitList(sortedResults)
             binding.recyclerViewResults.visibility = View.VISIBLE
-            binding.progressBar.visibility = View.GONE
+            binding.progressBar.stopAnimation()
             binding.buttonGenerateAll.isEnabled = true
 
             if (results.isEmpty()) {
@@ -553,7 +554,7 @@ class WpsGeneratorFragment : Fragment() {
         pins
     }
 
-        private fun sortPinsByPriority(pins: List<WPSPin>): List<WPSPin> {
+    private fun sortPinsByPriority(pins: List<WPSPin>): List<WPSPin> {
         return pins.sortedWith(compareBy<WPSPin> { pin ->
             when {
                 pin.sugg && !pin.isFrom3WiFi -> 0

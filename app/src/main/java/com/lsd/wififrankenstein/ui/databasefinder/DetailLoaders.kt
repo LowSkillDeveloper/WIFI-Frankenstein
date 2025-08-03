@@ -41,7 +41,8 @@ class WiFi3DetailLoader(
                 return@flow
             }
 
-            SQLite3WiFiHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
+            val helper = SQLite3WiFiHelper(context, dbItem.path.toUri(), dbItem.directPath)
+            try {
                 val db = helper.database
                 if (db != null) {
                     val dbType = DatabaseTypeUtils.determineDbType(db)
@@ -77,6 +78,8 @@ class WiFi3DetailLoader(
                 } else {
                     emit(mapOf("error" to "Could not open database"))
                 }
+            } finally {
+                helper.close()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in WiFi3DetailLoader", e)
@@ -110,18 +113,19 @@ class CustomDbDetailLoader(
                 return@flow
             }
 
-            SQLiteCustomHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
+            val helper = SQLiteCustomHelper(context, dbItem.path.toUri(), dbItem.directPath)
+            try {
                 val db = helper.database
                 if (db != null) {
                     val cleanMac = bssid.replace("[^a-fA-F0-9]".toRegex(), "")
                     val macColumn = columnMap["mac"] ?: "bssid"
 
                     val query = """
-                        SELECT * FROM $tableName WHERE 
-                        $macColumn = ? OR 
-                        UPPER($macColumn) = ? OR 
-                        REPLACE(REPLACE(UPPER($macColumn), ':', ''), '-', '') = ?
-                    """.trimIndent()
+                    SELECT * FROM $tableName WHERE 
+                    $macColumn = ? OR 
+                    UPPER($macColumn) = ? OR 
+                    REPLACE(REPLACE(UPPER($macColumn), ':', ''), '-', '') = ?
+                """.trimIndent()
 
                     db.rawQuery(query, arrayOf(bssid, bssid.uppercase(), cleanMac.uppercase())).use { cursor ->
                         if (cursor.moveToFirst()) {
@@ -175,6 +179,8 @@ class CustomDbDetailLoader(
                 } else {
                     emit(mapOf("error" to "Could not open database"))
                 }
+            } finally {
+                helper.close()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in CustomDbDetailLoader", e)

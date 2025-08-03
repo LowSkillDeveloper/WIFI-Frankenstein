@@ -1,173 +1,195 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:fillViewport="true">
 
-    <TextView
-        android:id="@+id/textViewUpdatesTitle"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="@string/updates_setup"
-        android:textAlignment="center"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline4"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:padding="16dp">
 
-    <!-- App Update Card -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardViewAppUpdate"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@+id/textViewUpdatesTitle"
-        app:cardElevation="4dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/textViewUpdatesTitle"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_marginTop="24dp"
+            android:text="@string/updates_setup"
+            android:textAlignment="center"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline4"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/app_update"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:id="@+id/textViewAppVersion"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
-
-            <TextView
-                android:id="@+id/textViewNewAppVersion"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-                android:visibility="gone" />
-
-            <ProgressBar
-                android:id="@+id/progressBarAppUpdate"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:visibility="gone" />
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardViewAppUpdate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textViewUpdatesTitle">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="end"
-                android:layout_marginTop="8dp">
+                android:orientation="vertical"
+                android:padding="16dp">
 
-                <Button
-                    android:id="@+id/buttonShowChangelog"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
+                <TextView
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/show_changelog"
+                    android:text="@string/app_update"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/textViewAppVersion"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+
+                <TextView
+                    android:id="@+id/textViewNewAppVersion"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                     android:visibility="gone" />
 
-                <Button
-                    android:id="@+id/buttonUpdateApp"
-                    style="@style/Widget.MaterialComponents.Button"
-                    android:layout_width="wrap_content"
+                <ProgressBar
+                    android:id="@+id/progressBarAppUpdate"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/update_app"
                     android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="end"
+                    android:layout_marginTop="8dp">
+
+                    <Button
+                        android:id="@+id/buttonShowChangelog"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/show_changelog"
+                        android:visibility="gone" />
+
+                    <Button
+                        android:id="@+id/buttonUpdateApp"
+                        style="@style/Widget.MaterialComponents.Button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/update_app"
+                        android:visibility="gone" />
+                </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+        </com.google.android.material.card.MaterialCardView>
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardViewUpdateStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@+id/cardViewAppUpdate">
-
-        <LinearLayout
-            android:layout_width="match_parent"
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardViewUpdateStatus"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/cardViewAppUpdate">
 
-            <TextView
-                android:id="@+id/textViewUpdateStatus"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/checking_updates"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <ProgressBar
-                android:id="@+id/progressBarUpdates"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:indeterminate="true" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+                <TextView
+                    android:id="@+id/textViewUpdateStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/checking_updates"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
 
-    <!-- SmartLink DB Updates Card -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardViewSmartLinkDb"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@+id/cardViewUpdateStatus"
-        android:visibility="gone">
+                <ProgressBar
+                    android:id="@+id/progressBarUpdates"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:indeterminate="true" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardViewSmartLinkDb"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/cardViewUpdateStatus"
+            android:visibility="gone">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/smartlink_db_updates"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerViewSmartLinkDb"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/smartlink_db_updates"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
 
-    <!-- Error Message TextView -->
-    <TextView
-        android:id="@+id/textViewErrorMessage"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:textColor="@color/error_red"
-        android:textAlignment="center"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@+id/cardViewSmartLinkDb" />
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerViewSmartLinkDb"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:nestedScrollingEnabled="false" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-    <!-- Update All Button -->
-    <Button
-        android:id="@+id/buttonUpdateAll"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/update_all"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@+id/textViewErrorMessage" />
+        <TextView
+            android:id="@+id/textViewErrorMessage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/error_red"
+            android:textAlignment="center"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/cardViewSmartLinkDb" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewUpdates"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/buttonUpdateAll" />
+        <Button
+            android:id="@+id/buttonUpdateAll"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/update_all"
+            android:layout_marginTop="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textViewErrorMessage" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewUpdates"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:nestedScrollingEnabled="false"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/buttonUpdateAll" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

@@ -291,7 +291,7 @@
     <string name="toast_no_data_to_save">Нет данных о сети для сохранения</string>
 
     <string name="connect_wps_root_menu">Подключиться с использованием WPS (ROOT)</string>
-    <string name="root_wps_not_implemented">Подключение ROOT WPS еще не реализовано</string>
+    <string name="root_wps_not_implemented">Отсюда нельзя использовать root-подключение, введите PIN-код на странице сканера Wi-Fi.</string>
 
     <string name="connect_wps_pin_button">Подключиться с использованием WPS Pin</string>
     <string name="enter_wps_pin">Введите WPS PIN</string>
@@ -839,5 +839,340 @@
     <string name="server_url">URL сервера</string>
     <string name="test_results">Результаты теста</string>
 
+    <string name="pixiedust_title">Атака PixieDust</string>
+    <string name="pixiedust_description">PixieDust — это атака на WPS, которая использует слабую случайность в некоторых реализациях WPS для восстановления PIN-кода WPS</string>
+    <string name="pixiedust_requires_wps">Эта атака работает только на сетях с включённым WPS и уязвимыми реализациями</string>
+    <string name="pixiedust_system_requirements">Системные требования</string>
+    <string name="pixiedust_checking_root">Проверка root-доступа…</string>
+    <string name="pixiedust_checking_binaries">Проверка бинарных файлов…</string>
+    <string name="pixiedust_network_scanning">Сканирование сети</string>
+    <string name="pixiedust_scan_networks">Сканировать сети WPS</string>
+    <string name="pixiedust_wps_networks">Сети WPS</string>
+    <string name="pixiedust_attack_control">Управление атакой</string>
+    <string name="pixiedust_no_network_selected">Сеть не выбрана</string>
+    <string name="pixiedust_start_attack">Начать атаку</string>
+    <string name="pixiedust_stop_attack">Остановить атаку</string>
+    <string name="pixiedust_attack_result">Результат атаки</string>
+    <string name="pixiedust_copy_pin">Копировать PIN</string>
+    <string name="pixiedust_save_result">Сохранить результат</string>
+    <string name="pixiedust_wps_enabled">WPS</string>
+
+    <string name="pixiedust_scanning">Сканирование сетей…</string>
+    <string name="pixiedust_preparing">Подготовка атаки…</string>
+    <string name="pixiedust_extracting_data">Извлечение данных рукопожатия…</string>
+    <string name="pixiedust_running_attack">Выполнение атаки PixieDust…</string>
+    <string name="pixiedust_attack_completed">Атака завершена</string>
+    <string name="pixiedust_attack_failed">Атака не удалась: %s</string>
+
+    <string name="pixiedust_networks_found">Найдено %d сетей WPS</string>
+    <string name="pixiedust_no_networks">Сети WPS не найдены</string>
+    <string name="pixiedust_select_network">Пожалуйста, выберите сеть</string>
+    <string name="pixiedust_root_required">Требуется root-доступ</string>
+    <string name="pixiedust_binaries_not_found">Бинарные файлы не найдены</string>
+    <string name="pixiedust_root_not_available">Root-доступ: Недоступен</string>
+    <string name="pixiedust_pin_found">PIN-код найден: %s</string>
+    <string name="pixiedust_pin_not_found">PIN-код не найден</string>
+    <string name="pixiedust_result_saved">Результат успешно сохранён</string>
+    <string name="pixiedust_network_info">%s (%s)</string>
+    <string name="pixiedust_signal_strength">%d дБм</string>
+    <string name="pixiedust_frequency">%d МГц</string>
+
+    <string name="pixiedust_warning_title">Предупреждение</string>
+    <string name="pixiedust_warning_message">Этот инструмент предназначен только для образовательных целей. Используйте только в сетях, которые принадлежат вам или для которых у вас есть явное разрешение на тестирование. Несанкционированный доступ к беспроводным сетям является незаконным.</string>
+    <string name="pixiedust_understand_risks">Я понимаю</string>
+
+    <string name="permission_required">Требуется разрешение</string>
+
+    <string name="pixiedust_root_available">Root-доступ: Доступен</string>
+    <string name="pixiedust_binary_files_ready">Бинарные файлы: Готовы</string>
+    <string name="pixiedust_binary_files_not_available">Бинарные файлы: Недоступны</string>
+    <string name="pixiedust_unknown_network">Неизвестно</string>
+
+    <string name="menu_pixiedust">PixieDust</string>
+
+    <string name="pixiedust_copying_binaries">Копирование бинарных файлов…</string>
+    <string name="pixiedust_binaries_ready">Бинарные файлы готовы</string>
+    <string name="pixiedust_error_copying_binaries">Ошибка копирования бинарных файлов</string>
+    <string name="pixiedust_preparing_attack">Подготовка атаки…</string>
+    <string name="pixiedust_extracting_handshake">Извлечение данных рукопожатия…</string>
+    <string name="pixiedust_computing_pin">Вычисление PIN-кода…</string>
+
+    <string name="pixiedust_data_extraction_failed">Не удалось извлечь данные для атаки</string>
+
+    <string name="support_state_supported">Поддерживается</string>
+    <string name="support_state_unlikely">Маловероятно</string>
+    <string name="support_state_unsupported">Не поддерживается</string>
+    <string name="error_no_internet">Нет подключения к интернету</string>
+    <string name="error_connection_failed">Сбой подключения. Пожалуйста, попробуйте снова позже.</string>
+
+    <string name="menu_qr_generator">Генератор QR-кодов</string>
+    <string name="qr_code_gen_description">Создать QR-код для подключения к WiFi</string>
+    <string name="network_name">Имя сети (SSID)</string>
+    <string name="network_password">Пароль</string>
+    <string name="security_type">Тип защиты</string>
+    <string name="security_none">Нет (Открытая)</string>
+    <string name="security_wep">WEP</string>
+    <string name="security_wpa">WPA/WPA2</string>
+    <string name="security_wpa3">WPA3</string>
+    <string name="hidden_network">Скрытая сеть</string>
+    <string name="generate_qr">Создать QR-код</string>
+    <string name="save_to_gallery">Сохранить в галерею</string>
+    <string name="share_qr">Поделиться QR-кодом</string>
+    <string name="qr_saved_successfully">QR-код сохранён в галерею</string>
+    <string name="qr_save_failed">Не удалось сохранить QR-код</string>
+    <string name="qr_code_generated">QR-код успешно создан</string>
+    <string name="invalid_network_data">Пожалуйста, введите действительные данные сети</string>
+    <string name="password_required">Пароль требуется для защищённых сетей</string>
+
+    <string name="qr_code_generated_for">QR-код создан для %s</string>
+    <string name="qr_code_generation_failed">Не удалось создать QR-код</string>
+    <string name="action_generate_qr">Создать QR</string>
+    <string name="menu_saved_passwords">Сохранённые пароли</string>
+
+    <string name="root_required_passwords">Требуется root-доступ для просмотра сохранённых паролей</string>
+    <string name="no_saved_passwords">Сохранённые пароли не найдены</string>
+    <string name="error_loading_passwords">Ошибка загрузки паролей: %s</string>
+
+    <string name="password_copied">Пароль скопирован в буфер обмена</string>
+    <string name="ssid_copied">SSID скопирован в буфер обмена</string>
+
+    <string name="export_passwords">Экспортировать пароли</string>
+    <string name="export_failed_passwords">Не удалось экспортировать пароли: %s</string>
+    <string name="select_export_method">Выберите метод экспорта</string>
+    <string name="export_as_json">Экспортировать как JSON</string>
+    <string name="export_as_csv">Экспортировать как CSV</string>
+    <string name="export_as_txt">Экспортировать как TXT</string>
+
+    <string name="security_type_format">Защита: %s</string>
+
+    <string name="show_qr_code">Показать QR-код</string>
+
+    <string name="checking_root_access">Проверка root-доступа…</string>
+    <string name="root_access_required">Требуется root-доступ</string>
+    <string name="root_access_required_message">Для этой функции требуется root-доступ для чтения конфигурационных файлов WiFi. Без root-доступа будет доступна только базовая информация о сети.</string>
+    <string name="error_checking_root_access">Ошибка проверки root-доступа</string>
+
+    <string name="passwords_exported_to">Пароли экспортированы в: %s</string>
+    <string name="no_data_to_copy">Нет данных для копирования</string>
+    <string name="qr_code_for_wifi">QR-код для WiFi: %s</string>
+
+    <string name="show_passwords">Показать пароли</string>
+
+    <string name="category_root_functions">Root-функции</string>
+    <string name="category_generators">Генераторы</string>
+    <string name="category_utilities">Утилиты</string>
+    <string name="system_files_updates">Обновления системных файлов</string>
+    <string name="local_size">Локальный размер: %1$s</string>
+
+    <string name="pixiedust_failed_start_supplicant">Не удалось запустить supplicant</string>
+    <string name="pixiedust_attack_error">Ошибка атаки: %1$s</string>
+
+    <string name="pixiedust_manual_network_entry">Ручной ввод сети</string>
+    <string name="pixiedust_network_ssid">SSID сети</string>
+    <string name="pixiedust_network_bssid">BSSID сети (MAC-адрес)</string>
+    <string name="pixiedust_add_network">Добавить сеть</string>
+    <string name="pixiedust_invalid_bssid">Недопустимый формат BSSID</string>
+    <string name="pixiedust_cleaning_up">Очистка процессов…</string>
+    <string name="pixiedust_attack_log">Журнал атаки</string>
+    <string name="pixiedust_clear_log">Очистить журнал</string>
+    <string name="pixiedust_log_empty">Нет записей в журнале</string>
+
+    <string name="pixiedust_ssid_required">SSID не может быть пустым</string>
+
+    <string name="pixiedust_advanced_settings">Расширенные настройки</string>
+    <string name="pixiedust_extraction_timeout">Тайм-аут извлечения данных</string>
+    <string name="pixiedust_extraction_timeout_desc">Максимальное время ожидания извлечения данных рукопожатия</string>
+    <string name="pixiedust_computation_timeout">Тайм-аут вычислений</string>
+    <string name="pixiedust_computation_timeout_desc">Максимальное время для вычисления PIN-кода</string>
+    <string name="pixiedust_seconds">секунд</string>
+    <string name="pixiedust_reset_defaults">Сбросить настройки по умолчанию</string>
+
+    <string name="pixiedust_aggressive_cleanup">Включить агрессивное завершение системных процессов (не рекомендуется)</string>
+    <string name="pixiedust_aggressive_cleanup_desc">Использует агрессивный метод для остановки системных служб WiFi. Может вызвать нестабильность системы, но повышает вероятность успеха атаки.</string>
+
+    <string name="router_model">Модель</string>
+    <string name="admin_credentials">Админ-панель:</string>
+    <string name="network_status">Статус сети:</string>
+    <string name="hidden_network_status">Скрытая сеть</string>
+    <string name="wifi_disabled_status">WiFi отключён</string>
+    <string name="multiple_records">Найдено %d записей</string>
+    <string name="copy_coordinates">Копировать координаты</string>
+    <string name="share_network_data">Поделиться данными сети</string>
+    <string name="create_qr_code">Создать QR-код</string>
+    <string name="admin_login">Логин</string>
+    <string name="admin_password">Пароль</string>
+    <string name="coordinates_copied">Координаты скопированы в буфер обмена</string>
+    <string name="expand_record">Развернуть запись</string>
+
+    <string name="network_data">Данные сети:</string>
+    <string name="time_added">Время добавления</string>
+
+    <string name="copy_login">Копировать логин</string>
+    <string name="copy_admin_password">Копировать пароль администратора</string>
+    <string name="time_added_format">Добавлено: %s</string>
+
+    <string name="empty_field_message">При входе возможно потребуется оставить поле пустым</string>
+    <string name="open_in_map">Открыть на карте</string>
+    <string name="no_map_app_found">Приложение для карт не найдено</string>
+    <string name="unknown_database">Неизвестная база данных</string>
+    <string name="other_actions">Прочие действия</string>
+
+    <string name="pixiedust_cleanup_binaries">Очистка бинарных файлов</string>
+    <string name="pixiedust_cleanup_binaries_title">Очистка бинарных файлов</string>
+    <string name="pixiedust_cleanup_binaries_message">Это удалит все бинарные файлы, символические ссылки и временные директории. Файлы будут извлечены заново при следующей атаке. Продолжить?</string>
+    <string name="pixiedust_cleanup_confirm">Очистить</string>
+    <string name="pixiedust_cleaning_binaries">Очистка бинарных файлов…</string>
+    <string name="pixiedust_cleanup_completed">Очистка бинарных файлов завершена</string>
+    <string name="pixiedust_cleanup_error">Ошибка очистки бинарных файлов</string>
+    <string name="pixiedust_copy_binaries">Копировать бинарные файлы</string>
+    <string name="root_access_setup">Root-доступ</string>
+    <string name="root_access_description">Если у вас есть root-права, приложение может использовать дополнительные функции</string>
+    <string name="root_question">Есть ли у вас root-права на устройстве?</string>
+    <string name="yes_i_have_root">Да, у меня есть root</string>
+    <string name="no_root_access">Нет, у меня нет root</string>
+    <string name="root_benefits_explanation">Root-права позволяют приложению получать расширенную информацию о Wi-Fi сетях и использовать дополнительные инструменты для анализа.</string>
+    <string name="root_note">Вы можете изменить этот параметр позже в настройках приложения.</string>
+
+    <string name="permissions_not_required_version">На вашей версии Android разрешения предоставляются автоматически</string>
+    <string name="permissions_granted_automatically">Все необходимые разрешения уже доступны для вашего приложения</string>
+    <string name="storage_permission_legacy">Разрешение на хранилище</string>
+    <string name="storage_permission_description_legacy">Необходимо для чтения и записи файлов баз данных</string>
+    <string name="api_servers">API-серверы</string>
+    <string name="mac_column_required">Предупреждение: не найдены столбцы широты/долготы. Функции, основанные на местоположении, будут недоступны.</string>
+    <string name="indexing_no_geo_warning">Необходим столбец MAC для индексации</string>
+
+    <string name="resuming_download">Возобновление загрузки</string>
+    <string name="download_resumed">Загрузка возобновлена с %1$d%%</string>
+    <string name="clearing_old_download">Очистка старой загрузки</string>
+    <string name="version_changed_restarting">Версия изменилась, перезапуск загрузки</string>
+
+    <string name="menu_iw_scanner">Сканер iw</string>
+    <string name="iw_hidden_ssid">[Скрытая сеть]</string>
+    <string name="iw_unknown_signal">Неизвестно</string>
+    <string name="iw_frequency_format">%s МГц</string>
+    <string name="iw_channel_format">Канал: %s</string>
+    <string name="iw_open_network">Открытая</string>
+    <string name="iw_connected_network">Подключённая сеть</string>
+    <string name="iw_expand_details">Развернуть детали</string>
+
+    <string name="iw_link_info_title">Состояние подключения</string>
+    <string name="iw_refresh_link_info">Обновить информацию о подключении</string>
+    <string name="iw_not_connected">Не подключено ни к одной сети</string>
+    <string name="iw_connected_to">Подключено к: %s</string>
+    <string name="iw_ssid_format">SSID: %s</string>
+    <string name="iw_bssid_format">BSSID: %s</string>
+    <string name="iw_freq_format">Частота: %s</string>
+    <string name="iw_signal_format">Сигнал: %s</string>
+    <string name="iw_bitrate_format">Скорость: %s</string>
+
+    <string name="iw_device_info_title">Информация об устройстве</string>
+    <string name="iw_refresh_device_info">Обновить информацию об устройстве</string>
+    <string name="iw_expand_device_info">Развернуть информацию об устройстве</string>
+    <string name="iw_loading_device_info">Загрузка информации об устройстве…</string>
+    <string name="iw_device_info_unavailable">Информация об устройстве недоступна</string>
+
+    <string name="iw_network_scan_title">Сканер сетей</string>
+    <string name="iw_scan_networks">Сканировать сети</string>
+    <string name="iw_scanning">Сканирование…</string>
+    <string name="iw_ready_to_scan">Готово к сканированию сетей</string>
+    <string name="iw_no_networks_found">Сети не найдены. Попробуйте снова.</string>
+
+    <string name="iw_ready">Сканер iw готов</string>
+    <string name="iw_root_required">Для сканера iw требуется root-доступ</string>
+    <string name="iw_binary_copy_failed">Не удалось скопировать бинарные файлы iw</string>
+    <string name="iw_initial_load_failed">Не удалось загрузить начальные данные</string>
+    <string name="iw_scan_completed">Сканирование завершено. Найдено сетей: %d</string>
+    <string name="iw_scan_failed">Ошибка сканирования: %s</string>
+    <string name="iw_link_refresh_failed">Не удалось обновить информацию о подключении</string>
+    <string name="iw_device_info_failed">Не удалось загрузить информацию об устройстве</string>
+
+    <string name="iw_root_required_title">Требуется Root-доступ</string>
+    <string name="iw_root_required_message">Сканеру iw требуется root-доступ для поиска сетей и получения информации об устройстве. Убедитесь, что устройство рутировано, и предоставьте приложению соответствующие права.</string>
+
+    <string name="iw_error_title">Ошибка сканера</string>
+    <string name="iw_error_message">Произошла ошибка: %s</string>
+
+    <string name="iw_interface_selector_title">Сетевой интерфейс</string>
+    <string name="iw_refresh_interfaces">Обновить интерфейсы</string>
+    <string name="iw_manual_interface">Ручной ввод интерфейса</string>
+    <string name="iw_selected_interface">Интерфейс:</string>
+    <string name="iw_interface_no_details">Дополнительные сведения отсутствуют</string>
+    <string name="iw_interface_refresh_failed">Не удалось обновить интерфейсы</string>
+
+    <string name="iw_manual_interface_title">Ручной интерфейс</string>
+    <string name="iw_manual_interface_message">Введите имя сетевого интерфейса вручную. Это полезно, если интерфейс не был обнаружен автоматически.</string>
+    <string name="iw_interface_hint">например: wlan0, wlan1, p2p0</string>
+    <string name="iw_set_interface">Установить интерфейс</string>
+
+    <string name="iw_device_wiphy_index">Индекс Wiphy</string>
+    <string name="iw_device_max_scan_ssids">Макс. SSID при сканировании</string>
+    <string name="iw_device_max_scan_ies_length">Макс. длина IEs</string>
+    <string name="iw_device_coverage_class">Класс покрытия</string>
+    <string name="iw_device_supports_tdls">Поддержка T-DLS</string>
+    <string name="iw_device_available_antennas">Доступные антенны</string>
+    <string name="iw_device_supported_interface_modes">Поддерживаемые режимы интерфейса</string>
+    <string name="iw_device_supported_ciphers">Поддерживаемые шифры</string>
+    <string name="iw_device_capabilities">Возможности</string>
+    <string name="iw_device_ht_support">Поддержка HT</string>
+    <string name="iw_device_frequencies">Частоты</string>
+    <string name="iw_device_bitrates">Скорости</string>
+    <string name="iw_device_and_more">и ещё %d</string>
+
+    <string name="pixiedust_interface_selector_title">Сетевой интерфейс</string>
+    <string name="pixiedust_refresh_interfaces">Обновить интерфейсы</string>
+    <string name="pixiedust_manual_interface">Ручной ввод</string>
+    <string name="pixiedust_selected_interface">Интерфейс:</string>
+    <string name="pixiedust_interface_hint">wlan0</string>
+    <string name="pixiedust_manual_interface_title">Ввод интерфейса вручную</string>
+    <string name="pixiedust_manual_interface_message">Введите имя интерфейса, который будет использоваться для атаки</string>
+    <string name="pixiedust_set_interface">Установить интерфейс</string>
+    <string name="refreshing_map_data">Обновление данных карты…</string>
+    <string name="map_data_refreshed">Данные карты обновлены</string>
+    <string name="unknown_vendor">неизвестный производитель</string>
+
+    <string name="app_license_title">Лицензия</string>
+    <string name="app_license_text">Это приложение лицензировано по GNU General Public License v3.0\n\nСвязывание этого программного обеспечения статически или динамически с OpenSSL 1.1 разрешено и не влияет на условия лицензии результирующего исполняемого файла.\n\nЭта программа распространяется в надежде, что она будет полезной, но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемых гарантий КОММЕРЧЕСКОЙ ЦЕННОСТИ или ПРИГОДНОСТИ ДЛЯ ОПРЕДЕЛЁННОЙ ЦЕЛИ. Подробности см. в GNU General Public License.</string>
+
+    <string name="disclaimer_title_about">Отказ от ответственности</string>
+    <string name="disclaimer_text_about">Это приложение предназначено только для образовательных и тестовых целей в области безопасности. Пользователи несут полную ответственность за то, чтобы их использование приложения соответствовало применимому законодательству.\n\n• Используйте это приложение только в сетях, которые вы владеете или на которые имеете явное разрешение на тестирование\n• Автор не несёт ответственности за неправильное использование приложения\n• Приложение не содержит встроенных баз данных сетей\n• Приложение не собирает никаких персональных данных</string>
+
+    <string name="used_components_title">Используемые компоненты и библиотеки</string>
+
+    <string name="library_androidx_new">Библиотеки AndroidX – Лицензия Apache 2.0</string>
+    <string name="library_material_new">Material Components – Лицензия Apache 2.0</string>
+    <string name="library_kotlin">Kotlin и библиотеки KotlinX – Лицензия Apache 2.0</string>
+    <string name="library_jsoup">Парсер HTML Jsoup – Лицензия MIT</string>
+    <string name="library_opencsv_new">OpenCSV – Лицензия Apache 2.0</string>
+    <string name="library_okhttp_new">OkHttp – Лицензия Apache 2.0</string>
+    <string name="library_osmdroid_new">OSMDroid – Лицензия Apache 2.0</string>
+    <string name="library_glide">Загрузка изображений Glide – Лицензия BSD/Apache 2.0</string>
+    <string name="library_commons_compress">Apache Commons Compress – Лицензия Apache 2.0</string>
+    <string name="library_xz">XZ for Java – Общественное достояние</string>
+    <string name="library_flexbox">FlexboxLayout – Лицензия Apache 2.0</string>
+    <string name="library_libsu">LibSU – Лицензия Apache 2.0</string>
+    <string name="library_zxing">ZXing Core – Лицензия Apache 2.0</string>
+
+    <string name="project_routerkeygen">Алгоритмы WPA и словари Thomson из RouterKeygen для Android – GNU GPL v3.0</string>
+    <string name="project_wifianalyzer">Код анализа Wi-Fi из WiFiAnalyzer от VREMSoftwareDevelopment – GNU GPL v3.0</string>
+    <string name="project_3wifi_locator">Код из 3WiFi Locator от FusixGit – Лицензия Apache 2.0</string>
+    <string name="project_3wifi_binarymaster">Алгоритмы WPS из 3WiFi от binarymaster – Лицензия Apache 2.0</string>
+
+    <string name="binary_wpa_supplicant">wpa_supplicant – Лицензия BSD</string>
+    <string name="binary_wpa_cli">wpa_cli – Лицензия BSD</string>
+    <string name="binary_openssl_crypto">libcrypto (OpenSSL) – Лицензия OpenSSL для libcrypto.so.1.1 и Apache License 2.0 для libcrypto.so.3</string>
+    <string name="binary_openssl_ssl">libssl (OpenSSL) – Лицензия OpenSSL для libssl.so.1.1 и Apache License 2.0 для libssl.so.3</string>
+    <string name="binary_libnl">libnl – GNU LGPL v2.1</string>
+    <string name="binary_libnl_genl">libnl-genl – GNU LGPL v2.1</string>
+    <string name="binary_libnl_route">libnl-route – GNU LGPL v2.1</string>
+    <string name="binary_pixiedust">Инструменты атаки PixieDust – Лицензия Apache 2.0</string>
+    <string name="binary_iw">Утилита iw для работы с беспроводными сетями – GNU GPL v2.0</string>
+
+    <string name="database_wps_tester">PIN-коды и базы данных производителей из WIFI WPS WPA TESTER от Sangiorgi Srl – Лицензия не указана</string>
+
+    <string name="view_license">Посмотреть лицензию</string>
+    <string name="license_url" translatable="false">https://www.gnu.org/licenses/gpl-3.0.html</string>
+
+
+    # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

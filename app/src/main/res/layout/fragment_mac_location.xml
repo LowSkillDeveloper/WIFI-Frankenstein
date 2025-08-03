@@ -197,12 +197,11 @@
 
     </androidx.core.widget.NestedScrollView>
 
-    <com.google.android.material.progressindicator.LinearProgressIndicator
-        android:id="@+id/progress_indicator"
+    <com.lsd.wififrankenstein.util.AnimatedLoadingBar
+        android:id="@+id/progressIndicator"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="5dp"
         android:layout_gravity="top"
-        android:visibility="gone"
-        android:indeterminate="true"/>
+        android:visibility="gone" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

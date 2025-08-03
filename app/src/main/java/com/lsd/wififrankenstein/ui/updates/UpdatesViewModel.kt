@@ -12,6 +12,8 @@ import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.network.NetworkClient
+import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +28,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.math.log10
 import kotlin.math.pow
-import com.lsd.wififrankenstein.ui.dbsetup.DbType
+
 
 class UpdatesViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -57,48 +59,75 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
     val appUpdateProgress: StateFlow<Int> = _appUpdateProgress.asStateFlow()
 
     private val _smartLinkDbUpdates = MutableStateFlow<List<SmartLinkDbUpdateInfo>>(emptyList())
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     val smartLinkDbUpdates: StateFlow<List<SmartLinkDbUpdateInfo>> = _smartLinkDbUpdates.asStateFlow()
 
+    private val networkClient = NetworkClient.getInstance(getApplication())
+
     fun checkUpdates() {
+        _isLoading.value = true
         val context = getApplication<Application>().applicationContext
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
+            if (!NetworkUtils.hasActiveConnection(context)) {
+                _errorMessage.value = context.getString(R.string.error_no_internet)
+                return@launch
+            }
+
             try {
-                val jsonString = URL("https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/updates.json").readText()
+                val jsonString = networkClient.get("https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/updates.json")
                 val json = JSONObject(jsonString)
 
-                val appInfo = json.getJSONObject("app")
                 _appUpdateInfo.value = AppUpdateInfo(
                     currentVersion = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_ACTIVITIES)?.versionName ?: "Unknown",
-                    newVersion = appInfo.getString("version"),
-                    changelogUrl = appInfo.getString("changelog_url"),
-                    downloadUrl = appInfo.getString("download_url")
+                    newVersion = json.getJSONObject("app").getString("version"),
+                    changelogUrl = json.getJSONObject("app").getString("changelog_url"),
+                    downloadUrl = json.getJSONObject("app").getString("download_url")
                 )
 
                 val fileUpdates = json.getJSONArray("files")
-                val updateInfoList = (0 until fileUpdates.length()).map { i ->
+                val serverFilesList = (0 until fileUpdates.length()).map { i ->
                     val fileInfo = fileUpdates.getJSONObject(i)
                     val fileName = fileInfo.getString("name")
                     val serverVersion = fileInfo.getString("version")
-                    val downloadUrl = fileInfo.getString("download_url")
-
                     val localFile = File(context.filesDir, fileName)
                     val localVersion = getFileVersion(context, fileName)
-                    val localSize = if (localFile.exists()) localFile.length() else 0
 
                     FileUpdateInfo(
                         fileName = fileName,
                         localVersion = localVersion,
                         serverVersion = serverVersion,
-                        localSize = formatFileSize(localSize),
-                        downloadUrl = downloadUrl,
+                        localSize = formatFileSize(if (localFile.exists()) localFile.length() else 0),
+                        downloadUrl = fileInfo.getString("download_url"),
                         needsUpdate = serverVersion != localVersion
+                    )
+                }.toMutableList()
+
+                val routerKeygenFileName = "RouterKeygen.dic"
+                val hasRouterKeygen = serverFilesList.any { it.fileName == routerKeygenFileName }
+
+                if (!hasRouterKeygen) {
+                    val localFile = File(context.filesDir, routerKeygenFileName)
+                    val localVersion = getFileVersion(context, routerKeygenFileName)
+                    serverFilesList.add(
+                        FileUpdateInfo(
+                            fileName = routerKeygenFileName,
+                            localVersion = localVersion,
+                            serverVersion = "0.0",
+                            localSize = formatFileSize(if (localFile.exists()) localFile.length() else 0),
+                            downloadUrl = "",
+                            needsUpdate = false
+                        )
                     )
                 }
 
-                _updateInfo.value = updateInfoList
+                _updateInfo.value = serverFilesList
+                _errorMessage.value = null
+                _isLoading.value = false
             } catch (e: Exception) {
-                Log.e("UpdatesViewModel", "Error checking updates", e)
-                _errorMessage.value = context.getString(R.string.error_checking_updates, e.message)
+                _errorMessage.value = context.getString(R.string.error_connection_failed)
+                _isLoading.value = false
             }
         }
     }
@@ -108,10 +137,11 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun checkSmartLinkDbUpdates() {
+        _isLoading.value = true
         viewModelScope.launch {
             try {
                 Log.d("UpdatesViewModel", "Starting SmartLink DB updates check...")
-                val dbList = dbSetupViewModel.getSmartLinkDatabases()  // Этот метод уже исправлен
+                val dbList = dbSetupViewModel.getSmartLinkDatabases()
                 Log.d("UpdatesViewModel", "Found ${dbList.size} SmartLink databases")
 
                 val updateInfoList = dbList.mapNotNull { dbItem ->
@@ -143,24 +173,27 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
 
                 Log.d("UpdatesViewModel", "SmartLink DB update results: ${updateInfoList.size} items, ${updateInfoList.count { it.needsUpdate }} need updates")
                 _smartLinkDbUpdates.value = updateInfoList
+                _isLoading.value = false
             } catch (e: Exception) {
                 Log.e("UpdatesViewModel", "Error checking SmartLink DB updates", e)
                 _errorMessage.value = e.message ?: "Failed to check SmartLink DB updates"
+                _isLoading.value = false
             }
         }
     }
 
     private suspend fun fetchUpdateInfo(updateUrl: String?): List<SmartLinkDbInfo> {
         return withContext(Dispatchers.IO) {
+            if (updateUrl.isNullOrBlank()) return@withContext emptyList()
+
             try {
-                val response = URL(updateUrl).readText()
+                val response = networkClient.get(updateUrl)
                 val json = JSONObject(response)
                 val databasesArray = json.getJSONArray("databases")
-                val result = mutableListOf<SmartLinkDbInfo>()
 
-                for (i in 0 until databasesArray.length()) {
+                (0 until databasesArray.length()).map { i ->
                     val dbInfo = databasesArray.getJSONObject(i)
-                    result.add(SmartLinkDbInfo(
+                    SmartLinkDbInfo(
                         id = dbInfo.getString("id"),
                         name = dbInfo.getString("name"),
                         downloadUrl = dbInfo.optString("downloadUrl", null),
@@ -171,11 +204,9 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
                         downloadUrl5 = dbInfo.optString("downloadUrl5", null),
                         version = dbInfo.getString("version"),
                         type = dbInfo.getString("type")
-                    ))
+                    )
                 }
-                result
             } catch (e: Exception) {
-                Log.e("SmartLinkDbHelper", "Error fetching update info", e)
                 emptyList()
             }
         }
@@ -185,6 +216,11 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
         val context = getApplication<Application>().applicationContext
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                if (fileInfo.downloadUrl.isBlank()) {
+                    _errorMessage.value = "Download URL not available for ${fileInfo.fileName}"
+                    return@launch
+                }
+
                 val file = File(context.filesDir, fileInfo.fileName)
                 val url = URL(fileInfo.downloadUrl)
                 val connection = url.openConnection() as HttpURLConnection
@@ -216,16 +252,23 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
         val context = getApplication<Application>().applicationContext
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val assetManager = context.assets
                 val file = File(context.filesDir, fileInfo.fileName)
 
-                assetManager.open(fileInfo.fileName).use { input ->
-                    FileOutputStream(file).use { output ->
-                        input.copyTo(output)
+                if (fileInfo.fileName == "RouterKeygen.dic") {
+                    if (file.exists()) {
+                        file.delete()
                     }
+                    updateFileVersion(context, fileInfo.fileName, "0.0")
+                } else {
+                    val assetManager = context.assets
+                    assetManager.open(fileInfo.fileName).use { input ->
+                        FileOutputStream(file).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    updateFileVersion(context, fileInfo.fileName, "1.0")
                 }
 
-                updateFileVersion(context, fileInfo.fileName, "1.0")
                 _fileUpdateProgress.value = mapOf(fileInfo.fileName to 100)
                 checkUpdates()
             } catch (e: Exception) {
@@ -250,14 +293,16 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
 
     fun getChangelog() {
         val context = getApplication<Application>().applicationContext
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 val changelogUrl = _appUpdateInfo.value?.changelogUrl
-                    ?: throw Exception(context.getString(R.string.error_changelog_url_not_available))
-                val changelog = URL(changelogUrl).readText()
-                _changelog.value = changelog
+                if (changelogUrl.isNullOrBlank()) {
+                    _errorMessage.value = context.getString(R.string.error_changelog_url_not_available)
+                    return@launch
+                }
+                _changelog.value = networkClient.get(changelogUrl)
             } catch (e: Exception) {
-                _errorMessage.value = context.getString(R.string.error_fetching_changelog, e.message)
+                _errorMessage.value = context.getString(R.string.error_fetching_changelog, "Network error")
             }
         }
     }
@@ -343,15 +388,22 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
     private fun getFileVersion(context: Context, fileName: String): String {
         val versionFileName = "${fileName.substringBeforeLast(".")}_version.json"
         val versionFile = File(context.filesDir, versionFileName)
+        val actualFile = File(context.filesDir, fileName)
+
         return if (versionFile.exists()) {
             try {
                 JSONObject(versionFile.readText()).getString("version")
             } catch (_: Exception) {
-                "1.0"
+                if (fileName == "RouterKeygen.dic") "0.0" else "1.0"
             }
         } else {
-            createVersionFile(context, fileName, "1.0")
-            "1.0"
+            val defaultVersion = if (fileName == "RouterKeygen.dic") {
+                if (actualFile.exists()) "1.0" else "0.0"
+            } else {
+                "1.0"
+            }
+            createVersionFile(context, fileName, defaultVersion)
+            defaultVersion
         }
     }
 

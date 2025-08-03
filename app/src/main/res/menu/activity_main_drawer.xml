@@ -12,12 +12,10 @@
             android:id="@+id/nav_database_finder"
             android:icon="@drawable/ic_storage"
             android:title="@string/menu_database_finder" />
-
         <item
             android:id="@+id/nav_in_app_database"
             android:icon="@drawable/ic_database"
             android:title="@string/menu_in_app_database" />
-
         <item
             android:id="@+id/nav_api_query"
             android:icon="@drawable/outline_arrow_upload_ready_24"
@@ -26,30 +24,70 @@
             android:id="@+id/nav_wifi_map"
             android:icon="@drawable/ic_menu_mapmode"
             android:title="@string/menu_wifi_map" />
+
+        <item
+            android:id="@+id/category_root_functions"
+            android:icon="@drawable/ic_expand_more"
+            android:title="@string/category_root_functions" />
+        <item
+            android:id="@+id/nav_pixiedust"
+            android:icon="@drawable/ic_key"
+            android:title="@string/menu_pixiedust"
+            android:visible="false" />
+        <item
+            android:id="@+id/nav_iw_scanner"
+            android:icon="@drawable/ic_wifi"
+            android:title="@string/menu_iw_scanner"
+            android:visible="false" />
+        <item
+            android:id="@+id/nav_saved_passwords"
+            android:icon="@drawable/ic_file"
+            android:title="@string/menu_saved_passwords"
+            android:visible="false" />
+
+        <item
+            android:id="@+id/category_generators"
+            android:icon="@drawable/ic_expand_more"
+            android:title="@string/category_generators" />
         <item
             android:id="@+id/nav_wps_generator"
             android:icon="@drawable/ic_key"
-            android:title="@string/menu_wps_generator" />
+            android:title="@string/menu_wps_generator"
+            android:visible="false" />
         <item
             android:id="@+id/nav_wpa_generator"
             android:icon="@drawable/ic_key"
-            android:title="@string/wpa_generator_title" />
+            android:title="@string/wpa_generator_title"
+            android:visible="false" />
+
+        <item
+            android:id="@+id/category_utilities"
+            android:icon="@drawable/ic_expand_more"
+            android:title="@string/category_utilities" />
         <item
             android:id="@+id/nav_mac_location"
             android:icon="@drawable/ic_location"
-            android:title="@string/menu_mac_location" />
+            android:title="@string/menu_mac_location"
+            android:visible="false" />
         <item
             android:id="@+id/nav_wifi_analysis"
             android:icon="@drawable/ic_wifi"
-            android:title="@string/menu_wifi_analysis" />
+            android:title="@string/menu_wifi_analysis"
+            android:visible="false" />
         <item
-            android:id="@+id/nav_updates"
-            android:icon="@drawable/outline_archive_24"
-            android:title="@string/menu_updates" />
+            android:id="@+id/nav_qr_generator"
+            android:icon="@drawable/ic_qr_code"
+            android:title="@string/menu_qr_generator"
+            android:visible="false" />
+
         <item
             android:id="@+id/nav_rss_news"
             android:icon="@drawable/ic_menu_gallery"
             android:title="@string/menu_rss_news" />
+        <item
+            android:id="@+id/nav_updates"
+            android:icon="@drawable/outline_archive_24"
+            android:title="@string/menu_updates" />
         <item
             android:id="@+id/nav_settings"
             android:icon="@drawable/outline_build_circle_24"

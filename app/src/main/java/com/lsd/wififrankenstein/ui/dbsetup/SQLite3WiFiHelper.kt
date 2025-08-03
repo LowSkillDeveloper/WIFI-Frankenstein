@@ -504,14 +504,18 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
             when (field) {
                 "BSSID" -> {
                     val possibleFormats = generateMacFormats(query)
+                    var bssidConditionAdded = false
+
                     possibleFormats.forEach { format ->
-                        val decimalValue = macToDecimal(format)
+                        val decimalValue = macToDecimalSafe(format)
                         if (decimalValue != -1L) {
                             conditions.add("n.BSSID = ?")
                             args.add(decimalValue.toString())
+                            bssidConditionAdded = true
                         }
                     }
-                    if (conditions.isEmpty()) {
+
+                    if (!bssidConditionAdded) {
                         conditions.add("CAST(n.BSSID AS TEXT) LIKE ?")
                         args.add(if (wholeWords) query else "%$query%")
                     }
@@ -521,8 +525,8 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                         conditions.add("n.ESSID = ? COLLATE NOCASE")
                         args.add(query)
                     } else {
-                        conditions.add("n.ESSID LIKE ? ESCAPE '\\'")
-                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                        conditions.add("n.ESSID LIKE ? COLLATE NOCASE")
+                        args.add("%$query%")
                     }
                 }
                 "WiFiKey" -> {
@@ -530,8 +534,8 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                         conditions.add("n.WiFiKey = ? COLLATE NOCASE")
                         args.add(query)
                     } else {
-                        conditions.add("n.WiFiKey LIKE ? ESCAPE '\\'")
-                        args.add("%${query.replace("%", "\\%").replace("_", "\\_")}%")
+                        conditions.add("n.WiFiKey LIKE ? COLLATE NOCASE")
+                        args.add("%$query%")
                     }
                 }
                 "WPSPIN" -> {
@@ -543,24 +547,29 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
         if (conditions.isEmpty()) return emptyList()
 
-        val baseQuery = when {
-            indexLevel >= DatabaseIndices.IndexLevel.BASIC -> {
-                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
-                        "FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID " +
-                        "WHERE (${conditions.joinToString(" OR ")}) " +
-                        "LIMIT $limit OFFSET $offset"
-            }
-            else -> {
-                "SELECT DISTINCT n.*, g.latitude, g.longitude " +
-                        "FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID " +
-                        "WHERE (${conditions.joinToString(" OR ")}) " +
-                        "LIMIT $limit OFFSET $offset"
-            }
-        }
+        val baseQuery = "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                "FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                "WHERE (${conditions.joinToString(" OR ")}) " +
+                "LIMIT $limit OFFSET $offset"
 
         return database?.rawQuery(baseQuery, args.toTypedArray())?.use { cursor ->
             cursor.toSearchResultsRaw()
         } ?: emptyList()
+    }
+
+    private fun macToDecimalSafe(mac: String): Long {
+        return try {
+            when {
+                mac.contains(":") || mac.contains("-") ->
+                    mac.replace(":", "").replace("-", "").toLong(16)
+                mac.matches("\\d+".toRegex()) -> mac.toLong()
+                mac.matches("[0-9A-Fa-f]{12}".toRegex()) -> mac.toLong(16)
+                else -> -1L
+            }
+        } catch (e: NumberFormatException) {
+            Log.d(TAG, "Could not convert MAC to decimal: $mac")
+            -1L
+        }
     }
 
     fun searchNetworksByBSSIDAndFieldsRaw(
@@ -569,8 +578,6 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         wholeWords: Boolean
     ): List<Map<String, Any?>> {
         val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
-        Log.d(TAG, "Index level: $indexLevel")
-
         val tableName = if (getTableNames().contains("nets")) "nets" else "base"
         val allResults = mutableSetOf<Map<String, Any?>>()
 
@@ -596,9 +603,9 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         Log.d(TAG, "BSSID raw search - Generated formats: $possibleFormats")
 
         possibleFormats.forEach { format ->
-            val decimalValue = macToDecimal(format)
+            val decimalValue = macToDecimalSafe(format)
             if (decimalValue != -1L) {
-                val sql = DatabaseIndices.getOptimalBssidSearchQuery(indexLevel, tableName)
+                val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
                 Log.d(TAG, "BSSID raw search - Using query: $sql with decimal: $decimalValue")
 
                 database?.rawQuery(sql, arrayOf(decimalValue.toString()))?.use { cursor ->
@@ -608,7 +615,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         }
 
         if (results.isEmpty() && !query.matches("[0-9]+".toRegex())) {
-            val fallbackSql = DatabaseIndices.getOptimalBssidFallbackQuery(indexLevel, tableName)
+            val fallbackSql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE CAST(n.BSSID AS TEXT) LIKE ?"
             Log.d(TAG, "BSSID raw search - Using fallback query: $fallbackSql")
 
             database?.rawQuery(fallbackSql, arrayOf("%$query%"))?.use { cursor ->
@@ -622,7 +629,13 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     private fun searchByEssidRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
         val searchValue = if (wholeWords) query else "%$query%"
-        val sql = DatabaseIndices.getOptimalEssidSearchQuery(indexLevel, tableName, wholeWords)
+        val essidCondition = if (wholeWords) {
+            "n.ESSID = ? COLLATE NOCASE"
+        } else {
+            "n.ESSID LIKE ? ESCAPE '\\'"
+        }
+
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE $essidCondition"
 
         Log.d(TAG, "ESSID raw search - Using query: $sql")
         Log.d(TAG, "ESSID raw search - Search value: $searchValue")
@@ -634,7 +647,13 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     private fun searchByWifiKeyRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
         val searchValue = if (wholeWords) query else "%$query%"
-        val sql = DatabaseIndices.getOptimalWifiKeySearchQuery(indexLevel, tableName, wholeWords)
+        val wifiKeyCondition = if (wholeWords) {
+            "n.WiFiKey = ? COLLATE NOCASE"
+        } else {
+            "n.WiFiKey LIKE ? ESCAPE '\\'"
+        }
+
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE $wifiKeyCondition"
 
         Log.d(TAG, "WiFiKey raw search - Using query: $sql")
         Log.d(TAG, "WiFiKey raw search - Search value: $searchValue")
@@ -645,7 +664,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     }
 
     private fun searchByWpsPinRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String): List<Map<String, Any?>> {
-        val sql = DatabaseIndices.getOptimalWpsPinSearchQuery(indexLevel, tableName)
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.WPSPIN = ?"
 
         Log.d(TAG, "WPSPIN raw search - Using query: $sql")
         Log.d(TAG, "WPSPIN raw search - Search value: $query")
@@ -679,8 +698,6 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         wholeWords: Boolean
     ): List<Map<String, Any?>> {
         val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
-        Log.d(TAG, "Index level: $indexLevel")
-
         val tableName = if (getTableNames().contains("nets")) "nets" else "base"
         val allResults = mutableSetOf<Map<String, Any?>>()
 
@@ -706,9 +723,9 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         Log.d(TAG, "BSSID search - Generated formats: $possibleFormats")
 
         possibleFormats.forEach { format ->
-            val decimalValue = macToDecimal(format)
+            val decimalValue = macToDecimalSafe(format)
             if (decimalValue != -1L) {
-                val sql = DatabaseIndices.getOptimalBssidSearchQuery(indexLevel, tableName)
+                val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
                 Log.d(TAG, "BSSID search - Using query: $sql with decimal: $decimalValue")
 
                 database?.rawQuery(sql, arrayOf(decimalValue.toString()))?.use { cursor ->
@@ -718,7 +735,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         }
 
         if (results.isEmpty() && !query.matches("[0-9]+".toRegex())) {
-            val fallbackSql = DatabaseIndices.getOptimalBssidFallbackQuery(indexLevel, tableName)
+            val fallbackSql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE CAST(n.BSSID AS TEXT) LIKE ?"
             Log.d(TAG, "BSSID search - Using fallback query: $fallbackSql")
 
             database?.rawQuery(fallbackSql, arrayOf("%$query%"))?.use { cursor ->
@@ -732,43 +749,83 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     private fun generateMacFormats(input: String): List<String> {
         val cleanInput = input.replace("[^a-fA-F0-9]".toRegex(), "").uppercase()
+        val formats = mutableListOf<String>()
 
-        return when {
-            input.matches("[0-9]+".toRegex()) -> listOf(input)
+        formats.add(input.trim())
+
+        when {
+            input.matches("\\d+".toRegex()) -> {
+                formats.add(input)
+                try {
+                    val decimal = input.toLong()
+                    val hex = String.format("%012X", decimal)
+                    if (hex.length <= 12) {
+                        formats.add(hex)
+                        formats.add(hex.lowercase())
+                        formats.add(hex.replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                        formats.add(hex.replace("(.{2})".toRegex(), "$1-").dropLast(1))
+                    }
+                } catch (e: NumberFormatException) {
+                    Log.d(TAG, "Could not convert decimal $input to hex")
+                }
+            }
 
             input.matches("([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})".toRegex()) -> {
-                listOf(
-                    input,
-                    input.replace(":", "").replace("-", ""),
-                    input.replace(":", "").replace("-", "").toLongOrNull(16)?.toString() ?: ""
-                ).filter { it.isNotEmpty() }
+                formats.add(input)
+                formats.add(input.replace(":", "").replace("-", ""))
+                try {
+                    val decimal = input.replace(":", "").replace("-", "").toLong(16)
+                    formats.add(decimal.toString())
+                } catch (e: NumberFormatException) {
+                    Log.d(TAG, "Could not convert MAC $input to decimal")
+                }
             }
 
             input.matches("[0-9A-Fa-f]{12}".toRegex()) -> {
-                listOf(
-                    input,
-                    input.toLongOrNull(16)?.toString() ?: "",
-                    input.replace("(.{2})".toRegex(), "$1:").dropLast(1),
-                    input.replace("(.{2})".toRegex(), "$1-").dropLast(1)
-                ).filter { it.isNotEmpty() }
+                formats.add(input)
+                formats.add(input.lowercase())
+                formats.add(input.replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(input.replace("(.{2})".toRegex(), "$1-").dropLast(1))
+                try {
+                    val decimal = input.toLong(16)
+                    formats.add(decimal.toString())
+                } catch (e: NumberFormatException) {
+                    Log.d(TAG, "Could not convert hex $input to decimal")
+                }
             }
 
             cleanInput.length == 12 -> {
-                listOf(
-                    cleanInput,
-                    cleanInput.toLongOrNull(16)?.toString() ?: "",
-                    cleanInput.replace("(.{2})".toRegex(), "$1:").dropLast(1),
-                    cleanInput.replace("(.{2})".toRegex(), "$1-").dropLast(1)
-                ).filter { it.isNotEmpty() }
+                formats.add(cleanInput)
+                formats.add(cleanInput.lowercase())
+                formats.add(cleanInput.replace("(.{2})".toRegex(), "$1:").dropLast(1))
+                formats.add(cleanInput.replace("(.{2})".toRegex(), "$1-").dropLast(1))
+                try {
+                    val decimal = cleanInput.toLong(16)
+                    formats.add(decimal.toString())
+                } catch (e: NumberFormatException) {
+                    Log.d(TAG, "Could not convert hex $cleanInput to decimal")
+                }
             }
 
-            else -> listOf(input, cleanInput).filter { it.isNotEmpty() }
+            else -> {
+                if (cleanInput.isNotEmpty() && cleanInput.length >= 2) {
+                    formats.add(cleanInput)
+                }
+            }
         }
+
+        return formats.filter { it.isNotEmpty() && it.length >= 2 }.distinct()
     }
 
     private fun searchByEssid(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
         val searchValue = if (wholeWords) query else "%$query%"
-        val sql = DatabaseIndices.getOptimalEssidSearchQuery(indexLevel, tableName, wholeWords)
+        val essidCondition = if (wholeWords) {
+            "n.ESSID = ? COLLATE NOCASE"
+        } else {
+            "n.ESSID LIKE ? ESCAPE '\\'"
+        }
+
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE $essidCondition"
 
         Log.d(TAG, "ESSID search - Using query: $sql")
         Log.d(TAG, "ESSID search - Search value: $searchValue")
@@ -780,7 +837,13 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     private fun searchByWifiKey(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
         val searchValue = if (wholeWords) query else "%$query%"
-        val sql = DatabaseIndices.getOptimalWifiKeySearchQuery(indexLevel, tableName, wholeWords)
+        val wifiKeyCondition = if (wholeWords) {
+            "n.WiFiKey = ? COLLATE NOCASE"
+        } else {
+            "n.WiFiKey LIKE ? ESCAPE '\\'"
+        }
+
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE $wifiKeyCondition"
 
         Log.d(TAG, "WiFiKey search - Using query: $sql")
         Log.d(TAG, "WiFiKey search - Search value: $searchValue")
@@ -791,7 +854,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     }
 
     private fun searchByWpsPin(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String): List<Map<String, Any?>> {
-        val sql = DatabaseIndices.getOptimalWpsPinSearchQuery(indexLevel, tableName)
+        val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.WPSPIN = ?"
 
         Log.d(TAG, "WPSPIN search - Using query: $sql")
         Log.d(TAG, "WPSPIN search - Search value: $query")
@@ -897,13 +960,14 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
             val result = when {
                 mac.contains(":") || mac.contains("-") ->
                     mac.replace(":", "").replace("-", "").toLong(16)
-                mac.toLongOrNull() != null -> mac.toLong()
-                else -> throw NumberFormatException("Invalid MAC format")
+                mac.matches("\\d+".toRegex()) -> mac.toLong()
+                mac.matches("[0-9A-Fa-f]{12}".toRegex()) -> mac.toLong(16)
+                else -> throw NumberFormatException("Invalid MAC format: $mac")
             }
             Log.d(TAG, "Converted MAC $mac to decimal: $result")
             result
         } catch (e: NumberFormatException) {
-            Log.e(TAG, "Invalid MAC address: $mac", e)
+            Log.d(TAG, "Could not convert MAC to decimal: $mac - ${e.message}")
             -1
         }
     }

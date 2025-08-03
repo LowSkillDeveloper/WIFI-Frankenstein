@@ -8,6 +8,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.net.Uri
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
@@ -16,6 +17,7 @@ import android.os.Build
 import android.os.Bundle
 import android.text.method.LinkMovementMethod
 import android.util.Log
+import android.util.TypedValue
 import android.view.ContextMenu
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -27,7 +29,11 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.DrawableRes
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -37,6 +43,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.lsd.wififrankenstein.R
@@ -44,28 +51,26 @@ import com.lsd.wififrankenstein.WpsGeneratorActivity
 import com.lsd.wififrankenstein.databinding.FragmentWifiScannerBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
+import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.notification.NotificationMessage
 import com.lsd.wififrankenstein.ui.notification.NotificationService
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
+import com.lsd.wififrankenstein.ui.wpagenerator.WpaAlgorithmsHelper
+import com.lsd.wififrankenstein.ui.wpsgenerator.WPSPin
+import com.lsd.wififrankenstein.util.MacAddressUtils
+import com.lsd.wififrankenstein.util.QrNavigationHelper
 import com.lsd.wififrankenstein.util.VendorChecker
+import com.lsd.wififrankenstein.util.WpsPinGenerator
 import com.lsd.wififrankenstein.util.calculateDistanceString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.util.Locale
-import kotlinx.coroutines.flow.collect
-
-import com.lsd.wififrankenstein.ui.wpagenerator.WpaAlgorithmsHelper
-import com.lsd.wififrankenstein.util.WpsPinGenerator
-import com.lsd.wififrankenstein.ui.wpsgenerator.WPSPin
-import com.lsd.wififrankenstein.util.MacAddressUtils
-import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
-import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
-import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
-import androidx.core.net.toUri
-
+import com.lsd.wififrankenstein.util.AnimatedLoadingBar
+import com.lsd.wififrankenstein.util.WpsRootConnectHelper
 
 class WiFiScannerFragment : Fragment() {
 
@@ -577,10 +582,14 @@ class WiFiScannerFragment : Fragment() {
         wifiAdapter = WifiAdapter(emptyList(), requireContext())
 
         wifiAdapter.setOnScrollToTopListener {
-            binding.recyclerViewWifi.post {
-                binding.recyclerViewWifi.postDelayed({
-                    binding.recyclerViewWifi.scrollToPosition(0)
-                }, 300)
+            if (_binding != null) {
+                binding.recyclerViewWifi.post {
+                    binding.recyclerViewWifi.postDelayed({
+                        if (_binding != null) {
+                            binding.recyclerViewWifi.scrollToPosition(0)
+                        }
+                    }, 300)
+                }
             }
         }
 
@@ -863,31 +872,39 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun startWifiScan() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // For Android 11+
-            if (ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            } else {
-                viewModel.clearResults()
-                wifiAdapter.clearDatabaseResults()
-                startWifiScanInternal()
-                hasScanned = true
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                if (ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                } else {
+                    viewModel.clearResults()
+                    wifiAdapter.clearDatabaseResults()
+                    startWifiScanInternal()
+                    hasScanned = true
+                }
             }
-        } else {
-            if (ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissions(
-                    arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
-                    REQUEST_LOCATION_PERMISSION
-                )
-            } else {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
+                if (ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    requestPermissions(
+                        arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
+                        REQUEST_LOCATION_PERMISSION
+                    )
+                } else {
+                    viewModel.clearResults()
+                    wifiAdapter.clearDatabaseResults()
+                    startWifiScanInternal()
+                    hasScanned = true
+                }
+            }
+            else -> {
                 viewModel.clearResults()
                 wifiAdapter.clearDatabaseResults()
                 startWifiScanInternal()
@@ -898,12 +915,10 @@ class WiFiScannerFragment : Fragment() {
 
     private fun startWifiScanInternal() {
         wifiAdapter.clearDatabaseResults()
-        val wifiManager = requireContext().applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             viewModel.startWifiScan()
         } else {
-            wifiManager.startScan()
-            viewModel.refreshWifiList()
+            viewModel.startLegacyWifiScan()
         }
     }
 
@@ -930,19 +945,13 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun showProgressBar() {
-        binding.progressBarDatabaseCheck.visibility = View.VISIBLE
-        binding.progressBarDatabaseCheck.isIndeterminate = true
+        if (_binding == null) return
+        binding.progressBarDatabaseCheck.startAnimation()
     }
 
     private fun hideProgressBar() {
-        binding.progressBarDatabaseCheck.isIndeterminate = false
-        binding.progressBarDatabaseCheck.progress = 0
-        ObjectAnimator.ofInt(binding.progressBarDatabaseCheck, "progress", 100)
-            .setDuration(1000)
-            .start()
-        binding.progressBarDatabaseCheck.postDelayed({
-            binding.progressBarDatabaseCheck.visibility = View.GONE
-        }, 1300)
+        if (_binding == null) return
+        binding.progressBarDatabaseCheck.stopAnimation()
     }
 
     override fun onCreateContextMenu(
@@ -955,54 +964,188 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun showCustomContextMenu() {
-        val dialogView =
-            LayoutInflater.from(requireContext()).inflate(R.layout.dialog_context_menu, null)
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_context_menu, null)
         val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogView)
             .create()
 
-        dialogView.findViewById<Button>(R.id.action_copy_ssid).setOnClickListener {
-            copyToClipboard(getString(R.string.ssid), selectedWifi?.SSID)
-            dialog.dismiss()
-        }
+        val theme = requireContext().theme
+        val typedValue = TypedValue()
+        requireContext().theme.resolveAttribute(android.R.attr.colorPrimary, typedValue, true)
+        val colorPrimary = typedValue.data
 
-        dialogView.findViewById<Button>(R.id.action_copy_bssid).setOnClickListener {
-            copyToClipboard(getString(R.string.bssid), selectedWifi?.BSSID)
-            dialog.dismiss()
-        }
-
-        dialogView.findViewById<Button>(R.id.action_check_vendor).setOnClickListener {
-            selectedWifi?.BSSID?.let { showVendorDialog(it.uppercase(Locale.getDefault())) }
-            dialog.dismiss()
-        }
-
-        dialogView.findViewById<Button>(R.id.action_calculate_distance).setOnClickListener {
-            selectedWifi?.let { showDistanceDialog(it) }
-            dialog.dismiss()
-        }
-
-        dialogView.findViewById<Button>(R.id.action_connect_wps).setOnClickListener {
-            selectedWifi?.let { connectUsingWPSButton(it) }
-            dialog.dismiss()
-        }
-
-        dialogView.findViewById<Button>(R.id.action_connect_wps_pin).setOnClickListener {
-            selectedWifi?.let { wifi ->
-                showWpsPinDialog(wifi)
-                dialog.dismiss()
-            } ?: Toast.makeText(requireContext(), "Wi-Fi network is not selected", Toast.LENGTH_SHORT).show()
-        }
-
-        dialogView.findViewById<Button>(R.id.action_generate_wps).setOnClickListener {
-            val intent = Intent(requireContext(), WpsGeneratorActivity::class.java).apply {
-                putExtra("BSSID", selectedWifi?.BSSID)
+        fun TextView.tintDrawableStart(@DrawableRes drawableRes: Int) {
+            val drawable = AppCompatResources.getDrawable(context, drawableRes)?.mutate()
+            drawable?.let {
+                DrawableCompat.setTint(it, colorPrimary)
+                setCompoundDrawablesWithIntrinsicBounds(it, null, null, null)
             }
-            Log.d("WiFiScannerFragment", "Selected BSSID: ${selectedWifi?.BSSID}")
-            startActivity(intent)
-            dialog.dismiss()
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_copy_ssid)?.apply {
+            tintDrawableStart(R.drawable.ic_content_copy)
+            setOnClickListener {
+                copyToClipboard(getString(R.string.ssid), selectedWifi?.SSID)
+                dialog.dismiss()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_copy_bssid)?.apply {
+            tintDrawableStart(R.drawable.ic_content_copy)
+            setOnClickListener {
+                copyToClipboard(getString(R.string.bssid), selectedWifi?.BSSID)
+                dialog.dismiss()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_check_vendor)?.apply {
+            tintDrawableStart(R.drawable.ic_info)
+            setOnClickListener {
+                selectedWifi?.BSSID?.let { showVendorDialog(it.uppercase(Locale.getDefault())) }
+                dialog.dismiss()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_calculate_distance)?.apply {
+            tintDrawableStart(R.drawable.ic_analytics)
+            setOnClickListener {
+                selectedWifi?.let { showDistanceDialog(it) }
+                dialog.dismiss()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_connect_wps)?.apply {
+            tintDrawableStart(R.drawable.ic_wifi)
+            setOnClickListener {
+                selectedWifi?.let { connectUsingWPSButton(it) }
+                dialog.dismiss()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_connect_wps_pin)?.apply {
+            tintDrawableStart(R.drawable.ic_lock_outline)
+            setOnClickListener {
+                selectedWifi?.let { wifi ->
+                    showWpsPinDialog(wifi)
+                    dialog.dismiss()
+                } ?: Toast.makeText(
+                    requireContext(),
+                    "Wi-Fi network is not selected",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_connect_wps_root)?.apply {
+            val prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            val isRootEnabled = prefs.getBoolean("enable_root", false)
+            visibility = if (isRootEnabled) View.VISIBLE else View.GONE
+
+            tintDrawableStart(R.drawable.ic_lock)
+            setOnClickListener {
+                selectedWifi?.let { wifi ->
+                    connectUsingWpsRoot(wifi)
+                    dialog.dismiss()
+                } ?: Toast.makeText(
+                    requireContext(),
+                    "Wi-Fi network is not selected",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_generate_wps)?.apply {
+            tintDrawableStart(R.drawable.ic_key)
+            setOnClickListener {
+                val intent = Intent(requireContext(), WpsGeneratorActivity::class.java).apply {
+                    putExtra("BSSID", selectedWifi?.BSSID)
+                }
+                Log.d("WiFiScannerFragment", "Selected BSSID: ${selectedWifi?.BSSID}")
+                startActivity(intent)
+                dialog.dismiss()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_generate_qr)?.apply {
+            tintDrawableStart(R.drawable.ic_qr_code)
+            setOnClickListener {
+                selectedWifi?.let { wifi ->
+                    val databaseResults = viewModel.databaseResults.value?.get(wifi.BSSID.lowercase(Locale.ROOT))
+
+                    val password = databaseResults?.firstNotNullOfOrNull { result ->
+                        result.databaseInfo["WiFiKey"] as? String
+                            ?: result.databaseInfo["key"] as? String
+                    }?.takeIf { it.isNotBlank() }
+
+                    val finalPassword = password ?: ""
+                    val security = if (finalPassword.isNotEmpty()) {
+                        QrNavigationHelper.determineSecurityType(wifi.capabilities)
+                    } else {
+                        "NONE"
+                    }
+
+                    QrNavigationHelper.navigateToQrGenerator(
+                        this@WiFiScannerFragment,
+                        wifi.SSID,
+                        finalPassword,
+                        security
+                    )
+                }
+                dialog.dismiss()
+            }
         }
 
         dialog.show()
+    }
+
+    private fun connectUsingWpsRoot(network: ScanResult) {
+        val wpsHelper = WpsRootConnectHelper(
+            requireContext(),
+            object : WpsRootConnectHelper.WpsConnectCallbacks {
+                override fun onConnectionProgress(message: String) {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onConnectionSuccess(ssid: String) {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.wps_root_connection_successful, ssid),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+
+                override fun onConnectionFailed(error: String) {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                    }
+                }
+
+                override fun onLogEntry(message: String) {
+                    Log.d("WpsRootConnect", message)
+                }
+            })
+
+        if (!wpsHelper.checkRootAccess()) {
+            Toast.makeText(requireContext(), getString(R.string.wps_root_no_root), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val databaseResults = viewModel.databaseResults.value?.get(network.BSSID.lowercase(Locale.ROOT))
+        val wpsPin = databaseResults?.firstNotNullOfOrNull { result ->
+            result.databaseInfo["WPSPIN"]?.toString()
+                ?: result.databaseInfo["wps_pin"]?.toString()
+                ?: result.databaseInfo["wps"]?.toString()
+        }?.takeIf { it.isNotBlank() && it != "0" }
+
+        if (wpsPin != null) {
+            wpsHelper.connectToNetworkWps(network, wpsPin)
+        } else {
+            wpsHelper.connectToNetworkWps(network)
+        }
     }
 
     private fun showWpsPinDialog(scanResult: ScanResult) {

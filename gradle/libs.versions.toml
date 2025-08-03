@@ -1,34 +1,34 @@
 [versions]
-agp = "8.11.1"
+agp = "8.12.0"
 jsoup = "1.21.1"
-kotlin = "2.2.10-RC"
-coreKtx = "1.16.0"
+kotlin = "2.2.20-Beta2"
+coreKtx = "1.17.0-rc01"
 junit = "4.13.2"
-junitVersion = "1.2.1"
-espressoCore = "3.6.1"
+junitVersion = "1.3.0"
+espressoCore = "3.7.0"
 appcompat = "1.7.1"
-material = "1.13.0-beta01"
+material = "1.14.0-alpha03"
 constraintlayout = "2.2.1"
-lifecycleLivedataKtx = "2.9.2"
-lifecycleViewmodelKtx = "2.9.2"
-navigationFragmentKtx = "2.9.2"
-navigationUiKtx = "2.9.2"
+lifecycleLivedataKtx = "2.10.0-alpha01"
+lifecycleViewmodelKtx = "2.10.0-alpha01"
+navigationFragmentKtx = "2.9.3"
+navigationUiKtx = "2.9.3"
 swiperefreshlayout = "1.2.0-beta01"
 recyclerview = "1.4.0"
-sqlite_version = "2.5.2"
-orgJetbrainsKotlinPluginSerializationGradlePlugin = "2.2.10-RC"
+sqlite_version = "2.6.0-alpha01"
 kotlinxSerializationJson = "1.9.0"
 kotlinxCoroutinesAndroid = "1.10.2"
-pagingRuntimeKtx = "3.3.6"
-opencsv = "5.11.2"
+pagingRuntimeKtx = "3.4.0-alpha02"
+opencsv = "5.12.0"
 okhttp = "5.1.0"
 osmdroidAndroid = "6.1.20"
 kotlinxSerializationProtobuf = "1.9.0"
 glide = "5.0.0-rc01"
-commonsCompress = "1.27.1"
+commonsCompress = "1.28.0"
 xz = "1.10"
 flexbox = "3.0.0"
-#protobufKotlin = "4.30.0"
+libsu = "6.0.0"
+core = "3.5.3"
 
 
 [libraries]
@@ -48,7 +48,6 @@ androidx-swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "s
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 androidx-sqlite-framework = { group = "androidx.sqlite", name = "sqlite-framework", version.ref = "sqlite_version" }
 androidx-sqlite-ktx = { group = "androidx.sqlite", name = "sqlite-ktx", version.ref = "sqlite_version" }
-org-jetbrains-kotlin-plugin-serialization-gradle-plugin = { group = "org.jetbrains.kotlin.plugin.serialization", name = "org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "orgJetbrainsKotlinPluginSerializationGradlePlugin" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
 androidx-paging-runtime-ktx = { group = "androidx.paging", name = "paging-runtime-ktx", version.ref = "pagingRuntimeKtx" }
@@ -60,7 +59,10 @@ glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "gl
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
 xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
 flexbox = { group = "com.google.android.flexbox", name = "flexbox", version.ref = "flexbox" }
-#protobuf-kotlin = { group = "com.google.protobuf", name = "protobuf-kotlin", version.ref = "protobufKotlin" }
+libsu-core = { group = "com.github.topjohnwu.libsu", name = "core", version.ref = "libsu" }
+libsu-service = { group = "com.github.topjohnwu.libsu", name = "service", version.ref = "libsu" }
+libsu-nio = { group = "com.github.topjohnwu.libsu", name = "nio", version.ref = "libsu" }
+core = { group = "com.google.zxing", name = "core", version.ref = "core" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

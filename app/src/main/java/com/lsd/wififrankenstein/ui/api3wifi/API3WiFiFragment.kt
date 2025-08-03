@@ -12,6 +12,9 @@ import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
+import androidx.core.view.isEmpty
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.google.android.material.button.MaterialButton
@@ -24,9 +27,6 @@ import com.google.android.material.textfield.TextInputLayout
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentApi3wifiBinding
 import org.json.JSONObject
-import androidx.core.view.isVisible
-import androidx.core.view.isEmpty
-import androidx.core.net.toUri
 
 class API3WiFiFragment : Fragment() {
 

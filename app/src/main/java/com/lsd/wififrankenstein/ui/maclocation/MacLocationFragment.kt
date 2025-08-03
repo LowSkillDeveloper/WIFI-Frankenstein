@@ -26,7 +26,6 @@ import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
-import androidx.core.net.toUri
 
 class MacLocationFragment : Fragment() {
 
@@ -109,7 +108,11 @@ class MacLocationFragment : Fragment() {
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.progressIndicator.visibility = if (isLoading) View.VISIBLE else View.GONE
+            if (isLoading) {
+                binding.progressIndicator.startAnimation()
+            } else {
+                binding.progressIndicator.stopAnimation()
+            }
         }
 
         viewModel.error.observe(viewLifecycleOwner) { error ->
@@ -118,7 +121,7 @@ class MacLocationFragment : Fragment() {
     }
 
     private fun addResultCard(result: MacLocationViewModel.LocationResult) {
-        if (result.latitude == null || result.longitude == null) return
+        if (_binding == null || result.latitude == null || result.longitude == null) return
 
         val cardView = LayoutInflater.from(requireContext()).inflate(
             R.layout.item_location_result_card,
@@ -240,6 +243,7 @@ class MacLocationFragment : Fragment() {
     }
 
     private fun updateMap(results: List<MacLocationViewModel.LocationResult>) {
+        if (_binding == null) return
         map.overlays.clear()
 
         val points = mutableListOf<GeoPoint>()
@@ -290,6 +294,7 @@ class MacLocationFragment : Fragment() {
     }
 
     private fun showError(message: String) {
+        if (_binding == null) return
         Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
     }
 

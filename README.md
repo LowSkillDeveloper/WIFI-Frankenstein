@@ -2,7 +2,7 @@
 
 ![App Version](https://img.shields.io/badge/app_version-1.1-blue)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
-![Kotlin](https://img.shields.io/badge/kotlin-2.2.10_RC-purple)
+![Kotlin](https://img.shields.io/badge/kotlin-2.2.20_Beta2-purple)
 
 
 
@@ -39,10 +39,12 @@ The application combines various WiFi tools and functionality into one powerful 
 - **MAC base location**: Finding the location of an access point by its MAC address
 
 ### 🛠️ Tools & Features
-- **WPS PixieDust Android (OneShot)**: If you have root, you can perform a pixeldust attack from your smartphone with built-in wifi module [WIP]
+
+- **WPS PixieDust Android (OneShot)**: If you have root, you can perform a pixeldust attack from your smartphone with built-in wifi module.
 - **WiFi Channel Analysis**: Page for analyzing WiFi channels, providing insights into channel usage and performance.
 - **MAC Address Locating**: Find the geographical location of WiFi access points by MAC address
-- **More detailed information**: detection of WiFi network technologies, including RTT, NTB, TWT, and MLD
+- **More Detailed Information**: detection of WiFi network technologies, including RTT, NTB, TWT, and MLD
+- **Viewing Saved Passwords**:  If you have root, you can view passwords to networks to which the phone was connected and they are saved in its memory.
 - **WPS Pin Generator**: Local pin code generation
 - **WPA Password Generator**: Local wpa passwords generation
 - **Neighbor-based WPS PIN suggestions**: multi-level neighbor-based WPS PIN suggestions from Local DB
@@ -68,22 +70,23 @@ The application combines various WiFi tools and functionality into one powerful 
 
 | Feature | WiFi Frankenstein | 3WiFi Locator |
 |---------|-------------------|---------------|
-| Local in-app Database | ✅ Supported | ⚠️ Limited |
-| Local Full 3WiFi Database | ✅ Supported | ❌ Not supported |
-| WPS PixieDust (OneShot) | ✅ [WIP] | ❌ Not supported |
-| WPA Generators | ✅ Supported | ❌ Not supported |
+| Local in-app Database | ✅ Yes  | ⚠️ Limited |
+| Offline Full 3WiFi Database | ✅ Yes | ❌ Not supported |
+| Advanced 3WiFi API Settings | ✅ Full access | ⚠️ Limited API access |
+| WPS PixieDust (OneShot) | ✅ Supported (Root) | ❌ Not supported |
+| Viewing saved passwords in memory | ✅ Supported (Root) | ✅ Supported (Root) |
+| WPA Generators (Router Keygen) | ✅ Supported | ❌ Not supported |
 | WPS Generators | ✅ Supported | ⚠️ Limited |
 | Neighbor-based WPS PIN suggestions | ✅ Supported | ❌ Not supported |
 | WiFi Channel Analysis | ✅ Supported | ❌ Not supported |
-| Additional information about WiFi | ✅ Yes | ⚠️ Only security protocol |
+| Additional WiFi Information | ✅ Yes | ⚠️ Limited |
 | Custom SQLite Databases | ✅ Supported | ❌ Not supported |
-| Offline WiFi Maps | ⚠️ Only DB data | ❌ Not supported |
+| WiFi Maps | ✅ Yes | ❌ Not supported |
 | WiFi Location by MAC | ✅ Yes | ❌ Not supported |
 | Database Updates | ✅ SmartLinkDB | ❌ Not supported |
-| App/Component Updates | ✅ Yes | ⚠️ Notification only |
+| App/Component Updates | ✅ Supported | ⚠️ Notification only |
 | Customizable Themes | ✅ Multiple options | ⚠️ Dark mode only |
 | Custom App Icon | ✅ Supported | ❌ Not supported |
-| Advanced API Settings | ✅ Full access | ⚠️ Limited |
 | Manufacturer Databases | ✅ 4 databases | ✅ 3 databases |
 | Distance Calculation | ✅ Supported | ❌ Not supported |
 | SDK version | ✅ Latest | ⚠️Old |
@@ -150,8 +153,8 @@ If you find this project useful and would like to support its development, you c
 4AC1MepXZA8R6XGcL5mjejWRDqKvmbY3YWGEJTCWmFxJ8gPuLULSYxKSWafy9haMXGYuR2CdF3Vr8Q2kS8pBorVpQ4Lie48
 ```
 
-Your support helps maintain and improve this project. Thank you! 🙏
+Your support helps maintain and improve this project. Thank you!
 
 ## 🤝 Contributing
 
-Contributions, bug reports, and feature requests are welcome! Feel free to open issues or submit pull requests.
+Bug reports and feature requests are welcome! Feel free to open issues.

@@ -5,8 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -92,6 +90,11 @@ class AboutFragment : Fragment() {
 
         binding.appLogo.setOnClickListener {
             handleLogoClick()
+        }
+
+        binding.licenseButton.setOnClickListener {
+            val intent = Intent(Intent.ACTION_VIEW, getString(R.string.license_url).toUri())
+            startActivity(intent)
         }
     }
 

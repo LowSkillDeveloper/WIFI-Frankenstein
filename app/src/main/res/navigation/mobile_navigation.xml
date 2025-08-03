@@ -12,10 +12,34 @@
         tools:layout="@layout/fragment_rss_news" />
 
     <fragment
+        android:id="@+id/nav_iw_scanner"
+        android:name="com.lsd.wififrankenstein.ui.iwscanner.IwScannerFragment"
+        android:label="@string/menu_iw_scanner"
+        tools:layout="@layout/fragment_iw_scanner" />
+
+    <fragment
+        android:id="@+id/nav_qr_generator"
+        android:name="com.lsd.wififrankenstein.ui.qrgenerator.QrCodeGeneratorFragment"
+        android:label="@string/menu_qr_generator"
+        tools:layout="@layout/fragment_qr_generator" />
+
+    <fragment
+        android:id="@+id/nav_saved_passwords"
+        android:name="com.lsd.wififrankenstein.ui.savedpasswords.SavedPasswordsFragment"
+        android:label="@string/menu_saved_passwords"
+        tools:layout="@layout/fragment_saved_passwords" />
+
+    <fragment
         android:id="@+id/nav_wpa_generator"
         android:name="com.lsd.wififrankenstein.ui.wpagenerator.WpaGeneratorFragment"
         android:label="@string/wpa_generator_title"
         tools:layout="@layout/fragment_wpa_generator" />
+
+    <fragment
+        android:id="@+id/nav_pixiedust"
+        android:name="com.lsd.wififrankenstein.ui.pixiedust.PixieDustFragment"
+        android:label="@string/menu_pixiedust"
+        tools:layout="@layout/fragment_pixiedust" />
 
     <action
         android:id="@+id/action_databaseFinderFragment_to_dbSetupFragment"

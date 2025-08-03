@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentUpdatesBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
+import com.lsd.wififrankenstein.util.AnimatedLoadingBar
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
@@ -33,6 +34,8 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
 
     private var _binding: FragmentUpdatesBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var updatesProgressBar: AnimatedLoadingBar
 
     private val viewModel: UpdatesViewModel by viewModels()
     private val dbSetupViewModel: DbSetupViewModel by activityViewModels()
@@ -56,6 +59,7 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
         viewModel.setDbSetupViewModel(dbSetupViewModel)
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentUpdatesBinding.bind(view)
+        updatesProgressBar = binding.progressBarUpdatesCheck
 
         setupRecyclerViews()
         setupButtons()
@@ -105,14 +109,38 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.updateInfo.collectLatest { updateInfoList ->
-                        adapter.submitList(updateInfoList)
-                        val anyUpdatesAvailable = updateInfoList.any { it.needsUpdate }
-                        binding.buttonUpdateAll.visibility = View.VISIBLE
-                        binding.buttonUpdateAll.text =
-                            if (anyUpdatesAvailable) getString(R.string.update_all) else getString(R.string.check_for_updates)
-                        binding.textViewErrorMessage.visibility = View.GONE
-                        binding.recyclerViewUpdates.visibility = View.VISIBLE
+                    launch {
+                        viewModel.isLoading.collectLatest { isLoading ->
+                            if (isLoading) {
+                                updatesProgressBar.startAnimation()
+                            } else {
+                                updatesProgressBar.stopAnimation()
+                            }
+                        }
+                    }
+
+                    launch {
+                        viewModel.updateInfo.collectLatest { updateInfoList ->
+                            if (_binding != null) {
+                                adapter.submitList(updateInfoList)
+                                val anyUpdatesAvailable = updateInfoList.any { it.needsUpdate }
+                                binding.buttonUpdateAll.visibility = View.VISIBLE
+                                binding.buttonUpdateAll.text =
+                                    if (anyUpdatesAvailable) getString(R.string.update_all) else getString(R.string.check_for_updates)
+                                binding.textViewErrorMessage.visibility = View.GONE
+                                binding.recyclerViewUpdates.visibility = View.VISIBLE
+                            }
+                        }
+                    }
+
+                    launch {
+                        viewModel.errorMessage.collectLatest { errorMessage ->
+                            errorMessage?.let {
+                                binding.textViewErrorMessage.text = it
+                                binding.textViewErrorMessage.visibility = View.VISIBLE
+                                binding.buttonUpdateAll.text = getString(R.string.retry)
+                            }
+                        }
                     }
                 }
 
@@ -139,6 +167,7 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
 
                 launch {
                     viewModel.errorMessage.collectLatest { errorMessage ->
+                        updatesProgressBar.stopAnimation()
                         errorMessage?.let {
                             binding.textViewErrorMessage.text = it
                             binding.textViewErrorMessage.visibility = View.VISIBLE

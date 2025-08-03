@@ -29,17 +29,51 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     }
 
     private fun hasIndex(indexName: String): Boolean {
-        return readableDatabase.rawQuery(
-            "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
-            arrayOf(indexName)
-        ).use { it.count > 0 }
+        return try {
+            readableDatabase.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
+                arrayOf(indexName)
+            ).use { cursor ->
+                cursor.moveToFirst()
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun safeHasIndex(indexName: String): Boolean {
+        return try {
+            val cursor = readableDatabase.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
+                arrayOf(indexName)
+            )
+            val hasIndex = cursor.count > 0
+            cursor.close()
+            Log.d("LocalAppDbHelper", "Index check: $indexName = $hasIndex")
+            hasIndex
+        } catch (e: Exception) {
+            Log.w("LocalAppDbHelper", "Error checking index $indexName: ${e.message}")
+            false
+        }
     }
 
     fun getIndexLevel(): String {
-        return when {
-            hasIndex("idx_wifi_network_password") && hasIndex("idx_wifi_network_wps") -> "FULL"
-            hasIndex("idx_wifi_network_mac") && hasIndex("idx_wifi_network_name") -> "BASIC"
-            else -> "NONE"
+        return try {
+            val hasPasswordIndex = safeHasIndex("idx_wifi_network_password")
+            val hasWpsIndex = safeHasIndex("idx_wifi_network_wps")
+            val hasMacIndex = safeHasIndex("idx_wifi_network_mac")
+            val hasNameIndex = safeHasIndex("idx_wifi_network_name")
+
+            Log.d("LocalAppDbHelper", "Index status - name: $hasNameIndex, mac: $hasMacIndex, password: $hasPasswordIndex, wps: $hasWpsIndex")
+
+            when {
+                hasPasswordIndex && hasWpsIndex && hasMacIndex && hasNameIndex -> "FULL"
+                hasMacIndex && hasNameIndex -> "BASIC"
+                else -> "NONE"
+            }
+        } catch (e: Exception) {
+            Log.w("LocalAppDbHelper", "Error determining index level: ${e.message}")
+            "NONE"
         }
     }
 
@@ -163,7 +197,6 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         searchFields: Set<String>,
         limit: Int = 100
     ): List<WifiNetwork> {
-        val indexLevel = getIndexLevel()
         val conditions = mutableListOf<String>()
         val args = mutableListOf<String>()
 
@@ -192,29 +225,9 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         }
 
         val whereClause = conditions.joinToString(" OR ")
+        val sql = "SELECT * FROM $TABLE_NAME WHERE $whereClause LIMIT $limit"
 
-        val queryBuilder = StringBuilder("SELECT * FROM $TABLE_NAME")
-
-        if (indexLevel != "NONE" && searchFields.size == 1) {
-            when (searchFields.first()) {
-                "name" -> if (hasIndex("idx_wifi_network_name")) {
-                    queryBuilder.append(" INDEXED BY idx_wifi_network_name")
-                }
-                "mac" -> if (hasIndex("idx_wifi_network_mac")) {
-                    queryBuilder.append(" INDEXED BY idx_wifi_network_mac")
-                }
-                "password" -> if (indexLevel == "FULL" && hasIndex("idx_wifi_network_password")) {
-                    queryBuilder.append(" INDEXED BY idx_wifi_network_password")
-                }
-                "wps" -> if (indexLevel == "FULL" && hasIndex("idx_wifi_network_wps")) {
-                    queryBuilder.append(" INDEXED BY idx_wifi_network_wps")
-                }
-            }
-        }
-
-        queryBuilder.append(" WHERE $whereClause LIMIT $limit")
-
-        return readableDatabase.rawQuery(queryBuilder.toString(), args.toTypedArray()).use { cursor ->
+        return readableDatabase.rawQuery(sql, args.toTypedArray()).use { cursor ->
             val results = mutableListOf<WifiNetwork>()
             while (cursor.moveToNext()) {
                 results.add(
@@ -259,22 +272,11 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         val validEssids = essids.filter { it.isNotBlank() }
         if (validEssids.isEmpty()) return results
 
-        val indexLevel = getIndexLevel()
-        val hasNameIndex = hasIndex("idx_wifi_network_name")
-
         val chunkedEssids = validEssids.chunked(500)
 
         chunkedEssids.forEach { chunk ->
             val placeholders = chunk.joinToString(",") { "?" }
-
-            val query = when {
-                indexLevel != "NONE" && hasNameIndex -> {
-                    "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_name WHERE $COLUMN_WIFI_NAME IN ($placeholders) COLLATE NOCASE"
-                }
-                else -> {
-                    "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_NAME IN ($placeholders) COLLATE NOCASE"
-                }
-            }
+            val query = "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_NAME IN ($placeholders) COLLATE NOCASE"
 
             readableDatabase.rawQuery(query, chunk.toTypedArray()).use { cursor ->
                 results.addAll(buildWifiNetworkList(cursor))
@@ -463,17 +465,7 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     }
 
     private fun searchByName(query: String): List<WifiNetwork> {
-        val indexLevel = getIndexLevel()
-        val hasNameIndex = hasIndex("idx_wifi_network_name")
-
-        val sql = when {
-            indexLevel != "NONE" && hasNameIndex -> {
-                "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_name WHERE $COLUMN_WIFI_NAME LIKE ? COLLATE NOCASE"
-            }
-            else -> {
-                "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_NAME LIKE ? COLLATE NOCASE"
-            }
-        }
+        val sql = "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_NAME LIKE ? COLLATE NOCASE"
 
         return readableDatabase.rawQuery(sql, arrayOf("%$query%")).use { cursor ->
             buildWifiNetworkList(cursor)
@@ -481,21 +473,11 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     }
 
     private fun searchByMacAllFormats(query: String): List<WifiNetwork> {
-        val indexLevel = getIndexLevel()
-        val hasMacIndex = hasIndex("idx_wifi_network_mac")
-
         val macFormats = generateAllMacFormats(query)
         val results = mutableListOf<WifiNetwork>()
 
         macFormats.forEach { format ->
-            val sql = when {
-                indexLevel != "NONE" && hasMacIndex -> {
-                    "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_mac WHERE $COLUMN_MAC_ADDRESS = ?"
-                }
-                else -> {
-                    "SELECT * FROM $TABLE_NAME WHERE $COLUMN_MAC_ADDRESS = ?"
-                }
-            }
+            val sql = "SELECT * FROM $TABLE_NAME WHERE $COLUMN_MAC_ADDRESS = ?"
 
             readableDatabase.rawQuery(sql, arrayOf(format)).use { cursor ->
                 results.addAll(buildWifiNetworkList(cursor))
@@ -511,17 +493,7 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     }
 
     private fun searchByPassword(query: String): List<WifiNetwork> {
-        val indexLevel = getIndexLevel()
-        val hasPasswordIndex = hasIndex("idx_wifi_network_password")
-
-        val sql = when {
-            indexLevel == "FULL" && hasPasswordIndex -> {
-                "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_password WHERE $COLUMN_WIFI_PASSWORD LIKE ? COLLATE NOCASE"
-            }
-            else -> {
-                "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_PASSWORD LIKE ? COLLATE NOCASE"
-            }
-        }
+        val sql = "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_PASSWORD LIKE ? COLLATE NOCASE"
 
         return readableDatabase.rawQuery(sql, arrayOf("%$query%")).use { cursor ->
             buildWifiNetworkList(cursor)
@@ -529,17 +501,7 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     }
 
     private fun searchByWps(query: String): List<WifiNetwork> {
-        val indexLevel = getIndexLevel()
-        val hasWpsIndex = hasIndex("idx_wifi_network_wps")
-
-        val sql = when {
-            indexLevel == "FULL" && hasWpsIndex -> {
-                "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_wps WHERE $COLUMN_WPS_CODE = ?"
-            }
-            else -> {
-                "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WPS_CODE = ?"
-            }
-        }
+        val sql = "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WPS_CODE = ?"
 
         return readableDatabase.rawQuery(sql, arrayOf(query)).use { cursor ->
             buildWifiNetworkList(cursor)
@@ -614,6 +576,8 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         offset: Int,
         limit: Int
     ): List<WifiNetwork> {
+        debugIndexes()
+
         val allResults = mutableSetOf<WifiNetwork>()
 
         if ("name" in searchFields) {
@@ -636,17 +600,9 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     }
 
     private fun searchByNamePaginated(query: String, offset: Int, limit: Int): List<WifiNetwork> {
-        val indexLevel = getIndexLevel()
-        val hasNameIndex = hasIndex("idx_wifi_network_name")
+        Log.d("LocalAppDbHelper", "searchByNamePaginated - using simple query without INDEXED BY")
 
-        val sql = when {
-            indexLevel != "NONE" && hasNameIndex -> {
-                "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_name WHERE $COLUMN_WIFI_NAME LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
-            }
-            else -> {
-                "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_NAME LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
-            }
-        }
+        val sql = "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_NAME LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
 
         return readableDatabase.rawQuery(sql, arrayOf("%$query%")).use { cursor ->
             buildWifiNetworkList(cursor)
@@ -654,12 +610,7 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     }
 
     private fun searchByMacAllFormatsPaginated(query: String, offset: Int, limit: Int): List<WifiNetwork> {
-        val indexLevel = getIndexLevel()
-        val hasMacIndex = hasIndex("idx_wifi_network_mac")
-
         val macFormats = generateAllMacFormats(query)
-        val results = mutableListOf<WifiNetwork>()
-
         val conditions = mutableListOf<String>()
         val params = mutableListOf<String>()
 
@@ -670,14 +621,7 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         conditions.add("$COLUMN_MAC_ADDRESS LIKE ?")
         params.add("%$query%")
 
-        val sql = when {
-            indexLevel != "NONE" && hasMacIndex -> {
-                "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_mac WHERE ${conditions.joinToString(" OR ")} LIMIT $limit OFFSET $offset"
-            }
-            else -> {
-                "SELECT * FROM $TABLE_NAME WHERE ${conditions.joinToString(" OR ")} LIMIT $limit OFFSET $offset"
-            }
-        }
+        val sql = "SELECT * FROM $TABLE_NAME WHERE ${conditions.joinToString(" OR ")} LIMIT $limit OFFSET $offset"
 
         return readableDatabase.rawQuery(sql, params.toTypedArray()).use { cursor ->
             buildWifiNetworkList(cursor)
@@ -685,17 +629,7 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     }
 
     private fun searchByPasswordPaginated(query: String, offset: Int, limit: Int): List<WifiNetwork> {
-        val indexLevel = getIndexLevel()
-        val hasPasswordIndex = hasIndex("idx_wifi_network_password")
-
-        val sql = when {
-            indexLevel == "FULL" && hasPasswordIndex -> {
-                "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_password WHERE $COLUMN_WIFI_PASSWORD LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
-            }
-            else -> {
-                "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_PASSWORD LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
-            }
-        }
+        val sql = "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_PASSWORD LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
 
         return readableDatabase.rawQuery(sql, arrayOf("%$query%")).use { cursor ->
             buildWifiNetworkList(cursor)
@@ -703,20 +637,26 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     }
 
     private fun searchByWpsPaginated(query: String, offset: Int, limit: Int): List<WifiNetwork> {
-        val indexLevel = getIndexLevel()
-        val hasWpsIndex = hasIndex("idx_wifi_network_wps")
-
-        val sql = when {
-            indexLevel == "FULL" && hasWpsIndex -> {
-                "SELECT * FROM $TABLE_NAME INDEXED BY idx_wifi_network_wps WHERE $COLUMN_WPS_CODE = ? LIMIT $limit OFFSET $offset"
-            }
-            else -> {
-                "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WPS_CODE = ? LIMIT $limit OFFSET $offset"
-            }
-        }
+        val sql = "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WPS_CODE = ? LIMIT $limit OFFSET $offset"
 
         return readableDatabase.rawQuery(sql, arrayOf(query)).use { cursor ->
             buildWifiNetworkList(cursor)
+        }
+    }
+
+    fun debugIndexes() {
+        try {
+            val cursor = readableDatabase.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=?",
+                arrayOf(TABLE_NAME)
+            )
+            Log.d("LocalAppDbHelper", "Available indexes:")
+            while (cursor.moveToNext()) {
+                Log.d("LocalAppDbHelper", "  - ${cursor.getString(0)}")
+            }
+            cursor.close()
+        } catch (e: Exception) {
+            Log.e("LocalAppDbHelper", "Error getting indexes", e)
         }
     }
 

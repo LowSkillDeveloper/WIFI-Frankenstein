@@ -72,7 +72,8 @@ class MapCoordinatesHelper(private val context: Context) {
                 return@withContext null to null
             }
 
-            SQLite3WiFiHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
+            val helper = SQLite3WiFiHelper(context, dbItem.path.toUri(), dbItem.directPath)
+            try {
                 val db = helper.database
                 if (db != null) {
                     val indexLevel = DatabaseIndices.determineIndexLevel(db)
@@ -95,6 +96,8 @@ class MapCoordinatesHelper(private val context: Context) {
                         }
                     }
                 }
+            } finally {
+                helper.close()
             }
             null to null
         } catch (e: Exception) {
@@ -114,15 +117,16 @@ class MapCoordinatesHelper(private val context: Context) {
 
             val cleanMac = bssid.replace("[^a-fA-F0-9]".toRegex(), "")
 
-            SQLiteCustomHelper(context, dbItem.path.toUri(), dbItem.directPath).use { helper ->
+            val helper = SQLiteCustomHelper(context, dbItem.path.toUri(), dbItem.directPath)
+            try {
                 val db = helper.database
                 if (db != null) {
                     val query = """
-                        SELECT $latColumn, $lonColumn FROM $tableName 
-                        WHERE $macColumn = ? OR 
-                        UPPER($macColumn) = ? OR 
-                        REPLACE(REPLACE(UPPER($macColumn), ':', ''), '-', '') = ?
-                    """.trimIndent()
+                    SELECT $latColumn, $lonColumn FROM $tableName 
+                    WHERE $macColumn = ? OR 
+                    UPPER($macColumn) = ? OR 
+                    REPLACE(REPLACE(UPPER($macColumn), ':', ''), '-', '') = ?
+                """.trimIndent()
 
                     db.rawQuery(query, arrayOf(bssid, bssid.uppercase(), cleanMac.uppercase())).use { cursor ->
                         if (cursor.moveToFirst()) {
@@ -137,6 +141,8 @@ class MapCoordinatesHelper(private val context: Context) {
                         }
                     }
                 }
+            } finally {
+                helper.close()
             }
             null to null
         } catch (e: Exception) {
