@@ -2,7 +2,7 @@
 
 ![App Version](https://img.shields.io/badge/app_version-1.1-blue)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
-![Kotlin](https://img.shields.io/badge/kotlin-2.2.10_RC-purple)
+![Kotlin](https://img.shields.io/badge/kotlin-2.2.20_Beta2-purple)
 
 
 
@@ -39,6 +39,7 @@ The application combines various WiFi tools and functionality into one powerful 
 - **MAC base location**: Finding the location of an access point by its MAC address
 
 ### 🛠️ Tools & Features
+
 - **WPS PixieDust Android (OneShot)**: If you have root, you can perform a pixeldust attack from your smartphone with built-in wifi module.
 - **WiFi Channel Analysis**: Page for analyzing WiFi channels, providing insights into channel usage and performance.
 - **MAC Address Locating**: Find the geographical location of WiFi access points by MAC address

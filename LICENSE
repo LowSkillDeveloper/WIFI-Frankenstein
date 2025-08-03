@@ -620,6 +620,10 @@ copy of the Program in return for a fee.
 
                      END OF TERMS AND CONDITIONS
 
+Additional Permission: OpenSSL Exception
+
+As a special exception, this program is linked with the OpenSSL 1.1 library (libcrypto.so.1.1 and libssl.so.1.1), and you are allowed to distribute binaries linked against OpenSSL without violating the terms of the GPL.
+
             How to Apply These Terms to Your New Programs
 
   If you develop a new program, and you want it to be of the greatest
