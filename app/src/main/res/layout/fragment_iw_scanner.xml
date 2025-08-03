@@ -43,6 +43,7 @@
                         android:id="@+id/buttonRefreshInterfaces"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
                         android:contentDescription="@string/iw_refresh_interfaces"
                         app:icon="@drawable/baseline_refresh_24" />
 
@@ -50,6 +51,7 @@
                         android:id="@+id/buttonManualInterface"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
                         android:contentDescription="@string/iw_manual_interface"
                         app:icon="@drawable/ic_add" />
 
@@ -114,6 +116,7 @@
                         android:id="@+id/buttonRefreshLink"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
                         android:contentDescription="@string/iw_refresh_link_info"
                         app:icon="@drawable/baseline_refresh_24" />
 
@@ -195,6 +198,7 @@
                         android:id="@+id/buttonRefreshDevice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
                         android:contentDescription="@string/iw_refresh_device_info"
                         app:icon="@drawable/baseline_refresh_24" />
 
@@ -264,6 +268,7 @@
                         android:id="@+id/buttonScan"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        
                         android:text="@string/iw_scan_networks"
                         app:icon="@drawable/baseline_refresh_24" />
 
