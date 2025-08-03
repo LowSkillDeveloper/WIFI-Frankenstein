@@ -2,6 +2,11 @@
 
 Tools for converting SQL backups of 3WIFI and p3WIFI databases to SQLite format for portable use and application integration.
 
+
+> [!WARNING]
+> Converting large dumps can take more than 30 minutes and heavily loads the CPU while using a lot of RAM. It is recommended to use a powerful PC for the conversion. Even if the status seems to be stuck, for example at "Extracting INSERT statements for table" the script continues to parse the dump. It just takes a long time because it needs to process each row and correctly extract the data from it.
+
+
 ## 🚀 Quick Start
 
 ### For 3WIFI Database Conversion
