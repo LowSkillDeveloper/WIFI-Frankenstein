@@ -316,6 +316,7 @@ class SearchResultsAdapter : PagingDataAdapter<SearchResult, SearchResultsAdapte
                         val uri = path.toUri()
                         uri.lastPathSegment ?: path
                     }
+                    path == "local_db" -> binding.root.context.getString(R.string.local_database)
                     else -> {
                         path.substringAfterLast('/')
                     }

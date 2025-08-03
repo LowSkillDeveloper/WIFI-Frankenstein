@@ -156,6 +156,31 @@ class DatabaseFinderFragment : Fragment() {
         }
     }
 
+    private fun formatSourcePath(path: String): String {
+        return try {
+            when {
+                path.startsWith("content://") -> {
+                    val uri = android.net.Uri.parse(path)
+                    uri.lastPathSegment?.let { lastSegment ->
+                        val decodedSegment = android.net.Uri.decode(lastSegment)
+                        decodedSegment.substringAfterLast('/')
+                    } ?: path
+                }
+                path.startsWith("file://") -> {
+                    val uri = android.net.Uri.parse(path)
+                    uri.lastPathSegment ?: path
+                }
+                path == "local_db" -> getString(R.string.local_database)
+                else -> {
+                    path.substringAfterLast('/')
+                }
+            }.substringAfterLast("%2F")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error formatting source path: $path", e)
+            path
+        }
+    }
+
     private fun setupSearchButton() {
         binding.buttonSearch.setOnClickListener {
             val query = binding.editTextSearch.text.toString()
@@ -171,13 +196,15 @@ class DatabaseFinderFragment : Fragment() {
             Log.d(TAG, "Available sources: ${sources.joinToString()}")
             Log.d(TAG, "Selected sources: ${selectedSources.joinToString()}")
 
+            val formattedSources = sources.map { formatSourcePath(it) }.toTypedArray()
             val checkedItems = sources.map { it in selectedSources }.toBooleanArray()
 
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.select_sources)
-                .setMultiChoiceItems(sources.toTypedArray(), checkedItems) { _, which, isChecked ->
-                    viewModel.setSourceSelected(sources[which], isChecked)
-                    Log.d(TAG, "Source ${sources[which]} ${if (isChecked) "selected" else "unselected"}")
+                .setMultiChoiceItems(formattedSources, checkedItems) { _, which, isChecked ->
+                    val originalSource = sources[which]
+                    viewModel.setSourceSelected(originalSource, isChecked)
+                    Log.d(TAG, "Source $originalSource ${if (isChecked) "selected" else "unselected"}")
                 }
                 .setPositiveButton(R.string.ok) { _, _ ->
                     Log.d(TAG, "Sources dialog closed, selected sources: ${viewModel.getSelectedSources().joinToString()}")
