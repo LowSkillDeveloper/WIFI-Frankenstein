@@ -6,6 +6,7 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import android.util.Log
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.ui.iwscanner.IwInterface
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +54,90 @@ class PixieDustHelper(
         fun onAttackCompleted(result: PixieResult)
         fun onAttackFailed(error: String, errorCode: Int)
         fun onLogEntry(logEntry: LogEntry)
+        fun onInterfacesUpdated(interfaces: List<IwInterface>)
+    }
+
+    suspend fun getAvailableInterfaces(): List<IwInterface> = withContext(Dispatchers.IO) {
+        try {
+            val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
+            val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch interface"
+
+            val result = Shell.cmd(command).exec()
+
+            if (result.isSuccess && result.out.isNotEmpty()) {
+                val interfaces = parseInterfacesList(result.out.joinToString("\n"))
+                Log.d(TAG, "Parsed ${interfaces.size} interfaces: ${interfaces.map { it.name }}")
+                interfaces
+            } else {
+                val iwCommand = "iw dev"
+                val iwResult = Shell.cmd(iwCommand).exec()
+                if (iwResult.isSuccess && iwResult.out.isNotEmpty()) {
+                    parseIwDevOutput(iwResult.out.joinToString("\n"))
+                } else {
+                    listOf(IwInterface("wlan0"))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting interfaces", e)
+            listOf(IwInterface("wlan0"))
+        }
+    }
+
+    private fun parseInterfacesList(output: String): List<IwInterface> {
+        val interfaces = mutableListOf<IwInterface>()
+        val lines = output.lines()
+
+        lines.forEach { line ->
+            val trimmed = line.trim()
+            if (trimmed.isNotEmpty() && !trimmed.startsWith("Selected") && !trimmed.startsWith("Available")) {
+                interfaces.add(IwInterface(trimmed))
+            }
+        }
+
+        return if (interfaces.isEmpty()) {
+            listOf(IwInterface("wlan0"))
+        } else {
+            interfaces
+        }
+    }
+
+    private fun parseIwDevOutput(output: String): List<IwInterface> {
+        val interfaces = mutableListOf<IwInterface>()
+        val lines = output.lines()
+
+        var currentInterface: String? = null
+        var currentType = ""
+        var currentAddr = ""
+
+        lines.forEach { line ->
+            val trimmed = line.trim()
+            when {
+                trimmed.startsWith("Interface ") -> {
+                    currentInterface?.let {
+                        interfaces.add(IwInterface(it, currentType, currentAddr))
+                    }
+                    currentInterface = trimmed.substring(10).trim()
+                    currentType = ""
+                    currentAddr = ""
+                }
+                trimmed.startsWith("type ") -> {
+                    currentType = trimmed.substring(5).trim()
+                }
+                trimmed.startsWith("addr ") -> {
+                    currentAddr = trimmed.substring(5).trim()
+                }
+            }
+        }
+
+        currentInterface?.let {
+            interfaces.add(IwInterface(it, currentType, currentAddr))
+        }
+
+        return if (interfaces.isEmpty()) {
+            listOf(IwInterface("wlan0"))
+        } else {
+            interfaces
+        }
     }
 
     fun checkRootAccess(): Boolean {
@@ -391,7 +476,7 @@ class PixieDustHelper(
         }
     }
 
-    fun startPixieAttack(network: WpsNetwork, extractionTimeout: Long = 30000L, computationTimeout: Long = 300000L) {
+    fun startPixieAttack(network: WpsNetwork, interfaceName: String = "wlan0", extractionTimeout: Long = 30000L, computationTimeout: Long = 300000L) {
         if (attackJob?.isActive == true) {
             Log.w(TAG, "Attack already in progress")
             return
@@ -406,7 +491,7 @@ class PixieDustHelper(
 
         attackJob = scope.launch {
             try {
-                callbacks.onLogEntry(LogEntry("Starting PixieDust attack on ${network.ssid}"))
+                callbacks.onLogEntry(LogEntry("Starting PixieDust attack on ${network.ssid} via $interfaceName"))
 
                 callbacks.onStateChanged(PixieAttackState.CheckingRoot)
                 callbacks.onProgressUpdate(context.getString(R.string.pixiedust_checking_root))
@@ -435,7 +520,7 @@ class PixieDustHelper(
                 val startTime = System.currentTimeMillis()
                 val socketDir = getSocketDirectory()
 
-                if (!startSupplicant(socketDir)) {
+                if (!startSupplicant(socketDir, interfaceName)) {
                     forceStopAllProcesses()
                     callbacks.onAttackFailed(context.getString(R.string.pixiedust_failed_start_supplicant), -3)
                     return@launch
@@ -1135,11 +1220,11 @@ class PixieDustHelper(
         }
     }
 
-    private suspend fun startSupplicant(socketDir: String): Boolean {
+    private suspend fun startSupplicant(socketDir: String, interfaceName: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Starting completely isolated wpa_supplicant")
-                callbacks.onLogEntry(LogEntry("Starting isolated wpa_supplicant", LogColorType.INFO))
+                Log.d(TAG, "Starting completely isolated wpa_supplicant on interface $interfaceName")
+                callbacks.onLogEntry(LogEntry("Starting isolated wpa_supplicant on $interfaceName", LogColorType.INFO))
 
                 val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
 
@@ -1169,7 +1254,7 @@ class PixieDustHelper(
                 unset ANDROID_STORAGE && \
                 export HOME=$isolatedConfigDir && \
                 export TMPDIR=$isolatedConfigDir && \
-                ./wpa_supplicant$arch -dd -K -Dnl80211,wext,hostapd,wired -i wlan0 -c$isolatedConfigPath -O$socketDir -P$isolatedConfigDir/wpa_supplicant.pid
+                ./wpa_supplicant$arch -dd -K -Dnl80211,wext,hostapd,wired -i $interfaceName -c$isolatedConfigPath -O$socketDir -P$isolatedConfigDir/wpa_supplicant.pid
             """.trimIndent()
 
                 supplicantProcess = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
@@ -1183,7 +1268,7 @@ class PixieDustHelper(
                     Log.d(TAG, "wpa_supplicant output ended")
                 }
 
-                val socketFile = "$socketDir/wlan0"
+                val socketFile = "$socketDir/$interfaceName"
                 val startTime = System.currentTimeMillis()
                 while (System.currentTimeMillis() - startTime < 15000) {
                     if (Shell.cmd("test -S $socketFile").exec().isSuccess) {

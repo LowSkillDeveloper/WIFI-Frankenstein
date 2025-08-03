@@ -22,6 +22,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentPixiedustBinding
 import java.util.regex.Pattern
+import com.lsd.wififrankenstein.ui.iwscanner.InterfaceSpinnerAdapter
+import com.lsd.wififrankenstein.ui.iwscanner.IwInterface
 
 class PixieDustFragment : Fragment() {
 
@@ -32,6 +34,8 @@ class PixieDustFragment : Fragment() {
     private lateinit var logAdapter: LogAdapter
 
     private var useAggressiveCleanup = false
+
+    private lateinit var interfaceAdapter: InterfaceSpinnerAdapter
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -62,6 +66,7 @@ class PixieDustFragment : Fragment() {
         setupRecyclerViews()
         setupClickListeners()
         observeViewModel()
+        setupInterfaceSpinner()
         showWarningDialog()
     }
 
@@ -88,6 +93,14 @@ class PixieDustFragment : Fragment() {
     private fun setupClickListeners() {
         binding.layoutAdvancedHeader.setOnClickListener {
             toggleAdvancedSettings()
+        }
+
+        binding.buttonRefreshInterfaces.setOnClickListener {
+            viewModel.refreshInterfaces()
+        }
+
+        binding.buttonManualInterface.setOnClickListener {
+            showManualInterfaceDialog()
         }
 
         binding.switchAggressiveCleanup.setOnCheckedChangeListener { _, isChecked ->
@@ -152,6 +165,20 @@ class PixieDustFragment : Fragment() {
         }
     }
 
+    private fun setupInterfaceSpinner() {
+        interfaceAdapter = InterfaceSpinnerAdapter(requireContext(), emptyList())
+        binding.spinnerInterface.adapter = interfaceAdapter
+
+        binding.spinnerInterface.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedInterface = interfaceAdapter.getItem(position)
+                viewModel.setSelectedInterface(selectedInterface.name)
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
+    }
+
     private fun showCleanupConfirmationDialog() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.pixiedust_cleanup_binaries_title)
@@ -197,6 +224,24 @@ class PixieDustFragment : Fragment() {
 
             if (networks.isEmpty() && viewModel.isScanning.value == false) {
                 binding.textViewScanStatus.text = getString(R.string.pixiedust_no_networks)
+            }
+        }
+
+        viewModel.availableInterfaces.observe(viewLifecycleOwner) { interfaces: List<IwInterface> ->
+            interfaceAdapter.updateInterfaces(interfaces)
+
+            val currentSelected = viewModel.selectedInterface.value ?: "wlan0"
+            val selectedIndex = interfaces.indexOfFirst { it.name == currentSelected }
+            if (selectedIndex >= 0) {
+                binding.spinnerInterface.setSelection(selectedIndex)
+            }
+        }
+
+        viewModel.selectedInterface.observe(viewLifecycleOwner) { interfaceName: String ->
+            val interfaces = viewModel.availableInterfaces.value ?: emptyList()
+            val selectedIndex = interfaces.indexOfFirst { it.name == interfaceName }
+            if (selectedIndex >= 0 && binding.spinnerInterface.selectedItemPosition != selectedIndex) {
+                binding.spinnerInterface.setSelection(selectedIndex)
             }
         }
 
@@ -306,6 +351,34 @@ class PixieDustFragment : Fragment() {
         binding.buttonStartAttack.isEnabled = canAttack && isIdle
 
         Log.d("PixieDustFragment", "System status - Root: $hasRoot, Binaries: $hasBinaries, Selected: $hasSelectedNetwork, CanAttack: $canAttack")
+    }
+
+    private fun showManualInterfaceDialog() {
+        val editText = android.widget.EditText(requireContext()).apply {
+            hint = getString(R.string.pixiedust_interface_hint)
+            setText(viewModel.selectedInterface.value ?: "wlan0")
+            selectAll()
+        }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.pixiedust_manual_interface_title)
+            .setMessage(R.string.pixiedust_manual_interface_message)
+            .setView(editText)
+            .setPositiveButton(R.string.pixiedust_set_interface) { _, _ ->
+                val interfaceName = editText.text.toString().trim()
+                if (interfaceName.isNotBlank()) {
+                    val currentInterfaces: MutableList<IwInterface> = viewModel.availableInterfaces.value?.toMutableList() ?: mutableListOf()
+
+                    if (currentInterfaces.none { it.name == interfaceName }) {
+                        currentInterfaces.add(IwInterface(interfaceName, "manual", ""))
+                        interfaceAdapter.updateInterfaces(currentInterfaces)
+                    }
+
+                    viewModel.setSelectedInterface(interfaceName)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun updateAttackUI(state: PixieAttackState) {

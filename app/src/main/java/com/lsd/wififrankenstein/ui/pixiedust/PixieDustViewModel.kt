@@ -9,6 +9,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.ui.iwscanner.IwInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -48,6 +49,12 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
     private val _isCleaningBinaries = MutableLiveData<Boolean>(false)
     val isCleaningBinaries: LiveData<Boolean> = _isCleaningBinaries
 
+    private val _availableInterfaces = MutableLiveData<List<IwInterface>>(emptyList())
+    val availableInterfaces: LiveData<List<IwInterface>> = _availableInterfaces
+
+    private val _selectedInterface = MutableLiveData<String>("wlan0")
+    val selectedInterface: LiveData<String> = _selectedInterface
+
     private var extractionTimeout = 30000L
     private var computationTimeout = 300000L
 
@@ -73,12 +80,43 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
 
                 if (hasBinaries) {
                     _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binaries_ready))
+
+                    val interfaces = pixieHelper.getAvailableInterfaces()
+                    _availableInterfaces.postValue(interfaces)
+                } else {
+                    _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binary_files_not_available))
+                }
+            }
+
+            if (hasRoot) {
+                _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_checking_binaries))
+
+                val hasBinaries = pixieHelper.checkBinaryFiles()
+                _binariesReady.postValue(hasBinaries)
+
+                if (hasBinaries) {
+                    _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binaries_ready))
                 } else {
                     _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binary_files_not_available))
                 }
             } else {
                 _binariesReady.postValue(false)
                 _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_root_not_available))
+            }
+        }
+    }
+
+    fun setSelectedInterface(interfaceName: String) {
+        _selectedInterface.value = interfaceName
+    }
+
+    fun refreshInterfaces() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val interfaces = pixieHelper.getAvailableInterfaces()
+                _availableInterfaces.postValue(interfaces)
+            } catch (e: Exception) {
+                _progressMessage.postValue("Interface refresh failed: ${e.message}")
             }
         }
     }
@@ -239,6 +277,12 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         addLogEntry(LogEntry("Selected network: ${network.ssid} (${network.bssid})"))
     }
 
+    override fun onInterfacesUpdated(interfaces: List<IwInterface>) {
+        viewModelScope.launch(Dispatchers.Main) {
+            _availableInterfaces.value = interfaces
+        }
+    }
+
     fun startPixieAttack() {
         val network = _selectedNetwork.value
         if (network == null) {
@@ -261,7 +305,8 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
             return
         }
 
-        pixieHelper.startPixieAttack(network, extractionTimeout, computationTimeout)
+        val selectedInterfaceName = _selectedInterface.value ?: "wlan0"
+        pixieHelper.startPixieAttack(network, selectedInterfaceName, extractionTimeout, computationTimeout)
     }
 
     fun stopAttack() {
