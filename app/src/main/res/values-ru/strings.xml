@@ -291,7 +291,7 @@
     <string name="toast_no_data_to_save">Нет данных о сети для сохранения</string>
 
     <string name="connect_wps_root_menu">Подключиться с использованием WPS (ROOT)</string>
-    <string name="root_wps_not_implemented">Подключение ROOT WPS еще не реализовано</string>
+    <string name="root_wps_not_implemented">Отсюда нельзя использовать root-подключение, введите PIN-код на странице сканера Wi-Fi.</string>
 
     <string name="connect_wps_pin_button">Подключиться с использованием WPS Pin</string>
     <string name="enter_wps_pin">Введите WPS PIN</string>
