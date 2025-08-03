@@ -70,6 +70,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import com.lsd.wififrankenstein.util.AnimatedLoadingBar
+import com.lsd.wififrankenstein.util.WpsRootConnectHelper
 
 class WiFiScannerFragment : Fragment() {
 
@@ -1022,10 +1023,28 @@ class WiFiScannerFragment : Fragment() {
         }
 
         dialogView.findViewById<TextView>(R.id.action_connect_wps_pin)?.apply {
-            tintDrawableStart(R.drawable.ic_lock_open)
+            tintDrawableStart(R.drawable.ic_lock_outline)
             setOnClickListener {
                 selectedWifi?.let { wifi ->
                     showWpsPinDialog(wifi)
+                    dialog.dismiss()
+                } ?: Toast.makeText(
+                    requireContext(),
+                    "Wi-Fi network is not selected",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_connect_wps_root)?.apply {
+            val prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            val isRootEnabled = prefs.getBoolean("enable_root", false)
+            visibility = if (isRootEnabled) View.VISIBLE else View.GONE
+
+            tintDrawableStart(R.drawable.ic_lock)
+            setOnClickListener {
+                selectedWifi?.let { wifi ->
+                    connectUsingWpsRoot(wifi)
                     dialog.dismiss()
                 } ?: Toast.makeText(
                     requireContext(),
@@ -1077,6 +1096,56 @@ class WiFiScannerFragment : Fragment() {
         }
 
         dialog.show()
+    }
+
+    private fun connectUsingWpsRoot(network: ScanResult) {
+        val wpsHelper = WpsRootConnectHelper(
+            requireContext(),
+            object : WpsRootConnectHelper.WpsConnectCallbacks {
+                override fun onConnectionProgress(message: String) {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onConnectionSuccess(ssid: String) {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.wps_root_connection_successful, ssid),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+
+                override fun onConnectionFailed(error: String) {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                    }
+                }
+
+                override fun onLogEntry(message: String) {
+                    Log.d("WpsRootConnect", message)
+                }
+            })
+
+        if (!wpsHelper.checkRootAccess()) {
+            Toast.makeText(requireContext(), getString(R.string.wps_root_no_root), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val databaseResults = viewModel.databaseResults.value?.get(network.BSSID.lowercase(Locale.ROOT))
+        val wpsPin = databaseResults?.firstNotNullOfOrNull { result ->
+            result.databaseInfo["WPSPIN"]?.toString()
+                ?: result.databaseInfo["wps_pin"]?.toString()
+                ?: result.databaseInfo["wps"]?.toString()
+        }?.takeIf { it.isNotBlank() && it != "0" }
+
+        if (wpsPin != null) {
+            wpsHelper.connectToNetworkWps(network, wpsPin)
+        } else {
+            wpsHelper.connectToNetworkWps(network)
+        }
     }
 
     private fun showWpsPinDialog(scanResult: ScanResult) {

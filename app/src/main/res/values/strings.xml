@@ -1292,6 +1292,30 @@
     <string name="pixiedust_manual_interface_message">Enter the network interface name to use for the attack</string>
     <string name="pixiedust_set_interface">Set Interface</string>
 
+    <string name="wps_root_copying_binaries">Copying WPS binaries…</string>
+    <string name="wps_root_binaries_ready">WPS binaries ready</string>
+    <string name="wps_root_error_copying_binaries">Error copying WPS binaries</string>
+    <string name="wps_root_starting_connection">Starting WPS connection to %s</string>
+    <string name="wps_root_no_root">Root access required for WPS connection</string>
+    <string name="wps_root_binaries_missing">WPS binaries not available</string>
+    <string name="wps_root_preparing">Preparing WPS connection…</string>
+    <string name="wps_root_supplicant_failed">Failed to start WPS supplicant</string>
+    <string name="wps_root_connecting">Connecting via WPS…</string>
+    <string name="wps_root_connection_failed">WPS connection failed</string>
+    <string name="wps_root_connection_error">WPS connection error: %s</string>
+    <string name="wps_root_stopping_system_wifi">Stopping system WiFi…</string>
+    <string name="wps_root_restoring_wifi">Restoring WiFi…</string>
+    <string name="wps_root_starting_supplicant">Starting WPS supplicant…</string>
+    <string name="wps_root_supplicant_started">WPS supplicant started</string>
+    <string name="wps_root_starting_pbc">Starting WPS PBC for %s</string>
+    <string name="wps_root_starting_pin">Starting WPS PIN for %1$s with PIN %2$s</string>
+    <string name="wps_root_wps_success">WPS authentication successful</string>
+    <string name="wps_root_wps_failed">WPS authentication failed</string>
+    <string name="wps_root_wps_timeout">WPS timeout</string>
+    <string name="wps_root_connected">Connected to network</string>
+    <string name="wps_root_disconnected">Disconnected from network</string>
+    <string name="wps_root_connection_successful">Successfully connected to %s via WPS</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
