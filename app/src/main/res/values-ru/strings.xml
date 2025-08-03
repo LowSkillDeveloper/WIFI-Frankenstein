@@ -1181,6 +1181,9 @@
     <string name="databases_from_source">Базы данных от: %s</string>
     <string name="error_loading">Ошибка загрузки</string>
 
+    <string name="no_recommended_sources_skip">Рекомендуемые источники БД недоступны</string>
+
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

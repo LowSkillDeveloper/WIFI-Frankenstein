@@ -1151,6 +1151,7 @@
     <string name="databases_from_source">Бази даних від: %s</string>
     <string name="error_loading">Помилка завантаження</string>
 
+    <string name="no_recommended_sources_skip">Рекомендовані джерела БД недоступні</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
