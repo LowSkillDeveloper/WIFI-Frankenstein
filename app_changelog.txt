@@ -1,2 +1,28 @@
+#1.1
+Added RouterKeygen generators
+Migrated all WPS algorithms to Kotlin
+Added neighbor-based WPS PINs algorithm
+Added experimental WPS algorithms
+Added Pixiedust attack
+Added root-based scanner (iw)
+Added wlan interface switching
+Added channel analysis page
+Added display of additional wifi information
+Added zip support in SmartLinkDB
+Added RouterScan .txt import
+Added embedded DB UI
+Added true pagination
+Improved map point rendering
+Updated WiFi scanner UI
+Fixed download after interruption update
+Fixed database indexing
+Fixed local file search
+Fixed OutOfMemory crash
+Fixed DB search works on old Android
+Fixed icons on old Android
+Updated to latest Kotlin
+Updated all libraries
+Minor bug fixes and improvements
+
 #1.0
-Base Version
+Base version
