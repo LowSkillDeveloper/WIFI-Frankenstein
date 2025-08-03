@@ -101,6 +101,7 @@ dependencies {
     implementation(libs.xz)
     implementation(libs.flexbox)
     implementation(libs.core)
+    implementation(libs.zstd.jni)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

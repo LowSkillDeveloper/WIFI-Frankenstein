@@ -29,6 +29,7 @@ xz = "1.10"
 flexbox = "3.0.0"
 libsu = "6.0.0"
 core = "3.5.3"
+zstdJni = "1.5.7-4"
 
 
 [libraries]
@@ -63,6 +64,7 @@ libsu-core = { group = "com.github.topjohnwu.libsu", name = "core", version.ref 
 libsu-service = { group = "com.github.topjohnwu.libsu", name = "service", version.ref = "libsu" }
 libsu-nio = { group = "com.github.topjohnwu.libsu", name = "nio", version.ref = "libsu" }
 core = { group = "com.google.zxing", name = "core", version.ref = "core" }
+zstd-jni = { group = "com.github.luben", name = "zstd-jni", version.ref = "zstdJni" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
