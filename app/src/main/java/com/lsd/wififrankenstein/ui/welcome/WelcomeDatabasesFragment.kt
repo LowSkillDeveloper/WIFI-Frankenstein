@@ -33,6 +33,7 @@ import com.lsd.wififrankenstein.WelcomeViewModel
 import com.lsd.wififrankenstein.databinding.FragmentWelcomeDatabasesBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
+import com.lsd.wififrankenstein.ui.dbsetup.DbSource
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.ui.dbsetup.SmartLinkDbInfo
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,14 @@ class WelcomeDatabasesFragment : Fragment() {
     private lateinit var recommendedDatabasesAdapter: WelcomeDatabaseAdapter
     private lateinit var selectedDatabasesAdapter: WelcomeDatabaseAdapter
     private lateinit var apiServersAdapter: WelcomeDatabaseAdapter
+
+    private lateinit var dbSourceAdapter: DbSourceAdapter
+    private var currentViewMode = ViewMode.SOURCES
+    private var isShowingDatabases = false
+
+    enum class ViewMode {
+        SOURCES, DATABASES
+    }
 
     private var currentStep = 0
     private val totalSteps = 4
@@ -142,6 +151,10 @@ class WelcomeDatabasesFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
+        dbSourceAdapter = DbSourceAdapter { source ->
+            loadDatabasesFromSource(source)
+        }
+
         recommendedDatabasesAdapter = WelcomeDatabaseAdapter(
             onAddDatabase = { database ->
                 dbSetupViewModel.addDb(database)
@@ -150,7 +163,6 @@ class WelcomeDatabasesFragment : Fragment() {
             isSelectedList = false
         )
         binding.recyclerViewRecommendedDatabases.layoutManager = LinearLayoutManager(requireContext())
-        binding.recyclerViewRecommendedDatabases.adapter = recommendedDatabasesAdapter
 
         val selectedDatabasesStep2Adapter = SelectedDatabaseAdapter(
             onRemoveClick = { database ->
@@ -322,43 +334,109 @@ class WelcomeDatabasesFragment : Fragment() {
         binding.textViewNoRecommendedDatabases.visibility = View.GONE
         binding.recyclerViewRecommendedDatabases.visibility = View.GONE
 
-        val recommendedDbUrl = "https://raw.githubusercontent.com/LowSkillDeveloper/WIFI-Frankenstein/refs/heads/service/recommended-databases.json"
+        val recommendedSourcesUrl = "https://raw.githubusercontent.com/LowSkillDeveloper/WIFI-Frankenstein/refs/heads/service/recommended-databases.json"
 
         lifecycleScope.launch {
             try {
                 val success = withTimeoutOrNull(2500) {
-                    dbSetupViewModel.fetchSmartLinkDatabases(recommendedDbUrl)
+                    dbSetupViewModel.fetchSources(recommendedSourcesUrl)
                     true
                 } == true
 
                 if (success) {
-                    dbSetupViewModel.smartLinkDatabases.observe(viewLifecycleOwner) { databases ->
+                    dbSetupViewModel.sources.observe(viewLifecycleOwner) { sources ->
                         binding.progressBarStep1.visibility = View.GONE
                         timeoutHandler.removeCallbacks(timeoutRunnable)
 
-                        if (databases.isNotEmpty()) {
-                            binding.textViewStep1Description.text = getString(R.string.db_step1_found_databases)
-                            binding.recyclerViewRecommendedDatabases.visibility = View.VISIBLE
-
-                            val dbItems = databases.map { createDbItemFromSmartLinkInfo(it) }
-                            recommendedDatabasesAdapter.submitList(dbItems)
+                        if (sources.isNotEmpty()) {
+                            showSources(sources)
                         } else {
-                            binding.textViewNoRecommendedDatabases.visibility = View.VISIBLE
-                            binding.textViewStep1Description.text = getString(R.string.db_step1_no_databases)
+                            skipToNextStep()
                         }
                     }
                 } else {
-                    binding.progressBarStep1.visibility = View.GONE
-                    binding.textViewNoRecommendedDatabases.visibility = View.VISIBLE
-                    binding.textViewNoRecommendedDatabases.text = getString(R.string.db_error_loading)
-                    binding.textViewStep1Description.text = getString(R.string.db_check_connection)
+                    skipToNextStep()
                 }
             } catch (_: Exception) {
+                skipToNextStep()
+            }
+        }
+    }
+
+    private fun skipToNextStep() {
+        binding.progressBarStep1.visibility = View.GONE
+        binding.textViewNoRecommendedDatabases.visibility = View.VISIBLE
+        binding.textViewNoRecommendedDatabases.text = getString(R.string.no_recommended_sources_skip)
+        binding.textViewStep1Description.text = getString(R.string.no_recommended_sources_skip)
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (isAdded && _binding != null) {
+                showNextStep()
+            }
+        }, 2000)
+    }
+
+    private fun showSources(sources: List<DbSource>) {
+        if (sources.isEmpty()) {
+            skipToNextStep()
+            return
+        }
+
+        currentViewMode = ViewMode.SOURCES
+        isShowingDatabases = false
+
+        binding.textViewStep1Description.text = getString(R.string.select_database_source)
+        binding.recyclerViewRecommendedDatabases.adapter = dbSourceAdapter
+        binding.recyclerViewRecommendedDatabases.visibility = View.VISIBLE
+        dbSourceAdapter.submitList(sources)
+    }
+
+    @SuppressLint("LongLogTag")
+    private fun loadDatabasesFromSource(source: DbSource) {
+        binding.progressBarStep1.visibility = View.VISIBLE
+        binding.recyclerViewRecommendedDatabases.visibility = View.GONE
+
+        dbSetupViewModel.setCurrentSource(source)
+
+        lifecycleScope.launch {
+            try {
+                dbSetupViewModel.fetchSmartLinkDatabases(source.smartlinkUrl)
+
+                dbSetupViewModel.smartLinkDatabases.observe(viewLifecycleOwner) { databases ->
+                    binding.progressBarStep1.visibility = View.GONE
+
+                    if (databases != null && databases.isNotEmpty()) {
+                        showDatabasesFromSource(source, databases)
+                    } else {
+                        binding.textViewNoRecommendedDatabases.visibility = View.VISIBLE
+                        binding.textViewStep1Description.text = getString(R.string.db_step1_no_databases)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("WelcomeDatabasesFragment", "Error loading databases from source", e)
                 binding.progressBarStep1.visibility = View.GONE
                 binding.textViewNoRecommendedDatabases.visibility = View.VISIBLE
-                binding.textViewNoRecommendedDatabases.text = getString(R.string.db_error_loading)
+                binding.textViewNoRecommendedDatabases.text = getString(R.string.error_loading)
                 binding.textViewStep1Description.text = getString(R.string.db_check_connection)
             }
+        }
+    }
+
+    private fun showDatabasesFromSource(source: DbSource, databases: List<SmartLinkDbInfo>) {
+        currentViewMode = ViewMode.DATABASES
+        isShowingDatabases = true
+
+        binding.textViewStep1Description.text = getString(R.string.databases_from_source, source.name)
+        binding.recyclerViewRecommendedDatabases.adapter = recommendedDatabasesAdapter
+        binding.recyclerViewRecommendedDatabases.visibility = View.VISIBLE
+
+        val dbItems = databases.map { createDbItemFromSmartLinkInfo(it) }
+        recommendedDatabasesAdapter.submitList(dbItems)
+    }
+
+    private fun goBackToSources() {
+        if (isShowingDatabases) {
+            checkRecommendedDatabases()
         }
     }
 

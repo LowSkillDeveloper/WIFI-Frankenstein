@@ -1360,6 +1360,19 @@
     <string name="view_license">View License</string>
     <string name="license_url" translatable="false">https://www.gnu.org/licenses/gpl-3.0.html</string>
 
+    <string name="db_disclaimer_title">Notice</string>
+    <string name="db_disclaimer_text">All provided databases are user-contributed. The developer is not responsible for the content of these databases.</string>
+    <string name="select_database_source">Select database source</string>
+    <string name="loading_sources">Loading sources…</string>
+    <string name="no_sources_found">No sources found</string>
+    <string name="error_loading_sources">Error loading sources</string>
+    <string name="back_to_sources">Back to sources</string>
+    <string name="databases_from_source">Databases from: %s</string>
+    <string name="error_loading">Loading error</string>
+
+    <string name="no_recommended_sources_skip">Рекомендуемые источники недоступны, переходим к настройке SmartLinkDB</string>
+
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

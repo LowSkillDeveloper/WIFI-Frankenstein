@@ -27,6 +27,42 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="2dp"
+                    app:cardBackgroundColor="?android:attr/colorBackground"
+                    app:strokeColor="#F44336"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/db_disclaimer_title"
+                            android:textSize="16sp"
+                            android:textColor="#F44336"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/db_disclaimer_text"
+                            android:textSize="14sp"
+                            android:textColor="#F44336" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
                 <TextView
                     android:id="@+id/textViewStep1Title"
                     style="@style/TextAppearance.MaterialComponents.Headline6"

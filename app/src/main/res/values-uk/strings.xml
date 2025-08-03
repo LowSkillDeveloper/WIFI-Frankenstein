@@ -1141,6 +1141,16 @@
     <string name="view_license">Переглянути ліцензію</string>
     <string name="license_url" translatable="false">https://www.gnu.org/licenses/gpl-3.0.html</string>
 
+    <string name="db_disclaimer_title">Увага</string>
+    <string name="db_disclaimer_text">Усі надані бази даних створені користувачами. Розробник не несе відповідальності за вміст цих баз даних.</string>
+    <string name="select_database_source">Виберіть джерело баз даних</string>
+    <string name="loading_sources">Завантаження джерел…</string>
+    <string name="no_sources_found">Джерела не знайдено</string>
+    <string name="error_loading_sources">Помилка завантаження джерел</string>
+    <string name="back_to_sources">Назад до джерел</string>
+    <string name="databases_from_source">Бази даних від: %s</string>
+    <string name="error_loading">Помилка завантаження</string>
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

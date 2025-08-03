@@ -56,6 +56,22 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
     private val smartLinkDbHelper = SmartLinkDbHelper(application)
     val smartLinkDatabases = smartLinkDbHelper.databases
 
+    val sources = smartLinkDbHelper.sources
+
+    fun fetchSources(url: String) {
+        viewModelScope.launch {
+            try {
+                smartLinkDbHelper.fetchSources(url)
+            } catch (e: Exception) {
+                _errorEvent.value = e.message ?: "Failed to fetch sources"
+            }
+        }
+    }
+
+    fun setCurrentSource(source: DbSource) {
+        smartLinkDbHelper.setCurrentSource(source)
+    }
+
     private val _indexingProgress = MutableLiveData<Pair<String, Int>>()
     val indexingProgress: LiveData<Pair<String, Int>> = _indexingProgress
 
