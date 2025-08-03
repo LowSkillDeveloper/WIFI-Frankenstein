@@ -1097,6 +1097,7 @@
     <string name="pixiedust_set_interface">Встановити інтерфейс</string>
     <string name="refreshing_map_data">Оновлення даних карти…</string>
     <string name="map_data_refreshed">Дані карти оновлено</string>
+    <string name="unknown_vendor">невідомий виробник</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

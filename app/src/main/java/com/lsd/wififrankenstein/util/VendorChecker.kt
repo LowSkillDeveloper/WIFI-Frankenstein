@@ -18,12 +18,20 @@ object VendorChecker {
     private fun getFileFromInternalStorageOrAssets(context: Context, fileName: String): File {
         val file = File(context.filesDir, fileName)
         if (!file.exists()) {
-            context.assets.open(fileName).use { input ->
-                FileOutputStream(file).use { output ->
-                    input.copyTo(output)
+            try {
+                context.assets.open(fileName).use { input ->
+                    FileOutputStream(file).use { output ->
+                        input.copyTo(output)
+                    }
                 }
+                createVersionFile(context, fileName, "1.0")
+                Log.d("VendorChecker", "Copied $fileName from assets to internal storage")
+            } catch (e: Exception) {
+                Log.e("VendorChecker", "Error copying $fileName from assets", e)
+                throw e
             }
-            createVersionFile(context, fileName, "1.0")
+        } else {
+            Log.d("VendorChecker", "Using existing $fileName from internal storage")
         }
         return file
     }
@@ -62,18 +70,22 @@ object VendorChecker {
             runCatching {
                 val dbFile = getFileFromInternalStorageOrAssets(context, "vendor.db")
                 val version = getFileVersion(context, "vendor.db")
-                Log.d("VendorChecker", "Using vendor.db version: $version")
+                Log.d("VendorChecker", "Using vendor.db version: $version from path: ${dbFile.absolutePath}")
 
                 SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY).use { localDB ->
                     localDB.rawQuery("SELECT vendor FROM oui WHERE mac = ?", arrayOf(bssid)).use { cursor ->
                         if (cursor.moveToFirst()) {
-                            cursor.getString(cursor.getColumnIndexOrThrow("vendor"))
+                            val vendor = cursor.getString(cursor.getColumnIndexOrThrow("vendor"))
+                            Log.d("VendorChecker", "Found vendor: $vendor for BSSID: $bssid")
+                            vendor
                         } else {
-                            "unknown vendor"
+                            Log.d("VendorChecker", "No vendor found for BSSID: $bssid")
+                            context.getString(R.string.unknown_vendor)
                         }
                     }
                 }
             }.getOrElse { e ->
+                Log.e("VendorChecker", "Error accessing vendor database", e)
                 e.printStackTrace()
                 context.getString(R.string.error_accessing_database)
             }
@@ -84,13 +96,16 @@ object VendorChecker {
             try {
                 val file = getFileFromInternalStorageOrAssets(context, "vendor_data.txt")
                 val version = getFileVersion(context, "vendor_data.txt")
-                Log.d("VendorChecker", "Using vendor_data.txt version: $version")
+                Log.d("VendorChecker", "Using vendor_data.txt version: $version from path: ${file.absolutePath}")
 
-                file.bufferedReader().useLines { lines ->
+                val vendor = file.bufferedReader().useLines { lines ->
                     lines.firstOrNull { it.contains(bssid, ignoreCase = true) }?.split("|")
-                        ?.firstOrNull() ?: "unknown vendor"
+                        ?.firstOrNull() ?: context.getString(R.string.unknown_vendor)
                 }
+                Log.d("VendorChecker", "Found vendor: $vendor for BSSID: $bssid")
+                vendor
             } catch (e: Exception) {
+                Log.e("VendorChecker", "Error accessing vendor text file", e)
                 e.printStackTrace()
                 context.getString(R.string.error_accessing_text_file)
             }
@@ -101,9 +116,13 @@ object VendorChecker {
         return withContext(Dispatchers.IO) {
             try {
                 val url = "https://wpsfinder.com/ethernet-wifi-brand-lookup/MAC:$bssid"
+                Log.d("VendorChecker", "Checking vendor online source 1 for BSSID: $bssid")
                 val doc = Jsoup.connect(url).get()
-                doc.select("h4.text-muted > center").first()?.text() ?: "unknown vendor"
+                val vendor = doc.select("h4.text-muted > center").first()?.text() ?: "unknown vendor"
+                Log.d("VendorChecker", "Online source 1 found vendor: $vendor")
+                vendor
             } catch (e: Exception) {
+                Log.e("VendorChecker", "Error checking vendor online source 1", e)
                 e.printStackTrace()
                 "unknown vendor"
             }

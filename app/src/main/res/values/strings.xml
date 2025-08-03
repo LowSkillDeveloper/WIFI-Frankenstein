@@ -1315,6 +1315,7 @@
     <string name="wps_root_connected">Connected to network</string>
     <string name="wps_root_disconnected">Disconnected from network</string>
     <string name="wps_root_connection_successful">Successfully connected to %s via WPS</string>
+    <string name="unknown_vendor">unknown vendor</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
