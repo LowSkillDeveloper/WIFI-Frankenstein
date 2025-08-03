@@ -1130,6 +1130,49 @@
     <string name="map_data_refreshed">Данные карты обновлены</string>
     <string name="unknown_vendor">неизвестный производитель</string>
 
+    <string name="app_license_title">Лицензия</string>
+    <string name="app_license_text">Это приложение лицензировано по GNU General Public License v3.0\n\nСвязывание этого программного обеспечения статически или динамически с OpenSSL 1.1 разрешено и не влияет на условия лицензии результирующего исполняемого файла.\n\nЭта программа распространяется в надежде, что она будет полезной, но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемых гарантий КОММЕРЧЕСКОЙ ЦЕННОСТИ или ПРИГОДНОСТИ ДЛЯ ОПРЕДЕЛЁННОЙ ЦЕЛИ. Подробности см. в GNU General Public License.</string>
+
+    <string name="disclaimer_title_about">Отказ от ответственности</string>
+    <string name="disclaimer_text_about">Это приложение предназначено только для образовательных и тестовых целей в области безопасности. Пользователи несут полную ответственность за то, чтобы их использование приложения соответствовало применимому законодательству.\n\n• Используйте это приложение только в сетях, которые вы владеете или на которые имеете явное разрешение на тестирование\n• Автор не несёт ответственности за неправильное использование приложения\n• Приложение не содержит встроенных баз данных сетей\n• Приложение не собирает никаких персональных данных</string>
+
+    <string name="used_components_title">Используемые компоненты и библиотеки</string>
+
+    <string name="library_androidx_new">Библиотеки AndroidX – Лицензия Apache 2.0</string>
+    <string name="library_material_new">Material Components – Лицензия Apache 2.0</string>
+    <string name="library_kotlin">Kotlin и библиотеки KotlinX – Лицензия Apache 2.0</string>
+    <string name="library_jsoup">Парсер HTML Jsoup – Лицензия MIT</string>
+    <string name="library_opencsv_new">OpenCSV – Лицензия Apache 2.0</string>
+    <string name="library_okhttp_new">OkHttp – Лицензия Apache 2.0</string>
+    <string name="library_osmdroid_new">OSMDroid – Лицензия Apache 2.0</string>
+    <string name="library_glide">Загрузка изображений Glide – Лицензия BSD/Apache 2.0</string>
+    <string name="library_commons_compress">Apache Commons Compress – Лицензия Apache 2.0</string>
+    <string name="library_xz">XZ for Java – Общественное достояние</string>
+    <string name="library_flexbox">FlexboxLayout – Лицензия Apache 2.0</string>
+    <string name="library_libsu">LibSU – Лицензия Apache 2.0</string>
+    <string name="library_zxing">ZXing Core – Лицензия Apache 2.0</string>
+
+    <string name="project_routerkeygen">Алгоритмы WPA и словари Thomson из RouterKeygen для Android – GNU GPL v3.0</string>
+    <string name="project_wifianalyzer">Код анализа Wi-Fi из WiFiAnalyzer от VREMSoftwareDevelopment – GNU GPL v3.0</string>
+    <string name="project_3wifi_locator">Код из 3WiFi Locator от FusixGit – Лицензия Apache 2.0</string>
+    <string name="project_3wifi_binarymaster">Алгоритмы WPS из 3WiFi от binarymaster – Лицензия Apache 2.0</string>
+
+    <string name="binary_wpa_supplicant">wpa_supplicant – Лицензия BSD</string>
+    <string name="binary_wpa_cli">wpa_cli – Лицензия BSD</string>
+    <string name="binary_openssl_crypto">libcrypto (OpenSSL) – Лицензия OpenSSL для libcrypto.so.1.1 и Apache License 2.0 для libcrypto.so.3</string>
+    <string name="binary_openssl_ssl">libssl (OpenSSL) – Лицензия OpenSSL для libssl.so.1.1 и Apache License 2.0 для libssl.so.3</string>
+    <string name="binary_libnl">libnl – GNU LGPL v2.1</string>
+    <string name="binary_libnl_genl">libnl-genl – GNU LGPL v2.1</string>
+    <string name="binary_libnl_route">libnl-route – GNU LGPL v2.1</string>
+    <string name="binary_pixiedust">Инструменты атаки PixieDust – Лицензия Apache 2.0</string>
+    <string name="binary_iw">Утилита iw для работы с беспроводными сетями – GNU GPL v2.0</string>
+
+    <string name="database_wps_tester">PIN-коды и базы данных производителей из WIFI WPS WPA TESTER от Sangiorgi Srl – Лицензия не указана</string>
+
+    <string name="view_license">Посмотреть лицензию</string>
+    <string name="license_url" translatable="false">https://www.gnu.org/licenses/gpl-3.0.html</string>
+
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

@@ -1317,6 +1317,49 @@
     <string name="wps_root_connection_successful">Successfully connected to %s via WPS</string>
     <string name="unknown_vendor">unknown vendor</string>
 
+    <string name="app_license_title">License</string>
+    <string name="app_license_text">This application is licensed under the GNU General Public License v3.0\n\nLinking this software statically or dynamically with OpenSSL 1.1 is allowed and does not affect the licensing terms of the resulting executable.\n\nThis program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</string>
+
+    <string name="disclaimer_title_about">Disclaimer</string>
+    <string name="disclaimer_text_about">This application is intended for educational and security testing purposes only. Users are solely responsible for ensuring that their use of this application complies with applicable laws and regulations.\n\n• Only use this application on networks you own or have explicit permission to test\n• The author is not responsible for any misuse of this application\n• This application does not contain built-in databases of networks\n• The application does not collect any personal data</string>
+
+    <string name="used_components_title">Used Components and Libraries</string>
+
+
+    <string name="library_androidx_new">AndroidX Libraries - Apache License 2.0</string>
+    <string name="library_material_new">Material Components - Apache License 2.0</string>
+    <string name="library_kotlin">Kotlin and KotlinX Libraries - Apache License 2.0</string>
+    <string name="library_jsoup">Jsoup HTML Parser - MIT License</string>
+    <string name="library_opencsv_new">OpenCSV - Apache License 2.0</string>
+    <string name="library_okhttp_new">OkHttp - Apache License 2.0</string>
+    <string name="library_osmdroid_new">OSMDroid - Apache License 2.0</string>
+    <string name="library_glide">Glide Image Loading - BSD/Apache License 2.0</string>
+    <string name="library_commons_compress">Apache Commons Compress - Apache License 2.0</string>
+    <string name="library_xz">XZ for Java - Public Domain</string>
+    <string name="library_flexbox">FlexboxLayout - Apache License 2.0</string>
+    <string name="library_libsu">LibSU - Apache License 2.0</string>
+    <string name="library_zxing">ZXing Core - Apache License 2.0</string>
+
+    <string name="project_routerkeygen">WPA algorithms and Thomson dictionaries from RouterKeygen for Android - GNU GPL v3.0</string>
+    <string name="project_wifianalyzer">WiFi analysis code from WiFiAnalyzer by VREMSoftwareDevelopment - GNU GPL v3.0</string>
+    <string name="project_3wifi_locator">Code from 3WiFi Locator by FusixGit - Apache License 2.0</string>
+    <string name="project_3wifi_binarymaster">WPS algorithms from 3WiFi by binarymaster - Apache License 2.0</string>
+
+    <string name="binary_wpa_supplicant">wpa_supplicant - BSD License</string>
+    <string name="binary_wpa_cli">wpa_cli - BSD License</string>
+    <string name="binary_openssl_crypto">libcrypto (OpenSSL) - OpenSSL License for libcrypto.so.1.1 and Apache License 2.0 for libcrypto.so.3</string>
+    <string name="binary_openssl_ssl">libssl (OpenSSL) - OpenSSL License for libssl.so.1.1 and Apache License 2.0 for libssl.so.3</string>
+    <string name="binary_libnl">libnl - GNU LGPL v2.1</string>
+    <string name="binary_libnl_genl">libnl-genl - GNU LGPL v2.1</string>
+    <string name="binary_libnl_route">libnl-route - GNU LGPL v2.1</string>
+    <string name="binary_pixiedust">PixieDust attack tools - Apache License 2.0 </string>
+    <string name="binary_iw">iw wireless utility - GNU GPL v2.0</string>
+
+    <string name="database_wps_tester">PIN codes and vendor databases from WIFI WPS WPA TESTER by Sangiorgi Srl - No License Specified</string>
+
+    <string name="view_license">View License</string>
+    <string name="license_url" translatable="false">https://www.gnu.org/licenses/gpl-3.0.html</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

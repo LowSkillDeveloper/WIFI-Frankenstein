@@ -1099,6 +1099,49 @@
     <string name="map_data_refreshed">Дані карти оновлено</string>
     <string name="unknown_vendor">невідомий виробник</string>
 
+    <string name="app_license_title">Ліцензія</string>
+    <string name="app_license_text">Цей додаток ліцензовано за GNU General Public License v3.0\n\nСтатичне або динамічне зв’язування цього програмного забезпечення з OpenSSL 1.1 дозволено і не впливає на ліцензійні умови кінцевого виконуваного файлу.\n\nЦя програма розповсюджується в надії, що вона буде корисною, але БЕЗ БУДЬ-ЯКИХ ГАРАНТІЙ; навіть без передбачуваних гарантій КОМЕРЦІЙНОЇ ЦІННОСТІ або ПРИДАТНОСТІ ДЛЯ ПЕВНОЇ МЕТИ. Детальніше дивіться GNU General Public License.</string>
+
+    <string name="disclaimer_title_about">Відмова від відповідальності</string>
+    <string name="disclaimer_text_about">Цей додаток призначено лише для освітніх цілей та тестування безпеки. Користувачі несуть повну відповідальність за дотримання чинного законодавства при використанні додатка.\n\n• Використовуйте цей додаток лише в мережах, які вам належать або на які маєте явний дозвіл на тестування\n• Автор не несе відповідальності за неправомірне використання додатка\n• Додаток не містить вбудованих баз даних мереж\n• Додаток не збирає жодних персональних даних</string>
+
+    <string name="used_components_title">Використані компоненти та бібліотеки</string>
+
+    <string name="library_androidx_new">Бібліотеки AndroidX – Ліцензія Apache 2.0</string>
+    <string name="library_material_new">Material Components – Ліцензія Apache 2.0</string>
+    <string name="library_kotlin">Kotlin і бібліотеки KotlinX – Ліцензія Apache 2.0</string>
+    <string name="library_jsoup">HTML-парсер Jsoup – Ліцензія MIT</string>
+    <string name="library_opencsv_new">OpenCSV – Ліцензія Apache 2.0</string>
+    <string name="library_okhttp_new">OkHttp – Ліцензія Apache 2.0</string>
+    <string name="library_osmdroid_new">OSMDroid – Ліцензія Apache 2.0</string>
+    <string name="library_glide">Завантаження зображень Glide – Ліцензія BSD/Apache 2.0</string>
+    <string name="library_commons_compress">Apache Commons Compress – Ліцензія Apache 2.0</string>
+    <string name="library_xz">XZ for Java – Публічне надбання</string>
+    <string name="library_flexbox">FlexboxLayout – Ліцензія Apache 2.0</string>
+    <string name="library_libsu">LibSU – Ліцензія Apache 2.0</string>
+    <string name="library_zxing">ZXing Core – Ліцензія Apache 2.0</string>
+
+    <string name="project_routerkeygen">Алгоритми WPA і словники Thomson з RouterKeygen для Android – GNU GPL v3.0</string>
+    <string name="project_wifianalyzer">Код аналізу Wi-Fi з WiFiAnalyzer від VREMSoftwareDevelopment – GNU GPL v3.0</string>
+    <string name="project_3wifi_locator">Код з 3WiFi Locator від FusixGit – Ліцензія Apache 2.0</string>
+    <string name="project_3wifi_binarymaster">Алгоритми WPS з 3WiFi від binarymaster – Ліцензія Apache 2.0</string>
+
+    <string name="binary_wpa_supplicant">wpa_supplicant – Ліцензія BSD</string>
+    <string name="binary_wpa_cli">wpa_cli – Ліцензія BSD</string>
+    <string name="binary_openssl_crypto">libcrypto (OpenSSL) – Ліцензія OpenSSL для libcrypto.so.1.1 і Apache License 2.0 для libcrypto.so.3</string>
+    <string name="binary_openssl_ssl">libssl (OpenSSL) – Ліцензія OpenSSL для libssl.so.1.1 і Apache License 2.0 для libssl.so.3</string>
+    <string name="binary_libnl">libnl – GNU LGPL v2.1</string>
+    <string name="binary_libnl_genl">libnl-genl – GNU LGPL v2.1</string>
+    <string name="binary_libnl_route">libnl-route – GNU LGPL v2.1</string>
+    <string name="binary_pixiedust">Інструменти атаки PixieDust – Ліцензія Apache 2.0</string>
+    <string name="binary_iw">Утиліта iw для бездротових мереж – GNU GPL v2.0</string>
+
+    <string name="database_wps_tester">PIN-коди та бази виробників з WIFI WPS WPA TESTER від Sangiorgi Srl – Ліцензія не вказана</string>
+
+    <string name="view_license">Переглянути ліцензію</string>
+    <string name="license_url" translatable="false">https://www.gnu.org/licenses/gpl-3.0.html</string>
+
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

@@ -91,6 +91,11 @@ class AboutFragment : Fragment() {
         binding.appLogo.setOnClickListener {
             handleLogoClick()
         }
+
+        binding.licenseButton.setOnClickListener {
+            val intent = Intent(Intent.ACTION_VIEW, getString(R.string.license_url).toUri())
+            startActivity(intent)
+        }
     }
 
     private fun handleLogoClick() {
