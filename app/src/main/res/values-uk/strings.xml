@@ -67,7 +67,7 @@
     <string name="api_key_hint">Якщо залишити порожнім, буде використано ключ 000000000000</string>
 
 
-    <string name="show_database_info">Показати інформацію про базу даних</string>
+    <string name="show_database_info">Показати інформацію</string>
     <string name="copy_wifi_key">Копіювати WiFi ключ</string>
     <string name="copy_wps_pin">Копіювати WPS PIN</string>
     <string name="connect_wps">Підключитися (WPS)</string>

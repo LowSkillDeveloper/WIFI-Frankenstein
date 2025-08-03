@@ -828,30 +828,6 @@ class WiFiScannerFragment : Fragment() {
                         findNavController().navigate(R.id.nav_updates)
                     }
 
-                    binding.updateBanner.buttonChangelog.visibility = if (hasAppUpdate) {
-                        View.VISIBLE.also {
-                            binding.updateBanner.buttonChangelog.setOnClickListener {
-                                lifecycleScope.launch {
-                                    try {
-                                        status.appUpdate?.let { appUpdate ->
-                                            updateChecker.getChangelog(appUpdate).collect { changelog ->
-                                                showChangelogDialog(changelog)
-                                            }
-                                        }
-                                    } catch (e: Exception) {
-                                        Toast.makeText(
-                                            context,
-                                            getString(R.string.error_fetching_changelog, e.message),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        View.GONE
-                    }
-
                     binding.updateBanner.buttonClose.setOnClickListener {
                         binding.updateBanner.root.visibility = View.GONE
                     }
@@ -861,14 +837,6 @@ class WiFiScannerFragment : Fragment() {
                 binding.updateBanner.root.visibility = View.GONE
             }
         }
-    }
-
-    private fun showChangelogDialog(changelog: String) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.changelog)
-            .setMessage(changelog)
-            .setPositiveButton(R.string.ok, null)
-            .show()
     }
 
     private fun startWifiScan() {

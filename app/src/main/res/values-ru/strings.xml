@@ -66,8 +66,7 @@
     <string name="api_key">API Ключ</string>
     <string name="api_key_hint">Если оставить пустым, будет использован ключ 000000000000</string>
 
-
-    <string name="show_database_info">Показать информацию о базе данных</string>
+    <string name="show_database_info">Показать информацию</string>
     <string name="copy_wifi_key">Копировать WiFi ключ</string>
     <string name="copy_wps_pin">Копировать WPS PIN</string>
     <string name="connect_wps">Подключиться (WPS)</string>

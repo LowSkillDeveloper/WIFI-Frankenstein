@@ -70,7 +70,7 @@
     <string name="api_key_hint">If left empty, 000000000000 will be used as the API key</string>
 
 
-    <string name="show_database_info">Show Database Info</string>
+    <string name="show_database_info">Show Info</string>
     <string name="copy_wifi_key">Copy WiFi Key</string>
     <string name="copy_wps_pin">Copy WPS PIN</string>
     <string name="connect_wps">Connect (WPS)</string>
