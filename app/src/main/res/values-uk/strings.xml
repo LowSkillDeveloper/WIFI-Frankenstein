@@ -1010,4 +1010,94 @@
     <string name="mac_column_required">Попередження: не знайдено стовпців широти/довготи. Функції, пов\'язані з розташуванням, будуть недоступні.</string>
     <string name="indexing_no_geo_warning">Потрібна колонка MAC для індексації</string>
 
+    <string name="resuming_download">Поновлення завантаження</string>
+    <string name="download_resumed">Завантаження поновлено з %1$d%%</string>
+    <string name="clearing_old_download">Очищення старого завантаження</string>
+    <string name="version_changed_restarting">Версія змінилася, перезапуск завантаження</string>
+
+    <string name="menu_iw_scanner">Сканер iw</string>
+    <string name="iw_hidden_ssid">[Прихована мережа]</string>
+    <string name="iw_unknown_signal">Невідомо</string>
+    <string name="iw_frequency_format">%s МГц</string>
+    <string name="iw_channel_format">Канал: %s</string>
+    <string name="iw_open_network">Відкрита</string>
+    <string name="iw_connected_network">Підключена мережа</string>
+    <string name="iw_expand_details">Розгорнути деталі</string>
+
+    <string name="iw_link_info_title">Стан підключення</string>
+    <string name="iw_refresh_link_info">Оновити інформацію про підключення</string>
+    <string name="iw_not_connected">Не підключено до жодної мережі</string>
+    <string name="iw_connected_to">Підключено до: %s</string>
+    <string name="iw_ssid_format">SSID: %s</string>
+    <string name="iw_bssid_format">BSSID: %s</string>
+    <string name="iw_freq_format">Частота: %s</string>
+    <string name="iw_signal_format">Сигнал: %s</string>
+    <string name="iw_bitrate_format">Швидкість: %s</string>
+
+    <string name="iw_device_info_title">Інформація про пристрій</string>
+    <string name="iw_refresh_device_info">Оновити інформацію про пристрій</string>
+    <string name="iw_expand_device_info">Розгорнути інформацію про пристрій</string>
+    <string name="iw_loading_device_info">Завантаження інформації про пристрій…</string>
+    <string name="iw_device_info_unavailable">Інформація про пристрій недоступна</string>
+
+    <string name="iw_network_scan_title">Сканер мереж</string>
+    <string name="iw_scan_networks">Сканувати мережі</string>
+    <string name="iw_scanning">Сканування…</string>
+    <string name="iw_ready_to_scan">Готово до сканування мереж</string>
+    <string name="iw_no_networks_found">Мережі не знайдено. Спробуйте ще раз.</string>
+
+    <string name="iw_ready">Сканер iw готовий</string>
+    <string name="iw_root_required">Для iw Scanner потрібен root-доступ</string>
+    <string name="iw_binary_copy_failed">Не вдалося скопіювати бінарні файли iw</string>
+    <string name="iw_initial_load_failed">Не вдалося завантажити початкові дані</string>
+    <string name="iw_scan_completed">Сканування завершено. Знайдено мереж: %d</string>
+    <string name="iw_scan_failed">Помилка сканування: %s</string>
+    <string name="iw_link_refresh_failed">Не вдалося оновити інформацію про підключення</string>
+    <string name="iw_device_info_failed">Не вдалося завантажити інформацію про пристрій</string>
+
+    <string name="iw_root_required_title">Потрібен Root-доступ</string>
+    <string name="iw_root_required_message">Сканеру iw потрібен root-доступ для сканування мереж та доступу до інформації про пристрій. Переконайтесь, що ваш пристрій має root та надано відповідні дозволи цьому застосунку.</string>
+
+    <string name="iw_error_title">Помилка сканера</string>
+    <string name="iw_error_message">Сталася помилка: %s</string>
+
+    <string name="iw_interface_selector_title">Мережевий інтерфейс</string>
+    <string name="iw_refresh_interfaces">Оновити інтерфейси</string>
+    <string name="iw_manual_interface">Ручне введення інтерфейсу</string>
+    <string name="iw_selected_interface">Інтерфейс:</string>
+    <string name="iw_interface_no_details">Додаткові дані відсутні</string>
+    <string name="iw_interface_refresh_failed">Не вдалося оновити інтерфейси</string>
+
+    <string name="iw_manual_interface_title">Ручний інтерфейс</string>
+    <string name="iw_manual_interface_message">Введіть ім\'я мережевого інтерфейсу вручну. Це корисно, якщо інтерфейс не визначено автоматично.</string>
+    <string name="iw_interface_hint">наприклад: wlan0, wlan1, p2p0</string>
+    <string name="iw_set_interface">Встановити інтерфейс</string>
+
+    <string name="iw_device_wiphy_index">Wiphy індекс</string>
+    <string name="iw_device_max_scan_ssids">Макс. SSID при скануванні</string>
+    <string name="iw_device_max_scan_ies_length">Макс. довжина IEs</string>
+    <string name="iw_device_coverage_class">Клас покриття</string>
+    <string name="iw_device_supports_tdls">Підтримка T-DLS</string>
+    <string name="iw_device_available_antennas">Доступні антени</string>
+    <string name="iw_device_supported_interface_modes">Підтримувані режими інтерфейсу</string>
+    <string name="iw_device_supported_ciphers">Підтримувані шифри</string>
+    <string name="iw_device_capabilities">Можливості</string>
+    <string name="iw_device_ht_support">Підтримка HT</string>
+    <string name="iw_device_frequencies">Частоти</string>
+    <string name="iw_device_bitrates">Швидкості</string>
+    <string name="iw_device_and_more">та ще %d</string>
+
+    <string name="pixiedust_interface_selector_title">Мережевий інтерфейс</string>
+    <string name="pixiedust_refresh_interfaces">Оновити інтерфейси</string>
+    <string name="pixiedust_manual_interface">Ручне введення</string>
+    <string name="pixiedust_selected_interface">Інтерфейс:</string>
+    <string name="pixiedust_interface_hint">wlan0</string>
+    <string name="pixiedust_manual_interface_title">Введення інтерфейсу вручну</string>
+    <string name="pixiedust_manual_interface_message">Введіть ім’я інтерфейсу, який буде використано для атаки</string>
+    <string name="pixiedust_set_interface">Встановити інтерфейс</string>
+    <string name="refreshing_map_data">Оновлення даних карти…</string>
+    <string name="map_data_refreshed">Дані карти оновлено</string>
+
+    # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
+
 </resources>

@@ -1041,5 +1041,95 @@
     <string name="mac_column_required">Предупреждение: не найдены столбцы широты/долготы. Функции, основанные на местоположении, будут недоступны.</string>
     <string name="indexing_no_geo_warning">Необходим столбец MAC для индексации</string>
 
+    <string name="resuming_download">Возобновление загрузки</string>
+    <string name="download_resumed">Загрузка возобновлена с %1$d%%</string>
+    <string name="clearing_old_download">Очистка старой загрузки</string>
+    <string name="version_changed_restarting">Версия изменилась, перезапуск загрузки</string>
+
+    <string name="menu_iw_scanner">Сканер iw</string>
+    <string name="iw_hidden_ssid">[Скрытая сеть]</string>
+    <string name="iw_unknown_signal">Неизвестно</string>
+    <string name="iw_frequency_format">%s МГц</string>
+    <string name="iw_channel_format">Канал: %s</string>
+    <string name="iw_open_network">Открытая</string>
+    <string name="iw_connected_network">Подключённая сеть</string>
+    <string name="iw_expand_details">Развернуть детали</string>
+
+    <string name="iw_link_info_title">Состояние подключения</string>
+    <string name="iw_refresh_link_info">Обновить информацию о подключении</string>
+    <string name="iw_not_connected">Не подключено ни к одной сети</string>
+    <string name="iw_connected_to">Подключено к: %s</string>
+    <string name="iw_ssid_format">SSID: %s</string>
+    <string name="iw_bssid_format">BSSID: %s</string>
+    <string name="iw_freq_format">Частота: %s</string>
+    <string name="iw_signal_format">Сигнал: %s</string>
+    <string name="iw_bitrate_format">Скорость: %s</string>
+
+    <string name="iw_device_info_title">Информация об устройстве</string>
+    <string name="iw_refresh_device_info">Обновить информацию об устройстве</string>
+    <string name="iw_expand_device_info">Развернуть информацию об устройстве</string>
+    <string name="iw_loading_device_info">Загрузка информации об устройстве…</string>
+    <string name="iw_device_info_unavailable">Информация об устройстве недоступна</string>
+
+    <string name="iw_network_scan_title">Сканер сетей</string>
+    <string name="iw_scan_networks">Сканировать сети</string>
+    <string name="iw_scanning">Сканирование…</string>
+    <string name="iw_ready_to_scan">Готово к сканированию сетей</string>
+    <string name="iw_no_networks_found">Сети не найдены. Попробуйте снова.</string>
+
+    <string name="iw_ready">Сканер iw готов</string>
+    <string name="iw_root_required">Для сканера iw требуется root-доступ</string>
+    <string name="iw_binary_copy_failed">Не удалось скопировать бинарные файлы iw</string>
+    <string name="iw_initial_load_failed">Не удалось загрузить начальные данные</string>
+    <string name="iw_scan_completed">Сканирование завершено. Найдено сетей: %d</string>
+    <string name="iw_scan_failed">Ошибка сканирования: %s</string>
+    <string name="iw_link_refresh_failed">Не удалось обновить информацию о подключении</string>
+    <string name="iw_device_info_failed">Не удалось загрузить информацию об устройстве</string>
+
+    <string name="iw_root_required_title">Требуется Root-доступ</string>
+    <string name="iw_root_required_message">Сканеру iw требуется root-доступ для поиска сетей и получения информации об устройстве. Убедитесь, что устройство рутировано, и предоставьте приложению соответствующие права.</string>
+
+    <string name="iw_error_title">Ошибка сканера</string>
+    <string name="iw_error_message">Произошла ошибка: %s</string>
+
+    <string name="iw_interface_selector_title">Сетевой интерфейс</string>
+    <string name="iw_refresh_interfaces">Обновить интерфейсы</string>
+    <string name="iw_manual_interface">Ручной ввод интерфейса</string>
+    <string name="iw_selected_interface">Интерфейс:</string>
+    <string name="iw_interface_no_details">Дополнительные сведения отсутствуют</string>
+    <string name="iw_interface_refresh_failed">Не удалось обновить интерфейсы</string>
+
+    <string name="iw_manual_interface_title">Ручной интерфейс</string>
+    <string name="iw_manual_interface_message">Введите имя сетевого интерфейса вручную. Это полезно, если интерфейс не был обнаружен автоматически.</string>
+    <string name="iw_interface_hint">например: wlan0, wlan1, p2p0</string>
+    <string name="iw_set_interface">Установить интерфейс</string>
+
+    <string name="iw_device_wiphy_index">Индекс Wiphy</string>
+    <string name="iw_device_max_scan_ssids">Макс. SSID при сканировании</string>
+    <string name="iw_device_max_scan_ies_length">Макс. длина IEs</string>
+    <string name="iw_device_coverage_class">Класс покрытия</string>
+    <string name="iw_device_supports_tdls">Поддержка T-DLS</string>
+    <string name="iw_device_available_antennas">Доступные антенны</string>
+    <string name="iw_device_supported_interface_modes">Поддерживаемые режимы интерфейса</string>
+    <string name="iw_device_supported_ciphers">Поддерживаемые шифры</string>
+    <string name="iw_device_capabilities">Возможности</string>
+    <string name="iw_device_ht_support">Поддержка HT</string>
+    <string name="iw_device_frequencies">Частоты</string>
+    <string name="iw_device_bitrates">Скорости</string>
+    <string name="iw_device_and_more">и ещё %d</string>
+
+    <string name="pixiedust_interface_selector_title">Сетевой интерфейс</string>
+    <string name="pixiedust_refresh_interfaces">Обновить интерфейсы</string>
+    <string name="pixiedust_manual_interface">Ручной ввод</string>
+    <string name="pixiedust_selected_interface">Интерфейс:</string>
+    <string name="pixiedust_interface_hint">wlan0</string>
+    <string name="pixiedust_manual_interface_title">Ввод интерфейса вручную</string>
+    <string name="pixiedust_manual_interface_message">Введите имя интерфейса, который будет использоваться для атаки</string>
+    <string name="pixiedust_set_interface">Установить интерфейс</string>
+
+    <string name="refreshing_map_data">Обновление данных карты…</string>
+    <string name="map_data_refreshed">Данные карты обновлены</string>
+
+    # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

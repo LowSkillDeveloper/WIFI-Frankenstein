@@ -1207,9 +1207,9 @@
     <string name="download_resumed">Download resumed from %1$d%%</string>
     <string name="clearing_old_download">Clearing old download</string>
     <string name="version_changed_restarting">Version changed, restarting download</string>
+    <string name="refreshing_map_data">Refreshing map data…</string>
+    <string name="map_data_refreshed">Map data updated</string>
 
-    <string name="refreshing_map_data">Обновление данных карты…</string>
-    <string name="map_data_refreshed">Данные карты обновлены</string>
 
     <string name="menu_iw_scanner">iw Scanner</string>
     <string name="iw_hidden_ssid">[Hidden Network]</string>
@@ -1282,5 +1282,16 @@
     <string name="iw_device_frequencies">Frequencies</string>
     <string name="iw_device_bitrates">Bitrates</string>
     <string name="iw_device_and_more">and %d more</string>
+
+    <string name="pixiedust_interface_selector_title">Network Interface</string>
+    <string name="pixiedust_refresh_interfaces">Refresh interfaces</string>
+    <string name="pixiedust_manual_interface">Manual interface</string>
+    <string name="pixiedust_selected_interface">Interface:</string>
+    <string name="pixiedust_interface_hint">wlan0</string>
+    <string name="pixiedust_manual_interface_title">Manual Interface Entry</string>
+    <string name="pixiedust_manual_interface_message">Enter the network interface name to use for the attack</string>
+    <string name="pixiedust_set_interface">Set Interface</string>
+
+    # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
