@@ -7,6 +7,8 @@ Added Pixiedust attack
 Added root-based scanner (iw)
 Added wlan interface switching
 Added channel analysis page
+Added Recommended bases
+Added auto mapping of the base
 Added display of additional wifi information
 Added zip support in SmartLinkDB
 Added RouterScan .txt import
@@ -20,6 +22,7 @@ Fixed local file search
 Fixed OutOfMemory crash
 Fixed DB search works on old Android
 Fixed icons on old Android
+The map has been fixed
 Updated to latest Kotlin
 Updated all libraries
 Minor bug fixes and improvements
