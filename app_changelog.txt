@@ -1,6 +1,6 @@
 #1.1
-Added RouterKeygen generators
 Migrated all WPS algorithms to Kotlin
+Added RouterKeygen generators
 Added neighbor-based WPS PINs algorithm
 Added experimental WPS algorithms
 Added Pixiedust attack
