@@ -35,6 +35,7 @@
       "name": "Custom Database with Auto-Mapping",
       "downloadUrl": "https://example.com/custom-db.zip",
       "version": "1.0",
+      "tableName": "wifi_networks",
       "type": "custom-auto-mapping",
       "columnMapping": {
         "essid": "wifi_name",
