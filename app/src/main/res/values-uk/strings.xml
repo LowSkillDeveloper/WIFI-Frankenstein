@@ -1153,6 +1153,16 @@
 
     <string name="no_recommended_sources_skip">Рекомендовані джерела БД недоступні</string>
 
+    <string name="recommended_databases">Рекомендовані бази даних</string>
+    <string name="loading_recommendations">Завантаження рекомендацій…</string>
+    <string name="type_custom_auto">Автоматично зіставлені (Custom)</string>
+    <string name="recommended_community_databases">Рекомендовані спільнотні бази даних</string>
+    <string name="no_recommendations_available">Рекомендовані бази даних недоступні</string>
+    <string name="download_started">Завантаження розпочато</string>
+    <string name="auto_mapping_applied">Автозіставлення успішно застосовано</string>
+    <string name="auto_mapping_failed">Не вдалося застосувати автозіставлення</string>
+
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

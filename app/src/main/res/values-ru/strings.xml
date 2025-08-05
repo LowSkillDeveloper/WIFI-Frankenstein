@@ -1183,6 +1183,14 @@
 
     <string name="no_recommended_sources_skip">Рекомендуемые источники БД недоступны</string>
 
+    <string name="recommended_databases">Рекомендуемые базы данных</string>
+    <string name="loading_recommendations">Загрузка рекомендаций…</string>
+    <string name="type_custom_auto">Автоматически сопоставленные (Custom)</string>
+    <string name="recommended_community_databases">Рекомендуемые комьюнити базы данных</string>
+    <string name="no_recommendations_available">Рекомендуемые базы данных недоступны</string>
+    <string name="download_started">Загрузка начата</string>
+    <string name="auto_mapping_applied">Автосопоставление успешно применено</string>
+    <string name="auto_mapping_failed">Не удалось применить автосопоставление</string>
 
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
