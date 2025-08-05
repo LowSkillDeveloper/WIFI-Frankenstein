@@ -45,6 +45,8 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentDbSetupBinding
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
+import com.lsd.wififrankenstein.ui.welcome.DbSourceAdapter
+import com.lsd.wififrankenstein.ui.welcome.WelcomeDatabaseAdapter
 import com.opencsv.CSVReader
 import com.opencsv.CSVWriter
 import kotlinx.coroutines.Deferred
@@ -56,6 +58,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.InputStreamReader
@@ -76,6 +79,15 @@ class DbSetupFragment : Fragment() {
     private var lastSelectedDbType: String? = null
     private val PREFS_NAME = "db_setup_ui_prefs"
     private val KEY_LAST_DB_TYPE = "last_db_type"
+
+    private lateinit var dbSourceAdapter: DbSourceAdapter
+    private lateinit var recommendedDatabasesAdapter: WelcomeDatabaseAdapter
+    private var currentViewMode = ViewMode.SOURCES
+    private var isShowingDatabases = false
+
+    enum class ViewMode {
+        SOURCES, DATABASES
+    }
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
@@ -109,6 +121,8 @@ class DbSetupFragment : Fragment() {
         setupLocalDbCard()
         updateLocalDbStats()
         setupAdvancedOptions()
+        setupRecommendedDatabases()
+        checkRecommendedDatabases()
 
         viewModel.showColumnMappingEvent.observe(viewLifecycleOwner) { event ->
             showCustomDbSetupDialog(event.dbType, event.type, event.path, event.directPath)
@@ -164,6 +178,199 @@ class DbSetupFragment : Fragment() {
                 binding.switchEnableIndexing.isChecked = false
             }
             .show()
+    }
+
+    private fun setupRecommendedDatabases() {
+        dbSourceAdapter = DbSourceAdapter { source ->
+            loadDatabasesFromSource(source)
+        }
+
+        recommendedDatabasesAdapter = WelcomeDatabaseAdapter(
+            onAddDatabase = { database ->
+                downloadAndAddDatabase(database)
+            },
+            isSelectedList = false
+        )
+
+        binding.recyclerViewRecommended.layoutManager = LinearLayoutManager(requireContext())
+
+        binding.buttonBackToSources.setOnClickListener {
+            goBackToSources()
+        }
+    }
+
+    private fun checkRecommendedDatabases() {
+        binding.progressBarRecommended.visibility = View.VISIBLE
+        binding.textViewRecommendedDescription.text = getString(R.string.loading_recommendations)
+        binding.recyclerViewRecommended.visibility = View.GONE
+
+        val recommendedSourcesUrl = "https://raw.githubusercontent.com/LowSkillDeveloper/WIFI-Frankenstein/refs/heads/service/recommended-databases.json"
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val success = withTimeoutOrNull(2500) {
+                    viewModel.fetchSources(recommendedSourcesUrl)
+                    true
+                } == true
+
+                if (success) {
+                    viewModel.sources.observe(viewLifecycleOwner) { sources ->
+                        binding.progressBarRecommended.visibility = View.GONE
+
+                        if (sources.isNotEmpty()) {
+                            showSources(sources)
+                        } else {
+                            showNoRecommendations()
+                        }
+                    }
+                } else {
+                    showNoRecommendations()
+                }
+            } catch (e: Exception) {
+                showNoRecommendations()
+            }
+        }
+    }
+
+    private fun showSources(sources: List<DbSource>) {
+        currentViewMode = ViewMode.SOURCES
+        isShowingDatabases = false
+
+        binding.textViewRecommendedTitle.text = getString(R.string.recommended_databases)
+        binding.textViewRecommendedDescription.text = getString(R.string.select_database_source)
+        binding.recyclerViewRecommended.adapter = dbSourceAdapter
+        binding.recyclerViewRecommended.visibility = View.VISIBLE
+        binding.buttonBackToSources.visibility = View.GONE
+        dbSourceAdapter.submitList(sources)
+    }
+
+    private fun showNoRecommendations() {
+        binding.progressBarRecommended.visibility = View.GONE
+        binding.textViewRecommendedTitle.text = getString(R.string.recommended_community_databases)
+        binding.textViewRecommendedDescription.text = getString(R.string.no_recommendations_available)
+        binding.recyclerViewRecommended.visibility = View.GONE
+        binding.buttonBackToSources.visibility = View.GONE
+    }
+
+    private fun loadDatabasesFromSource(source: DbSource) {
+        binding.progressBarRecommended.visibility = View.VISIBLE
+        binding.recyclerViewRecommended.visibility = View.GONE
+
+        viewModel.setCurrentSource(source)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                viewModel.fetchSmartLinkDatabases(source.smartlinkUrl)
+
+                viewModel.smartLinkDatabases.observe(viewLifecycleOwner) { databases ->
+                    binding.progressBarRecommended.visibility = View.GONE
+
+                    if (databases != null && databases.isNotEmpty()) {
+                        showDatabasesFromSource(source, databases)
+                    } else {
+                        binding.textViewRecommendedDescription.text = getString(R.string.no_recommendations_available)
+                    }
+                }
+            } catch (e: Exception) {
+                binding.progressBarRecommended.visibility = View.GONE
+                binding.textViewRecommendedDescription.text = getString(R.string.no_recommendations_available)
+            }
+        }
+    }
+
+    private fun showDatabasesFromSource(source: DbSource, databases: List<SmartLinkDbInfo>) {
+        currentViewMode = ViewMode.DATABASES
+        isShowingDatabases = true
+
+        binding.textViewRecommendedTitle.text = getString(R.string.recommended_databases)
+        binding.textViewRecommendedDescription.text = getString(R.string.databases_from_source, source.name)
+        binding.recyclerViewRecommended.adapter = recommendedDatabasesAdapter
+        binding.recyclerViewRecommended.visibility = View.VISIBLE
+        binding.buttonBackToSources.visibility = View.VISIBLE
+
+        val dbItems = databases.map { createDbItemFromSmartLinkInfo(it) }
+        recommendedDatabasesAdapter.submitList(dbItems)
+    }
+
+    private fun goBackToSources() {
+        if (isShowingDatabases) {
+            checkRecommendedDatabases()
+        }
+    }
+
+    private fun downloadAndAddDatabase(database: DbItem) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                showSnackbar(getString(R.string.download_started))
+
+                val dbInfo = viewModel.smartLinkDatabases.value?.find {
+                    it.name == database.type
+                } ?: return@launch
+
+                val downloadedDb = viewModel.downloadSmartLinkDatabase(dbInfo) { progress, downloaded, total ->
+                    // Можно добавить отображение прогресса загрузки
+                }
+
+                downloadedDb?.let { item ->
+                    if (item.dbType == DbType.SQLITE_FILE_CUSTOM) {
+                        viewModel.initializeSQLiteCustomHelper(item.path.toUri(), item.directPath)
+
+                        if (dbInfo.type == "custom-auto-mapping") {
+                            if (item.tableName != null && item.columnMap != null && item.columnMap.isNotEmpty()) {
+                                val finalDbItem = item.copy(
+                                    tableName = item.tableName,
+                                    columnMap = item.columnMap
+                                )
+                                viewModel.addDb(finalDbItem)
+                                showSnackbar(getString(R.string.auto_mapping_applied))
+                            } else {
+                                showCustomDbSetupDialog(
+                                    dbType = item.dbType,
+                                    type = item.type,
+                                    path = item.path,
+                                    directPath = item.directPath
+                                )
+                            }
+                        } else {
+                            showCustomDbSetupDialog(
+                                dbType = item.dbType,
+                                type = item.type,
+                                path = item.path,
+                                directPath = item.directPath
+                            )
+                        }
+                    } else {
+                        viewModel.addDb(item)
+                        showSnackbar(getString(R.string.db_added_successfully))
+                    }
+                }
+            } catch (e: Exception) {
+                showSnackbar(getString(R.string.error_downloading_database, e.message ?: "Unknown error"))
+            }
+        }
+    }
+
+    private fun createDbItemFromSmartLinkInfo(smartLinkInfo: SmartLinkDbInfo): DbItem {
+        val dbType = if (smartLinkInfo.type == "3wifi")
+            DbType.SMARTLINK_SQLITE_FILE_3WIFI
+        else
+            DbType.SMARTLINK_SQLITE_FILE_CUSTOM
+
+        return DbItem(
+            id = UUID.randomUUID().toString(),
+            path = smartLinkInfo.downloadUrls.firstOrNull() ?: "",
+            directPath = null,
+            type = smartLinkInfo.name,
+            dbType = dbType,
+            originalSizeInMB = 0f,
+            cachedSizeInMB = 0f,
+            idJson = smartLinkInfo.id,
+            version = smartLinkInfo.version,
+            updateUrl = smartLinkInfo.downloadUrls.firstOrNull() ?: "",
+            smartlinkType = smartLinkInfo.type,
+            tableName = null,
+            columnMap = smartLinkInfo.columnMapping
+        )
     }
 
     private fun setupLocalDbCard() {
