@@ -369,11 +369,9 @@ class WelcomeDatabasesFragment : Fragment() {
         binding.textViewNoRecommendedDatabases.text = getString(R.string.no_recommended_sources_skip)
         binding.textViewStep1Description.text = getString(R.string.no_recommended_sources_skip)
 
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (isAdded && _binding != null) {
-                showNextStep()
-            }
-        }, 2000)
+        if (isAdded && _binding != null) {
+            showNextStep()
+        }
     }
 
     private fun showSources(sources: List<DbSource>) {
