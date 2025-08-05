@@ -9,7 +9,7 @@ Tools for converting SQL backups of 3WIFI and p3WIFI databases to SQLite format 
 
 ## 🚀 Quick Start
 
-### For 3WIFI dump Database Conversion
+### For 3WIFI or Anti3WiFi dump Database Conversion
 
 1. Place `3wifi.py` in the folder with your unpacked SQL backup
 2. Ensure `geo.sql` and `base.sql` files are present in the same directory
