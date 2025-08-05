@@ -29,6 +29,24 @@
       "downloadUrl3": "https://example.com/WIFI-Frankenstein/p3wifi.zip.003",
       "version": "1.1",
       "type": "3wifi"
+    },
+    {
+      "id": "custom-db-auto",
+      "name": "Custom Database with Auto-Mapping",
+      "downloadUrl": "https://example.com/custom-db.zip",
+      "version": "1.0",
+      "type": "custom-auto-mapping",
+      "columnMapping": {
+        "essid": "wifi_name",
+        "mac": "bssid", 
+        "wifi_pass": "password",
+        "wps_pin": "wps",
+        "latitude": "lat",
+        "longitude": "lon",
+        "admin_panel": "admin_credentials",
+        "security_type": "security",
+        "timestamp": "date_added"
+      }
     }
   ]
 }
