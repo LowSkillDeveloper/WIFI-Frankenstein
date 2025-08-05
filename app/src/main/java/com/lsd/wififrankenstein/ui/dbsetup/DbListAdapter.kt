@@ -35,12 +35,16 @@ class DbListAdapter(
         RecyclerView.ViewHolder(binding.root) {
         @SuppressLint("ClickableViewAccessibility")
         fun bind(item: DbItem) {
-            binding.textViewDbType.text = item.type
+            binding.textViewDbType.text = when {
+                item.smartlinkType == "custom-auto-mapping" -> "${item.type} (${binding.root.context.getString(R.string.type_custom_auto)})"
+                else -> item.type
+            }
             binding.textViewDbPath.text =
                 // хакодед, перед релизом исправить, а вообще пофигу
                 "Content: ${item.path}\nDirect: ${item.directPath ?: "N/A"}"
             binding.textViewOriginalSize.text = "Original size: %.2f MB".format(item.originalSizeInMB)
             binding.textViewCachedSize.text = "Cached size: %.2f MB".format(item.cachedSizeInMB)
+
 
             if (item.isMain && item.dbType == DbType.WIFI_API) {
                 binding.textViewMain.visibility = ViewGroup.VISIBLE

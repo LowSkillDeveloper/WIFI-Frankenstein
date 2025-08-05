@@ -557,12 +557,49 @@ class WelcomeDatabasesFragment : Fragment() {
                                 dialog.dismiss()
                                 try {
                                     dbSetupViewModel.initializeSQLiteCustomHelper(item.path.toUri(), item.directPath)
-                                    showCustomDbSetupDialog(
-                                        dbType = item.dbType,
-                                        type = item.type,
-                                        path = item.path,
-                                        directPath = item.directPath
-                                    )
+
+                                    if (dbInfo.type == "custom-auto-mapping") {
+                                        val tableNames = dbSetupViewModel.getCustomTableNames()
+                                        if (tableNames != null && tableNames.isNotEmpty()) {
+                                            val tableName = tableNames.first()
+                                            val availableColumns = dbSetupViewModel.getCustomColumnNames(tableName)
+
+                                            val validatedMapping = if (dbInfo.columnMapping != null && availableColumns != null) {
+                                                dbInfo.columnMapping.filter { (_, dbColumn) ->
+                                                    availableColumns.contains(dbColumn)
+                                                }
+                                            } else {
+                                                emptyMap()
+                                            }
+
+                                            if (validatedMapping.isNotEmpty()) {
+                                                val finalDbItem = item.copy(
+                                                    tableName = tableName,
+                                                    columnMap = validatedMapping
+                                                )
+                                                dbSetupViewModel.addDb(finalDbItem)
+                                                welcomeViewModel.addSelectedDatabase(finalDbItem)
+                                                showSuccess(getString(R.string.auto_mapping_applied))
+                                            } else {
+                                                showCustomDbSetupDialog(
+                                                    dbType = item.dbType,
+                                                    type = item.type,
+                                                    path = item.path,
+                                                    directPath = item.directPath
+                                                )
+                                                showSnackbar(getString(R.string.auto_mapping_failed))
+                                            }
+                                        } else {
+                                            showSnackbar(getString(R.string.error_reading_database))
+                                        }
+                                    } else {
+                                        showCustomDbSetupDialog(
+                                            dbType = item.dbType,
+                                            type = item.type,
+                                            path = item.path,
+                                            directPath = item.directPath
+                                        )
+                                    }
                                 } catch (e: Exception) {
                                     Log.e("WelcomeDatabasesFragment", "Failed to initialize SQLiteCustomHelper", e)
                                     showSnackbar(getString(R.string.error_reading_database))
@@ -811,7 +848,9 @@ class WelcomeDatabasesFragment : Fragment() {
             idJson = smartLinkInfo.id,
             version = smartLinkInfo.version,
             updateUrl = smartLinkInfo.downloadUrls.firstOrNull() ?: "",
-            smartlinkType = smartLinkInfo.type
+            smartlinkType = smartLinkInfo.type,
+            tableName = null,
+            columnMap = smartLinkInfo.columnMapping
         )
     }
 

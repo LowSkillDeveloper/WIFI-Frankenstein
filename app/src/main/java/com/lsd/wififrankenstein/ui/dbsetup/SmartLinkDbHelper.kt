@@ -34,7 +34,8 @@ data class SmartLinkDbInfo(
     val name: String,
     val downloadUrls: List<String> = emptyList(),
     val version: String,
-    val type: String
+    val type: String,
+    val columnMapping: Map<String, String>? = null
 ) {
     fun isMultiPart(): Boolean {
         return downloadUrls.size > 1
@@ -192,7 +193,15 @@ class SmartLinkDbHelper(private val context: Context) {
                         name = dbObject.getString("name"),
                         downloadUrls = parseDownloadUrls(dbObject),
                         version = dbObject.getString("version"),
-                        type = dbObject.getString("type")
+                        type = dbObject.getString("type"),
+                        columnMapping = if (dbObject.has("columnMapping") && !dbObject.isNull("columnMapping")) {
+                            val mappingObject = dbObject.getJSONObject("columnMapping")
+                            val mapping = mutableMapOf<String, String>()
+                            mappingObject.keys().forEach { key ->
+                                mapping[key] = mappingObject.getString(key)
+                            }
+                            mapping
+                        } else null
                     ))
                 }
 
@@ -262,6 +271,13 @@ class SmartLinkDbHelper(private val context: Context) {
                 Log.d(TAG, "Download completed. Size: ${finalFile.length()} bytes")
 
                 val dbType = detectDbType(finalFile)
+
+                val validatedColumnMap = if (dbInfo.type == "custom-auto-mapping" && dbInfo.columnMapping != null) {
+                    validateColumnMapping(finalFile, dbInfo.columnMapping)
+                } else {
+                    dbInfo.columnMapping
+                }
+
                 val actualFileSize = finalFile.length().toFloat() / (1024 * 1024)
 
                 val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", finalFile)
@@ -279,13 +295,59 @@ class SmartLinkDbHelper(private val context: Context) {
                     updateUrl = jsonUrl,
                     smartlinkType = dbInfo.type,
                     tableName = null,
-                    columnMap = null
+                    columnMap = validatedColumnMap
                 )
             } catch (e: Exception) {
                 clearDownloadMetadata(dbInfo.id)
                 Log.e(TAG, "Download failed", e)
                 throw e
             }
+        }
+    }
+
+    private fun validateColumnMapping(dbFile: File, columnMapping: Map<String, String>): Map<String, String>? {
+        return try {
+            val db = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
+            val tables = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null).use { cursor ->
+                buildList {
+                    while (cursor.moveToNext()) {
+                        add(cursor.getString(0))
+                    }
+                }
+            }
+
+            if (tables.isEmpty()) {
+                db.close()
+                return null
+            }
+
+            val tableName = tables.first()
+            val availableColumns = db.rawQuery("PRAGMA table_info($tableName)", null).use { cursor ->
+                buildSet {
+                    while (cursor.moveToNext()) {
+                        add(cursor.getString(1))
+                    }
+                }
+            }
+            db.close()
+
+            val validatedMapping = columnMapping.filter { (_, dbColumn) ->
+                availableColumns.contains(dbColumn)
+            }
+
+            Log.d("SmartLinkDbHelper", "Original mapping: $columnMapping")
+            Log.d("SmartLinkDbHelper", "Available columns: $availableColumns")
+            Log.d("SmartLinkDbHelper", "Validated mapping: $validatedMapping")
+
+            val skippedColumns = columnMapping.keys - validatedMapping.keys
+            if (skippedColumns.isNotEmpty()) {
+                Log.w("SmartLinkDbHelper", "Skipped columns (not found in DB): $skippedColumns")
+            }
+
+            if (validatedMapping.isNotEmpty()) validatedMapping else null
+        } catch (e: Exception) {
+            Log.e("SmartLinkDbHelper", "Error validating column mapping", e)
+            null
         }
     }
 

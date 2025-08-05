@@ -1372,6 +1372,14 @@
 
     <string name="no_recommended_sources_skip">Recommended DB sources are not available</string>
 
+    <string name="type_custom_auto">Auto-mapped Custom</string>
+    <string name="auto_mapping_applied">Auto-mapping applied successfully</string>
+    <string name="auto_mapping_failed">Failed to apply auto-mapping</string>
+
+    <string name="auto_mapping_partial">Partial auto-mapping applied (%d of %d columns)</string>
+    <string name="column_not_found">Column \'%s\' not found in database</string>
+    <string name="no_valid_columns">No valid columns found for auto-mapping</string>
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
