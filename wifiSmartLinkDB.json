@@ -33,7 +33,7 @@
     {
       "id": "custom-db-auto",
       "name": "Custom Database with Auto-Mapping",
-      "downloadUrl": "https://example.com/custom-db.zip",
+      "downloadUrl": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/test/test_custom.sqlite",
       "version": "1.0",
       "type": "custom-auto-mapping",
       "tableName": "wifi_networks",
@@ -48,4 +48,5 @@
     }
   ]
 }
+
 
