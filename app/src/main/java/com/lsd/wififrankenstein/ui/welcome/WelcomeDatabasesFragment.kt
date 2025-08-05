@@ -559,38 +559,22 @@ class WelcomeDatabasesFragment : Fragment() {
                                     dbSetupViewModel.initializeSQLiteCustomHelper(item.path.toUri(), item.directPath)
 
                                     if (dbInfo.type == "custom-auto-mapping") {
-                                        val tableNames = dbSetupViewModel.getCustomTableNames()
-                                        if (tableNames != null && tableNames.isNotEmpty()) {
-                                            val tableName = tableNames.first()
-                                            val availableColumns = dbSetupViewModel.getCustomColumnNames(tableName)
-
-                                            val validatedMapping = if (dbInfo.columnMapping != null && availableColumns != null) {
-                                                dbInfo.columnMapping.filter { (_, dbColumn) ->
-                                                    availableColumns.contains(dbColumn)
-                                                }
-                                            } else {
-                                                emptyMap()
-                                            }
-
-                                            if (validatedMapping.isNotEmpty()) {
-                                                val finalDbItem = item.copy(
-                                                    tableName = tableName,
-                                                    columnMap = validatedMapping
-                                                )
-                                                dbSetupViewModel.addDb(finalDbItem)
-                                                welcomeViewModel.addSelectedDatabase(finalDbItem)
-                                                showSuccess(getString(R.string.auto_mapping_applied))
-                                            } else {
-                                                showCustomDbSetupDialog(
-                                                    dbType = item.dbType,
-                                                    type = item.type,
-                                                    path = item.path,
-                                                    directPath = item.directPath
-                                                )
-                                                showSnackbar(getString(R.string.auto_mapping_failed))
-                                            }
+                                        if (item.tableName != null && item.columnMap != null && item.columnMap.isNotEmpty()) {
+                                            val finalDbItem = item.copy(
+                                                tableName = item.tableName,
+                                                columnMap = item.columnMap
+                                            )
+                                            dbSetupViewModel.addDb(finalDbItem)
+                                            welcomeViewModel.addSelectedDatabase(finalDbItem)
+                                            showSuccess(getString(R.string.auto_mapping_applied))
                                         } else {
-                                            showSnackbar(getString(R.string.error_reading_database))
+                                            showCustomDbSetupDialog(
+                                                dbType = item.dbType,
+                                                type = item.type,
+                                                path = item.path,
+                                                directPath = item.directPath
+                                            )
+                                            showSnackbar(getString(R.string.auto_mapping_failed))
                                         }
                                     } else {
                                         showCustomDbSetupDialog(

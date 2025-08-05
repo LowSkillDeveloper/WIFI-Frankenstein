@@ -35,7 +35,8 @@ data class SmartLinkDbInfo(
     val downloadUrls: List<String> = emptyList(),
     val version: String,
     val type: String,
-    val columnMapping: Map<String, String>? = null
+    val columnMapping: Map<String, String>? = null,
+    val tableName: String? = null
 ) {
     fun isMultiPart(): Boolean {
         return downloadUrls.size > 1
@@ -201,6 +202,9 @@ class SmartLinkDbHelper(private val context: Context) {
                                 mapping[key] = mappingObject.getString(key)
                             }
                             mapping
+                        } else null,
+                        tableName = if (dbObject.has("tableName") && !dbObject.isNull("tableName")) {
+                            dbObject.getString("tableName")
                         } else null
                     ))
                 }
@@ -272,10 +276,10 @@ class SmartLinkDbHelper(private val context: Context) {
 
                 val dbType = detectDbType(finalFile)
 
-                val validatedColumnMap = if (dbInfo.type == "custom-auto-mapping" && dbInfo.columnMapping != null) {
-                    validateColumnMapping(finalFile, dbInfo.columnMapping)
+                val (validatedTableName, validatedColumnMap) = if (dbInfo.type == "custom-auto-mapping" && dbInfo.columnMapping != null) {
+                    validateColumnMapping(finalFile, dbInfo.columnMapping, dbInfo.tableName)
                 } else {
-                    dbInfo.columnMapping
+                    Pair(dbInfo.tableName, dbInfo.columnMapping)
                 }
 
                 val actualFileSize = finalFile.length().toFloat() / (1024 * 1024)
@@ -294,7 +298,7 @@ class SmartLinkDbHelper(private val context: Context) {
                     version = dbInfo.version,
                     updateUrl = jsonUrl,
                     smartlinkType = dbInfo.type,
-                    tableName = null,
+                    tableName = validatedTableName,
                     columnMap = validatedColumnMap
                 )
             } catch (e: Exception) {
@@ -305,7 +309,7 @@ class SmartLinkDbHelper(private val context: Context) {
         }
     }
 
-    private fun validateColumnMapping(dbFile: File, columnMapping: Map<String, String>): Map<String, String>? {
+    private fun validateColumnMapping(dbFile: File, columnMapping: Map<String, String>, specifiedTableName: String?): Pair<String?, Map<String, String>?> {
         return try {
             val db = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
             val tables = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null).use { cursor ->
@@ -318,11 +322,23 @@ class SmartLinkDbHelper(private val context: Context) {
 
             if (tables.isEmpty()) {
                 db.close()
-                return null
+                return Pair(null, null)
             }
 
-            val tableName = tables.first()
-            val availableColumns = db.rawQuery("PRAGMA table_info($tableName)", null).use { cursor ->
+            val targetTable = when {
+                specifiedTableName != null && tables.contains(specifiedTableName) -> specifiedTableName
+                specifiedTableName != null -> {
+                    Log.w("SmartLinkDbHelper", "Specified table '$specifiedTableName' not found. Available tables: $tables")
+                    db.close()
+                    return Pair(null, null)
+                }
+                else -> {
+                    Log.w("SmartLinkDbHelper", "No table specified for custom-auto-mapping. Available tables: $tables")
+                    tables.first()
+                }
+            }
+
+            val availableColumns = db.rawQuery("PRAGMA table_info($targetTable)", null).use { cursor ->
                 buildSet {
                     while (cursor.moveToNext()) {
                         add(cursor.getString(1))
@@ -335,19 +351,24 @@ class SmartLinkDbHelper(private val context: Context) {
                 availableColumns.contains(dbColumn)
             }
 
+            Log.d("SmartLinkDbHelper", "Target table: $targetTable")
             Log.d("SmartLinkDbHelper", "Original mapping: $columnMapping")
             Log.d("SmartLinkDbHelper", "Available columns: $availableColumns")
             Log.d("SmartLinkDbHelper", "Validated mapping: $validatedMapping")
 
             val skippedColumns = columnMapping.keys - validatedMapping.keys
             if (skippedColumns.isNotEmpty()) {
-                Log.w("SmartLinkDbHelper", "Skipped columns (not found in DB): $skippedColumns")
+                Log.w("SmartLinkDbHelper", "Skipped columns (not found in table '$targetTable'): $skippedColumns")
             }
 
-            if (validatedMapping.isNotEmpty()) validatedMapping else null
+            if (validatedMapping.isNotEmpty()) {
+                Pair(targetTable, validatedMapping)
+            } else {
+                Pair(null, null)
+            }
         } catch (e: Exception) {
             Log.e("SmartLinkDbHelper", "Error validating column mapping", e)
-            null
+            Pair(null, null)
         }
     }
 
