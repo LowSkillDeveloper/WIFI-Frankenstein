@@ -41,6 +41,7 @@ Below is an example of a `smartlinkdb` configuration JSON file, which the applic
       "downloadUrl": "https://example.com/custom-db.zip",
       "version": "1.0",
       "type": "custom-auto-mapping",
+      "tableName": "wifi_networks",
       "columnMapping": {
         "essid": "wifi_name",
         "mac": "bssid", 
@@ -73,8 +74,10 @@ Below is an example of a `smartlinkdb` configuration JSON file, which the applic
 - **`type`** — Type of database:
   - `3wifi`: Database converted using the `3wifi.py` or `p3wifi.py` scripts.
   - `custom`: Any SQLite database with a custom table/column structure.
+
   - `custom-auto-mapping`: Any SQLite database with a custom table/column structure. Same as "custom". But the mapping is already specified in the json file, the user will not need to match the columns themselves after downloading.
 
+- **`tableName`** — This parameter applies only to "custom-auto-mapping", it is needed to specify the name of the table that is used in the sqlite file.
 
 The file can be either a raw `.db`/`.sqlite` file or a ZIP archive.
 
