@@ -80,7 +80,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         Color.RED,
         Color.BLUE,
         Color.GREEN,
-        Color.YELLOW,
+        Color.rgb(139, 69, 19),
         Color.MAGENTA,
         Color.CYAN,
         Color.rgb(255, 165, 0),

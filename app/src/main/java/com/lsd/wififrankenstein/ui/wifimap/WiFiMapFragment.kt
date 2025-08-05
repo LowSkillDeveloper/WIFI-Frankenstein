@@ -73,19 +73,6 @@ class WiFiMapFragment : Fragment() {
 
     private var currentIndexingDb: DbItem? = null
 
-    private val databaseColors = mutableMapOf<String, Int>()
-    private val availableColors = listOf(
-        Color.RED,
-        Color.BLUE,
-        Color.GREEN,
-        Color.YELLOW,
-        Color.MAGENTA,
-        Color.CYAN,
-        Color.rgb(255, 165, 0),
-        Color.rgb(128, 0, 128),
-        Color.rgb(165, 42, 42),
-        Color.rgb(255, 192, 203)
-    )
     private var nextColorIndex = 0
 
     private var lastMapUpdateTime = 0L
@@ -808,11 +795,7 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun getColorForDatabase(databaseId: String): Int {
-        return databaseColors.getOrPut(databaseId) {
-            val color = availableColors[nextColorIndex % availableColors.size]
-            nextColorIndex++
-            color
-        }
+        return viewModel.getColorForDatabase(databaseId)
     }
 
     private fun updateLegend() {
