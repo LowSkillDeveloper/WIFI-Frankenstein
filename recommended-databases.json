@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "id": "test_3wifi",
+      "name": "RU Базы от 3WiFi",
+      "description": "Официальные пустые базы данных WiFi сетей",
+      "smartlinkUrl": "https://raw.githubusercontent.com/LowSkillDeveloper/WIFI-Frankenstein/refs/heads/test/wifiSmartLinkDB.json"
+    },
+    {
+      "id": "user_nikname",
+      "name": "EN wifi",
+      "description": "EN description",
+      "smartlinkUrl": "https://raw.githubusercontent.com/LowSkillDeveloper/WIFI-Frankenstein/refs/heads/test/wifiSmartLinkDB.json"
+    }
+  ]
+}
