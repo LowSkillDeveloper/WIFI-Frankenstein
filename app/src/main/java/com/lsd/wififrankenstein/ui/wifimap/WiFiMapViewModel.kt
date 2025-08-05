@@ -1089,8 +1089,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                         wpsPin = wpsPin,
                                         routerModel = routerModel,
                                         adminCredentials = parseAdminCredentials(authData),
-                                        isHidden = hiddenData == "b1" || hiddenData == "1" || hiddenData?.lowercase() == "true",
-                                        isWifiDisabled = radioOffData == "b1" || radioOffData == "1" || radioOffData?.lowercase() == "true",
+                                        isHidden = parseHiddenStatus(hiddenData),
+                                        isWifiDisabled = parseWifiDisabledStatus(radioOffData),
                                         timeAdded = timeData,
                                         rawData = info
                                     )
@@ -1213,6 +1213,20 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 Log.e(TAG, "Error loading point info", e)
                 _error.postValue(getApplication<Application>().getString(R.string.point_loading_error))
             }
+        }
+    }
+
+    private fun parseHiddenStatus(value: String?): Boolean {
+        return when (value?.lowercase()?.trim()) {
+            "b1", "1", "true", "yes" -> true
+            else -> false
+        }
+    }
+
+    private fun parseWifiDisabledStatus(value: String?): Boolean {
+        return when (value?.lowercase()?.trim()) {
+            "b1", "1", "true", "yes" -> true
+            else -> false
         }
     }
 
