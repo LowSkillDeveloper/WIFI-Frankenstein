@@ -71,7 +71,7 @@ The application combines various WiFi tools and functionality into one powerful 
 | Feature | WiFi Frankenstein | 3WiFi Locator |
 |---------|-------------------|---------------|
 | Local in-app Database | ✅ Yes  | ⚠️ Limited |
-| Offline Full 3WiFi Database | ✅ Yes | ❌ Not supported |
+| Offline Full 3WiFi Database | ✅ Supported | ❌ Not supported |
 | Advanced 3WiFi API Settings | ✅ Full access | ⚠️ Limited API access |
 | WPS PixieDust (OneShot) | ✅ Supported (Root) | ❌ Not supported |
 | Viewing saved passwords in memory | ✅ Supported (Root) | ✅ Supported (Root) |
