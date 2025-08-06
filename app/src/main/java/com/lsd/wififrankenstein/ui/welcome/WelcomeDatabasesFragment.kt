@@ -157,8 +157,7 @@ class WelcomeDatabasesFragment : Fragment() {
 
         recommendedDatabasesAdapter = WelcomeDatabaseAdapter(
             onAddDatabase = { database ->
-                dbSetupViewModel.addDb(database)
-                forceUpdateDbList()
+                downloadAndAddDatabase(database)
             },
             isSelectedList = false
         )
@@ -363,6 +362,126 @@ class WelcomeDatabasesFragment : Fragment() {
         }
     }
 
+    @SuppressLint("LongLogTag")
+    private fun downloadAndAddDatabase(database: DbItem) {
+        val progressDialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(R.layout.dialog_download_progress)
+            .setCancelable(false)
+            .create()
+
+        progressDialog.show()
+
+        val progressText = progressDialog.findViewById<TextView>(R.id.textViewProgress)
+        val progressBar = progressDialog.findViewById<ProgressBar>(R.id.progressBarDownload)
+        val cancelButton = progressDialog.findViewById<Button>(R.id.buttonCancel)
+
+        var isCancelled = false
+        val downloadJob = viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val currentSource = dbSetupViewModel.getCurrentSource()
+                val sourceUrl = currentSource?.smartlinkUrl ?: database.updateUrl
+
+                if (sourceUrl.isNullOrBlank()) {
+                    Log.e("WelcomeDatabasesFragment", "Source URL is null or blank")
+                    showError(getString(R.string.error_downloading_database, "Source URL not found"))
+                    return@launch
+                }
+
+                dbSetupViewModel.fetchSmartLinkDatabases(sourceUrl)
+                delay(500)
+
+                val dbInfo = dbSetupViewModel.smartLinkDatabases.value?.find {
+                    it.id == database.idJson
+                }
+
+                if (dbInfo == null) {
+                    Log.e("WelcomeDatabasesFragment", "Database info not found for id: ${database.idJson}")
+                    showError(getString(R.string.error_downloading_database, "Database info not found"))
+                    return@launch
+                }
+
+                progressText?.text = getString(R.string.downloading_database_progress, 1, 1, dbInfo.name)
+
+                val downloadedDb = dbSetupViewModel.downloadSmartLinkDatabase(dbInfo) { progress, downloaded, total ->
+                    if (!isCancelled) {
+                        progressBar?.progress = progress
+                        val downloadedMB = downloaded / (1024 * 1024)
+                        val totalMB = total?.let { it / (1024 * 1024) }
+
+                        val progressMessage = when (progress) {
+                            -1 -> getString(R.string.extracting_archive)
+                            -2 -> getString(R.string.downloading_archive_part, downloaded.toInt(), total?.toInt() ?: 0)
+                            -3 -> getString(R.string.merging_archive_parts)
+                            else -> {
+                                if (total != null) {
+                                    getString(R.string.downloading_database_progress_size,
+                                        1, 1, dbInfo.name, downloadedMB, totalMB)
+                                } else {
+                                    getString(R.string.downloading_database_progress_no_size,
+                                        1, 1, dbInfo.name, downloadedMB)
+                                }
+                            }
+                        }
+                        progressText?.text = progressMessage
+                    }
+                }
+
+                downloadedDb?.let { item ->
+                    progressDialog.dismiss()
+
+                    if (item.dbType == DbType.SQLITE_FILE_CUSTOM) {
+                        dbSetupViewModel.initializeSQLiteCustomHelper(item.path.toUri(), item.directPath)
+
+                        if (dbInfo.type == "custom-auto-mapping") {
+                            if (item.tableName != null && item.columnMap != null && item.columnMap.isNotEmpty()) {
+                                val finalDbItem = item.copy(
+                                    tableName = item.tableName,
+                                    columnMap = item.columnMap
+                                )
+                                dbSetupViewModel.addDb(finalDbItem)
+                                welcomeViewModel.addSelectedDatabase(finalDbItem)
+                                showSuccess(getString(R.string.auto_mapping_applied))
+                            } else {
+                                showCustomDbSetupDialog(
+                                    dbType = item.dbType,
+                                    type = item.type,
+                                    path = item.path,
+                                    directPath = item.directPath
+                                )
+                                showSnackbar(getString(R.string.auto_mapping_failed))
+                            }
+                        } else {
+                            showCustomDbSetupDialog(
+                                dbType = item.dbType,
+                                type = item.type,
+                                path = item.path,
+                                directPath = item.directPath
+                            )
+                        }
+                    } else {
+                        val existingDb = dbSetupViewModel.dbList.value?.find { it.id == item.id }
+                        if (existingDb == null) {
+                            dbSetupViewModel.addDb(item)
+                            welcomeViewModel.addSelectedDatabase(item)
+                        }
+                        forceUpdateDbList()
+                        showSuccess(getString(R.string.db_added_successfully))
+                    }
+                }
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                Log.e("WelcomeDatabasesFragment", "Error downloading database", e)
+                showError(getString(R.string.error_downloading_database, e.message ?: "Unknown error"))
+            }
+        }
+
+        cancelButton?.setOnClickListener {
+            isCancelled = true
+            downloadJob.cancel()
+            progressDialog.dismiss()
+        }
+    }
+
     private fun skipToNextStep() {
         binding.progressBarStep1.visibility = View.GONE
         binding.textViewNoRecommendedDatabases.visibility = View.VISIBLE
@@ -428,7 +547,11 @@ class WelcomeDatabasesFragment : Fragment() {
         binding.recyclerViewRecommendedDatabases.adapter = recommendedDatabasesAdapter
         binding.recyclerViewRecommendedDatabases.visibility = View.VISIBLE
 
-        val dbItems = databases.map { createDbItemFromSmartLinkInfo(it) }
+        val dbItems = databases.map {
+            createDbItemFromSmartLinkInfo(it).copy(
+                updateUrl = source.smartlinkUrl
+            )
+        }
         recommendedDatabasesAdapter.submitList(dbItems)
     }
 
@@ -831,7 +954,7 @@ class WelcomeDatabasesFragment : Fragment() {
             cachedSizeInMB = 0f,
             idJson = smartLinkInfo.id,
             version = smartLinkInfo.version,
-            updateUrl = smartLinkInfo.downloadUrls.firstOrNull() ?: "",
+            updateUrl = dbSetupViewModel.getCurrentSource()?.smartlinkUrl ?: "",
             smartlinkType = smartLinkInfo.type,
             tableName = null,
             columnMap = smartLinkInfo.columnMapping

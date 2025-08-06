@@ -187,7 +187,9 @@ class DbSetupFragment : Fragment() {
 
         recommendedDatabasesAdapter = WelcomeDatabaseAdapter(
             onAddDatabase = { database ->
-                downloadAndAddDatabase(database)
+                viewLifecycleOwner.lifecycleScope.launch {
+                    downloadAndAddDatabase(database)
+                }
             },
             isSelectedList = false
         )
@@ -288,7 +290,11 @@ class DbSetupFragment : Fragment() {
         binding.recyclerViewRecommended.visibility = View.VISIBLE
         binding.buttonBackToSources.visibility = View.VISIBLE
 
-        val dbItems = databases.map { createDbItemFromSmartLinkInfo(it) }
+        val dbItems = databases.map {
+            createDbItemFromSmartLinkInfo(it).copy(
+                updateUrl = source.smartlinkUrl
+            )
+        }
         recommendedDatabasesAdapter.submitList(dbItems)
     }
 
@@ -299,19 +305,67 @@ class DbSetupFragment : Fragment() {
     }
 
     private fun downloadAndAddDatabase(database: DbItem) {
-        viewLifecycleOwner.lifecycleScope.launch {
+        val progressDialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(R.layout.dialog_download_progress)
+            .setCancelable(false)
+            .create()
+
+        progressDialog.show()
+
+        val progressText = progressDialog.findViewById<TextView>(R.id.textViewProgress)
+        val progressBar = progressDialog.findViewById<ProgressBar>(R.id.progressBarDownload)
+        val cancelButton = progressDialog.findViewById<Button>(R.id.buttonCancel)
+
+        var isCancelled = false
+        val downloadJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
-                showSnackbar(getString(R.string.download_started))
+                val currentSource = viewModel.sources.value?.find { source ->
+                    viewModel.smartLinkDatabases.value?.any { it.id == database.idJson } == true
+                }
+
+                val sourceUrl = currentSource?.smartlinkUrl ?: database.updateUrl
+
+                if (sourceUrl.isNullOrBlank()) {
+                    showSnackbar(getString(R.string.error_downloading_database, "Source URL not found"))
+                    return@launch
+                }
+
+                viewModel.fetchSmartLinkDatabases(sourceUrl)
+                delay(500)
 
                 val dbInfo = viewModel.smartLinkDatabases.value?.find {
-                    it.name == database.type
+                    it.id == database.idJson
                 } ?: return@launch
 
+                progressText?.text = getString(R.string.downloading_database_progress, 1, 1, dbInfo.name)
+
                 val downloadedDb = viewModel.downloadSmartLinkDatabase(dbInfo) { progress, downloaded, total ->
-                    // Можно добавить отображение прогресса загрузки
+                    if (!isCancelled) {
+                        progressBar?.progress = progress
+                        val downloadedMB = downloaded / (1024 * 1024)
+                        val totalMB = total?.let { it / (1024 * 1024) }
+
+                        val progressMessage = when (progress) {
+                            -1 -> getString(R.string.extracting_archive)
+                            -2 -> getString(R.string.downloading_archive_part, downloaded.toInt(), total?.toInt() ?: 0)
+                            -3 -> getString(R.string.merging_archive_parts)
+                            else -> {
+                                if (total != null) {
+                                    getString(R.string.downloading_database_progress_size,
+                                        1, 1, dbInfo.name, downloadedMB, totalMB)
+                                } else {
+                                    getString(R.string.downloading_database_progress_no_size,
+                                        1, 1, dbInfo.name, downloadedMB)
+                                }
+                            }
+                        }
+                        progressText?.text = progressMessage
+                    }
                 }
 
                 downloadedDb?.let { item ->
+                    progressDialog.dismiss()
+
                     if (item.dbType == DbType.SQLITE_FILE_CUSTOM) {
                         viewModel.initializeSQLiteCustomHelper(item.path.toUri(), item.directPath)
 
@@ -345,8 +399,15 @@ class DbSetupFragment : Fragment() {
                     }
                 }
             } catch (e: Exception) {
+                progressDialog.dismiss()
                 showSnackbar(getString(R.string.error_downloading_database, e.message ?: "Unknown error"))
             }
+        }
+
+        cancelButton?.setOnClickListener {
+            isCancelled = true
+            downloadJob.cancel()
+            progressDialog.dismiss()
         }
     }
 
@@ -366,7 +427,9 @@ class DbSetupFragment : Fragment() {
             cachedSizeInMB = 0f,
             idJson = smartLinkInfo.id,
             version = smartLinkInfo.version,
-            updateUrl = smartLinkInfo.downloadUrls.firstOrNull() ?: "",
+            updateUrl = viewModel.sources.value?.find {
+                viewModel.getCurrentSource()?.id == it.id
+            }?.smartlinkUrl ?: "",
             smartlinkType = smartLinkInfo.type,
             tableName = null,
             columnMap = smartLinkInfo.columnMapping

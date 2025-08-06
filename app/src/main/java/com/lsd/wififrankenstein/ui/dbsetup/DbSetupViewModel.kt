@@ -72,6 +72,10 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         smartLinkDbHelper.setCurrentSource(source)
     }
 
+    fun getCurrentSource(): DbSource? {
+        return smartLinkDbHelper.getCurrentSource()
+    }
+
     private val _indexingProgress = MutableLiveData<Pair<String, Int>>()
     val indexingProgress: LiveData<Pair<String, Int>> = _indexingProgress
 
