@@ -16,9 +16,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.apache.commons.compress.archivers.ArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
-import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.json.JSONObject
 import java.io.BufferedInputStream
 import java.io.File
@@ -27,6 +25,7 @@ import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.net.URL
 import java.util.UUID
+import java.util.zip.ZipInputStream
 
 @Serializable
 data class SmartLinkDbInfo(
@@ -163,13 +162,19 @@ class SmartLinkDbHelper(private val context: Context) {
         val urls = mutableListOf<String>()
 
         if (jsonObject.has("downloadUrl") && !jsonObject.isNull("downloadUrl")) {
-            urls.add(jsonObject.getString("downloadUrl"))
-        } else {
-            var urlIndex = 1
-            while (jsonObject.has("downloadUrl$urlIndex") && !jsonObject.isNull("downloadUrl$urlIndex")) {
-                urls.add(jsonObject.getString("downloadUrl$urlIndex"))
-                urlIndex++
+            val url = jsonObject.getString("downloadUrl")
+            if (url.isNotBlank()) {
+                urls.add(url)
             }
+        }
+
+        var urlIndex = 1
+        while (jsonObject.has("downloadUrl$urlIndex") && !jsonObject.isNull("downloadUrl$urlIndex")) {
+            val url = jsonObject.getString("downloadUrl$urlIndex")
+            if (url.isNotBlank()) {
+                urls.add(url)
+            }
+            urlIndex++
         }
 
         return urls
@@ -296,7 +301,7 @@ class SmartLinkDbHelper(private val context: Context) {
                     cachedSizeInMB = actualFileSize,
                     idJson = dbInfo.id,
                     version = dbInfo.version,
-                    updateUrl = jsonUrl,
+                    updateUrl = currentSource?.smartlinkUrl ?: jsonUrl,
                     smartlinkType = dbInfo.type,
                     tableName = validatedTableName,
                     columnMap = validatedColumnMap
@@ -638,32 +643,40 @@ class SmartLinkDbHelper(private val context: Context) {
     }
 
     private fun extract7z(archiveFile: File, outputFile: File) {
-        SevenZFile(archiveFile).use { sevenZFile ->
-            var entry: ArchiveEntry? = sevenZFile.nextEntry
+        try {
+            SevenZFile(archiveFile).use { sevenZFile ->
+                var entry = sevenZFile.nextEntry
+                while (entry != null) {
+                    if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
+                        FileOutputStream(outputFile).use { output ->
+                            val buffer = ByteArray(BUFFER_SIZE)
+                            var bytesRead: Int
+                            while (sevenZFile.read(buffer).also { bytesRead = it } != -1) {
+                                output.write(buffer, 0, bytesRead)
+                            }
+                        }
+                        return
+                    }
+                    entry = sevenZFile.nextEntry
+                }
+                throw Exception("No database file found in archive")
+            }
+        } catch (e: Exception) {
+            throw Exception("Failed to extract 7z archive: ${e.message}")
+        }
+    }
+
+    private fun extractZip(archiveFile: File, outputFile: File) {
+        java.util.zip.ZipInputStream(BufferedInputStream(FileInputStream(archiveFile))).use { zipInput ->
+            var entry = zipInput.nextEntry
             while (entry != null) {
                 if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
                     FileOutputStream(outputFile).use { output ->
                         val buffer = ByteArray(BUFFER_SIZE)
                         var bytesRead: Int
-                        while (sevenZFile.read(buffer).also { bytesRead = it } != -1) {
+                        while (zipInput.read(buffer).also { bytesRead = it } != -1) {
                             output.write(buffer, 0, bytesRead)
                         }
-                    }
-                    return
-                }
-                entry = sevenZFile.nextEntry
-            }
-            throw Exception("No database file found in archive")
-        }
-    }
-
-    private fun extractZip(archiveFile: File, outputFile: File) {
-        ZipArchiveInputStream(BufferedInputStream(FileInputStream(archiveFile))).use { zipInput ->
-            var entry = zipInput.nextEntry
-            while (entry != null) {
-                if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
-                    FileOutputStream(outputFile).use { output ->
-                        zipInput.copyTo(output, BUFFER_SIZE)
                     }
                     return
                 }
