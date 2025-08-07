@@ -85,3 +85,7 @@ For split ZIP archives, use `downloadUrl1`, `downloadUrl2`, ..., up to `download
 (e.g., `.zip.001`, `.zip.002`, etc.).
 
 An example of a split archive is shown in the last entry of the array above.
+
+
+> [!NOTE]
+> If you want to add your database to the SmartLinkDB recommendation section in the application for all users, i.e. share your database, then create a ticket in the "Issues" section on github, with a request to add your smartlinkdb link to the application.
