@@ -121,6 +121,7 @@ class DbSetupFragment : Fragment() {
         setupLocalDbCard()
         updateLocalDbStats()
         setupAdvancedOptions()
+        setupRecommendedDatabasesToggle()
         setupRecommendedDatabases()
         checkRecommendedDatabases()
 
@@ -202,9 +203,11 @@ class DbSetupFragment : Fragment() {
     }
 
     private fun checkRecommendedDatabases() {
-        binding.progressBarRecommended.visibility = View.VISIBLE
-        binding.textViewRecommendedDescription.text = getString(R.string.loading_recommendations)
-        binding.recyclerViewRecommended.visibility = View.GONE
+        if (binding.layoutRecommendedDatabases.isVisible) {
+            binding.progressBarRecommended.visibility = View.VISIBLE
+            binding.textViewRecommendedDescription.text = getString(R.string.loading_recommendations)
+            binding.recyclerViewRecommended.visibility = View.GONE
+        }
 
         val recommendedSourcesUrl = "https://raw.githubusercontent.com/LowSkillDeveloper/WIFI-Frankenstein/refs/heads/service/recommended-databases.json"
 
@@ -234,6 +237,25 @@ class DbSetupFragment : Fragment() {
         }
     }
 
+    private fun setupRecommendedDatabasesToggle() {
+        binding.buttonExpandRecommendedDatabases.setOnClickListener {
+            toggleRecommendedDatabases()
+        }
+    }
+
+    private fun toggleRecommendedDatabases() {
+        val isExpanded = binding.layoutRecommendedDatabases.isVisible
+        binding.layoutRecommendedDatabases.visibility = if (isExpanded) View.GONE else View.VISIBLE
+        val iconRes = if (isExpanded) R.drawable.ic_expand_more else R.drawable.ic_expand_less
+        val textRes = if (isExpanded) R.string.show_recommended_databases else R.string.hide_recommended_databases
+        binding.buttonExpandRecommendedDatabases.setIconResource(iconRes)
+        binding.buttonExpandRecommendedDatabases.text = getString(textRes)
+
+        if (!isExpanded && !isShowingDatabases) {
+            checkRecommendedDatabases()
+        }
+    }
+
     private fun showSources(sources: List<DbSource>) {
         currentViewMode = ViewMode.SOURCES
         isShowingDatabases = false
@@ -241,7 +263,9 @@ class DbSetupFragment : Fragment() {
         binding.textViewRecommendedTitle.text = getString(R.string.recommended_databases)
         binding.textViewRecommendedDescription.text = getString(R.string.select_database_source)
         binding.recyclerViewRecommended.adapter = dbSourceAdapter
-        binding.recyclerViewRecommended.visibility = View.VISIBLE
+        if (binding.layoutRecommendedDatabases.isVisible) {
+            binding.recyclerViewRecommended.visibility = View.VISIBLE
+        }
         binding.buttonBackToSources.visibility = View.GONE
         dbSourceAdapter.submitList(sources)
     }
@@ -250,7 +274,9 @@ class DbSetupFragment : Fragment() {
         binding.progressBarRecommended.visibility = View.GONE
         binding.textViewRecommendedTitle.text = getString(R.string.recommended_community_databases)
         binding.textViewRecommendedDescription.text = getString(R.string.no_recommendations_available)
-        binding.recyclerViewRecommended.visibility = View.GONE
+        if (binding.layoutRecommendedDatabases.isVisible) {
+            binding.recyclerViewRecommended.visibility = View.GONE
+        }
         binding.buttonBackToSources.visibility = View.GONE
     }
 
@@ -287,7 +313,9 @@ class DbSetupFragment : Fragment() {
         binding.textViewRecommendedTitle.text = getString(R.string.recommended_databases)
         binding.textViewRecommendedDescription.text = getString(R.string.databases_from_source, source.name)
         binding.recyclerViewRecommended.adapter = recommendedDatabasesAdapter
-        binding.recyclerViewRecommended.visibility = View.VISIBLE
+        if (binding.layoutRecommendedDatabases.isVisible) {
+            binding.recyclerViewRecommended.visibility = View.VISIBLE
+        }
         binding.buttonBackToSources.visibility = View.VISIBLE
 
         val dbItems = databases.map {

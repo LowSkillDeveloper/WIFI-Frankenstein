@@ -1381,12 +1381,12 @@
     <string name="auto_mapping_applied">Auto-mapping applied successfully</string>
     <string name="auto_mapping_failed">Failed to apply auto-mapping</string>
 
+    <string name="show_recommended_databases">Show recommended databases</string>
+    <string name="hide_recommended_databases">Hide recommended databases</string>
     <string name="database_corrupted_after_download">Database is corrupted after download</string>
-    <string name="database_extraction_validation_failed">Database validation failed after extraction</string>
-    <string name="database_integrity_check_failed">Database integrity check failed</string>
-    <string name="database_validation_in_progress">Validating database integrity…</string>
-    <string name="database_redownload_required">Database needs to be re-downloaded due to corruption</string>
     <string name="database_extraction_failed_all_attempts">Database extraction failed after all attempts</string>
+
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

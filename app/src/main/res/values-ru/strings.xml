@@ -1192,6 +1192,12 @@
     <string name="auto_mapping_applied">Автосопоставление успешно применено</string>
     <string name="auto_mapping_failed">Не удалось применить автосопоставление</string>
 
+    <string name="show_recommended_databases">Показать рекомендуемые базы</string>
+    <string name="hide_recommended_databases">Скрыть рекомендуемые базы</string>
+    <string name="database_corrupted_after_download">База данных повреждена после загрузки</string>
+    <string name="database_extraction_failed_all_attempts">Не удалось распаковать базу данных после всех попыток</string>
+
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

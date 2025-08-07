@@ -1162,6 +1162,11 @@
     <string name="auto_mapping_applied">Автозіставлення успішно застосовано</string>
     <string name="auto_mapping_failed">Не вдалося застосувати автозіставлення</string>
 
+    <string name="show_recommended_databases">Показати рекомендовані бази</string>
+    <string name="hide_recommended_databases">Сховати рекомендовані бази</string>
+    <string name="database_corrupted_after_download">Базу даних пошкоджено після завантаження</string>
+    <string name="database_extraction_failed_all_attempts">Не вдалося розпакувати базу даних після всіх спроб</string>
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
