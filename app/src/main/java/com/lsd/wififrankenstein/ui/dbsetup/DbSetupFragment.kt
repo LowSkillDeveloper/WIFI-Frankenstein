@@ -394,7 +394,7 @@ class DbSetupFragment : Fragment() {
                 downloadedDb?.let { item ->
                     progressDialog.dismiss()
 
-                    if (item.dbType == DbType.SQLITE_FILE_CUSTOM) {
+                    if (item.dbType == DbType.SQLITE_FILE_CUSTOM || item.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM) {
                         viewModel.initializeSQLiteCustomHelper(item.path.toUri(), item.directPath)
 
                         if (dbInfo.type == "custom-auto-mapping") {
@@ -1423,7 +1423,7 @@ class DbSetupFragment : Fragment() {
                     }
 
                     dbItem?.let { item ->
-                        if (item.dbType == DbType.SQLITE_FILE_CUSTOM) {
+                        if (item.dbType == DbType.SQLITE_FILE_CUSTOM || item.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM) {
                             withContext(Dispatchers.Main) {
                                 dialog.dismiss()
                                 try {
