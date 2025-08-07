@@ -9,11 +9,13 @@
 - 📱 **Download the application:**  
   [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/latest](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/latest)
 
-- 🛠️ **Download scripts for converting SQL 3WiFi to SQLite 3Wifi:**  
+- 🛠️ **Download scripts and view the instructions for converting SQL 3WiFi to SQLite 3Wifi:**  
   [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SQL_3WIFi_to_SQLite_converter_python](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SQL_3WIFi_to_SQLite_converter_python)
 
 - 📂 **Example of the SmartLinkDB file:**  
   [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SmartLinkDB-Example](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SmartLinkDB-Example)
+
+>If you want to add your database to the SmartLinkDB recommendation section in the application for all users, i.e. share your database, then create a ticket in the "Issues" section on github, with a request to add your smartlinkdb link to the application.
 
 
 
