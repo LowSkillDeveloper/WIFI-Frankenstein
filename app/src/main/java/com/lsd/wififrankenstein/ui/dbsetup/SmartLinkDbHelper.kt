@@ -3,6 +3,7 @@ package com.lsd.wififrankenstein.ui.dbsetup
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import android.os.Build
 import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.lifecycle.LiveData
@@ -54,6 +55,9 @@ data class DownloadMetadata(
     val downloadedSize: Long,
     val timestamp: Long
 )
+
+private val isLegacyAndroid = Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP_MR1
+private const val LEGACY_BUFFER_SIZE = 2048
 
 class SmartLinkDbHelper(private val context: Context) {
 
@@ -277,6 +281,12 @@ class SmartLinkDbHelper(private val context: Context) {
 
                 clearDownloadMetadata(dbInfo.id)
 
+                if (!validateDatabaseIntegrity(finalFile)) {
+                    Log.e(TAG, "Database validation failed: ${finalFile.name}")
+                    finalFile.delete()
+                    throw Exception(context.getString(R.string.database_corrupted_after_download))
+                }
+
                 Log.d(TAG, "Download completed. Size: ${finalFile.length()} bytes")
 
                 val dbType = detectDbType(finalFile)
@@ -311,6 +321,261 @@ class SmartLinkDbHelper(private val context: Context) {
                 Log.e(TAG, "Download failed", e)
                 throw e
             }
+        }
+    }
+
+    private fun extract7zLegacy(archiveFile: File, outputFile: File) {
+        var sevenZFile: SevenZFile? = null
+        var outputStream: FileOutputStream? = null
+
+        try {
+            sevenZFile = SevenZFile(archiveFile)
+            var entry = sevenZFile.nextEntry
+            var extracted = false
+
+            while (entry != null && !extracted) {
+                if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
+                    outputStream = FileOutputStream(outputFile)
+                    val buffer = ByteArray(LEGACY_BUFFER_SIZE)
+                    var totalBytesRead = 0L
+                    var bytesRead: Int
+
+                    while (sevenZFile.read(buffer).also { bytesRead = it } != -1) {
+                        outputStream.write(buffer, 0, bytesRead)
+                        totalBytesRead += bytesRead
+
+                        if (totalBytesRead % (LEGACY_BUFFER_SIZE * 100) == 0L) {
+                            outputStream.flush()
+                            outputStream.fd.sync()
+                        }
+
+                        if (totalBytesRead > entry.size * 2) {
+                            throw Exception("Extracted size exceeds expected size")
+                        }
+                    }
+
+                    outputStream.flush()
+                    outputStream.fd.sync()
+                    extracted = true
+                }
+                entry = sevenZFile.nextEntry
+            }
+
+            if (!extracted) {
+                throw Exception("No database file found in 7z archive")
+            }
+
+        } finally {
+            try {
+                outputStream?.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing output stream", e)
+            }
+            try {
+                sevenZFile?.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing 7z file", e)
+            }
+        }
+    }
+
+    private fun extractZipLegacy(archiveFile: File, outputFile: File) {
+        var zipInput: ZipInputStream? = null
+        var outputStream: FileOutputStream? = null
+
+        try {
+            zipInput = ZipInputStream(BufferedInputStream(FileInputStream(archiveFile)))
+            var entry = zipInput.nextEntry
+            var extracted = false
+
+            while (entry != null && !extracted) {
+                if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
+                    outputStream = FileOutputStream(outputFile)
+                    val buffer = ByteArray(LEGACY_BUFFER_SIZE)
+                    var totalBytesRead = 0L
+                    var bytesRead: Int
+
+                    while (zipInput.read(buffer).also { bytesRead = it } != -1) {
+                        outputStream.write(buffer, 0, bytesRead)
+                        totalBytesRead += bytesRead
+
+                        if (totalBytesRead % (LEGACY_BUFFER_SIZE * 100) == 0L) {
+                            outputStream.flush()
+                            outputStream.fd.sync()
+                        }
+
+                        if (entry.size > 0 && totalBytesRead > entry.size * 2) {
+                            throw Exception("Extracted size exceeds expected size")
+                        }
+                    }
+
+                    outputStream.flush()
+                    outputStream.fd.sync()
+                    extracted = true
+                }
+                entry = zipInput.nextEntry
+            }
+
+            if (!extracted) {
+                throw Exception("No database file found in zip archive")
+            }
+
+        } finally {
+            try {
+                outputStream?.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing output stream", e)
+            }
+            try {
+                zipInput?.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing zip stream", e)
+            }
+        }
+    }
+
+    private fun validateDatabaseIntegrity(dbFile: File): Boolean {
+        if (!dbFile.exists() || dbFile.length() == 0L) {
+            Log.e(TAG, "Database file is empty or doesn't exist")
+            return false
+        }
+
+        if (isLegacyAndroid) {
+            return validateDatabaseIntegrityLegacy(dbFile)
+        }
+
+        var db: SQLiteDatabase? = null
+        return try {
+            Thread.sleep(200)
+
+            db = SQLiteDatabase.openDatabase(
+                dbFile.path,
+                null,
+                SQLiteDatabase.OPEN_READONLY,
+                SafeDatabaseErrorHandler()
+            )
+
+            val isValid = try {
+                val cursor = db.rawQuery("SELECT 1", null)
+                val hasResult = cursor.moveToFirst()
+                cursor.close()
+                hasResult
+            } catch (e: Exception) {
+                Log.e(TAG, "Basic query check failed", e)
+                false
+            }
+
+            if (isValid) {
+                try {
+                    db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' LIMIT 1", null).use { cursor ->
+                        cursor.count > 0
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Schema validation failed", e)
+                    false
+                }
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Database validation failed", e)
+            false
+        } finally {
+            try {
+                db?.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing validation database", e)
+            }
+        }
+    }
+
+    private fun validateDatabaseIntegrityLegacy(dbFile: File): Boolean {
+        return try {
+            val headerBytes = ByteArray(100)
+            dbFile.inputStream().use { it.read(headerBytes) }
+
+            val sqliteHeader = "SQLite format 3"
+            val headerString = String(headerBytes, 0, minOf(sqliteHeader.length, headerBytes.size))
+
+            if (!headerString.startsWith(sqliteHeader)) {
+                Log.e(TAG, "Invalid SQLite header")
+                return false
+            }
+
+            val minSize = 1024L
+            if (dbFile.length() < minSize) {
+                Log.e(TAG, "Database file too small: ${dbFile.length()}")
+                return false
+            }
+
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Legacy validation failed", e)
+            false
+        }
+    }
+
+    private fun extractArchiveWithValidation(archiveFile: File, outputFile: File) {
+        val tempOutputFile = File(outputFile.parent, "${outputFile.name}.extracting")
+
+        var attempt = 0
+        val maxAttempts = if (isLegacyAndroid) 3 else 1
+
+        while (attempt < maxAttempts) {
+            attempt++
+
+            try {
+                if (tempOutputFile.exists()) {
+                    tempOutputFile.delete()
+                }
+
+                if (isLegacyAndroid) {
+                    extractArchiveLegacy(archiveFile, tempOutputFile)
+                } else {
+                    extractArchive(archiveFile, tempOutputFile)
+                }
+
+                if (tempOutputFile.exists() && tempOutputFile.length() > 0) {
+                    Thread.sleep(if (isLegacyAndroid) 500 else 100)
+
+                    if (validateDatabaseIntegrity(tempOutputFile)) {
+                        if (outputFile.exists()) {
+                            outputFile.delete()
+                        }
+
+                        val renamed = tempOutputFile.renameTo(outputFile)
+                        if (!renamed) {
+                            tempOutputFile.copyTo(outputFile, true)
+                            tempOutputFile.delete()
+                        }
+                        return
+                    } else {
+                        Log.e(TAG, "Validation failed on attempt $attempt")
+                        tempOutputFile.delete()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Extraction failed on attempt $attempt", e)
+                if (tempOutputFile.exists()) {
+                    tempOutputFile.delete()
+                }
+            }
+
+            if (attempt < maxAttempts) {
+                Thread.sleep((1000 * attempt).toLong())
+            }
+        }
+
+        throw Exception(context.getString(R.string.database_extraction_failed_all_attempts))
+    }
+
+    private fun extractArchiveLegacy(archiveFile: File, outputFile: File) {
+        val extension = archiveFile.extension.lowercase()
+
+        when {
+            extension == "7z" -> extract7zLegacy(archiveFile, outputFile)
+            extension == "zip" -> extractZipLegacy(archiveFile, outputFile)
+            else -> throw Exception("Unsupported archive format: $extension")
         }
     }
 
@@ -475,7 +740,7 @@ class SmartLinkDbHelper(private val context: Context) {
                 progressCallback(-1, 0, null)
             }
 
-            extractArchive(tempArchive, outputFile)
+            extractArchiveWithValidation(tempArchive, outputFile)
             tempArchive.delete()
         }
     }
@@ -569,7 +834,7 @@ class SmartLinkDbHelper(private val context: Context) {
                 progressCallback(-1, 0, null)
             }
 
-            extractArchive(mergedArchive, outputFile)
+            extractArchiveWithValidation(mergedArchive, outputFile)
             mergedArchive.delete()
 
             Log.d(TAG, "Archive extracted to final file: ${outputFile.length()} bytes")
@@ -643,46 +908,108 @@ class SmartLinkDbHelper(private val context: Context) {
     }
 
     private fun extract7z(archiveFile: File, outputFile: File) {
+        var sevenZFile: SevenZFile? = null
+        var outputStream: FileOutputStream? = null
+
         try {
-            SevenZFile(archiveFile).use { sevenZFile ->
-                var entry = sevenZFile.nextEntry
-                while (entry != null) {
-                    if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
-                        FileOutputStream(outputFile).use { output ->
-                            val buffer = ByteArray(BUFFER_SIZE)
-                            var bytesRead: Int
-                            while (sevenZFile.read(buffer).also { bytesRead = it } != -1) {
-                                output.write(buffer, 0, bytesRead)
-                            }
+            sevenZFile = SevenZFile(archiveFile)
+            var entry = sevenZFile.nextEntry
+            var extracted = false
+
+            while (entry != null && !extracted) {
+                if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
+                    outputStream = FileOutputStream(outputFile)
+                    val buffer = ByteArray(BUFFER_SIZE)
+                    var totalBytesRead = 0L
+                    var bytesRead: Int
+
+                    while (sevenZFile.read(buffer).also { bytesRead = it } != -1) {
+                        outputStream.write(buffer, 0, bytesRead)
+                        totalBytesRead += bytesRead
+
+                        if (totalBytesRead > entry.size * 2) {
+                            throw Exception("Extracted size exceeds expected size")
                         }
-                        return
                     }
-                    entry = sevenZFile.nextEntry
+
+                    extracted = true
+                    outputStream.close()
+                    outputStream = null
                 }
-                throw Exception("No database file found in archive")
+                entry = sevenZFile.nextEntry
             }
+
+            if (!extracted) {
+                throw Exception("No database file found in 7z archive")
+            }
+
         } catch (e: Exception) {
+            outputFile.delete()
             throw Exception("Failed to extract 7z archive: ${e.message}")
+        } finally {
+            try {
+                outputStream?.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing output stream", e)
+            }
+            try {
+                sevenZFile?.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing 7z file", e)
+            }
         }
     }
 
     private fun extractZip(archiveFile: File, outputFile: File) {
-        java.util.zip.ZipInputStream(BufferedInputStream(FileInputStream(archiveFile))).use { zipInput ->
+        var zipInput: ZipInputStream? = null
+        var outputStream: FileOutputStream? = null
+
+        try {
+            zipInput = ZipInputStream(BufferedInputStream(FileInputStream(archiveFile)))
             var entry = zipInput.nextEntry
-            while (entry != null) {
+            var extracted = false
+
+            while (entry != null && !extracted) {
                 if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
-                    FileOutputStream(outputFile).use { output ->
-                        val buffer = ByteArray(BUFFER_SIZE)
-                        var bytesRead: Int
-                        while (zipInput.read(buffer).also { bytesRead = it } != -1) {
-                            output.write(buffer, 0, bytesRead)
+                    outputStream = FileOutputStream(outputFile)
+                    val buffer = ByteArray(BUFFER_SIZE)
+                    var totalBytesRead = 0L
+                    var bytesRead: Int
+
+                    while (zipInput.read(buffer).also { bytesRead = it } != -1) {
+                        outputStream.write(buffer, 0, bytesRead)
+                        totalBytesRead += bytesRead
+
+                        if (entry.size > 0 && totalBytesRead > entry.size * 2) {
+                            throw Exception("Extracted size exceeds expected size")
                         }
                     }
-                    return
+
+                    extracted = true
+                    outputStream.close()
+                    outputStream = null
                 }
                 entry = zipInput.nextEntry
             }
-            throw Exception("No database file found in archive")
+
+            if (!extracted) {
+                throw Exception("No database file found in zip archive")
+            }
+
+        } catch (e: Exception) {
+            outputFile.delete()
+            throw Exception("Failed to extract zip archive: ${e.message}")
+        } finally {
+            try {
+                outputStream?.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing output stream", e)
+            }
+            try {
+                zipInput?.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error closing zip stream", e)
+            }
         }
     }
 

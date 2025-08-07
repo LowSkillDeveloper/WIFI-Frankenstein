@@ -50,7 +50,12 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     private fun openDatabaseFromDirectPath(): SQLiteDatabase {
         return try {
-            val db = SQLiteDatabase.openDatabase(directPath!!, null, SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
+            val db = SQLiteDatabase.openDatabase(
+                directPath!!,
+                null,
+                SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
+                SafeDatabaseErrorHandler()
+            )
             DatabaseOptimizer.optimizeDatabase(db)
             db
         } catch (e: Exception) {
@@ -72,10 +77,20 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     private fun openDatabaseFromUri(): SQLiteDatabase {
         val cachedFile = getCachedFile(dbUri)
         return if (cachedFile != null && !isOriginalFileChanged(dbUri, cachedFile)) {
-            SQLiteDatabase.openDatabase(cachedFile.path, null, SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
+            SQLiteDatabase.openDatabase(
+                cachedFile.path,
+                null,
+                SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
+                SafeDatabaseErrorHandler()
+            )
         } else {
             val tempFile = copyUriToTempFile(dbUri)
-            SQLiteDatabase.openDatabase(tempFile.path, null, SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
+            SQLiteDatabase.openDatabase(
+                tempFile.path,
+                null,
+                SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
+                SafeDatabaseErrorHandler()
+            )
         }
     }
 

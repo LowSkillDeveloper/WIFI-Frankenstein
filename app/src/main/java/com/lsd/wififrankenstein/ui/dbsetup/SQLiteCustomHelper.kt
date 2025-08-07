@@ -469,7 +469,12 @@ class SQLiteCustomHelper(
 
     private fun openDatabaseFromDirectPath(): SQLiteDatabase {
         return try {
-            SQLiteDatabase.openDatabase(directPath!!, null, SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
+            SQLiteDatabase.openDatabase(
+                directPath!!,
+                null,
+                SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
+                SafeDatabaseErrorHandler()
+            )
         } catch (e: Exception) {
             Log.w("SQLiteCustomHelper", "Failed to open database using direct path: $directPath. Falling back to URI method.", e)
             openDatabaseFromUri()
@@ -478,8 +483,12 @@ class SQLiteCustomHelper(
 
     private fun openDatabaseFromUri(): SQLiteDatabase {
         val tempFile = copyUriToTempFile(dbUri)
-        return SQLiteDatabase.openDatabase(tempFile.path, null, SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS)
-    }
+        return SQLiteDatabase.openDatabase(
+            tempFile.path,
+            null,
+            SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
+            SafeDatabaseErrorHandler()
+        )    }
 
     private fun copyUriToTempFile(uri: Uri): File {
         val fileName = getFileNameFromUri(uri)
