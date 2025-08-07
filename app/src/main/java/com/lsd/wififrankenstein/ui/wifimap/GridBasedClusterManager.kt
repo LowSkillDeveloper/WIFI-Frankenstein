@@ -1,7 +1,6 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
 import org.osmdroid.util.BoundingBox
-import org.osmdroid.util.GeoPoint
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin

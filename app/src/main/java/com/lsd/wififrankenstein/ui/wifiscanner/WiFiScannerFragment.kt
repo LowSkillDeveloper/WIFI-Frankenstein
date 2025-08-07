@@ -1,14 +1,12 @@
 package com.lsd.wififrankenstein.ui.wifiscanner
 
 import android.Manifest
-import android.animation.ObjectAnimator
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.net.Uri
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
@@ -43,7 +41,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
-import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.lsd.wififrankenstein.R
@@ -64,13 +61,12 @@ import com.lsd.wififrankenstein.util.MacAddressUtils
 import com.lsd.wififrankenstein.util.QrNavigationHelper
 import com.lsd.wififrankenstein.util.VendorChecker
 import com.lsd.wififrankenstein.util.WpsPinGenerator
+import com.lsd.wififrankenstein.util.WpsRootConnectHelper
 import com.lsd.wififrankenstein.util.calculateDistanceString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
-import com.lsd.wififrankenstein.util.AnimatedLoadingBar
-import com.lsd.wififrankenstein.util.WpsRootConnectHelper
 
 class WiFiScannerFragment : Fragment() {
 

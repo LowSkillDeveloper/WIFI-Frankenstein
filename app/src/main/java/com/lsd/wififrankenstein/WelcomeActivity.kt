@@ -16,10 +16,9 @@ import com.lsd.wififrankenstein.ui.welcome.WelcomeCompletedFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeDatabasesFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeDisclaimerFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomePermissionsFragment
+import com.lsd.wififrankenstein.ui.welcome.WelcomeRootFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeThemeFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeUpdatesFragment
-import com.lsd.wififrankenstein.ui.welcome.WelcomeRootFragment
-
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

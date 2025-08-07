@@ -1,7 +1,7 @@
 package com.lsd.wififrankenstein.util
 
-import android.animation.ValueAnimator
 import android.animation.Animator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint

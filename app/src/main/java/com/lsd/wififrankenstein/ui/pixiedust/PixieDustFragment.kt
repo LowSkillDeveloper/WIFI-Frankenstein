@@ -21,9 +21,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentPixiedustBinding
-import java.util.regex.Pattern
 import com.lsd.wififrankenstein.ui.iwscanner.InterfaceSpinnerAdapter
 import com.lsd.wififrankenstein.ui.iwscanner.IwInterface
+import java.util.regex.Pattern
 
 class PixieDustFragment : Fragment() {
 
