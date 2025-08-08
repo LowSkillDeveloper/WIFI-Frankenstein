@@ -487,6 +487,7 @@ class WiFiScannerViewModel(
             // ZyXEL тесты
             createDummyNetwork("ZyXEL_Test", "28:28:5D:56:78:9A", "[WPA2-PSK-CCMP][WPS][ESS]", -35, 2462),
             createDummyNetwork("Keenetic_Ultra", "40:4A:03:BC:DE:F0", "[WPA3-SAE-CCMP][WPA2-PSK-CCMP][ESS][802.11ax][HE]", -28, 5320)
+            createDummyNetwork("HiddenAP", "32:B2:DC:BC:DE:F0", "[WPA3-SAE-CCMP][WPA2-PSK-CCMP][ESS][HIDDEN]", -40, 5240)
         )
     }
 
