@@ -108,6 +108,7 @@ class WiFiScannerFragment : Fragment() {
                     Toast.LENGTH_SHORT
                 ).show()
                 binding.swipeRefreshLayout.isRefreshing = false
+                binding.buttonScanWifi.isEnabled = true
             }
         }
 
@@ -669,6 +670,7 @@ class WiFiScannerFragment : Fragment() {
         viewModel.wifiList.observe(viewLifecycleOwner) { wifiList ->
             wifiAdapter.updateData(wifiList)
             binding.swipeRefreshLayout.isRefreshing = false
+            binding.buttonScanWifi.isEnabled = true
         }
 
         viewModel.isThrottleEnabled.observe(viewLifecycleOwner) { isEnabled ->
@@ -689,18 +691,24 @@ class WiFiScannerFragment : Fragment() {
 
         viewModel.scanState.observe(viewLifecycleOwner) { message ->
             binding.swipeRefreshLayout.isRefreshing = false
+            binding.buttonScanWifi.isEnabled = true
 
             when (message) {
-                getString(R.string.no_networks_found_nearby) -> {
-                    if (wifiAdapter.getWifiList().isEmpty()) {
-                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
-                    }
+                getString(R.string.no_networks_found_nearby),
+                getString(R.string.scanning_failed_generic) -> {
+                    showToastWithDuration(message, 1000)
                 }
                 getString(R.string.wifi_scan_throttled) -> {
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                    showToastWithDuration(message, 1000)
+                }
+                getString(R.string.scanning_completed) -> {
+                    showToastWithDuration(message, 700)
+                }
+                getString(R.string.scanning_wifi) -> {
+                    showToastWithDuration(message, 700)
                 }
                 else -> {
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                    showToastWithDuration(message, 1000)
                 }
             }
         }
@@ -977,6 +985,7 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun startWifiScanInternal() {
+        binding.buttonScanWifi.isEnabled = false
         wifiAdapter.clearDatabaseResults()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             viewModel.startWifiScan()
@@ -998,6 +1007,7 @@ class WiFiScannerFragment : Fragment() {
                     Toast.LENGTH_SHORT
                 ).show()
                 binding.swipeRefreshLayout.isRefreshing = false
+                binding.buttonScanWifi.isEnabled = true
             }
         }
     }
@@ -1015,6 +1025,16 @@ class WiFiScannerFragment : Fragment() {
     private fun hideProgressBar() {
         if (_binding == null) return
         binding.progressBarDatabaseCheck.stopAnimation()
+    }
+
+    private fun showToastWithDuration(message: String, durationMs: Long) {
+        val toast = Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT)
+        toast.show()
+
+        lifecycleScope.launch {
+            kotlinx.coroutines.delay(durationMs)
+            toast.cancel()
+        }
     }
 
     override fun onCreateContextMenu(
@@ -1476,6 +1496,7 @@ class WiFiScannerFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        viewModel.resetScanningState()
         if (hasScanned) {
             viewModel.refreshWifiList()
         }

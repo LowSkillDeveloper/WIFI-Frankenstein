@@ -94,7 +94,64 @@ class WiFiScannerViewModel(
     private var scanReceiver: BroadcastReceiver? = null
     private var isReceiverRegistered = false
     private var lastScanTime = 0L
-    private val SCAN_THROTTLE_TIME = 2000L
+
+    private var isScanning = false
+    private var scanningStartTime = 0L
+    private val SCAN_TIMEOUT = 10000L
+    private var scanCount = 0
+    private var throttleWindowStartTime = 0L
+    private val MAX_SCANS_PER_WINDOW = 4
+    private val THROTTLE_WINDOW_DURATION = 120000L
+    private val BASIC_THROTTLE_TIME = 10000L
+    private fun getScanThrottleTime(): Long {
+        return if (wifiManagerWrapper.isScanThrottleEnabled()) {
+            15000L
+        } else {
+            2000L
+        }
+    }
+
+    private fun updateScanCount(currentTime: Long) {
+        if (throttleWindowStartTime == 0L || currentTime - throttleWindowStartTime > THROTTLE_WINDOW_DURATION) {
+            throttleWindowStartTime = currentTime
+            scanCount = 1
+        } else {
+            scanCount++
+        }
+    }
+
+    private fun getRemainingThrottleTime(currentTime: Long): Long {
+        if (!wifiManagerWrapper.isScanThrottleEnabled()) {
+            return maxOf(0, BASIC_THROTTLE_TIME - (currentTime - lastScanTime))
+        }
+
+        if (throttleWindowStartTime == 0L) {
+            return maxOf(0, BASIC_THROTTLE_TIME - (currentTime - lastScanTime))
+        }
+
+        if (scanCount >= MAX_SCANS_PER_WINDOW) {
+            val timeUntilWindowReset = THROTTLE_WINDOW_DURATION - (currentTime - throttleWindowStartTime)
+            return maxOf(0, timeUntilWindowReset)
+        }
+
+        return maxOf(0, BASIC_THROTTLE_TIME - (currentTime - lastScanTime))
+    }
+
+    private fun canScanNow(currentTime: Long): Boolean {
+        if (!wifiManagerWrapper.isScanThrottleEnabled()) {
+            return currentTime - lastScanTime >= BASIC_THROTTLE_TIME
+        }
+
+        if (throttleWindowStartTime == 0L || currentTime - throttleWindowStartTime > THROTTLE_WINDOW_DURATION) {
+            return currentTime - lastScanTime >= BASIC_THROTTLE_TIME
+        }
+
+        if (scanCount >= MAX_SCANS_PER_WINDOW) {
+            return false
+        }
+
+        return currentTime - lastScanTime >= BASIC_THROTTLE_TIME
+    }
 
     init {
         checkScanThrottling()
@@ -172,14 +229,25 @@ class WiFiScannerViewModel(
 
         _locationEnabled.postValue(true)
 
+        if (isScanning) {
+            _scanState.postValue(getApplication<Application>().getString(R.string.scanning_in_progress))
+            return
+        }
+
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastScanTime < SCAN_THROTTLE_TIME) {
-            _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_throttled))
+
+        if (!canScanNow(currentTime)) {
+            val remainingTime = getRemainingThrottleTime(currentTime)
+            val waitTime = (remainingTime / 1000).coerceAtLeast(1)
+            _scanState.postValue(getApplication<Application>().getString(R.string.scan_throttled_wait, waitTime))
             return
         }
 
         viewModelScope.launch {
             try {
+                isScanning = true
+                scanningStartTime = currentTime
+                updateScanCount(currentTime)
                 _scanState.postValue(getApplication<Application>().getString(R.string.scanning_wifi))
 
                 val networks = withContext(Dispatchers.IO) {
@@ -215,11 +283,11 @@ class WiFiScannerViewModel(
                         _scanState.postValue(getApplication<Application>().getString(R.string.scanning_completed))
                     }
                     isDummyNetworkModeEnabled() -> {
-                        _scanState.postValue(getApplication<Application>().getString(R.string.no_networks_found_nearby))
+                        _scanState.postValue(getApplication<Application>().getString(R.string.scanning_completed))
                     }
                     else -> {
                         _wifiList.postValue(emptyList())
-                        _scanState.postValue(getApplication<Application>().getString(R.string.no_networks_found_nearby))
+                        _scanState.postValue(getApplication<Application>().getString(R.string.scanning_failed_generic))
                     }
                 }
 
@@ -228,6 +296,8 @@ class WiFiScannerViewModel(
             } catch (e: Exception) {
                 _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_failed_unknown))
                 Log.e("WiFiScannerViewModel", "Error in startWifiScan", e)
+            } finally {
+                isScanning = false
             }
         }
     }
@@ -260,14 +330,25 @@ class WiFiScannerViewModel(
             return
         }
 
+        if (isScanning) {
+            _scanState.postValue(getApplication<Application>().getString(R.string.scanning_in_progress))
+            return
+        }
+
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastScanTime < SCAN_THROTTLE_TIME) {
-            _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_throttled))
+
+        if (!canScanNow(currentTime)) {
+            val remainingTime = getRemainingThrottleTime(currentTime)
+            val waitTime = (remainingTime / 1000).coerceAtLeast(1)
+            _scanState.postValue(getApplication<Application>().getString(R.string.scan_throttled_wait, waitTime))
             return
         }
 
         viewModelScope.launch {
             try {
+                isScanning = true
+                scanningStartTime = currentTime
+                updateScanCount(currentTime)
                 _scanState.postValue(getApplication<Application>().getString(R.string.scanning_wifi))
 
                 registerScanReceiver()
@@ -294,6 +375,10 @@ class WiFiScannerViewModel(
                 _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_failed_unknown))
                 Log.e("WiFiScannerViewModel", "Error in startLegacyWifiScan", e)
                 unregisterScanReceiver()
+            } finally {
+                if (!isReceiverRegistered) {
+                    isScanning = false
+                }
             }
         }
     }
@@ -337,6 +422,7 @@ class WiFiScannerViewModel(
                 Log.w("WiFiScannerViewModel", "Receiver not registered", e)
             }
             scanReceiver = null
+            isScanning = false
             isReceiverRegistered = false
         }
     }
@@ -344,24 +430,28 @@ class WiFiScannerViewModel(
     private fun processScanResults() {
         try {
             val results = wifiManagerWrapper.scanResults()
+
             if (results.isNotEmpty()) {
                 val sortedResults = results.sortedByDescending { it.level }
                 _wifiList.postValue(sortedResults)
                 _scanState.postValue(getApplication<Application>().getString(R.string.scanning_completed))
             } else {
                 _wifiList.postValue(emptyList())
-                _scanState.postValue(getApplication<Application>().getString(R.string.no_networks_found_nearby))
+                _scanState.postValue(getApplication<Application>().getString(R.string.scanning_failed_generic))
             }
         } catch (e: SecurityException) {
             _scanState.postValue(getApplication<Application>().getString(R.string.permission_denied_wifi_scan))
         } catch (e: Exception) {
             _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_failed_unknown))
             Log.e("WiFiScannerViewModel", "Error processing scan results", e)
+        } finally {
+            isScanning = false
         }
     }
 
     override fun onCleared() {
         super.onCleared()
+        isScanning = false
         unregisterScanReceiver()
     }
 
@@ -852,5 +942,15 @@ class WiFiScannerViewModel(
         onlineResults.clear()
         _databaseResults.postValue(emptyMap())
         lastCheckedType = null
+    }
+
+    fun resetScanningState() {
+        isScanning = false
+        unregisterScanReceiver()
+    }
+
+    fun resetThrottleCounters() {
+        scanCount = 0
+        throttleWindowStartTime = 0L
     }
 }
