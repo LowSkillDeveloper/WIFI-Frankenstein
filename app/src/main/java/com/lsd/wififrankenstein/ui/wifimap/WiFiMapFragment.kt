@@ -82,7 +82,7 @@ class WiFiMapFragment : Fragment() {
 
     private var isUserInteracting = false
     private var interactionEndTime = 0L
-    private val INTERACTION_COOLDOWN_MS = 1000L
+    private val INTERACTION_COOLDOWN_MS = 300L
 
     companion object {
         private const val DEFAULT_ZOOM = 5.0
@@ -132,7 +132,6 @@ class WiFiMapFragment : Fragment() {
 
             clearMarkers()
             scheduleMapUpdate(true)
-            scheduleMapUpdate()
         }
     }
 
@@ -179,44 +178,35 @@ class WiFiMapFragment : Fragment() {
 
             overlays.add(canvasOverlay)
 
-            var scrollStartTime = 0L
-            var zoomStartTime = 0L
+            var interactionTimer: Job? = null
 
             addMapListener(object : MapListener {
                 override fun onScroll(event: ScrollEvent): Boolean {
-                    val currentTime = System.currentTimeMillis()
-                    if (scrollStartTime == 0L) {
-                        scrollStartTime = currentTime
-                        isUserInteracting = true
-                    }
+                    isUserInteracting = true
+                    interactionTimer?.cancel()
 
-                    lifecycleScope.launch {
-                        delay(200)
-                        if (currentTime == scrollStartTime) {
-                            scrollStartTime = 0L
-                            isUserInteracting = false
-                            interactionEndTime = System.currentTimeMillis()
-                            scheduleMapUpdate()
-                        }
+                    interactionTimer = lifecycleScope.launch {
+                        delay(500)
+                        isUserInteracting = false
+                        interactionEndTime = System.currentTimeMillis()
+
+                        delay(INTERACTION_COOLDOWN_MS)
+                        scheduleMapUpdate()
                     }
                     return true
                 }
 
                 override fun onZoom(event: ZoomEvent): Boolean {
-                    val currentTime = System.currentTimeMillis()
-                    if (zoomStartTime == 0L) {
-                        zoomStartTime = currentTime
-                        isUserInteracting = true
-                    }
+                    isUserInteracting = true
+                    interactionTimer?.cancel()
 
-                    lifecycleScope.launch {
-                        delay(300)
-                        if (currentTime == zoomStartTime) {
-                            zoomStartTime = 0L
-                            isUserInteracting = false
-                            interactionEndTime = System.currentTimeMillis()
-                            scheduleMapUpdate()
-                        }
+                    interactionTimer = lifecycleScope.launch {
+                        delay(800)
+                        isUserInteracting = false
+                        interactionEndTime = System.currentTimeMillis()
+
+                        delay(INTERACTION_COOLDOWN_MS)
+                        scheduleMapUpdate()
                     }
                     return true
                 }
@@ -229,14 +219,16 @@ class WiFiMapFragment : Fragment() {
         val currentZoom = binding.map.zoomLevelDouble
         val currentCenter = binding.map.mapCenter as? GeoPoint
 
+        Log.d(TAG, "scheduleMapUpdate called: forceUpdate=$forceUpdate, isUserInteracting=$isUserInteracting")
+
         if (!forceUpdate) {
             if (isUserInteracting) {
                 Log.d(TAG, "User is interacting, postponing update")
                 return
             }
 
-            if (currentTime - interactionEndTime < INTERACTION_COOLDOWN_MS) {
-                Log.d(TAG, "Still in interaction cooldown")
+            if (currentTime - interactionEndTime < INTERACTION_COOLDOWN_MS && interactionEndTime > 0) {
+                Log.d(TAG, "Still in interaction cooldown: ${currentTime - interactionEndTime}ms < ${INTERACTION_COOLDOWN_MS}ms")
                 return
             }
 
@@ -250,31 +242,37 @@ class WiFiMapFragment : Fragment() {
         lastMapUpdateTime = currentTime
 
         updateJob = lifecycleScope.launch {
-            delay(MAP_UPDATE_DEBOUNCE_MS)
-            if (lastMapUpdateTime == currentTime || forceUpdate) {
-                if (!isUserInteracting) {
-                    updateVisiblePoints()
-                }
+            if (!forceUpdate) {
+                delay(MAP_UPDATE_DEBOUNCE_MS)
+            }
+
+            if ((lastMapUpdateTime == currentTime || forceUpdate) && !isUserInteracting) {
+                Log.d(TAG, "Executing map update")
+                updateVisiblePoints()
+            } else {
+                Log.d(TAG, "Map update cancelled: userInteracting=$isUserInteracting, timeMatch=${lastMapUpdateTime == currentTime}")
             }
         }
     }
 
     private fun shouldUpdateClusters(currentZoom: Double, currentCenter: GeoPoint?): Boolean {
-        if (lastClusterUpdateZoom < 0 || currentCenter == null) {
+        if (currentCenter == null) {
+            Log.d(TAG, "No current center, allowing update")
+            return true
+        }
+
+        if (lastClusterUpdateZoom < 0) {
+            Log.d(TAG, "First cluster update, allowing")
             lastClusterUpdateZoom = currentZoom
             lastClusterUpdateCenter = currentCenter
             return true
         }
 
-        val zoomDiff = currentZoom - lastClusterUpdateZoom
+        val zoomDiff = kotlin.math.abs(currentZoom - lastClusterUpdateZoom)
+        Log.d(TAG, "Zoom diff: $zoomDiff (current: $currentZoom, last: $lastClusterUpdateZoom)")
 
-        if (zoomDiff < 0) {
-            return false
-        }
-
-        val zoomIncreased = zoomDiff >= 0.5
-
-        if (zoomIncreased) {
+        if (zoomDiff >= 0.3) {
+            Log.d(TAG, "Zoom changed significantly ($zoomDiff), allowing update")
             lastClusterUpdateZoom = currentZoom
             lastClusterUpdateCenter = currentCenter
             return true
@@ -287,14 +285,23 @@ class WiFiMapFragment : Fragment() {
         } ?: Double.MAX_VALUE
 
         val currentBounds = binding.map.boundingBox
-        val viewportDiagonal = lastClusterUpdateCenter?.let { lastCenter ->
-            val corner1 = GeoPoint(currentBounds.latNorth, currentBounds.lonWest)
-            val corner2 = GeoPoint(currentBounds.latSouth, currentBounds.lonEast)
+        val viewportDiagonal = currentBounds?.let {
+            val corner1 = GeoPoint(it.latNorth, it.lonWest)
+            val corner2 = GeoPoint(it.latSouth, it.lonEast)
             corner1.distanceToAsDouble(corner2)
         } ?: 0.0
 
-        val movementThreshold = viewportDiagonal * 0.6
+        val movementThreshold = when {
+            currentZoom >= 18.0 -> viewportDiagonal * 0.1
+            currentZoom >= 16.0 -> viewportDiagonal * 0.2
+            currentZoom >= 14.0 -> viewportDiagonal * 0.3
+            currentZoom >= 12.0 -> viewportDiagonal * 0.4
+            else -> viewportDiagonal * 0.5
+        }
+
         val shouldUpdate = centerDistance > movementThreshold
+
+        Log.d(TAG, "Movement check: distance=$centerDistance, threshold=$movementThreshold, shouldUpdate=$shouldUpdate")
 
         if (shouldUpdate) {
             lastClusterUpdateZoom = currentZoom
@@ -303,7 +310,6 @@ class WiFiMapFragment : Fragment() {
 
         return shouldUpdate
     }
-
     private fun setupRecyclerView() {
         binding.databasesRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
@@ -324,7 +330,6 @@ class WiFiMapFragment : Fragment() {
                     lifecycleScope.launch {
                         delay(100)
                         scheduleMapUpdate(true)
-                        scheduleMapUpdate()
                         delay(500)
                         if (selectedDatabases.isNotEmpty()) {
                             Snackbar.make(binding.root, getString(R.string.map_data_refreshed), Snackbar.LENGTH_SHORT).show()
@@ -511,7 +516,6 @@ class WiFiMapFragment : Fragment() {
 
                 clearMarkers()
                 scheduleMapUpdate(true)
-                scheduleMapUpdate()
             } ?: Log.e(TAG, "currentIndexingDb is null after indexing completion")
 
             currentIndexingDb = null
@@ -582,7 +586,6 @@ class WiFiMapFragment : Fragment() {
                 resetMapState()
                 updateLegend()
                 scheduleMapUpdate(true)
-                scheduleMapUpdate()
 
                 Log.d(TAG, "Added read-only database and refreshed map")
             }
@@ -609,6 +612,8 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun updateVisiblePoints() {
+        Log.d(TAG, "updateVisiblePoints called")
+
         val zoom = binding.map.zoomLevelDouble
         lastUpdateZoom = zoom
         lastUpdateCenter = binding.map.mapCenter as? GeoPoint
@@ -630,22 +635,16 @@ class WiFiMapFragment : Fragment() {
             return
         }
 
-        val zoomCategory = when {
-            zoom >= 12 -> "CITY+ (≥12) - NO LIMITS"
-            zoom >= 10 -> "REGIONAL (10-11) - 20k points"
-            zoom >= 8 -> "AREA (8-9) - 15k points"
-            else -> "COUNTRY (<8) - 10k points"
-        }
-        Log.d(TAG, "Zoom category: $zoomCategory")
-
         if (zoom < minZoom) {
-            Log.d(TAG, "Zoom too low, clearing markers")
+            Log.d(TAG, "Zoom too low: $zoom < $minZoom, showing zoom message")
             clearMarkers()
             binding.progressBar.stopAnimation()
             binding.textViewProgress.text = getString(R.string.zoom_in_message)
             binding.textViewProgress.visibility = View.VISIBLE
             return
         }
+
+        Log.d(TAG, "Zoom check passed, proceeding with update")
 
         binding.textViewProgress.visibility = View.GONE
         binding.progressBar.visibility = View.VISIBLE
@@ -663,6 +662,7 @@ class WiFiMapFragment : Fragment() {
                 database.id to getColorForDatabase(database.id)
             }
 
+            Log.d(TAG, "Starting loadPointsInBoundingBox")
             viewModel.loadPointsInBoundingBox(
                 boundingBox,
                 zoom,

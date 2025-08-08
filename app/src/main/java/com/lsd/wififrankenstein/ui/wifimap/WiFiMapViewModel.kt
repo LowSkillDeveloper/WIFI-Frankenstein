@@ -285,12 +285,14 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     private val smartCache = mutableMapOf<String, CacheEntry>()
 
     fun getMinZoomForMarkers(): Double {
-        val maxRestriction = 12.0
-        val minRestriction = 1.0
-        val zoomSetting = settingsPrefs.getFloat("map_marker_visibility_zoom", 13f)
-        val maxSetting = 18f
-        val ratio = zoomSetting / maxSetting
-        return minRestriction + ratio * (maxRestriction - minRestriction)
+        val zoomSetting = settingsPrefs.getFloat("map_marker_visibility_zoom", 8f)
+        val result = when {
+            zoomSetting <= 1f -> 1.0
+            zoomSetting >= 18f -> 12.0
+            else -> 1.0 + (zoomSetting / 18f) * 11.0
+        }
+        Log.d(TAG, "getMinZoomForMarkers: setting=$zoomSetting, result=$result")
+        return result
     }
 
     init {
@@ -528,6 +530,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         zoom: Double,
         selectedDatabases: Set<DbItem>
     ) {
+        Log.d(TAG, "loadPointsInBoundingBox called: zoom=$zoom, databases=${selectedDatabases.size}")
+
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
             Log.d(TAG, "Skipping update - too soon (${currentTime - lastUpdateTime}ms < ${MIN_UPDATE_INTERVAL}ms)")
@@ -536,12 +540,15 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         lastUpdateTime = currentTime
 
         val minZoom = getMinZoomForMarkers()
+        Log.d(TAG, "Zoom check: current=$zoom, required=$minZoom")
 
         if (zoom < minZoom) {
             Log.d(TAG, "Zoom level too low: $zoom < $minZoom")
             _points.value = emptyList()
             return
         }
+
+        Log.d(TAG, "Proceeding with point loading...")
 
         currentLoadingJob?.cancel()
         backgroundCachingJobs.values.forEach { it.cancel() }

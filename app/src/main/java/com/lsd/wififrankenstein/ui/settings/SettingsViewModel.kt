@@ -124,7 +124,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val savedValue = prefs.getInt("map_max_cluster_size", 5000)
         val roundedValue = ((savedValue + 500) / 1000) * 1000
         _maxClusterSize.value = if (roundedValue < 1000) 1000 else if (roundedValue > 30000) 30000 else roundedValue
-        _markerVisibilityZoom.value = prefs.getFloat("map_marker_visibility_zoom", 8f)
+        _markerVisibilityZoom.value = prefs.getFloat("map_marker_visibility_zoom", 11f)
         _maxMarkerDensity.value = prefs.getInt("map_max_marker_density", 3000)
         _forcePointSeparation.value = prefs.getBoolean("map_force_point_separation", true)
 
@@ -175,7 +175,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _maxClusterSize.value = value
     }
 
-    fun getMarkerVisibilityZoom() = _markerVisibilityZoom.value ?: 8f
+    fun getMarkerVisibilityZoom() = _markerVisibilityZoom.value ?: 11f
     fun setMarkerVisibilityZoom(value: Float) {
         prefs.edit { putFloat("map_marker_visibility_zoom", value) }
         _markerVisibilityZoom.value = value

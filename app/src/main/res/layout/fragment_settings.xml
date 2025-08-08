@@ -751,7 +751,7 @@
                             android:layout_weight="1"
                             android:valueFrom="0"
                             android:valueTo="18"
-                            android:value="13"
+                            android:value="11"
                             android:stepSize="1" />
 
                         <TextView
