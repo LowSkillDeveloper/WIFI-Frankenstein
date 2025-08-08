@@ -1409,6 +1409,7 @@
     <string name="scan_throttled_wait">Scanning is limited by the system. Please wait %d seconds</string>
     <string name="scanning_failed_generic">Failed to scan. The system may have blocked it or no networks are nearby</string>
 
+    <string name="cluster_settings_updated">Cluster settings updated</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

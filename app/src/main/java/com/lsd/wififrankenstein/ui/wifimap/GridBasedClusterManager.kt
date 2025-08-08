@@ -206,7 +206,7 @@ class GridBasedClusterManager(
             }
         }
 
-        return cells.values.map { cell ->
+        val primaryClusters = cells.values.map { cell ->
             MarkerCluster(
                 centerLatitude = cell.centerLatitude,
                 centerLongitude = cell.centerLongitude
@@ -216,39 +216,110 @@ class GridBasedClusterManager(
                 }
             }
         }
+
+        return if (clusterAggressiveness > 1.5f) {
+            performSecondaryClustering(primaryClusters, zoomLevel)
+        } else {
+            primaryClusters
+        }
+    }
+
+    private fun performSecondaryClustering(
+        primaryClusters: List<MarkerCluster>,
+        zoomLevel: Double
+    ): List<MarkerCluster> {
+        if (primaryClusters.isEmpty()) return primaryClusters
+
+        val minClusterSize = when {
+            clusterAggressiveness >= 4.0f -> 50
+            clusterAggressiveness >= 3.0f -> 30
+            clusterAggressiveness >= 2.0f -> 20
+            else -> 10
+        }
+
+        val mergeDistance = when {
+            zoomLevel <= 8 -> 0.5
+            zoomLevel <= 10 -> 0.3
+            zoomLevel <= 12 -> 0.2
+            zoomLevel <= 14 -> 0.1
+            else -> 0.05
+        } * clusterAggressiveness
+
+        val finalClusters = mutableListOf<MarkerCluster>()
+        val processed = mutableSetOf<Int>()
+
+        for (i in primaryClusters.indices) {
+            if (processed.contains(i)) continue
+
+            val baseCluster = primaryClusters[i]
+            val mergedCluster = MarkerCluster(
+                centerLatitude = baseCluster.centerLatitude,
+                centerLongitude = baseCluster.centerLongitude
+            )
+
+            baseCluster.points.forEach { mergedCluster.addPoint(it) }
+            processed.add(i)
+
+            for (j in primaryClusters.indices) {
+                if (processed.contains(j) || i == j) continue
+
+                val otherCluster = primaryClusters[j]
+                val distance = calculateDistance(
+                    baseCluster.centerLatitude, baseCluster.centerLongitude,
+                    otherCluster.centerLatitude, otherCluster.centerLongitude
+                )
+
+                if (distance <= mergeDistance * 1000) {
+                    if (mergedCluster.size + otherCluster.size <= maxClusterSize) {
+                        otherCluster.points.forEach { mergedCluster.addPoint(it) }
+                        processed.add(j)
+                    }
+                }
+            }
+
+            if (mergedCluster.size >= minClusterSize || clusterAggressiveness < 2.0f) {
+                finalClusters.add(mergedCluster)
+            } else {
+                mergedCluster.points.forEach { point ->
+                    finalClusters.add(MarkerCluster().apply { addPoint(point) })
+                }
+            }
+        }
+
+        return finalClusters
     }
 
     private fun calculateGridSize(zoomLevel: Double): Double {
         val baseSize = when {
-            zoomLevel >= 18 -> 0.00001
-            zoomLevel >= 17 -> 0.00002
-            zoomLevel >= 16 -> 0.00004
-            zoomLevel >= 15 -> 0.00008
-            zoomLevel >= 14 -> 0.00032
-            zoomLevel >= 13 -> 0.00128
-            zoomLevel >= 12 -> 0.00256
-            zoomLevel >= 11 -> 0.00512
-            zoomLevel >= 10 -> 0.01024
-            zoomLevel >= 9 -> 0.02048
-            zoomLevel >= 8 -> 0.04096
-            zoomLevel >= 7 -> 0.08192
-            zoomLevel >= 6 -> 0.16384
-            zoomLevel >= 5 -> 0.32768
-            zoomLevel >= 4 -> 0.65536
-            zoomLevel >= 3 -> 1.31072
-            else -> 2.62144
+            zoomLevel >= 18 -> 0.00005
+            zoomLevel >= 17 -> 0.0001
+            zoomLevel >= 16 -> 0.0002
+            zoomLevel >= 15 -> 0.0004
+            zoomLevel >= 14 -> 0.0016
+            zoomLevel >= 13 -> 0.0064
+            zoomLevel >= 12 -> 0.0128
+            zoomLevel >= 11 -> 0.0256
+            zoomLevel >= 10 -> 0.0512
+            zoomLevel >= 9 -> 0.1024
+            zoomLevel >= 8 -> 0.2048
+            zoomLevel >= 7 -> 0.4096
+            zoomLevel >= 6 -> 0.8192
+            zoomLevel >= 5 -> 1.6384
+            zoomLevel >= 4 -> 3.2768
+            zoomLevel >= 3 -> 6.5536
+            else -> 13.1072
         }
 
         val aggressivenessFactor = when {
-            zoomLevel <= 6 -> clusterAggressiveness * 6.0f
-            zoomLevel <= 8 -> clusterAggressiveness * 5.5f
-            zoomLevel <= 10 -> clusterAggressiveness * 4.5f
-            zoomLevel <= 12 -> clusterAggressiveness * 4.0f
-            zoomLevel <= 13 -> clusterAggressiveness * 3.5f
-            zoomLevel <= 15 -> clusterAggressiveness * 3.0f
-            zoomLevel <= 16 -> clusterAggressiveness * 2.5f
-            else -> clusterAggressiveness
-        }
+            zoomLevel <= 6 -> 1.0f / (clusterAggressiveness * 8.0f)
+            zoomLevel <= 8 -> 1.0f / (clusterAggressiveness * 7.0f)
+            zoomLevel <= 10 -> 1.0f / (clusterAggressiveness * 6.0f)
+            zoomLevel <= 12 -> 1.0f / (clusterAggressiveness * 5.0f)
+            zoomLevel <= 13 -> 1.0f / (clusterAggressiveness * 4.0f)
+            zoomLevel <= 15 -> 1.0f / (clusterAggressiveness * 3.0f)
+            zoomLevel <= 16 -> 1.0f / (clusterAggressiveness * 2.0f)
+            else -> 1.0f / (clusterAggressiveness * 1.5f)
+        }.coerceIn(0.01f, 10.0f)
 
         return baseSize * aggressivenessFactor.coerceIn(0.1f, 50.0f)
     }

@@ -566,6 +566,17 @@ class WiFiMapFragment : Fragment() {
             }
         }
 
+        settingsViewModel.mapSettingsChanged.observe(viewLifecycleOwner) { changed ->
+            if (changed) {
+                viewModel.updateClusterManager()
+                clearMarkers()
+                scheduleMapUpdate(true)
+                settingsViewModel.resetMapSettingsChangedFlag()
+
+                Snackbar.make(binding.root, getString(R.string.cluster_settings_updated), Snackbar.LENGTH_SHORT).show()
+            }
+        }
+
         settingsViewModel.clusterSettingsChanged.observe(viewLifecycleOwner) { changed ->
             if (changed) {
                 viewModel.updateClusterSettings()

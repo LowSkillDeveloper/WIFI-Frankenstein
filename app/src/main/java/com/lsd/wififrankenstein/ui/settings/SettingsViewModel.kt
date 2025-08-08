@@ -157,14 +157,25 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setForcePointSeparation(value: Boolean) {
         prefs.edit { putBoolean("map_force_point_separation", value) }
         _forcePointSeparation.value = value
-        notifyClusterSettingsChanged()
+        notifyMapSettingsChanged()
     }
 
     fun getClusterAggressiveness() = _clusterAggressiveness.value ?: 1.0f
     fun setClusterAggressiveness(value: Float) {
         prefs.edit { putFloat("map_cluster_aggressiveness", value) }
         _clusterAggressiveness.value = value
-        notifyClusterSettingsChanged()
+        notifyMapSettingsChanged()
+    }
+
+    private val _mapSettingsChanged = MutableLiveData<Boolean>()
+    val mapSettingsChanged: LiveData<Boolean> = _mapSettingsChanged
+
+    private fun notifyMapSettingsChanged() {
+        _mapSettingsChanged.value = true
+    }
+
+    fun resetMapSettingsChangedFlag() {
+        _mapSettingsChanged.value = false
     }
 
     fun getMaxClusterSize(): Int {
@@ -175,7 +186,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setMaxClusterSize(value: Int) {
         prefs.edit { putInt("map_max_cluster_size", value) }
         _maxClusterSize.value = value
-        notifyClusterSettingsChanged()
+        notifyMapSettingsChanged()
     }
 
     private val _clusterSettingsChanged = MutableLiveData<Boolean>()
