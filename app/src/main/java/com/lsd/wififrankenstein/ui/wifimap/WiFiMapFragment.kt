@@ -127,6 +127,7 @@ class WiFiMapFragment : Fragment() {
             Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
 
             clearMarkers()
+            scheduleMapUpdate(true)
             scheduleMapUpdate()
         }
     }
@@ -176,11 +177,13 @@ class WiFiMapFragment : Fragment() {
 
             addMapListener(object : MapListener {
                 override fun onScroll(event: ScrollEvent): Boolean {
+                    scheduleMapUpdate(true)
                     scheduleMapUpdate()
                     return true
                 }
 
                 override fun onZoom(event: ZoomEvent): Boolean {
+                    scheduleMapUpdate(true)
                     scheduleMapUpdate()
                     return true
                 }
@@ -188,12 +191,12 @@ class WiFiMapFragment : Fragment() {
         }
     }
 
-    private fun scheduleMapUpdate() {
+    private fun scheduleMapUpdate(forceUpdate: Boolean = false) {
         val currentTime = System.currentTimeMillis()
         val currentZoom = binding.map.zoomLevelDouble
         val currentCenter = binding.map.mapCenter as? GeoPoint
 
-        if (!shouldUpdateClusters(currentZoom, currentCenter)) {
+        if (!forceUpdate && !shouldUpdateClusters(currentZoom, currentCenter)) {
             Log.d(TAG, "Skipping cluster update - insufficient zoom/position change")
             return
         }
@@ -202,7 +205,7 @@ class WiFiMapFragment : Fragment() {
 
         lifecycleScope.launch {
             delay(MAP_UPDATE_DEBOUNCE_MS)
-            if (lastMapUpdateTime == currentTime) {
+            if (lastMapUpdateTime == currentTime || forceUpdate) {
                 updateVisiblePoints()
             }
         }
@@ -215,13 +218,20 @@ class WiFiMapFragment : Fragment() {
             return true
         }
 
-        if (currentZoom >= 14.0) {
+        val zoomDiff = currentZoom - lastClusterUpdateZoom
+
+        if (zoomDiff < 0) {
+            return false
+        }
+
+        val zoomIncreased = zoomDiff >= 0.5
+
+        if (zoomIncreased) {
             lastClusterUpdateZoom = currentZoom
             lastClusterUpdateCenter = currentCenter
             return true
         }
 
-        val zoomDiff = kotlin.math.abs(currentZoom - lastClusterUpdateZoom)
         val centerDistance = lastClusterUpdateCenter?.let { lastCenter ->
             val geoPoint1 = GeoPoint(lastCenter.latitude, lastCenter.longitude)
             val geoPoint2 = GeoPoint(currentCenter.latitude, currentCenter.longitude)
@@ -235,38 +245,8 @@ class WiFiMapFragment : Fragment() {
             corner1.distanceToAsDouble(corner2)
         } ?: 0.0
 
-        val zoomOut = currentZoom < lastClusterUpdateZoom
-        val movementThreshold = viewportDiagonal * 0.3
-
-        val shouldUpdate = when {
-            currentZoom >= 10.0 -> {
-                if (zoomOut && zoomDiff >= 0.5) {
-                    true
-                } else if (zoomDiff >= 2.0) {
-                    true
-                } else {
-                    centerDistance > movementThreshold
-                }
-            }
-            currentZoom >= 6.0 -> {
-                if (zoomOut && zoomDiff >= 0.8) {
-                    true
-                } else if (zoomDiff >= 2.5) {
-                    true
-                } else {
-                    centerDistance > movementThreshold
-                }
-            }
-            else -> {
-                if (zoomOut && zoomDiff >= 1.0) {
-                    true
-                } else if (zoomDiff >= 3.0) {
-                    true
-                } else {
-                    centerDistance > movementThreshold
-                }
-            }
-        }
+        val movementThreshold = viewportDiagonal * 0.6
+        val shouldUpdate = centerDistance > movementThreshold
 
         if (shouldUpdate) {
             lastClusterUpdateZoom = currentZoom
@@ -295,6 +275,7 @@ class WiFiMapFragment : Fragment() {
 
                     lifecycleScope.launch {
                         delay(100)
+                        scheduleMapUpdate(true)
                         scheduleMapUpdate()
                         delay(500)
                         if (selectedDatabases.isNotEmpty()) {
@@ -324,6 +305,7 @@ class WiFiMapFragment : Fragment() {
 
                     lifecycleScope.launch {
                         delay(100)
+                        scheduleMapUpdate(true)
                         scheduleMapUpdate()
                         delay(500)
                         if (selectedDatabases.isNotEmpty()) {
@@ -480,6 +462,7 @@ class WiFiMapFragment : Fragment() {
                 databaseAdapter.notifyDataSetChanged()
 
                 clearMarkers()
+                scheduleMapUpdate(true)
                 scheduleMapUpdate()
             } ?: Log.e(TAG, "currentIndexingDb is null after indexing completion")
 
@@ -550,6 +533,7 @@ class WiFiMapFragment : Fragment() {
                 clearMarkers()
                 resetMapState()
                 updateLegend()
+                scheduleMapUpdate(true)
                 scheduleMapUpdate()
 
                 Log.d(TAG, "Added read-only database and refreshed map")

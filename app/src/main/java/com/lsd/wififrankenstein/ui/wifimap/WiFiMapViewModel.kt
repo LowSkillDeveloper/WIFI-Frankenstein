@@ -539,10 +539,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         Log.d(TAG, "=== VIEWMODEL LOAD DEBUG ===")
         Log.d(TAG, "Zoom: $zoom (min: $minZoom)")
         Log.d(TAG, "Max points for zoom: ${getMaxPointsForZoom(zoom)}")
-        Log.d(TAG, "Bounding box: lat(${boundingBox.latSouth} to ${boundingBox.latNorth}), lon(${boundingBox.lonWest} to ${boundingBox.lonEast})")
-        Log.d(TAG, "Area size: ${String.format("%.2f", (boundingBox.latNorth - boundingBox.latSouth) * (boundingBox.lonEast - boundingBox.lonWest))} degrees²")
         Log.d(TAG, "Selected databases: ${selectedDatabases.map { it.id }}")
-        Log.d(TAG, "Cluster settings: preventMerge=${getPreventClusterMerge()}, aggressiveness=${settingsPrefs.getFloat("map_cluster_aggressiveness", 1.0f)}")
 
         if (zoom < minZoom) {
             Log.d(TAG, "Zoom level too low: $zoom < $minZoom")
@@ -556,7 +553,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             try {
                 _loadingProgress.postValue(0)
 
-                val allPoints = withContext(Dispatchers.IO) {
+                val allPoints = withContext(MapOperationExecutor.databaseDispatcher) {
                     val points = Collections.synchronizedList(mutableListOf<NetworkPoint>())
                     val totalDatabases = selectedDatabases.size
 
@@ -565,16 +562,14 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             if (!isActive) return@async
 
                             try {
-                                Log.d(TAG, "Loading database: ${database.id}, type: ${database.dbType}")
+                                Log.d(TAG, "Loading database: ${database.id}")
                                 val startTime = System.currentTimeMillis()
                                 val dbPoints = loadPointsFromDatabase(database, boundingBox, zoom)
                                 val loadTime = System.currentTimeMillis() - startTime
 
-                                val networkPoints = dbPoints.mapIndexed { pointIndex, (bssidDecimal, lat, lon) ->
-                                    if (pointIndex % 500 == 0) {
-                                        yield()
-                                    }
+                                if (!isActive) return@async
 
+                                val networkPoints = dbPoints.map { (bssidDecimal, lat, lon) ->
                                     NetworkPoint(
                                         latitude = lat,
                                         longitude = lon,
@@ -607,7 +602,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                 if (allPoints.isNotEmpty()) {
                     val clusterStartTime = System.currentTimeMillis()
-                    val clusteredPoints = withContext(Dispatchers.Default) {
+                    val clusteredPoints = withContext(MapOperationExecutor.clusteringDispatcher) {
                         if (!isActive) return@withContext emptyList()
 
                         val mapCenter = Pair(
@@ -620,16 +615,11 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                         val clusters = clusterManager.createAdaptiveClusters(allPoints, zoom, mapCenter)
                         val clusterTime = System.currentTimeMillis() - clusterStartTime
 
-                        Log.d(TAG, "Created ${clusters.size} adaptive clusters from ${allPoints.size} points in ${clusterTime}ms")
-                        Log.d(TAG, "Clustering ratio: ${String.format("%.2f", (clusters.size.toFloat() / allPoints.size) * 100)}%")
+                        Log.d(TAG, "Created ${clusters.size} clusters from ${allPoints.size} points in ${clusterTime}ms")
 
                         _loadingProgress.postValue(75)
 
-                        clusters.mapIndexed { index, clusterItem ->
-                            if (index % 1000 == 0) {
-                                yield()
-                            }
-
+                        clusters.map { clusterItem ->
                             if (clusterItem.size == 1) {
                                 clusterItem.points.first()
                             } else {
@@ -653,15 +643,20 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                     if (!isActive) return@launch
 
-                    _loadingProgress.postValue(90)
+                    withContext(MapOperationExecutor.uiUpdateDispatcher) {
+                        _loadingProgress.postValue(90)
+                        _points.postValue(clusteredPoints)
+                        _loadingProgress.postValue(100)
+                    }
+
                     Log.d(TAG, "Final result: ${clusteredPoints.size} points to render")
-                    _points.postValue(clusteredPoints)
                 } else {
-                    Log.d(TAG, "No points loaded")
-                    _points.postValue(emptyList())
+                    withContext(MapOperationExecutor.uiUpdateDispatcher) {
+                        _points.postValue(emptyList())
+                        _loadingProgress.postValue(100)
+                    }
                 }
 
-                _loadingProgress.postValue(100)
                 Log.d(TAG, "=== LOAD COMPLETE ===")
 
             } catch (e: Exception) {
@@ -671,6 +666,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                         R.string.database_error,
                         e.localizedMessage ?: "Unknown error"
                     ))
+                }
+                withContext(MapOperationExecutor.uiUpdateDispatcher) {
+                    _loadingProgress.postValue(100)
                 }
             }
         }

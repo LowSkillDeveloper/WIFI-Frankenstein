@@ -42,15 +42,21 @@ class MapCanvasOverlay(
     }
 
     override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
-        if (shadow) return
+        if (shadow || points.isEmpty()) return
 
         val projection = mapView.projection
-        val viewBounds = projection.boundingBox
+        val viewBounds = projection.boundingBox ?: return
 
-        points.forEach { point ->
-            if (isPointInBounds(point, viewBounds)) {
-                val geoPoint = GeoPoint(point.displayLatitude, point.displayLongitude)
-                projection.toPixels(geoPoint, screenPoint)
+        val visiblePoints = points.filter { point ->
+            isPointInBounds(point, viewBounds)
+        }
+
+        for (point in visiblePoints) {
+            val geoPoint = GeoPoint(point.displayLatitude, point.displayLongitude)
+            projection.toPixels(geoPoint, screenPoint)
+
+            if (screenPoint.x >= 0 && screenPoint.x <= mapView.width &&
+                screenPoint.y >= 0 && screenPoint.y <= mapView.height) {
 
                 if (point.bssidDecimal == -1L) {
                     drawCluster(canvas, screenPoint, point)

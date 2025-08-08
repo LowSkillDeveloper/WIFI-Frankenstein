@@ -74,6 +74,7 @@ class MapDatabaseAdapter(
                     Log.d(TAG, "Removed database ${database.id} from selection")
                 }
 
+                viewModel.clearCache()
                 onSelectionChanged()
             }
         }
