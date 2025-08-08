@@ -225,35 +225,53 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val context = getApplication<Application>().applicationContext
         val pm = context.packageManager
 
-        val aliasToEnable = when (icon) {
-            "3wifi" -> ".MainActivity_3WiFi"
-            "anti3wifi" -> ".MainActivity_Anti3WiFi"
-            "p3wifi" -> ".MainActivity_P3WiFi"
-            "p3wifi_pixel" -> ".MainActivity_P3WiFiPixel"
-            else -> ".MainActivity"
+        try {
+            val aliasToEnable = when (icon) {
+                "3wifi" -> ".MainActivity_3WiFi"
+                "anti3wifi" -> ".MainActivity_Anti3WiFi"
+                "p3wifi" -> ".MainActivity_P3WiFi"
+                "p3wifi_pixel" -> ".MainActivity_P3WiFiPixel"
+                else -> null
+            }
+
+            if (aliasToEnable != null) {
+                val targetAlias = ComponentName(context, context.packageName + aliasToEnable)
+                val currentState = pm.getComponentEnabledSetting(targetAlias)
+
+                if (currentState == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                    return
+                }
+
+                listOf(".MainActivity_3WiFi", ".MainActivity_Anti3WiFi", ".MainActivity_P3WiFi", ".MainActivity_P3WiFiPixel").forEach { alias ->
+                    val component = ComponentName(context, context.packageName + alias)
+                    pm.setComponentEnabledSetting(
+                        component,
+                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                        PackageManager.DONT_KILL_APP
+                    )
+                }
+
+                pm.setComponentEnabledSetting(
+                    targetAlias,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+            } else {
+                listOf(".MainActivity_3WiFi", ".MainActivity_Anti3WiFi", ".MainActivity_P3WiFi", ".MainActivity_P3WiFiPixel").forEach { alias ->
+                    val component = ComponentName(context, context.packageName + alias)
+                    pm.setComponentEnabledSetting(
+                        component,
+                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                        PackageManager.DONT_KILL_APP
+                    )
+                }
+            }
+
+            Toast.makeText(context, R.string.icon_changed, Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            android.util.Log.e("SettingsViewModel", "Error changing app icon", e)
+            Toast.makeText(context, R.string.icon_change_failed, Toast.LENGTH_LONG).show()
         }
-
-        val currentAlias = context.packageName + aliasToEnable
-        val currentState = pm.getComponentEnabledSetting(ComponentName(context, currentAlias))
-        if (currentState == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
-            return
-        }
-
-        listOf(".MainActivity", ".MainActivity_3WiFi", ".MainActivity_Anti3WiFi", ".MainActivity_P3WiFi", ".MainActivity_P3WiFiPixel").forEach { alias ->
-            pm.setComponentEnabledSetting(
-                ComponentName(context, context.packageName + alias),
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                PackageManager.DONT_KILL_APP
-            )
-        }
-
-        pm.setComponentEnabledSetting(
-            ComponentName(context, currentAlias),
-            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-            PackageManager.DONT_KILL_APP
-        )
-
-        Toast.makeText(context, R.string.icon_changed, Toast.LENGTH_LONG).show()
     }
 
     fun setTheme(theme: Int) {

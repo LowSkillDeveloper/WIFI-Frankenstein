@@ -1388,6 +1388,7 @@
 
     <string name="storage_permission_title">Storage Permission</string>
     <string name="storage_permission_rationale">This app needs storage access to read and write database files. Please grant the permission to continue.</string>
+    <string name="icon_change_failed">Failed to change app icon</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

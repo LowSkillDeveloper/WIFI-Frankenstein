@@ -137,9 +137,22 @@ class WelcomeActivity : AppCompatActivity() {
     }
 
     private fun startMainActivity() {
-        val intent = Intent(this, MainActivity::class.java)
-        startActivity(intent)
-        finish()
+        try {
+            val intent = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(intent)
+            finish()
+        } catch (e: Exception) {
+            android.util.Log.e("WelcomeActivity", "Error starting MainActivity", e)
+
+            val packageManager = packageManager
+            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+            if (launchIntent != null) {
+                startActivity(launchIntent)
+            }
+            finish()
+        }
     }
 
     fun updateNavigationButtons(showPrev: Boolean, showSkip: Boolean, showNext: Boolean,

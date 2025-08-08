@@ -66,7 +66,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        applyTheme()
+        try {
+            applyTheme()
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error applying theme", e)
+        }
+
         super.onCreate(savedInstanceState)
 
         updateChecker = UpdateChecker(applicationContext)
