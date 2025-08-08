@@ -74,11 +74,15 @@ class WiFiMapFragment : Fragment() {
     private var nextColorIndex = 0
 
     private var lastMapUpdateTime = 0L
-    private val MAP_UPDATE_DEBOUNCE_MS = 300L
+    private val MAP_UPDATE_DEBOUNCE_MS = 800L
     private var lastUpdateZoom = -1.0
     private var lastUpdateCenter: GeoPoint? = null
     private var lastClusterUpdateZoom = -1.0
     private var lastClusterUpdateCenter: GeoPoint? = null
+
+    private var isUserInteracting = false
+    private var interactionEndTime = 0L
+    private val INTERACTION_COOLDOWN_MS = 1000L
 
     companion object {
         private const val DEFAULT_ZOOM = 5.0
@@ -175,16 +179,45 @@ class WiFiMapFragment : Fragment() {
 
             overlays.add(canvasOverlay)
 
+            var scrollStartTime = 0L
+            var zoomStartTime = 0L
+
             addMapListener(object : MapListener {
                 override fun onScroll(event: ScrollEvent): Boolean {
-                    scheduleMapUpdate(true)
-                    scheduleMapUpdate()
+                    val currentTime = System.currentTimeMillis()
+                    if (scrollStartTime == 0L) {
+                        scrollStartTime = currentTime
+                        isUserInteracting = true
+                    }
+
+                    lifecycleScope.launch {
+                        delay(200)
+                        if (currentTime == scrollStartTime) {
+                            scrollStartTime = 0L
+                            isUserInteracting = false
+                            interactionEndTime = System.currentTimeMillis()
+                            scheduleMapUpdate()
+                        }
+                    }
                     return true
                 }
 
                 override fun onZoom(event: ZoomEvent): Boolean {
-                    scheduleMapUpdate(true)
-                    scheduleMapUpdate()
+                    val currentTime = System.currentTimeMillis()
+                    if (zoomStartTime == 0L) {
+                        zoomStartTime = currentTime
+                        isUserInteracting = true
+                    }
+
+                    lifecycleScope.launch {
+                        delay(300)
+                        if (currentTime == zoomStartTime) {
+                            zoomStartTime = 0L
+                            isUserInteracting = false
+                            interactionEndTime = System.currentTimeMillis()
+                            scheduleMapUpdate()
+                        }
+                    }
                     return true
                 }
             })
@@ -196,17 +229,32 @@ class WiFiMapFragment : Fragment() {
         val currentZoom = binding.map.zoomLevelDouble
         val currentCenter = binding.map.mapCenter as? GeoPoint
 
-        if (!forceUpdate && !shouldUpdateClusters(currentZoom, currentCenter)) {
-            Log.d(TAG, "Skipping cluster update - insufficient zoom/position change")
-            return
+        if (!forceUpdate) {
+            if (isUserInteracting) {
+                Log.d(TAG, "User is interacting, postponing update")
+                return
+            }
+
+            if (currentTime - interactionEndTime < INTERACTION_COOLDOWN_MS) {
+                Log.d(TAG, "Still in interaction cooldown")
+                return
+            }
+
+            if (!shouldUpdateClusters(currentZoom, currentCenter)) {
+                Log.d(TAG, "Skipping cluster update - insufficient zoom/position change")
+                return
+            }
         }
 
+        updateJob?.cancel()
         lastMapUpdateTime = currentTime
 
-        lifecycleScope.launch {
+        updateJob = lifecycleScope.launch {
             delay(MAP_UPDATE_DEBOUNCE_MS)
             if (lastMapUpdateTime == currentTime || forceUpdate) {
-                updateVisiblePoints()
+                if (!isUserInteracting) {
+                    updateVisiblePoints()
+                }
             }
         }
     }

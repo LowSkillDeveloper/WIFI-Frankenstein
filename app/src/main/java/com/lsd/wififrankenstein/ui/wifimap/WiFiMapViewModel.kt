@@ -71,9 +71,10 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     private val localDbIndexManager = LocalDbIndexManager(getApplication())
 
     private var lastUpdateTime = 0L
-    private val MIN_UPDATE_INTERVAL = 100L
-
     private var currentLoadingJob: Job? = null
+    private var backgroundCachingJobs = mutableMapOf<String, Job>()
+
+    private val MIN_UPDATE_INTERVAL = 300L
 
     private val _databaseColors = mutableMapOf<String, Int>()
     private val availableColors = listOf(
@@ -536,11 +537,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
         val minZoom = getMinZoomForMarkers()
 
-        Log.d(TAG, "=== VIEWMODEL LOAD DEBUG ===")
-        Log.d(TAG, "Zoom: $zoom (min: $minZoom)")
-        Log.d(TAG, "Max points for zoom: ${getMaxPointsForZoom(zoom)}")
-        Log.d(TAG, "Selected databases: ${selectedDatabases.map { it.id }}")
-
         if (zoom < minZoom) {
             Log.d(TAG, "Zoom level too low: $zoom < $minZoom")
             _points.value = emptyList()
@@ -548,6 +544,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         }
 
         currentLoadingJob?.cancel()
+        backgroundCachingJobs.values.forEach { it.cancel() }
+        backgroundCachingJobs.clear()
 
         currentLoadingJob = viewModelScope.launch {
             try {
@@ -557,12 +555,11 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     val points = Collections.synchronizedList(mutableListOf<NetworkPoint>())
                     val totalDatabases = selectedDatabases.size
 
-                    selectedDatabases.mapIndexed { index, database ->
+                    val databaseJobs = selectedDatabases.mapIndexed { index, database ->
                         async {
                             if (!isActive) return@async
 
                             try {
-                                Log.d(TAG, "Loading database: ${database.id}")
                                 val startTime = System.currentTimeMillis()
                                 val dbPoints = loadPointsFromDatabase(database, boundingBox, zoom)
                                 val loadTime = System.currentTimeMillis() - startTime
@@ -586,22 +583,30 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                 _loadingProgress.postValue(progress)
 
                                 Log.d(TAG, "Loaded ${networkPoints.size} points from ${database.id} in ${loadTime}ms")
+                            } catch (e: CancellationException) {
+                                Log.d(TAG, "Database loading cancelled for ${database.id}")
+                                throw e
                             } catch (e: Exception) {
                                 Log.e(TAG, "Error loading points from database ${database.id}", e)
                             }
                         }
-                    }.awaitAll()
+                    }
+
+                    try {
+                        databaseJobs.awaitAll()
+                    } catch (e: CancellationException) {
+                        Log.d(TAG, "All database loading cancelled")
+                        throw e
+                    }
 
                     points.toList()
                 }
 
                 if (!isActive) return@launch
 
-                Log.d(TAG, "Total points loaded: ${allPoints.size}")
                 _loadingProgress.postValue(50)
 
                 if (allPoints.isNotEmpty()) {
-                    val clusterStartTime = System.currentTimeMillis()
                     val clusteredPoints = withContext(MapOperationExecutor.clusteringDispatcher) {
                         if (!isActive) return@withContext emptyList()
 
@@ -613,9 +618,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                         _loadingProgress.postValue(60)
 
                         val clusters = clusterManager.createAdaptiveClusters(allPoints, zoom, mapCenter)
-                        val clusterTime = System.currentTimeMillis() - clusterStartTime
-
-                        Log.d(TAG, "Created ${clusters.size} clusters from ${allPoints.size} points in ${clusterTime}ms")
 
                         _loadingProgress.postValue(75)
 
@@ -648,8 +650,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                         _points.postValue(clusteredPoints)
                         _loadingProgress.postValue(100)
                     }
-
-                    Log.d(TAG, "Final result: ${clusteredPoints.size} points to render")
                 } else {
                     withContext(MapOperationExecutor.uiUpdateDispatcher) {
                         _points.postValue(emptyList())
@@ -657,16 +657,15 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
 
-                Log.d(TAG, "=== LOAD COMPLETE ===")
-
+            } catch (e: CancellationException) {
+                Log.d(TAG, "Load points cancelled")
             } catch (e: Exception) {
-                if (e !is CancellationException) {
-                    Log.e(TAG, "Error loading points", e)
-                    _error.postValue(getApplication<Application>().getString(
-                        R.string.database_error,
-                        e.localizedMessage ?: "Unknown error"
-                    ))
-                }
+                Log.e(TAG, "Error loading points", e)
+                _error.postValue(getApplication<Application>().getString(
+                    R.string.database_error,
+                    e.localizedMessage ?: "Unknown error"
+                ))
+            } finally {
                 withContext(MapOperationExecutor.uiUpdateDispatcher) {
                     _loadingProgress.postValue(100)
                 }
@@ -934,14 +933,13 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun clearCache() {
+        currentLoadingJob?.cancel()
+        backgroundCachingJobs.values.forEach { it.cancel() }
+        backgroundCachingJobs.clear()
+
         pointsCache.clear()
         smartCache.clear()
         clusterManager.clearAllCache()
-
-        backgroundCachingJob?.cancel()
-        backgroundCachingJob = null
-        currentLoadingJob?.cancel()
-        currentLoadingJob = null
 
         lastUpdateTime = 0L
         Log.d(TAG, "Cleared all caches and cancelled background jobs")
