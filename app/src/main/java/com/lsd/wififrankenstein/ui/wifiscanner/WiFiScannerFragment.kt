@@ -67,6 +67,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import android.provider.Settings
 
 class WiFiScannerFragment : Fragment() {
 
@@ -670,9 +671,34 @@ class WiFiScannerFragment : Fragment() {
             binding.swipeRefreshLayout.isRefreshing = false
         }
 
+        viewModel.wifiEnabled.observe(viewLifecycleOwner) { isEnabled ->
+            if (!isEnabled) {
+                showWifiDisabledDialog()
+            }
+        }
+
+        viewModel.locationEnabled.observe(viewLifecycleOwner) { isEnabled ->
+            if (!isEnabled) {
+                showLocationDisabledDialog()
+            }
+        }
+
         viewModel.scanState.observe(viewLifecycleOwner) { message ->
-            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
             binding.swipeRefreshLayout.isRefreshing = false
+
+            when (message) {
+                getString(R.string.no_networks_found_nearby) -> {
+                    if (wifiAdapter.getWifiList().isEmpty()) {
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                    }
+                }
+                getString(R.string.wifi_scan_throttled) -> {
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                }
+                else -> {
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                }
+            }
         }
 
         viewModel.databaseResults.observe(viewLifecycleOwner) { results ->
@@ -687,6 +713,36 @@ class WiFiScannerFragment : Fragment() {
                 hideProgressBar()
             }
         }
+    }
+
+    private fun showWifiDisabledDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.wifi_disabled))
+            .setMessage(getString(R.string.wifi_disabled))
+            .setPositiveButton(getString(R.string.turn_on_wifi)) { _, _ ->
+                try {
+                    startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                } catch (e: Exception) {
+                    Toast.makeText(requireContext(), getString(R.string.error_general, e.message), Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
+    }
+
+    private fun showLocationDisabledDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.location_services_disabled))
+            .setMessage(getString(R.string.location_services_disabled))
+            .setPositiveButton(getString(R.string.turn_on_location)) { _, _ ->
+                try {
+                    startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                } catch (e: Exception) {
+                    Toast.makeText(requireContext(), getString(R.string.error_general, e.message), Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
     }
 
     private fun checkForNotifications() {
@@ -841,6 +897,10 @@ class WiFiScannerFragment : Fragment() {
                 if (ContextCompat.checkSelfPermission(
                         requireContext(),
                         Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.ACCESS_COARSE_LOCATION
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
                     requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)

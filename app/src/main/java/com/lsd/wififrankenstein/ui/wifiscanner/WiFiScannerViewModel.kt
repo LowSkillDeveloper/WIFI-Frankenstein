@@ -7,10 +7,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.net.Uri
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
@@ -51,6 +53,10 @@ class WiFiScannerViewModel(
         application.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     }
 
+    private val locationManager: LocationManager by lazy {
+        application.applicationContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    }
+
     private val localAppDbHelper = LocalAppDbHelper(application)
 
     private val _searchByMac = MutableLiveData(true)
@@ -71,12 +77,24 @@ class WiFiScannerViewModel(
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
 
+    private val _wifiEnabled = MutableLiveData<Boolean>()
+    val wifiEnabled: LiveData<Boolean> = _wifiEnabled
+
+    private val _locationEnabled = MutableLiveData<Boolean>()
+    val locationEnabled: LiveData<Boolean> = _locationEnabled
+
     private var sqlite3WiFiHelper: SQLite3WiFiHelper? = null
 
     private val api3WiFiHelpers = mutableMapOf<String, API3WiFiHelper>()
 
     private var scanReceiver: BroadcastReceiver? = null
     private var isReceiverRegistered = false
+    private var lastScanTime = 0L
+    private val SCAN_THROTTLE_TIME = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        10000L
+    } else {
+        3000L
+    }
 
     fun setSearchType(searchByMac: Boolean) {
         _searchByMac.value = searchByMac
@@ -98,71 +116,179 @@ class WiFiScannerViewModel(
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
-    fun startWifiScan() {
-        if (hasLocationPermission()) {
-            viewModelScope.launch {
-                try {
-                    _scanState.postValue(getApplication<Application>().getString(R.string.scanning_wifi))
-
-                    val networks = withContext(Dispatchers.IO) {
-                        if (isDummyNetworkModeEnabled()) {
-                            createDummyNetworks()
-                        } else {
-                            if (wifiManager.startScan()) {
-                                wifiManager.scanResults.sortedByDescending { it.level }
-                            } else {
-                                emptyList()
-                            }
-                        }
-                    }
-
-                    if (networks.isNotEmpty()) {
-                        _wifiList.postValue(networks)
-                        _scanState.postValue("Scan completed successfully")
-                    } else {
-                        _scanState.postValue(getApplication<Application>().getString(R.string.failed_to_start_wifi_scan))
-                    }
-
-                } catch (_: SecurityException) {
-                    _scanState.postValue(getApplication<Application>().getString(R.string.permission_denied_wifi_scan))
-                } catch (e: Exception) {
-                    _scanState.postValue(getApplication<Application>().getString(R.string.error_general, e.message))
-                }
-            }
-        } else {
-            _scanState.value = getApplication<Application>().getString(R.string.location_permission_required)
+    private fun isWifiEnabled(): Boolean {
+        return try {
+            wifiManager.isWifiEnabled
+        } catch (e: Exception) {
+            false
         }
     }
 
-    fun startLegacyWifiScan() {
+    private fun isLocationEnabled(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            locationManager.isLocationEnabled
+        } else {
+            try {
+                val locationMode = Settings.Secure.getInt(
+                    getApplication<Application>().contentResolver,
+                    Settings.Secure.LOCATION_MODE
+                )
+                locationMode != Settings.Secure.LOCATION_MODE_OFF
+            } catch (e: Settings.SettingNotFoundException) {
+                false
+            }
+        }
+    }
+
+    private fun needsLocationForWifiScan(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun startWifiScan() {
+        if (!hasLocationPermission()) {
+            _scanState.postValue(getApplication<Application>().getString(R.string.location_permission_required))
+            _wifiEnabled.postValue(false)
+            return
+        }
+
+        val wifiEnabled = isWifiEnabled()
+        _wifiEnabled.postValue(wifiEnabled)
+
+        if (!wifiEnabled) {
+            _scanState.postValue(getApplication<Application>().getString(R.string.wifi_disabled))
+            return
+        }
+
+        if (needsLocationForWifiScan() && !isLocationEnabled()) {
+            _locationEnabled.postValue(false)
+            _scanState.postValue(getApplication<Application>().getString(R.string.location_services_disabled))
+            return
+        }
+
+        _locationEnabled.postValue(true)
+
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastScanTime < SCAN_THROTTLE_TIME) {
+            _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_throttled))
+            return
+        }
+
         viewModelScope.launch {
             try {
                 _scanState.postValue(getApplication<Application>().getString(R.string.scanning_wifi))
 
-                if (isDummyNetworkModeEnabled()) {
-                    _scanState.postValue(getApplication<Application>().getString(R.string.failed_to_start_wifi_scan))
-                    return@launch
+                val networks = withContext(Dispatchers.IO) {
+                    if (isDummyNetworkModeEnabled()) {
+                        createDummyNetworks()
+                    } else {
+                        try {
+                            if (wifiManager.startScan()) {
+                                Thread.sleep(2000)
+                                val results = wifiManager.scanResults
+                                if (results != null) {
+                                    results.sortedByDescending { it.level }
+                                } else {
+                                    emptyList()
+                                }
+                            } else {
+                                emptyList()
+                            }
+                        } catch (se: SecurityException) {
+                            throw se
+                        } catch (e: Exception) {
+                            Log.e("WiFiScannerViewModel", "Error during scan", e)
+                            emptyList()
+                        }
+                    }
                 }
 
-                if (!wifiManager.isWifiEnabled) {
-                    _scanState.postValue(getApplication<Application>().getString(R.string.wifi_disabled))
-                    return@launch
+                lastScanTime = currentTime
+
+                when {
+                    networks.isNotEmpty() -> {
+                        _wifiList.postValue(networks)
+                        _scanState.postValue(getApplication<Application>().getString(R.string.scanning_completed))
+                    }
+                    isDummyNetworkModeEnabled() -> {
+                        _scanState.postValue(getApplication<Application>().getString(R.string.no_networks_found_nearby))
+                    }
+                    else -> {
+                        _wifiList.postValue(emptyList())
+                        _scanState.postValue(getApplication<Application>().getString(R.string.no_networks_found_nearby))
+                    }
                 }
+
+            } catch (se: SecurityException) {
+                _scanState.postValue(getApplication<Application>().getString(R.string.permission_denied_wifi_scan))
+            } catch (e: Exception) {
+                _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_failed_unknown))
+                Log.e("WiFiScannerViewModel", "Error in startWifiScan", e)
+            }
+        }
+    }
+
+    fun startLegacyWifiScan() {
+        if (!hasLocationPermission()) {
+            _scanState.value = getApplication<Application>().getString(R.string.location_permission_required)
+            _wifiEnabled.postValue(false)
+            return
+        }
+
+        val wifiEnabled = isWifiEnabled()
+        _wifiEnabled.postValue(wifiEnabled)
+
+        if (!wifiEnabled) {
+            _scanState.postValue(getApplication<Application>().getString(R.string.wifi_disabled))
+            return
+        }
+
+        if (needsLocationForWifiScan() && !isLocationEnabled()) {
+            _locationEnabled.postValue(false)
+            _scanState.postValue(getApplication<Application>().getString(R.string.location_services_disabled))
+            return
+        }
+
+        _locationEnabled.postValue(true)
+
+        if (isDummyNetworkModeEnabled()) {
+            _scanState.postValue(getApplication<Application>().getString(R.string.no_networks_found_nearby))
+            return
+        }
+
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastScanTime < SCAN_THROTTLE_TIME) {
+            _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_throttled))
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                _scanState.postValue(getApplication<Application>().getString(R.string.scanning_wifi))
 
                 registerScanReceiver()
 
-                if (wifiManager.startScan()) {
-                    _scanState.postValue(getApplication<Application>().getString(R.string.scanning_wifi))
+                val scanStarted = withContext(Dispatchers.IO) {
+                    try {
+                        wifiManager.startScan()
+                    } catch (e: Exception) {
+                        Log.e("WiFiScannerViewModel", "Error starting scan", e)
+                        false
+                    }
+                }
+
+                if (scanStarted) {
+                    lastScanTime = currentTime
                 } else {
-                    _scanState.postValue(getApplication<Application>().getString(R.string.failed_to_start_wifi_scan))
+                    _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_failed_unknown))
                     unregisterScanReceiver()
                 }
             } catch (e: SecurityException) {
                 _scanState.postValue(getApplication<Application>().getString(R.string.permission_denied_wifi_scan))
                 unregisterScanReceiver()
             } catch (e: Exception) {
-                _scanState.postValue(getApplication<Application>().getString(R.string.error_general, e.message))
+                _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_failed_unknown))
+                Log.e("WiFiScannerViewModel", "Error in startLegacyWifiScan", e)
                 unregisterScanReceiver()
             }
         }
@@ -182,7 +308,7 @@ class WiFiScannerViewModel(
                         if (success) {
                             processScanResults()
                         } else {
-                            _scanState.postValue(getApplication<Application>().getString(R.string.failed_to_start_wifi_scan))
+                            _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_failed_unknown))
                         }
                         unregisterScanReceiver()
                     }
@@ -190,7 +316,11 @@ class WiFiScannerViewModel(
             }
 
             val filter = IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
-            getApplication<Application>().registerReceiver(scanReceiver, filter)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                getApplication<Application>().registerReceiver(scanReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                getApplication<Application>().registerReceiver(scanReceiver, filter)
+            }
             isReceiverRegistered = true
         }
     }
@@ -200,6 +330,7 @@ class WiFiScannerViewModel(
             try {
                 getApplication<Application>().unregisterReceiver(scanReceiver)
             } catch (e: IllegalArgumentException) {
+                Log.w("WiFiScannerViewModel", "Receiver not registered", e)
             }
             scanReceiver = null
             isReceiverRegistered = false
@@ -212,15 +343,16 @@ class WiFiScannerViewModel(
             if (results != null && results.isNotEmpty()) {
                 val sortedResults = results.sortedByDescending { it.level }
                 _wifiList.postValue(sortedResults)
-                _scanState.postValue(getApplication<Application>().getString(R.string.scanning_wifi))
+                _scanState.postValue(getApplication<Application>().getString(R.string.scanning_completed))
             } else {
                 _wifiList.postValue(emptyList())
-                _scanState.postValue(getApplication<Application>().getString(R.string.no_networks_found))
+                _scanState.postValue(getApplication<Application>().getString(R.string.no_networks_found_nearby))
             }
         } catch (e: SecurityException) {
             _scanState.postValue(getApplication<Application>().getString(R.string.permission_denied_wifi_scan))
         } catch (e: Exception) {
-            _scanState.postValue(getApplication<Application>().getString(R.string.error_general, e.message))
+            _scanState.postValue(getApplication<Application>().getString(R.string.wifi_scan_failed_unknown))
+            Log.e("WiFiScannerViewModel", "Error processing scan results", e)
         }
     }
 
@@ -358,12 +490,19 @@ class WiFiScannerViewModel(
         )
     }
 
-
     private fun hasLocationPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            getApplication(),
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ContextCompat.checkSelfPermission(
+                getApplication(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(
+                        getApplication(),
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
     }
 
     fun refreshWifiList() {
@@ -391,7 +530,6 @@ class WiFiScannerViewModel(
     fun initializeSQLite3WiFiHelper(dbUri: Uri, directPath: String?) {
         sqlite3WiFiHelper = SQLite3WiFiHelper(getApplication(), dbUri, directPath)
     }
-
 
     fun checkNetworksInDatabases(networks: List<ScanResult>, databases: List<DbItem>) {
         if (_isChecking.value == true) return
@@ -576,7 +714,6 @@ class WiFiScannerViewModel(
             _error.postValue(getApplication<Application>().getString(R.string.error_database_access, e.message))
         }
     }
-
 
     private suspend fun processCustomDatabaseAsync(db: DbItem, networks: List<ScanResult>, results: MutableMap<String, MutableList<NetworkDatabaseResult>>) {
         try {
@@ -794,7 +931,6 @@ class WiFiScannerViewModel(
 
         return mergedResults
     }
-
 
     fun clearResults() {
         localResults.clear()

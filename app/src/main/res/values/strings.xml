@@ -1390,6 +1390,15 @@
     <string name="storage_permission_rationale">This app needs storage access to read and write database files. Please grant the permission to continue.</string>
     <string name="icon_change_failed">Failed to change app icon</string>
 
+    <string name="location_services_disabled">Службы геолокации отключены. Включите геолокацию для сканирования WiFi</string>
+    <string name="no_networks_found_nearby">Поблизости не обнаружено WiFi сетей</string>
+    <string name="wifi_scan_throttled">Сканирование WiFi ограничено системой. Повторите попытку позже</string>
+    <string name="wifi_scan_failed_unknown">Не удалось выполнить сканирование WiFi</string>
+    <string name="turn_on_wifi">Включить WiFi</string>
+    <string name="turn_on_location">Включить геолокацию</string>
+    <string name="scanning_completed">Сканирование завершено</string>
+    <string name="wifi_permission_required">Требуется разрешение на доступ к WiFi</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
