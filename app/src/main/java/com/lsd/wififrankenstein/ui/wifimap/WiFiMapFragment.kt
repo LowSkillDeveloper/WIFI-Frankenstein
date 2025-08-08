@@ -37,6 +37,7 @@ import com.lsd.wififrankenstein.databinding.FragmentWifiMapBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -83,6 +84,8 @@ class WiFiMapFragment : Fragment() {
     private var isUserInteracting = false
     private var interactionEndTime = 0L
     private val INTERACTION_COOLDOWN_MS = 300L
+
+    private val settingsViewModel: SettingsViewModel by viewModels()
 
     companion object {
             private const val DEFAULT_ZOOM = 5.0
@@ -560,6 +563,15 @@ class WiFiMapFragment : Fragment() {
                     binding.progressBar.stopAnimation()
                     binding.textViewProgress.visibility = View.GONE
                 }
+            }
+        }
+
+        settingsViewModel.clusterSettingsChanged.observe(viewLifecycleOwner) { changed ->
+            if (changed) {
+                viewModel.updateClusterSettings()
+                clearMarkers()
+                scheduleMapUpdate(true)
+                settingsViewModel.resetClusterSettingsChangedFlag()
             }
         }
 

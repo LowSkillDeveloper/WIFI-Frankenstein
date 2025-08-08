@@ -157,12 +157,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setForcePointSeparation(value: Boolean) {
         prefs.edit { putBoolean("map_force_point_separation", value) }
         _forcePointSeparation.value = value
+        notifyClusterSettingsChanged()
     }
 
     fun getClusterAggressiveness() = _clusterAggressiveness.value ?: 1.0f
     fun setClusterAggressiveness(value: Float) {
         prefs.edit { putFloat("map_cluster_aggressiveness", value) }
         _clusterAggressiveness.value = value
+        notifyClusterSettingsChanged()
     }
 
     fun getMaxClusterSize(): Int {
@@ -173,6 +175,18 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setMaxClusterSize(value: Int) {
         prefs.edit { putInt("map_max_cluster_size", value) }
         _maxClusterSize.value = value
+        notifyClusterSettingsChanged()
+    }
+
+    private val _clusterSettingsChanged = MutableLiveData<Boolean>()
+    val clusterSettingsChanged: LiveData<Boolean> = _clusterSettingsChanged
+
+    private fun notifyClusterSettingsChanged() {
+        _clusterSettingsChanged.value = true
+    }
+
+    fun resetClusterSettingsChangedFlag() {
+        _clusterSettingsChanged.value = false
     }
 
     fun getMarkerVisibilityZoom() = _markerVisibilityZoom.value ?: 11f

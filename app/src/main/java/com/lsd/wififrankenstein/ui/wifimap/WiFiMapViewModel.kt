@@ -327,8 +327,13 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         clusterManager = getClusterManager()
     }
 
+    fun updateClusterSettings() {
+        clusterManager = getClusterManager()
+        clearCache()
+    }
+
     private fun getClusterManager(): GridBasedClusterManager {
-        val maxClusterSize = settingsPrefs.getInt("map_max_cluster_size", 1000)
+        val maxClusterSize = settingsPrefs.getInt("map_max_cluster_size", 5000)
         val clusterAggressiveness = settingsPrefs.getFloat("map_cluster_aggressiveness", 1.0f)
         val preventMerge = settingsPrefs.getBoolean("map_prevent_cluster_merge", false)
         val forceSeparation = settingsPrefs.getBoolean("map_force_point_separation", true)
