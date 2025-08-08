@@ -203,6 +203,15 @@
                     android:layout_marginTop="8dp"
                     android:text="@string/show_wip_features" />
 
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/buttonResetThrottleWarning"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/reset_throttle_warning"
+                        app:icon="@drawable/ic_restore" />
+
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"

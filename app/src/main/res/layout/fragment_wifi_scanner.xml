@@ -18,6 +18,12 @@
             android:layout_height="wrap_content"
             android:visibility="gone"/>
 
+        <include
+            android:id="@+id/throttleWarningBanner"
+            layout="@layout/throttle_warning_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

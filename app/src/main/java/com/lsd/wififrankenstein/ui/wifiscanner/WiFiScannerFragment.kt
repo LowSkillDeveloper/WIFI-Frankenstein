@@ -671,6 +671,10 @@ class WiFiScannerFragment : Fragment() {
             binding.swipeRefreshLayout.isRefreshing = false
         }
 
+        viewModel.isThrottleEnabled.observe(viewLifecycleOwner) { isEnabled ->
+            showThrottleWarningIfNeeded(isEnabled)
+        }
+
         viewModel.wifiEnabled.observe(viewLifecycleOwner) { isEnabled ->
             if (!isEnabled) {
                 showWifiDisabledDialog()
@@ -713,6 +717,41 @@ class WiFiScannerFragment : Fragment() {
                 hideProgressBar()
             }
         }
+    }
+
+    private fun showThrottleWarningIfNeeded(isThrottleEnabled: Boolean) {
+        val prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val hideWarning = prefs.getBoolean("hide_throttle_warning", false)
+
+        if (isThrottleEnabled && !hideWarning) {
+            binding.throttleWarningBanner.throttleWarningRoot.visibility = View.VISIBLE
+            setupThrottleWarningBanner()
+        } else {
+            binding.throttleWarningBanner.throttleWarningRoot.visibility = View.GONE
+        }
+    }
+
+    private fun setupThrottleWarningBanner() {
+        binding.throttleWarningBanner.throttleWarningRoot.setOnClickListener {
+            showThrottleWarningDialog()
+        }
+
+        binding.throttleWarningBanner.buttonCloseThrottleWarning.setOnClickListener {
+            binding.throttleWarningBanner.throttleWarningRoot.visibility = View.GONE
+        }
+    }
+
+    private fun showThrottleWarningDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.throttle_warning_title))
+            .setMessage(getString(R.string.throttle_warning_message))
+            .setPositiveButton(getString(R.string.ok), null)
+            .setNegativeButton(getString(R.string.dont_show_again)) { _, _ ->
+                val prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+                prefs.edit().putBoolean("hide_throttle_warning", true).apply()
+                binding.throttleWarningBanner.throttleWarningRoot.visibility = View.GONE
+            }
+            .show()
     }
 
     private fun showWifiDisabledDialog() {

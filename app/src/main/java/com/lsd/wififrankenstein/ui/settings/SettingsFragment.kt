@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.settings
 
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -326,6 +327,12 @@ class SettingsFragment : Fragment() {
     private fun setupSwitches() {
         binding.switchFullCleanup.setOnCheckedChangeListener { _, isChecked ->
             viewModel.setFullCleanup(isChecked)
+        }
+
+        binding.buttonResetThrottleWarning.setOnClickListener {
+            val prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("hide_throttle_warning", false).apply()
+            Toast.makeText(requireContext(), getString(R.string.throttle_warning_reset), Toast.LENGTH_SHORT).show()
         }
 
         binding.switchPrioritizeNetworksWithData.setOnCheckedChangeListener { _, isChecked ->
