@@ -1197,6 +1197,53 @@
     <string name="database_corrupted_after_download">База данных повреждена после загрузки</string>
     <string name="database_extraction_failed_all_attempts">Не удалось распаковать базу данных после всех попыток</string>
 
+    <string name="storage_permission_title">Разрешение на доступ к хранилищу</string>
+    <string name="storage_permission_rationale">Приложению нужен доступ к хранилищу для чтения и записи файлов базы данных. Пожалуйста, предоставьте разрешение для продолжения.</string>
+    <string name="icon_change_failed">Не удалось изменить иконку приложения</string>
+
+    <string name="location_services_disabled">Службы геолокации отключены. Включите геолокацию для сканирования WiFi</string>
+    <string name="no_networks_found_nearby">Поблизости не обнаружено WiFi сетей</string>
+    <string name="wifi_scan_throttled">Частота сканирования WiFi ограничена системой</string>
+    <string name="wifi_scan_failed_unknown">Не удалось выполнить сканирование WiFi</string>
+    <string name="turn_on_wifi">Включить WiFi</string>
+    <string name="turn_on_location">Включить геолокацию</string>
+    <string name="scanning_completed">Сканирование завершено</string>
+    <string name="wifi_permission_required">Требуется разрешение на доступ к WiFi</string>
+
+    <string name="throttle_warning_title">Ограничение сканирования WiFi</string>
+    <string name="throttle_warning_message">Android ограничивает сканирование WiFi до 4 раз в течение 2 минут для экономии батареи.\n\nЧтобы отключить это ограничение:\n\n1. Откройте Настройки Android\n2. Перейдите в "Для разработчиков"\n3. Найдите "Регулятор сканирования WiFi" или "WiFi scan throttling"\n4. Отключите эту опцию\n\nПосле этого сканирование будет работать без ограничений.</string>
+    <string name="dont_show_again">Больше не показывать</string>
+    <string name="reset_throttle_warning">Сбросить предупреждение о throttling</string>
+    <string name="throttle_warning_reset">Предупреждение будет показываться снова</string>
+
+    <string name="scanning_in_progress">Сканирование уже выполняется</string>
+    <string name="scan_throttled_wait">Сканирование ограничено системой. Подождите %d секунд</string>
+    <string name="scanning_failed_generic">Не удалось выполнить сканирование. Возможно, сканирование заблокировано системой или поблизости нет сетей</string>
+
+    <string name="wps_root_copying_binaries">Копирование WPS бинарных файлов…</string>
+    <string name="wps_root_binaries_ready">WPS бинарные файлы готовы</string>
+    <string name="wps_root_error_copying_binaries">Ошибка при копировании WPS бинарных файлов</string>
+    <string name="wps_root_starting_connection">Начало подключения WPS к %s</string>
+    <string name="wps_root_no_root">Требуется root-доступ для подключения через WPS</string>
+    <string name="wps_root_binaries_missing">WPS бинарные файлы недоступны</string>
+    <string name="wps_root_preparing">Подготовка подключения WPS…</string>
+    <string name="wps_root_supplicant_failed">Не удалось запустить WPS supplicant</string>
+    <string name="wps_root_connecting">Подключение через WPS…</string>
+    <string name="wps_root_connection_failed">Ошибка подключения через WPS</string>
+    <string name="wps_root_connection_error">Ошибка WPS подключения: %s</string>
+    <string name="wps_root_stopping_system_wifi">Остановка системного WiFi…</string>
+    <string name="wps_root_restoring_wifi">Восстановление WiFi…</string>
+    <string name="wps_root_starting_supplicant">Запуск WPS supplicant…</string>
+    <string name="wps_root_supplicant_started">WPS supplicant запущен</string>
+    <string name="wps_root_starting_pbc">Запуск WPS PBC для %s</string>
+    <string name="wps_root_starting_pin">Запуск WPS PIN для %1$s с PIN %2$s</string>
+    <string name="wps_root_wps_success">Аутентификация WPS успешна</string>
+    <string name="wps_root_wps_failed">Аутентификация WPS не удалась</string>
+    <string name="wps_root_wps_timeout">Тайм-аут WPS</string>
+    <string name="wps_root_connected">Подключено к сети</string>
+    <string name="wps_root_disconnected">Отключено от сети</string>
+    <string name="wps_root_connection_successful">Успешное подключение к %s через WPS</string>
+
 
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
