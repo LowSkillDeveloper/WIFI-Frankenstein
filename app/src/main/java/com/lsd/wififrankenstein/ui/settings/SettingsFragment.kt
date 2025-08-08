@@ -126,6 +126,7 @@ class SettingsFragment : Fragment() {
 
         sliderMarkerVisibilityZoom.valueFrom = 1f
         sliderMarkerVisibilityZoom.valueTo = 18f
+        sliderMarkerVisibilityZoom.stepSize = 1f
 
         sliderClusterAggressiveness.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {

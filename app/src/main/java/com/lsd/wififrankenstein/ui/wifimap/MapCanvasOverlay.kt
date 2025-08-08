@@ -48,7 +48,13 @@ class MapCanvasOverlay(
         val viewBounds = projection.boundingBox ?: return
 
         val visiblePoints = points.filter { point ->
-            isPointInBounds(point, viewBounds)
+            val lat = point.displayLatitude
+            val lon = point.displayLongitude
+
+            lat >= viewBounds.latSouth - 0.001 &&
+                    lat <= viewBounds.latNorth + 0.001 &&
+                    lon >= viewBounds.lonWest - 0.001 &&
+                    lon <= viewBounds.lonEast + 0.001
         }
 
         for (point in visiblePoints) {

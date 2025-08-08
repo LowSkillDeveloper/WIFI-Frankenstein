@@ -285,12 +285,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     private val smartCache = mutableMapOf<String, CacheEntry>()
 
     fun getMinZoomForMarkers(): Double {
-        val zoomSetting = settingsPrefs.getFloat("map_marker_visibility_zoom", 8f)
-        val result = when {
-            zoomSetting <= 1f -> 1.0
-            zoomSetting >= 18f -> 12.0
-            else -> 1.0 + (zoomSetting / 18f) * 11.0
-        }
+        val zoomSetting = settingsPrefs.getFloat("map_marker_visibility_zoom", 11f)
+        val result = zoomSetting.toDouble().coerceIn(1.0, 18.0)
         Log.d(TAG, "getMinZoomForMarkers: setting=$zoomSetting, result=$result")
         return result
     }
@@ -558,6 +554,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             try {
                 _loadingProgress.postValue(0)
 
+                val expandedBoundingBox = expandBoundingBoxForPreload(boundingBox, zoom)
+
                 val allPoints = withContext(MapOperationExecutor.databaseDispatcher) {
                     val points = Collections.synchronizedList(mutableListOf<NetworkPoint>())
                     val totalDatabases = selectedDatabases.size
@@ -568,7 +566,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                             try {
                                 val startTime = System.currentTimeMillis()
-                                val dbPoints = loadPointsFromDatabase(database, boundingBox, zoom)
+                                val dbPoints = loadPointsFromDatabase(database, expandedBoundingBox, zoom)
                                 val loadTime = System.currentTimeMillis() - startTime
 
                                 if (!isActive) return@async
@@ -582,6 +580,11 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                         databaseId = database.id,
                                         color = getColorForDatabase(database.id)
                                     )
+                                }.filter { point ->
+                                    point.latitude >= boundingBox.latSouth * 0.98 &&
+                                            point.latitude <= boundingBox.latNorth * 1.02 &&
+                                            point.longitude >= boundingBox.lonWest * 0.98 &&
+                                            point.longitude <= boundingBox.lonEast * 1.02
                                 }
 
                                 points.addAll(networkPoints)
@@ -680,14 +683,39 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private fun expandBoundingBoxForPreload(originalBox: BoundingBox, zoom: Double): BoundingBox {
+        val latRange = originalBox.latNorth - originalBox.latSouth
+        val lonRange = originalBox.lonEast - originalBox.lonWest
+
+        val expansionFactor = when {
+            zoom >= 14.0 -> 0.8
+            zoom >= 12.0 -> 0.6
+            zoom >= 10.0 -> 0.4
+            zoom >= 8.0 -> 0.3
+            else -> 0.2
+        }
+
+        val latExpansion = latRange * expansionFactor
+        val lonExpansion = lonRange * expansionFactor
+
+        val expandedBox = BoundingBox(
+            originalBox.latNorth + latExpansion,
+            originalBox.lonEast + lonExpansion,
+            originalBox.latSouth - latExpansion,
+            originalBox.lonWest - lonExpansion
+        )
+
+        Log.d(TAG, "Expanded bounding box by ${expansionFactor * 100}% for zoom $zoom")
+        return expandedBox
+    }
+
     private fun getMaxPointsForZoom(zoom: Double): Int {
         val maxPoints = when {
-            zoom >= 14.0 -> 50000
             zoom >= 12.0 -> Int.MAX_VALUE
-            zoom >= 10.0 -> 15000
-            zoom >= 8.0 -> 8000
-            zoom >= 6.0 -> 5000
-            else -> 3000
+            zoom >= 10.0 -> 100000
+            zoom >= 8.0 -> 80000
+            zoom >= 6.0 -> 60000
+            else -> 50000
         }
 
         Log.d(TAG, "Max points for zoom $zoom: ${if (maxPoints == Int.MAX_VALUE) "UNLIMITED" else maxPoints}")
@@ -701,7 +729,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     ): List<Triple<Long, Double, Double>> = withContext(Dispatchers.IO) {
         val cacheKey = "${database.id}_${createCacheKey(boundingBox)}"
         val maxPoints = getMaxPointsForZoom(zoom)
-        val willBeLimited = zoom < 12.0 && maxPoints != Int.MAX_VALUE
+        val willBeLimited = zoom < 10.0 && maxPoints != Int.MAX_VALUE
 
         Log.d(TAG, "Loading from DB: ${database.id}, maxPoints: $maxPoints, zoom: $zoom, willBeLimited: $willBeLimited")
 
@@ -779,7 +807,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
         val points = when (database.dbType) {
             DbType.LOCAL_APP_DB -> {
-                Log.d(TAG, "Getting points from local database")
                 val dbHelper = LocalAppDbHelper(getApplication())
                 val localPoints = dbHelper.getPointsInBounds(
                     boundingBox.latSouth,

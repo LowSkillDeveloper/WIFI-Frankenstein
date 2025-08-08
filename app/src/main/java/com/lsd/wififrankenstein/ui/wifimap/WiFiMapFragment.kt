@@ -74,7 +74,7 @@ class WiFiMapFragment : Fragment() {
     private var nextColorIndex = 0
 
     private var lastMapUpdateTime = 0L
-    private val MAP_UPDATE_DEBOUNCE_MS = 800L
+    private val MAP_UPDATE_DEBOUNCE_MS = 200L
     private var lastUpdateZoom = -1.0
     private var lastUpdateCenter: GeoPoint? = null
     private var lastClusterUpdateZoom = -1.0
@@ -85,7 +85,7 @@ class WiFiMapFragment : Fragment() {
     private val INTERACTION_COOLDOWN_MS = 300L
 
     companion object {
-        private const val DEFAULT_ZOOM = 5.0
+            private const val DEFAULT_ZOOM = 5.0
         private const val DEFAULT_LAT = 55.7558
         private const val DEFAULT_LON = 37.6173
     }
@@ -271,7 +271,7 @@ class WiFiMapFragment : Fragment() {
         val zoomDiff = kotlin.math.abs(currentZoom - lastClusterUpdateZoom)
         Log.d(TAG, "Zoom diff: $zoomDiff (current: $currentZoom, last: $lastClusterUpdateZoom)")
 
-        if (zoomDiff >= 0.3) {
+        if (zoomDiff >= 0.1) {
             Log.d(TAG, "Zoom changed significantly ($zoomDiff), allowing update")
             lastClusterUpdateZoom = currentZoom
             lastClusterUpdateCenter = currentCenter
@@ -292,11 +292,12 @@ class WiFiMapFragment : Fragment() {
         } ?: 0.0
 
         val movementThreshold = when {
-            currentZoom >= 18.0 -> viewportDiagonal * 0.1
-            currentZoom >= 16.0 -> viewportDiagonal * 0.2
-            currentZoom >= 14.0 -> viewportDiagonal * 0.3
-            currentZoom >= 12.0 -> viewportDiagonal * 0.4
-            else -> viewportDiagonal * 0.5
+            currentZoom >= 18.0 -> viewportDiagonal * 0.05
+            currentZoom >= 16.0 -> viewportDiagonal * 0.08
+            currentZoom >= 14.0 -> viewportDiagonal * 0.12
+            currentZoom >= 12.0 -> viewportDiagonal * 0.15
+            currentZoom >= 10.0 -> viewportDiagonal * 0.18
+            else -> viewportDiagonal * 0.2
         }
 
         val shouldUpdate = centerDistance > movementThreshold
@@ -631,6 +632,10 @@ class WiFiMapFragment : Fragment() {
             clearMarkers()
             binding.progressBar.stopAnimation()
             binding.textViewProgress.text = getString(R.string.select_database_message)
+            val typedValue = android.util.TypedValue()
+            requireContext().theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)
+            binding.textViewProgress.setTextColor(typedValue.data)
+            binding.textViewProgress.setTypeface(null, android.graphics.Typeface.NORMAL)
             binding.textViewProgress.visibility = View.VISIBLE
             return
         }
@@ -640,6 +645,8 @@ class WiFiMapFragment : Fragment() {
             clearMarkers()
             binding.progressBar.stopAnimation()
             binding.textViewProgress.text = getString(R.string.zoom_in_message)
+            binding.textViewProgress.setTextColor(ContextCompat.getColor(requireContext(), R.color.error_red))
+            binding.textViewProgress.setTypeface(null, android.graphics.Typeface.BOLD)
             binding.textViewProgress.visibility = View.VISIBLE
             return
         }

@@ -165,7 +165,7 @@ class GridBasedClusterManager(
         val newArea = (newBounds.latNorth - newBounds.latSouth) *
                 (newBounds.lonEast - newBounds.lonWest)
 
-        return kotlin.math.abs(newArea - currentArea) / currentArea > 0.5
+        return kotlin.math.abs(newArea - currentArea) / currentArea > 0.2
     }
 
     private fun boundsIntersect(bounds1: BoundingBox, bounds2: BoundingBox): Boolean {
