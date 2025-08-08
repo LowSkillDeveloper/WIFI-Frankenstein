@@ -47,6 +47,16 @@ class WelcomePermissionsFragment : Fragment() {
         welcomeViewModel.setStoragePermissionGranted(hasStorage)
     }
 
+    private val requestLegacyStoragePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        updateStoragePermissionUI(granted)
+        welcomeViewModel.setStoragePermissionGranted(granted)
+        if (!granted) {
+            showStoragePermissionDeniedDialog()
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -85,6 +95,19 @@ class WelcomePermissionsFragment : Fragment() {
             showSkip = true,
             showNext = true
         )
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        val locationGranted = hasLocationPermission()
+        val storageGranted = hasStoragePermission()
+
+        updateLocationPermissionUI(locationGranted)
+        updateStoragePermissionUI(storageGranted)
+
+        welcomeViewModel.setLocationPermissionGranted(locationGranted)
+        welcomeViewModel.setStoragePermissionGranted(storageGranted)
     }
 
     private fun setupPermissionCards() {
@@ -184,11 +207,21 @@ class WelcomePermissionsFragment : Fragment() {
                 requestStorageAccessLauncher.launch(intent)
             }
         } else {
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                STORAGE_PERMISSION_REQUEST_CODE
-            )
+            if (ActivityCompat.shouldShowRequestPermissionRationale(
+                    requireActivity(),
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                )) {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.storage_permission_title)
+                    .setMessage(R.string.storage_permission_rationale)
+                    .setPositiveButton(R.string.ok) { dialog, which ->
+                        requestLegacyStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    }
+                    .setNegativeButton(R.string.cancel, null)
+                    .show()
+            } else {
+                requestLegacyStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
         }
     }
 
