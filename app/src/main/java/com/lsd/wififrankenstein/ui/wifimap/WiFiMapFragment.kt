@@ -704,6 +704,11 @@ class WiFiMapFragment : Fragment() {
     private fun updateMarkers(visiblePoints: List<NetworkPoint>) {
         Log.d(TAG, "Updating canvas overlay with ${visiblePoints.size} visible points")
 
+        val clusterSizes = visiblePoints.groupBy {
+            if (it.bssidDecimal == -1L) it.essid?.substringBetween("(", " points)")?.toIntOrNull() ?: 1 else 1
+        }.mapValues { it.value.size }
+        Log.d(TAG, "Cluster size distribution: $clusterSizes")
+
         lifecycleScope.launch(Dispatchers.Main) {
             canvasOverlay.updatePoints(visiblePoints)
             binding.map.postInvalidate()
