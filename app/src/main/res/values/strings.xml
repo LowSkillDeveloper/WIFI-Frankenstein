@@ -1417,6 +1417,8 @@
     <string name="download_notification_channel_description">Notifications for file download progress</string>
     <string name="downloading_file">Downloading file</string>
     <string name="download_error_unknown">Unknown download error</string>
+    <string name="download_complete">Download Complete</string>
+    <string name="file_downloaded_successfully">%s downloaded successfully</string>
 
     <!-- Exit Confirmation -->
     <string name="exit_updates_title">Download in Progress</string>

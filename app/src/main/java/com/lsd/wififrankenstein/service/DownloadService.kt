@@ -2,6 +2,7 @@ package com.lsd.wififrankenstein.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -34,6 +35,7 @@ class DownloadService : Service() {
     companion object {
         private const val TAG = "DownloadService"
         private const val NOTIFICATION_ID = 1001
+        private const val COMPLETION_NOTIFICATION_BASE_ID = 2000
         private const val CHANNEL_ID = "download_channel"
 
         const val ACTION_START_DOWNLOAD = "start_download"
@@ -149,13 +151,14 @@ class DownloadService : Service() {
                 if (isActive) {
                     updateFileVersion(fileName, serverVersion)
                     broadcastComplete(fileName)
-                    cancelNotification()
+                    cancelNotification(fileName)
+                    showCompletionNotification(fileName)
                 }
 
             } catch (e: Exception) {
                 Log.e(TAG, "Download failed for $fileName", e)
                 broadcastError(fileName, e.message ?: getString(R.string.download_error_unknown))
-                cancelNotification()
+                cancelNotification(fileName)
             } finally {
                 activeDownloads.remove(fileName)
                 if (activeDownloads.isEmpty()) {
@@ -171,9 +174,9 @@ class DownloadService : Service() {
         activeDownloads[fileName]?.cancel()
         activeDownloads.remove(fileName)
         broadcastCancelled(fileName)
+        cancelNotification(fileName)
 
         if (activeDownloads.isEmpty()) {
-            cancelNotification()
             stopSelf()
         }
     }
@@ -181,7 +184,7 @@ class DownloadService : Service() {
     private fun cancelAllDownloads() {
         activeDownloads.values.forEach { it.cancel() }
         activeDownloads.clear()
-        cancelNotification()
+        cancelAllNotifications()
         stopSelf()
     }
 
@@ -199,30 +202,82 @@ class DownloadService : Service() {
     }
 
     private fun showNotification(fileName: String, progress: Int) {
+        val notificationId = getNotificationId(fileName)
+        val cancelIntent = Intent(this, DownloadService::class.java).apply {
+            action = ACTION_CANCEL_DOWNLOAD
+            putExtra(EXTRA_FILE_NAME, fileName)
+        }
+        val cancelPendingIntent = PendingIntent.getService(
+            this,
+            notificationId,
+            cancelIntent,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+        )
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_file_download)
             .setContentTitle(getString(R.string.downloading_file))
             .setContentText(fileName)
             .setProgress(100, progress, progress == 0)
             .setOngoing(true)
+            .addAction(R.drawable.ic_close, getString(R.string.cancel), cancelPendingIntent)
             .build()
 
-        startForeground(NOTIFICATION_ID, notification)
+        if (activeDownloads.size == 1) {
+            startForeground(notificationId, notification)
+        } else {
+            notificationManager.notify(notificationId, notification)
+        }
     }
 
     private fun updateNotification(fileName: String, progress: Int) {
+        val notificationId = getNotificationId(fileName)
+        val cancelIntent = Intent(this, DownloadService::class.java).apply {
+            action = ACTION_CANCEL_DOWNLOAD
+            putExtra(EXTRA_FILE_NAME, fileName)
+        }
+        val cancelPendingIntent = PendingIntent.getService(
+            this,
+            notificationId,
+            cancelIntent,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+        )
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_file_download)
             .setContentTitle(getString(R.string.downloading_file))
             .setContentText(fileName)
             .setProgress(100, progress, false)
             .setOngoing(true)
+            .addAction(R.drawable.ic_close, getString(R.string.cancel), cancelPendingIntent)
             .build()
 
-        notificationManager.notify(NOTIFICATION_ID, notification)
+        notificationManager.notify(notificationId, notification)
     }
 
-    private fun cancelNotification() {
+    private fun showCompletionNotification(fileName: String) {
+        val completionId = getCompletionNotificationId(fileName)
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_check)
+            .setContentTitle(getString(R.string.download_complete))
+            .setContentText(getString(R.string.file_downloaded_successfully, fileName))
+            .setAutoCancel(true)
+            .setOngoing(false)
+            .build()
+
+        notificationManager.notify(completionId, notification)
+    }
+
+    private fun cancelNotification(fileName: String) {
+        val notificationId = getNotificationId(fileName)
+        notificationManager.cancel(notificationId)
+    }
+
+    private fun cancelAllNotifications() {
+        activeDownloads.keys.forEach { fileName ->
+            cancelNotification(fileName)
+        }
+        notificationManager.cancelAll()
         stopForeground(true)
     }
 
@@ -266,8 +321,17 @@ class DownloadService : Service() {
 
     fun hasActiveDownloads(): Boolean = activeDownloads.isNotEmpty()
 
+    private fun getNotificationId(fileName: String): Int {
+        return NOTIFICATION_ID + fileName.hashCode() % 1000
+    }
+
+    private fun getCompletionNotificationId(fileName: String): Int {
+        return COMPLETION_NOTIFICATION_BASE_ID + fileName.hashCode() % 1000
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         serviceScope.cancel()
+        cancelAllNotifications()
     }
 }
