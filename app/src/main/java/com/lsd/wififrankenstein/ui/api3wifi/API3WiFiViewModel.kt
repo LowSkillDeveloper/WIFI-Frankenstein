@@ -25,6 +25,9 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
     private val _requestResult = MutableLiveData<String>()
     val requestResult: LiveData<String> = _requestResult
 
+    private val _requestInfo = MutableLiveData<String>()
+    val requestInfo: LiveData<String> = _requestInfo
+
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
@@ -58,6 +61,7 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
     fun executeRequest(serverUrl: String, request: API3WiFiRequest, requestType: RequestType) {
         viewModelScope.launch {
             _isLoading.value = true
+            _requestInfo.value = formatRequestInfo(serverUrl, request, requestType)
             try {
                 createNetwork(serverUrl)
 
@@ -78,6 +82,7 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
     fun executeSimpleRequestWithRetry(serverUrl: String, request: API3WiFiRequest) {
         viewModelScope.launch {
             _isLoading.value = true
+            _requestInfo.value = formatRequestInfo(serverUrl, request, RequestType.POST_JSON)
             try {
                 createNetwork(serverUrl)
 
@@ -131,6 +136,128 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
                 _isLoading.value = false
             }
         }
+    }
+
+    private fun formatRequestInfo(serverUrl: String, request: API3WiFiRequest, requestType: RequestType): String {
+        val sb = StringBuilder()
+        sb.appendLine("URL: $serverUrl/api/${request.methodName}")
+        sb.appendLine("Method: ${requestType.name}")
+        sb.appendLine("Request Type: ${when(requestType) {
+            RequestType.GET -> "GET"
+            RequestType.POST_FORM -> "POST (Form Data)"
+            RequestType.POST_JSON -> "POST (JSON)"
+        }}")
+        sb.appendLine()
+
+        when (requestType) {
+            RequestType.GET -> {
+                sb.appendLine("Query Parameters:")
+                addRequestParams(sb, request)
+            }
+            RequestType.POST_FORM -> {
+                sb.appendLine("Form Data:")
+                addRequestParams(sb, request)
+            }
+            RequestType.POST_JSON -> {
+                sb.appendLine("JSON Body:")
+                sb.append(createJsonBodyString(request))
+            }
+        }
+
+        return sb.toString()
+    }
+
+    private fun addRequestParams(sb: StringBuilder, request: API3WiFiRequest) {
+        when (request) {
+            is API3WiFiRequest.ApiQuery -> {
+                sb.appendLine("key: ${request.key}")
+                request.bssidList?.let { list ->
+                    sb.appendLine("bssid: ${if (list.size == 1) list.first() else JSONArray(list).toString()}")
+                }
+                request.essidList?.let { list ->
+                    sb.appendLine("essid: ${if (list.size == 1) list.first() else JSONArray(list).toString()}")
+                }
+                request.exactPairs?.let { pairs ->
+                    val exactArray = JSONArray()
+                    pairs.forEach { pair ->
+                        val exactObj = JSONObject()
+                        exactObj.put("bssid", pair.first)
+                        exactObj.put("essid", pair.second)
+                        exactArray.put(exactObj)
+                    }
+                    sb.appendLine("exact: ${exactArray.toString()}")
+                }
+                sb.appendLine("sens: ${request.sens}")
+            }
+            is API3WiFiRequest.ApiWps -> {
+                sb.appendLine("key: ${request.key}")
+                sb.appendLine("bssid: ${if (request.bssidList.size == 1) request.bssidList.first() else JSONArray(request.bssidList).toString()}")
+            }
+            is API3WiFiRequest.ApiDev -> {
+                sb.appendLine("key: ${request.key}")
+                sb.appendLine("bssid: ${if (request.bssidList.size == 1) request.bssidList.first() else JSONArray(request.bssidList).toString()}")
+                sb.appendLine("nocli: ${request.nocli}")
+            }
+            is API3WiFiRequest.ApiRanges -> {
+                sb.appendLine("key: ${request.key}")
+                sb.appendLine("lat: ${request.lat}")
+                sb.appendLine("lon: ${request.lon}")
+                sb.appendLine("rad: ${request.rad}")
+            }
+            is API3WiFiRequest.ApiKeys -> {
+                sb.appendLine("login: ${request.login}")
+                sb.appendLine("password: ${request.password}")
+                sb.appendLine("genread: ${request.genRead}")
+                sb.appendLine("genwrite: ${request.genWrite}")
+            }
+        }
+    }
+
+    private fun createJsonBodyString(request: API3WiFiRequest): String {
+        val jsonObject = when (request) {
+            is API3WiFiRequest.ApiKeys -> JSONObject().apply {
+                put("login", request.login)
+                put("password", request.password)
+                put("genread", request.genRead)
+                put("genwrite", request.genWrite)
+            }
+            is API3WiFiRequest.ApiQuery -> JSONObject().apply {
+                put("key", request.key)
+                request.bssidList?.let { list ->
+                    put("bssid", if (list.size == 1) list.first() else JSONArray(list))
+                }
+                request.essidList?.let { list ->
+                    put("essid", if (list.size == 1) list.first() else JSONArray(list))
+                }
+                request.exactPairs?.let { pairs ->
+                    val exactArray = JSONArray()
+                    pairs.forEach { pair ->
+                        val exactObj = JSONObject()
+                        exactObj.put("bssid", pair.first)
+                        exactObj.put("essid", pair.second)
+                        exactArray.put(exactObj)
+                    }
+                    put("exact", exactArray)
+                }
+                put("sens", request.sens)
+            }
+            is API3WiFiRequest.ApiWps -> JSONObject().apply {
+                put("key", request.key)
+                put("bssid", if (request.bssidList.size == 1) request.bssidList.first() else JSONArray(request.bssidList))
+            }
+            is API3WiFiRequest.ApiDev -> JSONObject().apply {
+                put("key", request.key)
+                put("bssid", if (request.bssidList.size == 1) request.bssidList.first() else JSONArray(request.bssidList))
+                put("nocli", request.nocli)
+            }
+            is API3WiFiRequest.ApiRanges -> JSONObject().apply {
+                put("key", request.key)
+                put("lat", request.lat)
+                put("lon", request.lon)
+                put("rad", request.rad)
+            }
+        }
+        return jsonObject.toString(4)
     }
 
     private fun isSuccessfulResponse(jsonString: String): Boolean {

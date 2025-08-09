@@ -65,6 +65,7 @@ class API3WiFiFragment : Fragment() {
         setupExecuteButton()
         setupResponseButtons()
         setupToggleRawResponse()
+        setupToggleRawRequest()
     }
 
     private fun setupToggleRawResponse() {
@@ -82,6 +83,7 @@ class API3WiFiFragment : Fragment() {
         }
     }
 
+
     private fun setupResponseButtons() {
         binding.copyResponseButton.setOnClickListener {
             val text = binding.responseText.text.toString()
@@ -93,8 +95,23 @@ class API3WiFiFragment : Fragment() {
             }
         }
 
+        binding.copyRequestButton.setOnClickListener {
+            val text = binding.requestText.text.toString()
+            if (text.isNotEmpty()) {
+                val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("API Request", text)
+                clipboard.setPrimaryClip(clip)
+                showError(getString(R.string.copied_to_clipboard))
+            }
+        }
+
+        binding.clearRequestButton.setOnClickListener {
+            binding.requestText.text = ""
+        }
+
         binding.clearResponseButton.setOnClickListener {
             binding.responseText.text = ""
+            binding.requestText.text = ""
             binding.resultsCardsContainer.removeAllViews()
         }
     }
@@ -572,6 +589,10 @@ class API3WiFiFragment : Fragment() {
             parseAndDisplayResults(result)
         }
 
+        viewModel.requestInfo.observe(viewLifecycleOwner) { requestInfo ->
+            binding.requestText.text = requestInfo
+        }
+
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.progressIndicator.visibility = if (isLoading) View.VISIBLE else View.GONE
             binding.executeButton.isEnabled = !isLoading && validateForm()
@@ -592,6 +613,21 @@ class API3WiFiFragment : Fragment() {
 
         if (servers.isNotEmpty() && isAdvancedMode) {
             (binding.serverSpinnerLayout.editText as? AutoCompleteTextView)?.setText(servers[0], false)
+        }
+    }
+
+    private fun setupToggleRawRequest() {
+        binding.toggleRawRequestButton.setOnClickListener {
+            val isVisible = binding.rawRequestContainer.isVisible
+            if (isVisible) {
+                binding.rawRequestContainer.visibility = View.GONE
+                binding.toggleRawRequestButton.text = getString(R.string.show_raw_request)
+                binding.toggleRawRequestButton.setIconResource(R.drawable.ic_expand_more)
+            } else {
+                binding.rawRequestContainer.visibility = View.VISIBLE
+                binding.toggleRawRequestButton.text = getString(R.string.hide_raw_request)
+                binding.toggleRawRequestButton.setIconResource(R.drawable.ic_expand_less)
+            }
         }
     }
 

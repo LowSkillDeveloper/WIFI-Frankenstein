@@ -1447,6 +1447,12 @@
     <string name="error_download_url_not_available_generic">Download URL not available</string>
     <string name="error_reverting_file">Error reverting file %s: %s</string>
 
+    <string name="request">Request</string>
+    <string name="show_raw_request">Show Raw Request</string>
+    <string name="hide_raw_request">Hide Raw Request</string>
+    <string name="copy_request">Copy Request</string>
+    <string name="clear_request">Clear Request</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
