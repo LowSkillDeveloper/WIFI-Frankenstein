@@ -12,6 +12,7 @@ import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import android.view.View
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -45,6 +46,12 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
 
     private var downloadId: Long = -1
 
+    private val onBackPressedCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            showExitConfirmationDialog()
+        }
+    }
+
     private val downloadCompleteReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
@@ -54,8 +61,33 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
         }
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requireActivity().onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            requireContext().registerReceiver(
+                downloadCompleteReceiver,
+                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                Context.RECEIVER_NOT_EXPORTED
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requireContext().registerReceiver(
+                downloadCompleteReceiver,
+                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                Context.RECEIVER_EXPORTED
+            )
+        } else {
+            ContextCompat.registerReceiver(
+                requireContext(),
+                downloadCompleteReceiver,
+                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         viewModel.setDbSetupViewModel(dbSetupViewModel)
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentUpdatesBinding.bind(view)
@@ -75,7 +107,12 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
     private fun setupRecyclerViews() {
         adapter = UpdatesAdapter(
             onUpdateClick = { fileInfo -> viewModel.updateFile(fileInfo) },
-            onRevertClick = { fileInfo -> viewModel.revertFile(fileInfo) }
+            onRevertClick = { fileInfo -> viewModel.revertFile(fileInfo) },
+            onCancelClick = { fileInfo ->
+                showCancelDownloadDialog(fileInfo.fileName) {
+                    viewModel.cancelDownload(fileInfo.fileName)
+                }
+            }
         )
         binding.recyclerViewUpdates.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerViewUpdates.adapter = adapter
@@ -204,6 +241,18 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
                 }
 
                 launch {
+                    viewModel.activeDownloads.collectLatest { activeDownloads ->
+                        adapter.updateActiveDownloads(activeDownloads)
+                    }
+                }
+
+                launch {
+                    viewModel.hasActiveDownloads.collectLatest { hasActiveDownloads ->
+                        onBackPressedCallback.isEnabled = hasActiveDownloads
+                    }
+                }
+
+                launch {
                     viewModel.appUpdateProgress.collectLatest { progress ->
                         binding.progressBarAppUpdate.progress = progress
                         binding.progressBarAppUpdate.visibility =
@@ -227,6 +276,32 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
             .setTitle(R.string.changelog)
             .setMessage(changelog)
             .setPositiveButton(R.string.ok) { dialog, _ -> dialog.dismiss() }
+            .show()
+    }
+
+    private fun showExitConfirmationDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.exit_updates_title)
+            .setMessage(R.string.exit_updates_message)
+            .setPositiveButton(R.string.exit_anyway) { _, _ ->
+                onBackPressedCallback.isEnabled = false
+                requireActivity().onBackPressed()
+            }
+            .setNegativeButton(R.string.stay_here, null)
+            .setNeutralButton(R.string.cancel_all_downloads) { _, _ ->
+                viewModel.cancelAllDownloads()
+                onBackPressedCallback.isEnabled = false
+                requireActivity().onBackPressed()
+            }
+            .show()
+    }
+
+    private fun showCancelDownloadDialog(fileName: String, onConfirm: () -> Unit) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.cancel_download_title)
+            .setMessage(getString(R.string.cancel_download_message, fileName))
+            .setPositiveButton(R.string.yes) { _, _ -> onConfirm() }
+            .setNegativeButton(R.string.no, null)
             .show()
     }
 
@@ -268,33 +343,13 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
         }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            requireContext().registerReceiver(
-                downloadCompleteReceiver,
-                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                Context.RECEIVER_NOT_EXPORTED
-            )
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requireContext().registerReceiver(
-                downloadCompleteReceiver,
-                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                Context.RECEIVER_EXPORTED
-            )
-        } else {
-            ContextCompat.registerReceiver(
-                requireContext(),
-                downloadCompleteReceiver,
-                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
-        }
-    }
-
     override fun onDestroy() {
         super.onDestroy()
-        requireContext().unregisterReceiver(downloadCompleteReceiver)
+        try {
+            requireContext().unregisterReceiver(downloadCompleteReceiver)
+        } catch (e: Exception) {
+            Log.e("UpdatesFragment", "Error unregistering receiver", e)
+        }
         _binding = null
     }
 

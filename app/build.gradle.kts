@@ -102,6 +102,7 @@ dependencies {
     implementation(libs.flexbox)
     implementation(libs.core)
     implementation(libs.zstd.jni)
+    implementation(libs.androidx.localbroadcastmanager)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

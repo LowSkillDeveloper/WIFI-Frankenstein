@@ -1411,6 +1411,30 @@
 
     <string name="cluster_settings_updated">Cluster settings updated</string>
 
+
+    <!-- Download Service -->
+    <string name="download_notification_channel">File Downloads</string>
+    <string name="download_notification_channel_description">Notifications for file download progress</string>
+    <string name="downloading_file">Downloading file</string>
+    <string name="download_error_unknown">Unknown download error</string>
+
+    <!-- Exit Confirmation -->
+    <string name="exit_updates_title">Download in Progress</string>
+    <string name="exit_updates_message">Files are currently being downloaded. Do you want to leave this page? Downloads will continue in the background.</string>
+    <string name="exit_anyway">Exit Anyway</string>
+    <string name="stay_here">Stay Here</string>
+    <string name="cancel_all_downloads">Cancel All &amp; Exit</string>
+
+    <!-- Cancel Download -->
+    <string name="cancel_download_title">Cancel Download</string>
+    <string name="cancel_download_message">Are you sure you want to cancel downloading %s?</string>
+    <string name="revert">Revert</string>
+
+    <!-- Error Messages -->
+    <string name="error_download_url_not_available">Download URL not available for %s</string>
+    <string name="error_download_url_not_available_generic">Download URL not available</string>
+    <string name="error_reverting_file">Error reverting file %s: %s</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

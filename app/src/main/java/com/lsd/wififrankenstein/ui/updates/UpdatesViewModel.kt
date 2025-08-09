@@ -3,7 +3,10 @@ package com.lsd.wififrankenstein.ui.updates
 import android.annotation.SuppressLint
 import android.app.Application
 import android.app.DownloadManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Environment
 import android.util.Log
@@ -11,9 +14,11 @@ import android.webkit.URLUtil
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.network.NetworkClient
 import com.lsd.wififrankenstein.network.NetworkUtils
+import com.lsd.wififrankenstein.service.DownloadService
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,9 +31,9 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.log10
 import kotlin.math.pow
-
 
 class UpdatesViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -62,9 +67,56 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _activeDownloads = MutableStateFlow<Set<String>>(emptySet())
+    val activeDownloads: StateFlow<Set<String>> = _activeDownloads.asStateFlow()
+
+    private val _hasActiveDownloads = MutableStateFlow(false)
+    val hasActiveDownloads: StateFlow<Boolean> = _hasActiveDownloads.asStateFlow()
+
     val smartLinkDbUpdates: StateFlow<List<SmartLinkDbUpdateInfo>> = _smartLinkDbUpdates.asStateFlow()
 
     private val networkClient = NetworkClient.getInstance(getApplication())
+    private val downloadProgressMap = ConcurrentHashMap<String, Int>()
+
+    private val downloadReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                DownloadService.BROADCAST_DOWNLOAD_PROGRESS -> {
+                    val fileName = intent.getStringExtra(DownloadService.EXTRA_FILE_NAME) ?: return
+                    val progress = intent.getIntExtra(DownloadService.EXTRA_PROGRESS, 0)
+                    updateDownloadProgress(fileName, progress)
+                }
+                DownloadService.BROADCAST_DOWNLOAD_COMPLETE -> {
+                    val fileName = intent.getStringExtra(DownloadService.EXTRA_FILE_NAME) ?: return
+                    onDownloadComplete(fileName)
+                }
+                DownloadService.BROADCAST_DOWNLOAD_ERROR -> {
+                    val fileName = intent.getStringExtra(DownloadService.EXTRA_FILE_NAME) ?: return
+                    val error = intent.getStringExtra(DownloadService.EXTRA_ERROR_MESSAGE) ?: ""
+                    onDownloadError(fileName, error)
+                }
+                DownloadService.BROADCAST_DOWNLOAD_CANCELLED -> {
+                    val fileName = intent.getStringExtra(DownloadService.EXTRA_FILE_NAME) ?: return
+                    onDownloadCancelled(fileName)
+                }
+            }
+        }
+    }
+
+    init {
+        registerDownloadReceiver()
+    }
+
+    private fun registerDownloadReceiver() {
+        val filter = IntentFilter().apply {
+            addAction(DownloadService.BROADCAST_DOWNLOAD_PROGRESS)
+            addAction(DownloadService.BROADCAST_DOWNLOAD_COMPLETE)
+            addAction(DownloadService.BROADCAST_DOWNLOAD_ERROR)
+            addAction(DownloadService.BROADCAST_DOWNLOAD_CANCELLED)
+        }
+        LocalBroadcastManager.getInstance(getApplication()).registerReceiver(downloadReceiver, filter)
+    }
 
     fun checkUpdates() {
         _isLoading.value = true
@@ -72,6 +124,7 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             if (!NetworkUtils.hasActiveConnection(context)) {
                 _errorMessage.value = context.getString(R.string.error_no_internet)
+                _isLoading.value = false
                 return@launch
             }
 
@@ -214,38 +267,25 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateFile(fileInfo: FileUpdateInfo) {
         val context = getApplication<Application>().applicationContext
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                if (fileInfo.downloadUrl.isBlank()) {
-                    _errorMessage.value = "Download URL not available for ${fileInfo.fileName}"
-                    return@launch
-                }
 
-                val file = File(context.filesDir, fileInfo.fileName)
-                val url = URL(fileInfo.downloadUrl)
-                val connection = url.openConnection() as HttpURLConnection
-                val fileSize = connection.contentLength
-
-                connection.inputStream.use { input ->
-                    FileOutputStream(file).use { output ->
-                        val buffer = ByteArray(4096)
-                        var bytesRead: Int
-                        var totalBytesRead = 0
-                        while (input.read(buffer).also { bytesRead = it } != -1) {
-                            output.write(buffer, 0, bytesRead)
-                            totalBytesRead += bytesRead
-                            val progress = (totalBytesRead * 100 / fileSize)
-                            _fileUpdateProgress.value = _fileUpdateProgress.value + (fileInfo.fileName to progress)
-                        }
-                    }
-                }
-                updateFileVersion(context, fileInfo.fileName, fileInfo.serverVersion)
-                _fileUpdateProgress.value = _fileUpdateProgress.value + (fileInfo.fileName to 100)
-                checkUpdates()
-            } catch (e: Exception) {
-                _errorMessage.value = context.getString(R.string.error_updating_file, fileInfo.fileName, e.message)
-            }
+        if (_activeDownloads.value.contains(fileInfo.fileName)) {
+            return
         }
+
+        if (fileInfo.downloadUrl.isBlank()) {
+            _errorMessage.value = context.getString(R.string.error_download_url_not_available, fileInfo.fileName)
+            return
+        }
+
+        _activeDownloads.value = _activeDownloads.value + fileInfo.fileName
+        updateHasActiveDownloads()
+
+        DownloadService.startDownload(context, fileInfo.fileName, fileInfo.downloadUrl, fileInfo.serverVersion)
+    }
+
+    fun cancelDownload(fileName: String) {
+        val context = getApplication<Application>().applicationContext
+        DownloadService.cancelDownload(context, fileName)
     }
 
     fun revertFile(fileInfo: FileUpdateInfo) {
@@ -269,26 +309,23 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
                     updateFileVersion(context, fileInfo.fileName, "1.0")
                 }
 
-                _fileUpdateProgress.value = mapOf(fileInfo.fileName to 100)
                 checkUpdates()
             } catch (e: Exception) {
-                _errorMessage.value = "Error reverting file ${fileInfo.fileName}: ${e.message}"
+                _errorMessage.value = context.getString(R.string.error_reverting_file, fileInfo.fileName, e.message)
             }
         }
     }
 
     fun updateAllFiles() {
-        val context = getApplication<Application>().applicationContext
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                _updateInfo.value.filter { it.needsUpdate }.forEach { fileInfo ->
-                    updateFile(fileInfo)
-                }
-                checkUpdates()
-            } catch (e: Exception) {
-                _errorMessage.value = context.getString(R.string.error_updating_files, e.message)
-            }
+        val filesToUpdate = _updateInfo.value.filter { it.needsUpdate && !_activeDownloads.value.contains(it.fileName) }
+        filesToUpdate.forEach { fileInfo ->
+            updateFile(fileInfo)
         }
+    }
+
+    fun cancelAllDownloads() {
+        val context = getApplication<Application>().applicationContext
+        DownloadService.cancelAllDownloads(context)
     }
 
     fun getChangelog() {
@@ -313,7 +350,7 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val downloadUrl = _appUpdateInfo.value?.downloadUrl
-                    ?: throw Exception("Download URL not available")
+                    ?: throw Exception(context.getString(R.string.error_download_url_not_available_generic))
 
                 if (URLUtil.isValidUrl(downloadUrl) && !downloadUrl.endsWith(".apk", ignoreCase = true)) {
                     _openUrlInBrowser.value = downloadUrl
@@ -341,7 +378,7 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
                         if (cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)) == DownloadManager.STATUS_SUCCESSFUL) {
                             downloading = false
                         }
-                        val progress = (bytesDownloaded * 100L / bytesTotal).toInt()
+                        val progress = if (bytesTotal > 0) (bytesDownloaded * 100L / bytesTotal).toInt() else 0
                         _appUpdateProgress.value = progress
                         cursor.close()
                     }
@@ -385,6 +422,38 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private fun updateDownloadProgress(fileName: String, progress: Int) {
+        downloadProgressMap[fileName] = progress
+        _fileUpdateProgress.value = downloadProgressMap.toMap()
+    }
+
+    private fun onDownloadComplete(fileName: String) {
+        _activeDownloads.value = _activeDownloads.value - fileName
+        downloadProgressMap.remove(fileName)
+        _fileUpdateProgress.value = downloadProgressMap.toMap()
+        updateHasActiveDownloads()
+        checkUpdates()
+    }
+
+    private fun onDownloadError(fileName: String, errorMessage: String) {
+        _activeDownloads.value = _activeDownloads.value - fileName
+        downloadProgressMap.remove(fileName)
+        _fileUpdateProgress.value = downloadProgressMap.toMap()
+        updateHasActiveDownloads()
+        _errorMessage.value = errorMessage
+    }
+
+    private fun onDownloadCancelled(fileName: String) {
+        _activeDownloads.value = _activeDownloads.value - fileName
+        downloadProgressMap.remove(fileName)
+        _fileUpdateProgress.value = downloadProgressMap.toMap()
+        updateHasActiveDownloads()
+    }
+
+    private fun updateHasActiveDownloads() {
+        _hasActiveDownloads.value = _activeDownloads.value.isNotEmpty()
+    }
+
     private fun getFileVersion(context: Context, fileName: String): String {
         val versionFileName = "${fileName.substringBeforeLast(".")}_version.json"
         val versionFile = File(context.filesDir, versionFileName)
@@ -424,6 +493,11 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
         val units = arrayOf("B", "KB", "MB", "GB", "TB")
         val digitGroups = (log10(size.toDouble()) / log10(1024.0)).toInt()
         return "%.2f %s".format(size / 1024.0.pow(digitGroups.toDouble()), units[digitGroups])
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        LocalBroadcastManager.getInstance(getApplication()).unregisterReceiver(downloadReceiver)
     }
 }
 

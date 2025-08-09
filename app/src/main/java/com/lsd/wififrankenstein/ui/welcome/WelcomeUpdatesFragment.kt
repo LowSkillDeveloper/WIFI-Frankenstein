@@ -67,6 +67,9 @@ class WelcomeUpdatesFragment : Fragment() {
                 handler.postDelayed({
                     viewModel.checkUpdates()
                 }, 1000)
+            },
+            onCancelClick = { fileInfo ->
+                viewModel.cancelDownload(fileInfo.fileName)
             }
         )
         binding.recyclerViewUpdates.layoutManager = LinearLayoutManager(requireContext())
@@ -245,6 +248,23 @@ class WelcomeUpdatesFragment : Fragment() {
                         }
                     }
                 }
+
+                launch {
+                    viewModel.smartLinkDbUpdates.collectLatest { updates ->
+                        Log.d("UpdatesFragment", "SmartLinkDb updates: ${updates.size}")
+                        smartLinkDbAdapter.submitList(updates)
+                        if (true) {
+                            binding.cardViewSmartLinkDb.visibility = if (updates.isNotEmpty()) View.VISIBLE else View.GONE
+                        }
+                    }
+                }
+
+                launch {
+                    viewModel.activeDownloads.collectLatest { activeDownloads ->
+                        updatesAdapter.updateActiveDownloads(activeDownloads)
+                    }
+                }
+
             }
         }
     }
