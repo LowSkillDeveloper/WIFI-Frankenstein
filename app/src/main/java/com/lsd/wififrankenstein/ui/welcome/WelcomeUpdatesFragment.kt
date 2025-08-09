@@ -1,7 +1,10 @@
 package com.lsd.wififrankenstein.ui.welcome
 
+import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,6 +12,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -18,12 +23,16 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentWelcomeUpdatesBinding
+import com.lsd.wififrankenstein.ui.updates.FileUpdateInfo
 import com.lsd.wififrankenstein.ui.updates.SmartLinkDbUpdateAdapter
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
 import com.lsd.wififrankenstein.ui.updates.UpdatesAdapter
 import com.lsd.wififrankenstein.ui.updates.UpdatesViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import android.provider.Settings
+
+private const val POST_NOTIFICATIONS_PERMISSION = "android.permission.POST_NOTIFICATIONS"
 
 class WelcomeUpdatesFragment : Fragment() {
 
@@ -55,12 +64,17 @@ class WelcomeUpdatesFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
+
         updatesAdapter = UpdatesAdapter(
             onUpdateClick = { fileInfo ->
-                viewModel.updateFile(fileInfo)
-                handler.postDelayed({
-                    viewModel.checkUpdates()
-                }, 1000)
+                if (checkNotificationPermission()) {
+                    viewModel.updateFile(fileInfo)
+                    handler.postDelayed({
+                        viewModel.checkUpdates()
+                    }, 1000)
+                } else {
+                    requestNotificationPermission(fileInfo)
+                }
             },
             onRevertClick = { fileInfo ->
                 viewModel.revertFile(fileInfo)
@@ -84,6 +98,106 @@ class WelcomeUpdatesFragment : Fragment() {
         }
         binding.recyclerViewSmartLinkDb.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerViewSmartLinkDb.adapter = smartLinkDbAdapter
+    }
+
+    private fun checkNotificationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                POST_NOTIFICATIONS_PERMISSION
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    private fun requestNotificationPermission(fileInfo: FileUpdateInfo) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (shouldShowRequestPermissionRationale(POST_NOTIFICATIONS_PERMISSION)) {
+                showNotificationPermissionRationaleDialog(fileInfo)
+            } else {
+                pendingFileInfo = fileInfo
+                notificationPermissionLauncher.launch(POST_NOTIFICATIONS_PERMISSION)
+            }
+        } else {
+            viewModel.updateFile(fileInfo)
+            handler.postDelayed({
+                viewModel.checkUpdates()
+            }, 1000)
+        }
+    }
+
+    private var pendingFileInfo: FileUpdateInfo? = null
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            pendingFileInfo?.let { fileInfo ->
+                viewModel.updateFile(fileInfo)
+                handler.postDelayed({
+                    viewModel.checkUpdates()
+                }, 1000)
+                pendingFileInfo = null
+            } ?: run {
+                viewModel.updateAllFiles()
+                handler.postDelayed({
+                    viewModel.checkUpdates()
+                }, 1000)
+            }
+        } else {
+            showNotificationPermissionDialog()
+        }
+    }
+
+    private fun showNotificationPermissionDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.notification_permission_denied_title)
+            .setMessage(R.string.notification_permission_denied_message)
+            .setPositiveButton(R.string.open_settings) { _, _ ->
+                openAppSettings()
+            }
+            .setNegativeButton(R.string.download_without_notifications) { _, _ ->
+                pendingFileInfo?.let { fileInfo ->
+                    viewModel.updateFile(fileInfo)
+                    handler.postDelayed({
+                        viewModel.checkUpdates()
+                    }, 1000)
+                    pendingFileInfo = null
+                } ?: run {
+                    viewModel.updateAllFiles()
+                    handler.postDelayed({
+                        viewModel.checkUpdates()
+                    }, 1000)
+                }
+            }
+            .setNeutralButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = android.net.Uri.fromParts("package", requireContext().packageName, null)
+        }
+        startActivity(intent)
+    }
+
+    private fun showNotificationPermissionRationaleDialog(fileInfo: FileUpdateInfo) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.notification_permission_title)
+            .setMessage(R.string.notification_permission_message)
+            .setPositiveButton(R.string.grant_permission) { _, _ ->
+                pendingFileInfo = fileInfo
+                notificationPermissionLauncher.launch(POST_NOTIFICATIONS_PERMISSION)
+            }
+            .setNegativeButton(R.string.download_without_notifications) { _, _ ->
+                viewModel.updateFile(fileInfo)
+                handler.postDelayed({
+                    viewModel.checkUpdates()
+                }, 1000)
+            }
+            .setNeutralButton(R.string.cancel, null)
+            .show()
     }
 
     private fun setupAppUpdateButtons() {

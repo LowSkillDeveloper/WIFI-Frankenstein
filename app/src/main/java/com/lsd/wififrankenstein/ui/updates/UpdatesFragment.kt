@@ -1,10 +1,12 @@
 package com.lsd.wififrankenstein.ui.updates
 
+import android.Manifest
 import android.app.DownloadManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -13,6 +15,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.View
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -31,6 +34,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
 
+
+private const val POST_NOTIFICATIONS_PERMISSION = "android.permission.POST_NOTIFICATIONS"
+
 class UpdatesFragment : Fragment(R.layout.fragment_updates) {
 
     private var _binding: FragmentUpdatesBinding? = null
@@ -45,6 +51,22 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
     private lateinit var smartLinkDbAdapter: SmartLinkDbUpdateAdapter
 
     private var downloadId: Long = -1
+    private var pendingFileInfo: FileUpdateInfo? = null
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            pendingFileInfo?.let { fileInfo ->
+                viewModel.updateFile(fileInfo)
+                pendingFileInfo = null
+            } ?: run {
+                viewModel.updateAllFiles()
+            }
+        } else {
+            showNotificationPermissionDialog()
+        }
+    }
 
     private val onBackPressedCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -106,7 +128,13 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
 
     private fun setupRecyclerViews() {
         adapter = UpdatesAdapter(
-            onUpdateClick = { fileInfo -> viewModel.updateFile(fileInfo) },
+            onUpdateClick = { fileInfo ->
+                if (checkNotificationPermission()) {
+                    viewModel.updateFile(fileInfo)
+                } else {
+                    requestNotificationPermission(fileInfo)
+                }
+            },
             onRevertClick = { fileInfo -> viewModel.revertFile(fileInfo) },
             onCancelClick = { fileInfo ->
                 showCancelDownloadDialog(fileInfo.fileName) {
@@ -127,7 +155,11 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
     private fun setupButtons() {
         binding.buttonUpdateAll.setOnClickListener {
             if (viewModel.updateInfo.value.any { it.needsUpdate }) {
-                viewModel.updateAllFiles()
+                if (checkNotificationPermission()) {
+                    viewModel.updateAllFiles()
+                } else {
+                    showNotificationPermissionForBatchDialog()
+                }
             } else {
                 viewModel.checkUpdates()
             }
@@ -139,6 +171,25 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
 
         binding.buttonShowChangelog.setOnClickListener {
             viewModel.getChangelog()
+        }
+    }
+
+    private fun showNotificationPermissionForBatchDialog() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.notification_permission_title)
+                .setMessage(R.string.notification_permission_batch_message)
+                .setPositiveButton(R.string.grant_permission) { _, _ ->
+                    pendingFileInfo = null
+                    notificationPermissionLauncher.launch(POST_NOTIFICATIONS_PERMISSION)
+                }
+                .setNegativeButton(R.string.download_without_notifications) { _, _ ->
+                    viewModel.updateAllFiles()
+                }
+                .setNeutralButton(R.string.cancel, null)
+                .show()
+        } else {
+            viewModel.updateAllFiles()
         }
     }
 
@@ -269,6 +320,71 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
                 }
             }
         }
+    }
+
+    private fun checkNotificationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                POST_NOTIFICATIONS_PERMISSION
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    private fun requestNotificationPermission(fileInfo: FileUpdateInfo) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (shouldShowRequestPermissionRationale(POST_NOTIFICATIONS_PERMISSION)) {
+                showNotificationPermissionRationaleDialog(fileInfo)
+            } else {
+                pendingFileInfo = fileInfo
+                notificationPermissionLauncher.launch(POST_NOTIFICATIONS_PERMISSION)
+            }
+        } else {
+            viewModel.updateFile(fileInfo)
+        }
+    }
+
+    private fun showNotificationPermissionRationaleDialog(fileInfo: FileUpdateInfo) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.notification_permission_title)
+            .setMessage(R.string.notification_permission_message)
+            .setPositiveButton(R.string.grant_permission) { _, _ ->
+                pendingFileInfo = fileInfo
+                notificationPermissionLauncher.launch(POST_NOTIFICATIONS_PERMISSION)
+            }
+            .setNegativeButton(R.string.download_without_notifications) { _, _ ->
+                viewModel.updateFile(fileInfo)
+            }
+            .setNeutralButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showNotificationPermissionDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.notification_permission_denied_title)
+            .setMessage(R.string.notification_permission_denied_message)
+            .setPositiveButton(R.string.open_settings) { _, _ ->
+                openAppSettings()
+            }
+            .setNegativeButton(R.string.download_without_notifications) { _, _ ->
+                pendingFileInfo?.let { fileInfo ->
+                    viewModel.updateFile(fileInfo)
+                    pendingFileInfo = null
+                } ?: run {
+                    viewModel.updateAllFiles()
+                }
+            }
+            .setNeutralButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", requireContext().packageName, null)
+        }
+        startActivity(intent)
     }
 
     private fun showChangelogDialog(changelog: String) {

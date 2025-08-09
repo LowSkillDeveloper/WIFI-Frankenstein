@@ -1,15 +1,19 @@
 package com.lsd.wififrankenstein.service
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.lsd.wififrankenstein.R
 import kotlinx.coroutines.CoroutineScope
@@ -201,7 +205,23 @@ class DownloadService : Service() {
         }
     }
 
+    private fun hasNotificationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
     private fun showNotification(fileName: String, progress: Int) {
+        if (!hasNotificationPermission()) {
+            Log.w(TAG, "No notification permission, skipping notification")
+            return
+        }
+
         val notificationId = getNotificationId(fileName)
         val cancelIntent = Intent(this, DownloadService::class.java).apply {
             action = ACTION_CANCEL_DOWNLOAD
@@ -223,14 +243,22 @@ class DownloadService : Service() {
             .addAction(R.drawable.ic_close, getString(R.string.cancel), cancelPendingIntent)
             .build()
 
-        if (activeDownloads.size == 1) {
-            startForeground(notificationId, notification)
-        } else {
-            notificationManager.notify(notificationId, notification)
+        try {
+            if (activeDownloads.size == 1) {
+                startForeground(notificationId, notification)
+            } else {
+                notificationManager.notify(notificationId, notification)
+            }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Failed to show notification due to missing permission", e)
         }
     }
 
     private fun updateNotification(fileName: String, progress: Int) {
+        if (!hasNotificationPermission()) {
+            return
+        }
+
         val notificationId = getNotificationId(fileName)
         val cancelIntent = Intent(this, DownloadService::class.java).apply {
             action = ACTION_CANCEL_DOWNLOAD
@@ -252,10 +280,18 @@ class DownloadService : Service() {
             .addAction(R.drawable.ic_close, getString(R.string.cancel), cancelPendingIntent)
             .build()
 
-        notificationManager.notify(notificationId, notification)
+        try {
+            notificationManager.notify(notificationId, notification)
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Failed to update notification due to missing permission", e)
+        }
     }
 
     private fun showCompletionNotification(fileName: String) {
+        if (!hasNotificationPermission()) {
+            return
+        }
+
         val completionId = getCompletionNotificationId(fileName)
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_check)
@@ -265,7 +301,11 @@ class DownloadService : Service() {
             .setOngoing(false)
             .build()
 
-        notificationManager.notify(completionId, notification)
+        try {
+            notificationManager.notify(completionId, notification)
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Failed to show completion notification due to missing permission", e)
+        }
     }
 
     private fun cancelNotification(fileName: String) {
