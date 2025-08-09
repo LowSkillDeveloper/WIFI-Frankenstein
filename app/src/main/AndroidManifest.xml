@@ -50,32 +50,36 @@
 
         <activity
             android:name=".WelcomeActivity"
-            android:exported="true"
+            android:exported="false"
             android:theme="@style/Theme.WIFIFrankenstein.Purple">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
 
         <activity
             android:name=".MainActivity"
-            android:exported="true"
+            android:exported="false"
             android:enabled="true"
             android:theme="@style/Theme.WIFIFrankenstein.Purple">
+        </activity>
+
+        <!-- Иконки приложения -->
+        <activity-alias
+            android:name=".MainActivity_Default"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:targetActivity=".WelcomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
 
-        <!-- Альтернативные иконки -->
         <activity-alias
             android:name=".MainActivity_3WiFi"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_3wifi"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".WelcomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -87,7 +91,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_anti3wifi"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".WelcomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -99,7 +103,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_p3wifi"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".WelcomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -111,7 +115,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_p3wifi_pixel"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".WelcomeActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -121,7 +125,6 @@
         <activity
             android:name=".WpsGeneratorActivity"
             android:theme="@style/Theme.WIFIFrankenstein.Purple" />
-
 
         <provider
             android:name="androidx.core.content.FileProvider"

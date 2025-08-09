@@ -98,7 +98,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private val _maxMarkerDensity = MutableLiveData<Int>()
 
-
     private val _forcePointSeparation = MutableLiveData<Boolean>()
     val forcePointSeparation: LiveData<Boolean> = _forcePointSeparation
 
@@ -240,7 +239,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-
     fun clearAllCachedDatabases() {
         val dbSetupViewModel = DbSetupViewModel(getApplication())
         dbSetupViewModel.clearAllCachedDatabases()
@@ -252,45 +250,35 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
         try {
             val aliasToEnable = when (icon) {
+                "default" -> ".MainActivity_Default"
                 "3wifi" -> ".MainActivity_3WiFi"
                 "anti3wifi" -> ".MainActivity_Anti3WiFi"
                 "p3wifi" -> ".MainActivity_P3WiFi"
                 "p3wifi_pixel" -> ".MainActivity_P3WiFiPixel"
-                else -> null
+                else -> ".MainActivity_Default"
             }
 
-            if (aliasToEnable != null) {
-                val targetAlias = ComponentName(context, context.packageName + aliasToEnable)
-                val currentState = pm.getComponentEnabledSetting(targetAlias)
+            val targetAlias = ComponentName(context, context.packageName + aliasToEnable)
+            val currentState = pm.getComponentEnabledSetting(targetAlias)
 
-                if (currentState == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
-                    return
-                }
+            if (currentState == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                return
+            }
 
-                listOf(".MainActivity_3WiFi", ".MainActivity_Anti3WiFi", ".MainActivity_P3WiFi", ".MainActivity_P3WiFiPixel").forEach { alias ->
-                    val component = ComponentName(context, context.packageName + alias)
-                    pm.setComponentEnabledSetting(
-                        component,
-                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                        PackageManager.DONT_KILL_APP
-                    )
-                }
-
+            listOf(".MainActivity_Default", ".MainActivity_3WiFi", ".MainActivity_Anti3WiFi", ".MainActivity_P3WiFi", ".MainActivity_P3WiFiPixel").forEach { alias ->
+                val component = ComponentName(context, context.packageName + alias)
                 pm.setComponentEnabledSetting(
-                    targetAlias,
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    component,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     PackageManager.DONT_KILL_APP
                 )
-            } else {
-                listOf(".MainActivity_3WiFi", ".MainActivity_Anti3WiFi", ".MainActivity_P3WiFi", ".MainActivity_P3WiFiPixel").forEach { alias ->
-                    val component = ComponentName(context, context.packageName + alias)
-                    pm.setComponentEnabledSetting(
-                        component,
-                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                        PackageManager.DONT_KILL_APP
-                    )
-                }
             }
+
+            pm.setComponentEnabledSetting(
+                targetAlias,
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP
+            )
 
             Toast.makeText(context, R.string.icon_changed, Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
