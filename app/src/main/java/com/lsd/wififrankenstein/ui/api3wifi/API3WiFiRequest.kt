@@ -7,11 +7,8 @@ sealed class API3WiFiRequest(val methodName: String) {
         val key: String,
         val bssidList: List<String>? = null,
         val essidList: List<String>? = null,
-        val exactPairs: List<Pair<String, String>>? = null,
         val sens: Boolean = false
-    ) : API3WiFiRequest("apiquery") {
-        data class ExactMatch(val bssid: String, val essid: String)
-    }
+    ) : API3WiFiRequest("apiquery")
 
     class ApiWps(val key: String, val bssidList: List<String>) : API3WiFiRequest("apiwps")
 

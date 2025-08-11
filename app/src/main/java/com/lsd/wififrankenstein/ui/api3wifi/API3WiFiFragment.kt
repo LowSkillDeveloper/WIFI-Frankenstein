@@ -208,20 +208,18 @@ class API3WiFiFragment : Fragment() {
                 key = server.apiReadKey ?: "000000000000",
                 bssidList = listOf(input.uppercase()),
                 essidList = null,
-                exactPairs = null,
                 sens = false
             )
         } else {
             API3WiFiRequest.ApiQuery(
                 key = server.apiReadKey ?: "000000000000",
-                bssidList = null,
+                bssidList = listOf("*"),
                 essidList = listOf(input),
-                exactPairs = null,
                 sens = false
             )
         }
 
-        viewModel.executeSimpleRequestWithRetry(server.path, request)
+        viewModel.executeRequest(server.path, request, API3WiFiViewModel.RequestType.GET)
     }
 
     private fun setupServerSpinner() {

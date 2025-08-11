@@ -120,28 +120,17 @@ class API3WiFiNetwork(
             is API3WiFiRequest.ApiQuery -> {
                 builder.addQueryParameter("key", request.key)
                 request.bssidList?.let { list ->
-                    if (list.size == 1) {
-                        builder.addQueryParameter("bssid", list.first())
-                    } else {
-                        builder.addQueryParameter("bssid", JSONArray(list).toString())
+                    when {
+                        list.size == 1 && list.first() == "*" -> builder.addQueryParameter("bssid", "*")
+                        list.size == 1 -> builder.addQueryParameter("bssid", list.first())
+                        else -> builder.addQueryParameter("bssid", JSONArray(list).toString())
                     }
                 }
                 request.essidList?.let { list ->
-                    if (list.size == 1) {
-                        builder.addQueryParameter("essid", list.first())
-                    } else {
-                        builder.addQueryParameter("essid", JSONArray(list).toString())
+                    when {
+                        list.size == 1 -> builder.addQueryParameter("essid", list.first())
+                        else -> builder.addQueryParameter("essid", JSONArray(list).toString())
                     }
-                }
-                request.exactPairs?.let { pairs ->
-                    val exactArray = JSONArray()
-                    pairs.forEach { pair ->
-                        val exactObj = JSONObject()
-                        exactObj.put("bssid", pair.first)
-                        exactObj.put("essid", pair.second)
-                        exactArray.put(exactObj)
-                    }
-                    builder.addQueryParameter("exact", exactArray.toString())
                 }
                 builder.addQueryParameter("sens", request.sens.toString())
             }
@@ -185,7 +174,9 @@ class API3WiFiNetwork(
             is API3WiFiRequest.ApiQuery -> {
                 builder.add("key", request.key)
                 request.bssidList?.let { list ->
-                    if (list.size == 1) {
+                    if (list.size == 1 && list.first() == "*") {
+                        builder.add("bssid", "*")
+                    } else if (list.size == 1) {
                         builder.add("bssid", list.first())
                     } else {
                         builder.add("bssid", JSONArray(list).toString())
@@ -197,16 +188,6 @@ class API3WiFiNetwork(
                     } else {
                         builder.add("essid", JSONArray(list).toString())
                     }
-                }
-                request.exactPairs?.let { pairs ->
-                    val exactArray = JSONArray()
-                    pairs.forEach { pair ->
-                        val exactObj = JSONObject()
-                        exactObj.put("bssid", pair.first)
-                        exactObj.put("essid", pair.second)
-                        exactArray.put(exactObj)
-                    }
-                    builder.add("exact", exactArray.toString())
                 }
                 builder.add("sens", request.sens.toString())
             }
@@ -250,20 +231,14 @@ class API3WiFiNetwork(
             is API3WiFiRequest.ApiQuery -> JSONObject().apply {
                 put("key", request.key)
                 request.bssidList?.let { list ->
-                    put("bssid", if (list.size == 1) list.first() else JSONArray(list))
+                    if (list.size == 1 && list.first() == "*") {
+                        put("bssid", "*")
+                    } else {
+                        put("bssid", if (list.size == 1) list.first() else JSONArray(list))
+                    }
                 }
                 request.essidList?.let { list ->
                     put("essid", if (list.size == 1) list.first() else JSONArray(list))
-                }
-                request.exactPairs?.let { pairs ->
-                    val exactArray = JSONArray()
-                    pairs.forEach { pair ->
-                        val exactObj = JSONObject()
-                        exactObj.put("bssid", pair.first)
-                        exactObj.put("essid", pair.second)
-                        exactArray.put(exactObj)
-                    }
-                    put("exact", exactArray)
                 }
                 put("sens", request.sens)
             }

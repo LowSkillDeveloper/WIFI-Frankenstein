@@ -42,7 +42,6 @@ sealed class API3WiFiMethodParams {
         private val _essidList = mutableListOf<String>()
         private val _exactPairs = mutableListOf<Pair<String, String>>()
 
-
         enum class QueryType {
             BSSID_ONLY, ESSID_ONLY, EXACT_MATCH
         }
@@ -118,7 +117,7 @@ sealed class API3WiFiMethodParams {
                     return@InputFilter ""
                 }
 
-                if (source.isNotEmpty() && (dstart == 2 || dstart == 5 || dstart == 8 || dstart == 11 || dstart == 14)) {
+                if (source.isNotEmpty() && newText.length == dstart + 1 && (dstart == 2 || dstart == 5 || dstart == 8 || dstart == 11 || dstart == 14)) {
                     return@InputFilter ":$source"
                 }
 
@@ -159,54 +158,48 @@ sealed class API3WiFiMethodParams {
                     addButton.setText(R.string.add_pair)
                 }
             }
+            pairsList.visibility = View.VISIBLE
         }
 
         private fun addBssid() {
-            val bssid = bssidInput.text.toString().uppercase()
-            if (bssid.isNotEmpty()) {
+            val bssid = bssidInput.text.toString().trim().uppercase()
+            if (validateBssidInput(bssid)) {
                 if (!_bssidList.contains(bssid)) {
                     _bssidList.add(bssid)
-                    (pairsList.adapter as PairsAdapter).notifyDataSetChanged()
+                    updateRecyclerView()
                 }
                 bssidInput.text?.clear()
                 bssidInputLayout.error = null
+                validate()
+                onDataChangedListener?.invoke()
             }
-            validate()
-            onDataChangedListener?.invoke()
         }
 
         private fun addEssid() {
-            val essid = essidInput.text.toString()
-            if (essid.isNotEmpty()) {
+            val essid = essidInput.text.toString().trim()
+            if (validateEssidInput(essid)) {
                 if (!_essidList.contains(essid)) {
                     _essidList.add(essid)
-                    (pairsList.adapter as PairsAdapter).notifyDataSetChanged()
+                    updateRecyclerView()
                 }
                 essidInput.text?.clear()
                 essidInputLayout.error = null
+                validate()
+                onDataChangedListener?.invoke()
             }
-            validate()
-            onDataChangedListener?.invoke()
         }
 
         private fun addExactPair() {
-            val bssid = bssidInput.text.toString().uppercase()
-            val essid = essidInput.text.toString()
+            val bssid = bssidInput.text.toString().trim().uppercase()
+            val essid = essidInput.text.toString().trim()
 
-            if (bssid.isEmpty()) {
-                bssidInputLayout.error = bssidInputLayout.context.getString(R.string.bssid_required)
-                return
-            }
-
-            if (essid.isEmpty()) {
-                essidInputLayout.error = essidInputLayout.context.getString(R.string.essid_required)
-                return
-            }
+            if (!validateBssidInput(bssid)) return
+            if (!validateEssidInput(essid)) return
 
             val pair = Pair(bssid, essid)
             if (!_exactPairs.contains(pair)) {
                 _exactPairs.add(pair)
-                (pairsList.adapter as PairsAdapter).notifyDataSetChanged()
+                updateRecyclerView()
             }
 
             bssidInput.text?.clear()
@@ -215,6 +208,35 @@ sealed class API3WiFiMethodParams {
             essidInputLayout.error = null
             validate()
             onDataChangedListener?.invoke()
+        }
+
+        private fun validateBssidInput(bssid: String): Boolean {
+            if (bssid.isEmpty()) {
+                bssidInputLayout.error = bssidInputLayout.context.getString(R.string.bssid_required)
+                return false
+            }
+
+            if (!bssid.matches(Regex("^([0-9A-F]{2}:){5}[0-9A-F]{2}$"))) {
+                bssidInputLayout.error = bssidInputLayout.context.getString(R.string.invalid_bssid_format)
+                return false
+            }
+
+            bssidInputLayout.error = null
+            return true
+        }
+
+        private fun validateEssidInput(essid: String): Boolean {
+            if (essid.isEmpty()) {
+                essidInputLayout.error = essidInputLayout.context.getString(R.string.essid_required)
+                return false
+            }
+
+            essidInputLayout.error = null
+            return true
+        }
+
+        private fun updateRecyclerView() {
+            (pairsList.adapter as? PairsAdapter)?.notifyDataSetChanged()
         }
 
         private fun clearInputs() {
@@ -226,13 +248,26 @@ sealed class API3WiFiMethodParams {
 
         override fun getRequest(key: String): API3WiFiRequest? {
             return if (isValid()) {
-                API3WiFiRequest.ApiQuery(
-                    key = key,
-                    bssidList = if (_currentQueryType == QueryType.BSSID_ONLY) _bssidList else null,
-                    essidList = if (_currentQueryType == QueryType.ESSID_ONLY) _essidList else null,
-                    exactPairs = if (_currentQueryType == QueryType.EXACT_MATCH) _exactPairs else null,
-                    sens = caseSensitiveSwitch.isChecked
-                )
+                when (_currentQueryType) {
+                    QueryType.BSSID_ONLY -> API3WiFiRequest.ApiQuery(
+                        key = key,
+                        bssidList = _bssidList,
+                        essidList = null,
+                        sens = caseSensitiveSwitch.isChecked
+                    )
+                    QueryType.ESSID_ONLY -> API3WiFiRequest.ApiQuery(
+                        key = key,
+                        bssidList = listOf("*"),
+                        essidList = _essidList,
+                        sens = caseSensitiveSwitch.isChecked
+                    )
+                    QueryType.EXACT_MATCH -> API3WiFiRequest.ApiQuery(
+                        key = key,
+                        bssidList = _exactPairs.map { it.first },
+                        essidList = _exactPairs.map { it.second },
+                        sens = caseSensitiveSwitch.isChecked
+                    )
+                }
             } else null
         }
 
@@ -277,7 +312,7 @@ sealed class API3WiFiMethodParams {
             _essidList.clear()
             _exactPairs.clear()
             clearInputs()
-            (pairsList.adapter as? PairsAdapter)?.notifyDataSetChanged()
+            updateRecyclerView()
         }
 
         private inner class PairsAdapter : RecyclerView.Adapter<PairsAdapter.ViewHolder>() {
@@ -296,34 +331,47 @@ sealed class API3WiFiMethodParams {
             override fun onBindViewHolder(holder: ViewHolder, position: Int) {
                 when (_currentQueryType) {
                     QueryType.BSSID_ONLY -> {
-                        holder.bssidText.text = _bssidList[position]
+                        holder.bssidText.visibility = View.VISIBLE
                         holder.essidText.visibility = View.GONE
+                        holder.bssidText.text = _bssidList[position]
                         holder.removeButton.setOnClickListener {
-                            _bssidList.removeAt(holder.adapterPosition)
-                            notifyDataSetChanged()
-                            validate()
-                            onDataChangedListener?.invoke()
+                            val pos = holder.adapterPosition
+                            if (pos != RecyclerView.NO_POSITION) {
+                                _bssidList.removeAt(pos)
+                                notifyItemRemoved(pos)
+                                validate()
+                                onDataChangedListener?.invoke()
+                            }
                         }
                     }
                     QueryType.ESSID_ONLY -> {
                         holder.bssidText.visibility = View.GONE
+                        holder.essidText.visibility = View.VISIBLE
                         holder.essidText.text = _essidList[position]
                         holder.removeButton.setOnClickListener {
-                            _essidList.removeAt(holder.adapterPosition)
-                            notifyDataSetChanged()
-                            validate()
-                            onDataChangedListener?.invoke()
+                            val pos = holder.adapterPosition
+                            if (pos != RecyclerView.NO_POSITION) {
+                                _essidList.removeAt(pos)
+                                notifyItemRemoved(pos)
+                                validate()
+                                onDataChangedListener?.invoke()
+                            }
                         }
                     }
                     QueryType.EXACT_MATCH -> {
+                        holder.bssidText.visibility = View.VISIBLE
+                        holder.essidText.visibility = View.VISIBLE
                         val pair = _exactPairs[position]
                         holder.bssidText.text = pair.first
                         holder.essidText.text = pair.second
                         holder.removeButton.setOnClickListener {
-                            _exactPairs.removeAt(holder.adapterPosition)
-                            notifyDataSetChanged()
-                            validate()
-                            onDataChangedListener?.invoke()
+                            val pos = holder.adapterPosition
+                            if (pos != RecyclerView.NO_POSITION) {
+                                _exactPairs.removeAt(pos)
+                                notifyItemRemoved(pos)
+                                validate()
+                                onDataChangedListener?.invoke()
+                            }
                         }
                     }
                 }

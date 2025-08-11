@@ -187,16 +187,6 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
                 request.essidList?.let { list ->
                     sb.appendLine("essid: ${if (list.size == 1) list.first() else JSONArray(list).toString()}")
                 }
-                request.exactPairs?.let { pairs ->
-                    val exactArray = JSONArray()
-                    pairs.forEach { pair ->
-                        val exactObj = JSONObject()
-                        exactObj.put("bssid", pair.first)
-                        exactObj.put("essid", pair.second)
-                        exactArray.put(exactObj)
-                    }
-                    sb.appendLine("exact: ${exactArray.toString()}")
-                }
                 sb.appendLine("sens: ${request.sens}")
             }
             is API3WiFiRequest.ApiWps -> {
@@ -238,16 +228,6 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
                 }
                 request.essidList?.let { list ->
                     put("essid", if (list.size == 1) list.first() else JSONArray(list))
-                }
-                request.exactPairs?.let { pairs ->
-                    val exactArray = JSONArray()
-                    pairs.forEach { pair ->
-                        val exactObj = JSONObject()
-                        exactObj.put("bssid", pair.first)
-                        exactObj.put("essid", pair.second)
-                        exactArray.put(exactObj)
-                    }
-                    put("exact", exactArray)
                 }
                 put("sens", request.sens)
             }
