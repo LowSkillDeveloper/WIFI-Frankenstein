@@ -216,6 +216,18 @@ class SettingsFragment : Fragment() {
             }
         }
 
+        binding.switchShowAdvancedUploadOptions.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                showAdvancedUploadWarning()
+            } else {
+                viewModel.setShowAdvancedUploadOptions(false)
+            }
+        }
+
+        viewModel.showAdvancedUploadOptions.observe(viewLifecycleOwner) { isEnabled ->
+            binding.switchShowAdvancedUploadOptions.isChecked = isEnabled
+        }
+
         binding.switchDummyNetworkMode.setOnCheckedChangeListener { _, isChecked ->
             viewModel.setDummyNetworkMode(isChecked)
         }
@@ -226,6 +238,19 @@ class SettingsFragment : Fragment() {
         viewModel.dummyNetworkMode.observe(viewLifecycleOwner) { isDummyMode ->
             binding.switchDummyNetworkMode.isChecked = isDummyMode
         }
+    }
+
+    private fun showAdvancedUploadWarning() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.advanced_upload_warning_title)
+            .setMessage(R.string.advanced_upload_warning_message)
+            .setPositiveButton(R.string.i_understand) { _, _ ->
+                viewModel.setShowAdvancedUploadOptions(true)
+            }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                binding.switchShowAdvancedUploadOptions.isChecked = false
+            }
+            .show()
     }
 
     private fun showDeveloperWarning() {

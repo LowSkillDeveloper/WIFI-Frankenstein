@@ -119,7 +119,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/upload_settings"
+                    android:text="@string/upload_options"
                     android:textAppearance="?attr/textAppearanceHeadline6"
                     android:layout_marginBottom="16dp" />
 
@@ -141,13 +141,40 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/check_existing_records"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="4dp" />
 
-                <com.google.android.material.checkbox.MaterialCheckBox
-                    android:id="@+id/checkBoxNoWait"
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/no_wait_mode" />
+                    android:layout_marginStart="32dp"
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/check_existing_records_desc"
+                    android:textAppearance="?attr/textAppearanceCaption"
+                    android:textColor="?android:attr/textColorSecondary" />
+
+                <LinearLayout
+                    android:id="@+id/layoutAdvancedOptions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/checkBoxNoWait"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/no_wait_mode"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="32dp"
+                        android:text="@string/no_wait_mode_desc"
+                        android:textAppearance="?attr/textAppearanceCaption"
+                        android:textColor="@color/error_red" />
+
+                </LinearLayout>
 
             </LinearLayout>
 

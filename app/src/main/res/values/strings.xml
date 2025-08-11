@@ -1508,6 +1508,12 @@
 
     <string name="anonymous_upload">Anonymous upload</string>
     <string name="authenticated_upload">Authenticated upload</string>
+    <string name="check_existing_records_desc">Check if records already exist in database before adding (slower but prevents duplicates)</string>
+    <string name="no_wait_mode_desc">Skip coordinate lookup for new access points (faster upload, but points won\'t appear on map)</string>
+    <string name="advanced_upload_warning_message">These options affect server-side processing. Only enable if you understand the consequences. Incorrect usage may impact database performance.</string>
+    <string name="upload_options">Upload Options</string>
+    <string name="show_advanced_upload_options">Show advanced upload options</string>
+    <string name="advanced_upload_warning_title">Advanced Upload Options</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

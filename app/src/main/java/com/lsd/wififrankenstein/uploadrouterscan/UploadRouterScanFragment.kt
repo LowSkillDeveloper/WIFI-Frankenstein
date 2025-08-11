@@ -15,6 +15,7 @@ import androidx.fragment.app.viewModels
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentUploadRouterscanBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
+import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 
 class UploadRouterScanFragment : Fragment() {
 
@@ -24,6 +25,8 @@ class UploadRouterScanFragment : Fragment() {
     private val viewModel: UploadRouterScanViewModel by viewModels()
     private var serverAdapter: ArrayAdapter<String>? = null
     private var servers: List<DbItem> = emptyList()
+
+    private val settingsViewModel: SettingsViewModel by viewModels()
 
     private val filePickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -89,6 +92,13 @@ class UploadRouterScanFragment : Fragment() {
                 binding.textViewSelectedFile.visibility = View.GONE
                 binding.textViewFileSize.visibility = View.GONE
                 updateUploadButtonState()
+            }
+        }
+
+        settingsViewModel.showAdvancedUploadOptions.observe(viewLifecycleOwner) { showAdvanced ->
+            binding.layoutAdvancedOptions.visibility = if (showAdvanced) View.VISIBLE else View.GONE
+            if (!showAdvanced) {
+                binding.checkBoxNoWait.isChecked = false
             }
         }
 

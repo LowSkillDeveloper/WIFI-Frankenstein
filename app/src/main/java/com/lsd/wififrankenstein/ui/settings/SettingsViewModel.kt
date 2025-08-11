@@ -40,6 +40,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _scanOnStartup = MutableLiveData<Boolean>()
     val scanOnStartup: LiveData<Boolean> = _scanOnStartup
 
+    private val _showAdvancedUploadOptions = MutableLiveData<Boolean>()
+    val showAdvancedUploadOptions: LiveData<Boolean> = _showAdvancedUploadOptions
+
     private val _checkUpdatesOnOpen = MutableLiveData<Boolean>()
     val checkUpdatesOnOpen: LiveData<Boolean> = _checkUpdatesOnOpen
 
@@ -119,6 +122,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _prioritizeNetworksWithData.value = prefs.getBoolean("prioritize_networks_with_data", true)
         _autoScrollToNetworksWithData.value = prefs.getBoolean("auto_scroll_to_networks_with_data", true)
 
+        _showAdvancedUploadOptions.value = prefs.getBoolean("show_advanced_upload_options", false)
+
         _clusterAggressiveness.value = prefs.getFloat("map_cluster_aggressiveness", 0.4f)
         val savedValue = prefs.getInt("map_max_cluster_size", 5000)
         val roundedValue = ((savedValue + 500) / 1000) * 1000
@@ -137,6 +142,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _includeAppIdentifier.value = api3WiFiPrefs.getBoolean("includeAppIdentifier", true)
         _showWipFeatures.value = prefs.getBoolean("show_wip_features", false)
     }
+
+    fun setShowAdvancedUploadOptions(isEnabled: Boolean) {
+        prefs.edit { putBoolean("show_advanced_upload_options", isEnabled) }
+        _showAdvancedUploadOptions.value = isEnabled
+    }
+
+    fun getShowAdvancedUploadOptions() = _showAdvancedUploadOptions.value == true
 
     fun setPrioritizeNetworksWithData(isPrioritized: Boolean) {
         prefs.edit { putBoolean("prioritize_networks_with_data", isPrioritized) }

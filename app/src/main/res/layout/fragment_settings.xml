@@ -837,6 +837,13 @@
                         android:text="@string/dummy_network_mode" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchShowAdvancedUploadOptions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/show_advanced_upload_options" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/switchDebugLogging"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
