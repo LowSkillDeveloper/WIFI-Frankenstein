@@ -47,14 +47,16 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    private fun createNetwork(serverUrl: String) {
+    private fun createNetwork(serverUrl: String, readKey: String, writeKey: String?) {
         network = API3WiFiNetwork(
             context = getApplication(),
             serverUrl = serverUrl,
             connectTimeout = settingsPrefs.getInt("connectTimeout", 5000),
             readTimeout = settingsPrefs.getInt("readTimeout", 10000),
             ignoreSSL = settingsPrefs.getBoolean("ignoreSSLCertificate", false),
-            includeAppIdentifier = settingsPrefs.getBoolean("includeAppIdentifier", true)
+            includeAppIdentifier = settingsPrefs.getBoolean("includeAppIdentifier", true),
+            apiReadKey = readKey,
+            apiWriteKey = writeKey
         )
     }
 
@@ -63,7 +65,11 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
             _isLoading.value = true
             _requestInfo.value = formatRequestInfo(serverUrl, request, requestType)
             try {
-                createNetwork(serverUrl)
+                val server = _apiServers.value?.find { it.path == serverUrl }
+                val readKey = server?.apiReadKey ?: "000000000000"
+                val writeKey = server?.apiWriteKey
+
+                createNetwork(serverUrl, readKey, writeKey)
 
                 val response = withContext(Dispatchers.IO) {
                     network?.executeRequest(request, requestType)
@@ -84,7 +90,11 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
             _isLoading.value = true
             _requestInfo.value = formatRequestInfo(serverUrl, request, RequestType.POST_JSON)
             try {
-                createNetwork(serverUrl)
+                val server = _apiServers.value?.find { it.path == serverUrl }
+                val readKey = server?.apiReadKey ?: "000000000000"
+                val writeKey = server?.apiWriteKey
+
+                createNetwork(serverUrl, readKey, writeKey)
 
                 var finalResponse = ""
                 var postSuccessful = false

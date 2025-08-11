@@ -2,6 +2,7 @@ package com.lsd.wififrankenstein.ui.api3wifi
 
 import android.content.Context
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -24,7 +25,9 @@ class API3WiFiNetwork(
     private val connectTimeout: Int,
     private val readTimeout: Int,
     private val ignoreSSL: Boolean,
-    private val includeAppIdentifier: Boolean
+    private val includeAppIdentifier: Boolean,
+    private val apiReadKey: String = "000000000000",
+    private val apiWriteKey: String? = null
 ) {
     private val client: OkHttpClient by lazy { createClient() }
 

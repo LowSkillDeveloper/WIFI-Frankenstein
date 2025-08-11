@@ -890,7 +890,7 @@ class WiFiScannerViewModel(
     private suspend fun processOnlineDatabase(db: DbItem, networks: List<ScanResult>, results: MutableMap<String, MutableList<NetworkDatabaseResult>>) {
         try {
             val helper = api3WiFiHelpers.getOrPut(db.id) {
-                API3WiFiHelper(getApplication(), db.path, db.apiKey ?: "000000000000")
+                API3WiFiHelper(getApplication(), db.path, db.apiReadKey ?: "000000000000", db.apiWriteKey)
             }
             val networkInfoList = helper.searchNetworksByBSSIDs(networks.map { it.BSSID.lowercase(Locale.ROOT) })
             Log.d("WiFiScannerViewModel", "Found ${networkInfoList.size} results for BSSIDs from API")

@@ -205,7 +205,7 @@ class API3WiFiFragment : Fragment() {
 
         val request = if (isSearchByMac) {
             API3WiFiRequest.ApiQuery(
-                key = server.apiKey ?: "",
+                key = server.apiReadKey ?: "000000000000",
                 bssidList = listOf(input.uppercase()),
                 essidList = null,
                 exactPairs = null,
@@ -213,7 +213,7 @@ class API3WiFiFragment : Fragment() {
             )
         } else {
             API3WiFiRequest.ApiQuery(
-                key = server.apiKey ?: "",
+                key = server.apiReadKey ?: "000000000000",
                 bssidList = null,
                 essidList = listOf(input),
                 exactPairs = null,
@@ -375,7 +375,7 @@ class API3WiFiFragment : Fragment() {
             else -> API3WiFiViewModel.RequestType.POST_JSON
         }
 
-        val request = currentMethodParams?.getRequest(selectedServer.apiKey ?: "")
+        val request = currentMethodParams?.getRequest(selectedServer.apiReadKey ?: "000000000000")
         if (request != null) {
             viewModel.executeRequest(serverUrl, request, requestType)
         } else {

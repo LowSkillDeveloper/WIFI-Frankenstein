@@ -317,6 +317,7 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                     val dbList = Json.decodeFromString<List<DbItem>>(jsonString)
                     withContext(Dispatchers.Main) {
                         _dbList.value = dbList
+                        migrateOldApiKeys()
                         updateMainApi()
                     }
                     Log.d("DbSetupViewModel", "Loaded DB list: $dbList")
@@ -333,6 +334,31 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                     _dbList.value = emptyList()
                 }
             }
+        }
+    }
+
+    private suspend fun migrateOldApiKeys() {
+        val dbList = _dbList.value ?: return
+        var hasChanges = false
+
+        val updatedList = dbList.map { dbItem ->
+            if (dbItem.dbType == DbType.WIFI_API && dbItem.apiReadKey == null && dbItem.apiKey != null) {
+                hasChanges = true
+                Log.d("DbSetupViewModel", "Migrating old API key for ${dbItem.path}")
+                dbItem.copy(
+                    apiReadKey = dbItem.apiKey,
+                    apiWriteKey = null,
+                    authMethod = AuthMethod.API_KEYS
+                )
+            } else {
+                dbItem
+            }
+        }
+
+        if (hasChanges) {
+            Log.d("DbSetupViewModel", "Migration completed, saving updated list")
+            _dbList.value = updatedList
+            saveDbList()
         }
     }
 

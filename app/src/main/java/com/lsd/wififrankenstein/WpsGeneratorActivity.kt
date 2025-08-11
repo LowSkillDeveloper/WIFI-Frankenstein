@@ -718,10 +718,12 @@ class WpsGeneratorActivity : AppCompatActivity() {
         withContext(Dispatchers.IO) {
             servers.forEach { server ->
                 try {
+                    val apiKey = server.apiReadKey ?: "000000000000"
+
                     val url = if (usePostMethod) {
                         URL("${server.path}/api/apiwps")
                     } else {
-                        URL("${server.path}/api/apiwps?key=${server.apiKey}&bssid=$uppercaseBssid")
+                        URL("${server.path}/api/apiwps?key=${apiKey}&bssid=$uppercaseBssid")
                     }
 
                     val connection = url.openConnection() as HttpURLConnection
@@ -732,11 +734,11 @@ class WpsGeneratorActivity : AppCompatActivity() {
                             doOutput = true
 
                             val jsonInputString = """
-                            {
-                                "key": "${server.apiKey}",
-                                "bssid": ["$uppercaseBssid"]
-                            }
-                            """.trimIndent()
+                        {
+                            "key": "$apiKey",
+                            "bssid": ["$uppercaseBssid"]
+                        }
+                        """.trimIndent()
 
                             outputStream.use { os ->
                                 val input = jsonInputString.toByteArray(charset("utf-8"))
@@ -778,7 +780,12 @@ class WpsGeneratorActivity : AppCompatActivity() {
                                 }
 
                                 if (serverPins.isNotEmpty()) {
-                                    serverResults[server.path] = serverPins
+                                    val serverDisplayName = if (server.userNick != null) {
+                                        "${server.path} (${server.userNick})"
+                                    } else {
+                                        server.path
+                                    }
+                                    serverResults[serverDisplayName] = serverPins
                                 } else {
                                     Log.w("WpsGeneratorActivity", "No pins found for BSSID: $uppercaseBssid on server: ${server.path}")
                                 }
