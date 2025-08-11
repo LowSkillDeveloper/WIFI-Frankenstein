@@ -1505,6 +1505,9 @@
     <string name="add_comment">Add comment (optional)</string>
     <string name="comment_hint">Enter comment for this upload</string>
 
+    <string name="anonymous_upload">Anonymous upload</string>
+    <string name="authenticated_upload">Authenticated upload</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

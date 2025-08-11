@@ -144,10 +144,10 @@ class UploadRouterScanFragment : Fragment() {
             binding.textViewNoServers.visibility = View.GONE
             binding.spinnerServer.visibility = View.VISIBLE
             servers.map { server ->
-                if (server.userNick != null) {
-                    "${server.userNick} (${server.path})"
-                } else {
-                    server.path
+                when {
+                    server.userNick != null -> "${server.userNick} (${server.path})"
+                    !server.apiWriteKey.isNullOrBlank() -> "${server.path} (${getString(R.string.authenticated_upload)})"
+                    else -> "${server.path} (${getString(R.string.anonymous_upload)})"
                 }
             }
         }

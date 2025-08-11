@@ -164,8 +164,8 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
             }
             append("&done=1")
 
-            server.apiWriteKey?.let { key ->
-                append("&key=${java.net.URLEncoder.encode(key, "UTF-8")}")
+            if (!server.apiWriteKey.isNullOrBlank()) {
+                append("&key=${java.net.URLEncoder.encode(server.apiWriteKey, "UTF-8")}")
             }
         }
 
