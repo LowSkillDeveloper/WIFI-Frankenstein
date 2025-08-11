@@ -13,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -31,11 +32,13 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.WelcomeActivity
 import com.lsd.wififrankenstein.WelcomeViewModel
 import com.lsd.wififrankenstein.databinding.FragmentWelcomeDatabasesBinding
+import com.lsd.wififrankenstein.ui.dbsetup.AuthMethod
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbSource
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.ui.dbsetup.SmartLinkDbInfo
+import com.lsd.wififrankenstein.ui.dbsetup.UserManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -43,6 +46,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -252,16 +259,257 @@ class WelcomeDatabasesFragment : Fragment() {
             selectFile(selectCustomFileResultLauncher)
         }
 
+        setupWelcomeAuthMethodSpinner()
+
         binding.buttonAddApi.setOnClickListener {
             val url = binding.editTextApiUrl.text.toString()
-            val apiKey = binding.editTextApiKey.text.toString().takeIf { it.isNotEmpty() } ?: "000000000000"
-
             if (url.isNotEmpty()) {
-                addApiServer(url, apiKey)
+                val authMethodText = binding.spinnerAuthMethodWelcome.editText?.text.toString()
+                val authMethod = when (authMethodText) {
+                    getString(R.string.auth_method_api_keys) -> AuthMethod.API_KEYS
+                    getString(R.string.auth_method_login_password) -> AuthMethod.LOGIN_PASSWORD
+                    else -> AuthMethod.NO_AUTH
+                }
+
+                when (authMethod) {
+                    AuthMethod.API_KEYS -> {
+                        val readKey = binding.textInputApiReadKeyWelcome.editText?.text.toString().takeIf { it.isNotBlank() } ?: "000000000000"
+                        val writeKey = binding.textInputApiWriteKeyWelcome.editText?.text.toString().takeIf { it.isNotBlank() } ?: "000000000000"
+                        addApiServerWithKeys(url, readKey, writeKey, authMethod)
+                    }
+                    AuthMethod.LOGIN_PASSWORD -> {
+                        val login = binding.textInputLoginWelcome.editText?.text.toString()
+                        val password = binding.textInputPasswordWelcome.editText?.text.toString()
+                        if (login.isNotBlank() && password.isNotBlank()) {
+                            addApiServerWithLogin(url, login, password, authMethod)
+                        } else {
+                            showError(getString(R.string.enter_valid_path_or_url))
+                        }
+                    }
+                    AuthMethod.NO_AUTH -> {
+                        addApiServerWithKeys(url, "000000000000", "000000000000", authMethod)
+                    }
+                }
             } else {
                 showError(getString(R.string.db_invalid_url))
             }
         }
+    }
+
+    private fun setupWelcomeAuthMethodSpinner() {
+        val authMethods = arrayOf(
+            getString(R.string.auth_method_api_keys),
+            getString(R.string.auth_method_login_password),
+            getString(R.string.auth_method_no_auth)
+        )
+
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, authMethods)
+        (binding.spinnerAuthMethodWelcome.editText as? AutoCompleteTextView)?.setAdapter(adapter)
+
+        (binding.spinnerAuthMethodWelcome.editText as? AutoCompleteTextView)?.setOnItemClickListener { _, _, position, _ ->
+            when (position) {
+                0 -> showWelcomeApiKeysFields()
+                1 -> showWelcomeLoginPasswordFields()
+                2 -> showWelcomeNoAuthFields()
+            }
+        }
+        
+        (binding.spinnerAuthMethodWelcome.editText as? AutoCompleteTextView)?.setText(authMethods[0], false)
+        showWelcomeApiKeysFields()
+    }
+
+    private fun showWelcomeApiKeysFields() {
+        binding.textInputApiReadKeyWelcome.visibility = View.VISIBLE
+        binding.textInputApiWriteKeyWelcome.visibility = View.VISIBLE
+        binding.textInputLoginWelcome.visibility = View.GONE
+        binding.textInputPasswordWelcome.visibility = View.GONE
+        binding.textViewUserInfoWelcome.visibility = View.GONE
+    }
+
+    private fun showWelcomeLoginPasswordFields() {
+        binding.textInputApiReadKeyWelcome.visibility = View.GONE
+        binding.textInputApiWriteKeyWelcome.visibility = View.GONE
+        binding.textInputLoginWelcome.visibility = View.VISIBLE
+        binding.textInputPasswordWelcome.visibility = View.VISIBLE
+        binding.textViewUserInfoWelcome.visibility = View.GONE
+    }
+
+    private fun showWelcomeNoAuthFields() {
+        binding.textInputApiReadKeyWelcome.visibility = View.GONE
+        binding.textInputApiWriteKeyWelcome.visibility = View.GONE
+        binding.textInputLoginWelcome.visibility = View.GONE
+        binding.textInputPasswordWelcome.visibility = View.GONE
+        binding.textViewUserInfoWelcome.visibility = View.GONE
+    }
+
+    private suspend fun getApiKeysFromLoginWelcome(serverUrl: String, login: String, password: String): Triple<String?, String?, Pair<String, Int>?> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val url = URL("$serverUrl/api/apikeys")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+
+                val postData = "login=${URLEncoder.encode(login, "UTF-8")}&" +
+                        "password=${URLEncoder.encode(password, "UTF-8")}&" +
+                        "genread=1"
+
+                connection.outputStream.use { it.write(postData.toByteArray()) }
+
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(response)
+
+                if (json.getBoolean("result")) {
+                    val profile = json.getJSONObject("profile")
+                    val keys = json.getJSONArray("data")
+
+                    var readKey: String? = null
+                    var writeKey: String? = null
+
+                    for (i in 0 until keys.length()) {
+                        val keyData = keys.getJSONObject(i)
+                        val access = keyData.getString("access")
+                        when (access) {
+                            "read" -> readKey = keyData.getString("key")
+                            "write" -> writeKey = keyData.getString("key")
+                        }
+                    }
+
+                    val userInfo = Pair(
+                        profile.getString("nick"),
+                        profile.getInt("level")
+                    )
+
+                    Triple(readKey, writeKey, userInfo)
+                } else {
+                    val error = json.getString("error")
+                    val userManager = UserManager(requireContext())
+                    val errorDesc = userManager.getErrorDesc(error)
+                    throw Exception(errorDesc)
+                }
+            } catch (e: Exception) {
+                throw e
+            }
+        }
+    }
+
+    @SuppressLint("LongLogTag")
+    private fun addApiServerWithKeys(serverUrl: String, readKey: String, writeKey: String, authMethod: AuthMethod) {
+        var url = serverUrl
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            url = "https://$url"
+        }
+        url = url.trimEnd('/')
+
+        val dbItem = DbItem(
+            id = UUID.randomUUID().toString(),
+            path = url,
+            directPath = null,
+            type = getString(R.string.db_type_3wifi),
+            dbType = DbType.WIFI_API,
+            apiReadKey = readKey,
+            apiWriteKey = writeKey,
+            authMethod = authMethod,
+            originalSizeInMB = 0f,
+            cachedSizeInMB = 0f
+        )
+
+        lifecycleScope.launch {
+            try {
+                dbSetupViewModel.addDb(dbItem)
+                welcomeViewModel.addSelectedDatabase(dbItem)
+                delay(100)
+
+                val dbList = dbSetupViewModel.dbList.value ?: emptyList()
+                val apiServers = dbList.filter { it.dbType == DbType.WIFI_API }
+
+                withContext(Dispatchers.Main) {
+                    apiServersAdapter.submitList(apiServers)
+                    clearWelcomeApiInputs()
+                    showSuccess(getString(R.string.db_added_successfully))
+                }
+            } catch (e: Exception) {
+                Log.e("WelcomeDatabasesFragment", "Error adding API server", e)
+                showError(getString(R.string.operation_failed))
+            }
+        }
+    }
+
+    private fun addApiServerWithLogin(serverUrl: String, login: String, password: String, authMethod: AuthMethod) {
+        val progressDialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(R.layout.dialog_test_progress)
+            .setCancelable(false)
+            .create()
+
+        progressDialog.show()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val (readKey, writeKey, userInfo) = getApiKeysFromLoginWelcome(serverUrl, login, password)
+
+                progressDialog.dismiss()
+
+                if (readKey != null) {
+                    var url = serverUrl
+                    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                        url = "https://$url"
+                    }
+                    url = url.trimEnd('/')
+
+                    val dbItem = DbItem(
+                        id = UUID.randomUUID().toString(),
+                        path = url,
+                        directPath = null,
+                        type = getString(R.string.db_type_3wifi),
+                        dbType = DbType.WIFI_API,
+                        apiReadKey = readKey,
+                        apiWriteKey = writeKey,
+                        login = login,
+                        password = password,
+                        authMethod = authMethod,
+                        userNick = userInfo?.first,
+                        userLevel = userInfo?.second,
+                        originalSizeInMB = 0f,
+                        cachedSizeInMB = 0f
+                    )
+
+                    dbSetupViewModel.addDb(dbItem)
+                    welcomeViewModel.addSelectedDatabase(dbItem)
+                    delay(100)
+
+                    val dbList = dbSetupViewModel.dbList.value ?: emptyList()
+                    val apiServers = dbList.filter { it.dbType == DbType.WIFI_API }
+
+                    withContext(Dispatchers.Main) {
+                        apiServersAdapter.submitList(apiServers)
+
+                        val userManager = UserManager(requireContext())
+                        val levelText = userInfo?.second?.let { userManager.getTextGroup(it) } ?: ""
+                        val userInfoText = getString(R.string.user_info, userInfo?.first ?: "", levelText)
+                        binding.textViewUserInfoWelcome.text = userInfoText
+                        binding.textViewUserInfoWelcome.visibility = View.VISIBLE
+
+                        clearWelcomeApiInputs()
+                        showSuccess(getString(R.string.login_successful))
+                    }
+                } else {
+                    showError(getString(R.string.login_failed))
+                }
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                showError(e.message ?: getString(R.string.login_failed))
+            }
+        }
+    }
+
+    private fun clearWelcomeApiInputs() {
+        binding.editTextApiUrl.text?.clear()
+        binding.textInputApiReadKeyWelcome.editText?.text?.clear()
+        binding.textInputApiWriteKeyWelcome.editText?.text?.clear()
+        binding.textInputLoginWelcome.editText?.text?.clear()
+        binding.textInputPasswordWelcome.editText?.text?.clear()
+        binding.textViewUserInfoWelcome.visibility = View.GONE
     }
 
     private fun showStep(step: Int) {
@@ -294,12 +542,33 @@ class WelcomeDatabasesFragment : Fragment() {
 
     fun goNext() {
         if (currentStep == 3) {
-
             val url = binding.editTextApiUrl.text.toString()
-            val apiKey = binding.editTextApiKey.text.toString().takeIf { it.isNotEmpty() } ?: "000000000000"
 
             if (url.isNotEmpty()) {
-                addApiServer(url, apiKey)
+                val authMethodText = binding.spinnerAuthMethodWelcome.editText?.text.toString()
+                val authMethod = when (authMethodText) {
+                    getString(R.string.auth_method_api_keys) -> AuthMethod.API_KEYS
+                    getString(R.string.auth_method_login_password) -> AuthMethod.LOGIN_PASSWORD
+                    else -> AuthMethod.NO_AUTH
+                }
+
+                when (authMethod) {
+                    AuthMethod.API_KEYS -> {
+                        val readKey = binding.textInputApiReadKeyWelcome.editText?.text.toString().takeIf { it.isNotBlank() } ?: "000000000000"
+                        val writeKey = binding.textInputApiWriteKeyWelcome.editText?.text.toString().takeIf { it.isNotBlank() } ?: "000000000000"
+                        addApiServerWithKeys(url, readKey, writeKey, authMethod)
+                    }
+                    AuthMethod.LOGIN_PASSWORD -> {
+                        val login = binding.textInputLoginWelcome.editText?.text.toString()
+                        val password = binding.textInputPasswordWelcome.editText?.text.toString()
+                        if (login.isNotBlank() && password.isNotBlank()) {
+                            addApiServerWithLogin(url, login, password, authMethod)
+                        }
+                    }
+                    AuthMethod.NO_AUTH -> {
+                        addApiServerWithKeys(url, "000000000000", "000000000000", authMethod)
+                    }
+                }
             }
 
             (activity as? WelcomeActivity)?.navigateToNextFragment()
@@ -890,51 +1159,6 @@ class WelcomeDatabasesFragment : Fragment() {
             }
         } catch (e: Exception) {
             showError(e.message ?: getString(R.string.error_opening_file))
-        }
-    }
-
-    @SuppressLint("LongLogTag")
-    private fun addApiServer(url: String, apiKey: String) {
-        var serverUrl = url
-        if (!serverUrl.startsWith("http://") && !serverUrl.startsWith("https://")) {
-            serverUrl = "https://$serverUrl"
-        }
-        serverUrl = serverUrl.trimEnd('/')
-
-        val dbItem = DbItem(
-            id = UUID.randomUUID().toString(),
-            path = serverUrl,
-            directPath = null,
-            type = getString(R.string.db_type_3wifi),
-            dbType = DbType.WIFI_API,
-            apiKey = apiKey,
-            originalSizeInMB = 0f,
-            cachedSizeInMB = 0f
-        )
-
-        lifecycleScope.launch {
-            try {
-                dbSetupViewModel.addDb(dbItem)
-                welcomeViewModel.addSelectedDatabase(dbItem)
-                delay(100)
-
-                val dbList = dbSetupViewModel.dbList.value ?: emptyList()
-                val apiServers = dbList.filter { it.dbType == DbType.WIFI_API }
-
-                withContext(Dispatchers.Main) {
-                    apiServersAdapter.submitList(apiServers)
-
-                    binding.editTextApiUrl.text?.clear()
-                    binding.editTextApiKey.text?.clear()
-
-                    showSuccess(getString(R.string.db_added_successfully))
-
-                    Log.d("WelcomeDatabasesFragment", "API server added. Total API servers: ${apiServers.size}")
-                }
-            } catch (e: Exception) {
-                Log.e("WelcomeDatabasesFragment", "Error adding API server", e)
-                showError(getString(R.string.operation_failed))
-            }
         }
     }
 
