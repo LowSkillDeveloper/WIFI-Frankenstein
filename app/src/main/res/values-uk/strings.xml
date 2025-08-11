@@ -1214,6 +1214,105 @@
     <string name="wps_root_disconnected">Відключено від мережі</string>
     <string name="wps_root_connection_successful">Успішно підключено до %s через WPS</string>
 
+        <string name="cluster_settings_updated">Налаштування кластера оновлено</string>
+
+        <string name="download_notification_channel">Завантаження файлів</string>
+        <string name="download_notification_channel_description">Сповіщення про хід завантаження файлів</string>
+        <string name="downloading_file">Завантаження файлу</string>
+        <string name="download_error_unknown">Невідома помилка завантаження</string>
+        <string name="download_complete">Завантаження завершено</string>
+        <string name="file_downloaded_successfully">%s успішно завантажено</string>
+
+        <string name="notification_permission_title">Потрібен дозвіл на сповіщення</string>
+        <string name="notification_permission_message">Для відображення ходу завантаження додатку потрібен дозвіл на сповіщення. Ви можете продовжити без сповіщень, якщо бажаєте.</string>
+        <string name="notification_permission_batch_message">Для відображення ходу завантаження кількох файлів додатку потрібен дозвіл на сповіщення. Ви можете продовжити без сповіщень, якщо бажаєте.</string>
+        <string name="notification_permission_denied_title">Дозвіл на сповіщення відхилено</string>
+        <string name="notification_permission_denied_message">Ви можете увімкнути сповіщення в налаштуваннях додатку або продовжити завантаження без них.</string>
+        <string name="grant_permission">Надати дозвіл</string>
+        <string name="download_without_notifications">Завантажити без сповіщень</string>
+        <string name="open_settings">Відкрити налаштування</string>
+
+        <string name="exit_updates_title">Виконується завантаження</string>
+        <string name="exit_updates_message">Зараз виконується завантаження файлів. Бажаєте залишити цю сторінку? Завантаження продовжиться у фоновому режимі.</string>
+        <string name="exit_anyway">Вийти все одно</string>
+        <string name="stay_here">Залишитися тут</string>
+        <string name="cancel_all_downloads">Скасувати все та вийти</string>
+
+        <string name="cancel_download_title">Скасування завантаження</string>
+        <string name="cancel_download_message">Ви впевнені, що хочете скасувати завантаження %s?</string>
+        <string name="revert">Відмінити зміни</string>
+
+        <string name="error_download_url_not_available">Посилання для завантаження недоступне для %s</string>
+        <string name="error_download_url_not_available_generic">Посилання для завантаження недоступне</string>
+        <string name="error_reverting_file">Помилка при відкаті файлу %s: %s</string>
+
+        <string name="request">Запит</string>
+        <string name="show_raw_request">Показати вихідний запит</string>
+        <string name="hide_raw_request">Сховати вихідний запит</string>
+        <string name="copy_request">Скопіювати запит</string>
+        <string name="clear_request">Очистити запит</string>
+
+        <string name="auth_method">Метод авторизації</string>
+        <string name="auth_method_api_keys">API-ключі</string>
+        <string name="auth_method_login_password">Логін і пароль</string>
+        <string name="auth_method_no_auth">Спробувати без авторизації</string>
+        <string name="api_read_key">API-ключ для читання</string>
+        <string name="api_write_key">API-ключ для запису</string>
+        <string name="login">Вхід</string>
+        <string name="getting_api_keys">Отримання API-ключів…</string>
+        <string name="login_successful">Вхід виконано успішно</string>
+        <string name="login_failed">Помилка входу</string>
+        <string name="access_level_banned">Заблокований</string>
+        <string name="access_level_no_logged">Не авторизований</string>
+        <string name="access_level_guest">Гість</string>
+        <string name="access_level_user">Користувач</string>
+        <string name="access_level_developer">Розробник</string>
+        <string name="access_level_admin">Адміністратор</string>
+        <string name="error_database_maintenance">Технічне обслуговування бази даних</string>
+        <string name="error_incorrect_credentials">Невірні облікові дані</string>
+        <string name="error_form_fields">Помилка у полях форми</string>
+        <string name="error_cooldown">Пауза між запитами</string>
+        <string name="user_info">Користувач: %1$s (%2$s)</string>
+
+        <string name="icon_change_disabled_welcome">Під час першого запуску змінити іконку не можна, ви можете зробити це в налаштуваннях додатку після завершення початкового налаштування.</string>
+
+        <string name="notification_permission">Дозвіл на сповіщення</string>
+        <string name="notification_permission_description">Дозволяє відображати хід завантаження та сповіщення про оновлення</string>
+        <string name="notification_permission_optional">Цей дозвіл необов’язковий. Ви можете продовжити без нього.</string>
+        <string name="notification_permission_rationale">Дозвіл на сповіщення використовується для відображення ходу завантаження та сповіщення про оновлення. Цей дозвіл необов’язковий.</string>
+        <string name="notification_icon">Іконка сповіщень</string>
+
+        <string name="menu_upload_routerscan">Завантажити дані RouterScan</string>
+        <string name="upload_routerscan_title">Завантаження даних RouterScan</string>
+        <string name="select_routerscan_file">Виберіть файл RouterScan</string>
+        <string name="select_server">Виберіть сервер</string>
+        <string name="upload_file">Завантажити файл</string>
+        <string name="uploading">Завантаження…</string>
+        <string name="upload_progress">Хід завантаження: %d%%</string>
+        <string name="upload_successful">Завантаження виконано успішно</string>
+        <string name="upload_failed">Помилка завантаження: %s</string>
+        <string name="file_format_csv">Формат CSV</string>
+        <string name="file_format_txt">Формат TXT</string>
+        <string name="supported_formats">Підтримувані формати: CSV, TXT</string>
+        <string name="select_file_first">Спочатку виберіть файл</string>
+        <string name="select_server_first">Спочатку виберіть сервер</string>
+        <string name="file_size_format">Розмір файлу: %.2f МБ</string>
+        <string name="processing_upload">Обробка завантаження…</string>
+        <string name="upload_settings">Налаштування завантаження</string>
+        <string name="check_existing_records">Перевіряти наявні записи</string>
+        <string name="no_wait_mode">Режим без очікування</string>
+        <string name="add_comment">Додати коментар (необов’язково)</string>
+        <string name="comment_hint">Введіть коментар до цього завантаження</string>
+
+        <string name="anonymous_upload">Анонімне завантаження</string>
+        <string name="authenticated_upload">Завантаження з авторизацією</string>
+        <string name="check_existing_records_desc">Перевіряти, чи існують записи в базі даних перед додаванням (повільніше, але запобігає дублюванню)</string>
+        <string name="no_wait_mode_desc">Пропустити пошук координат для нових точок доступу (швидше, але точки не відображатимуться на карті)</string>
+        <string name="advanced_upload_warning_message">Ці параметри впливають на обробку на сервері. Вмикайте їх лише, якщо розумієте наслідки. Неправильне використання може знизити продуктивність бази даних.</string>
+        <string name="upload_options">Параметри завантаження</string>
+        <string name="show_advanced_upload_options">Показати розширені параметри завантаження</string>
+        <string name="advanced_upload_warning_title">Розширені параметри завантаження</string>
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

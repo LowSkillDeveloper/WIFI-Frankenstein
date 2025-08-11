@@ -1244,6 +1244,105 @@
     <string name="wps_root_disconnected">Отключено от сети</string>
     <string name="wps_root_connection_successful">Успешное подключение к %s через WPS</string>
 
+        <string name="cluster_settings_updated">Настройки кластера обновлены</string>
+
+        <string name="download_notification_channel">Загрузка файлов</string>
+        <string name="download_notification_channel_description">Уведомления о ходе загрузки файлов</string>
+        <string name="downloading_file">Загрузка файла</string>
+        <string name="download_error_unknown">Неизвестная ошибка загрузки</string>
+        <string name="download_complete">Загрузка завершена</string>
+        <string name="file_downloaded_successfully">%s успешно загружен</string>
+
+        <string name="notification_permission_title">Требуется разрешение на уведомления</string>
+        <string name="notification_permission_message">Для отображения хода загрузки приложению требуется разрешение на уведомления. Вы можете продолжить без уведомлений, если хотите.</string>
+        <string name="notification_permission_batch_message">Для отображения хода загрузки нескольких файлов приложению требуется разрешение на уведомления. Вы можете продолжить без уведомлений, если хотите.</string>
+        <string name="notification_permission_denied_title">Разрешение на уведомления отклонено</string>
+        <string name="notification_permission_denied_message">Вы можете включить уведомления в настройках приложения или продолжить загрузку без них.</string>
+        <string name="grant_permission">Предоставить разрешение</string>
+        <string name="download_without_notifications">Загрузить без уведомлений</string>
+        <string name="open_settings">Открыть настройки</string>
+
+        <string name="exit_updates_title">Выполняется загрузка</string>
+        <string name="exit_updates_message">В данный момент выполняется загрузка файлов. Хотите покинуть эту страницу? Загрузка продолжится в фоновом режиме.</string>
+        <string name="exit_anyway">Выйти всё равно</string>
+        <string name="stay_here">Остаться здесь</string>
+        <string name="cancel_all_downloads">Отменить всё и выйти</string>
+
+        <string name="cancel_download_title">Отмена загрузки</string>
+        <string name="cancel_download_message">Вы уверены, что хотите отменить загрузку %s?</string>
+        <string name="revert">Отменить изменения</string>
+
+        <string name="error_download_url_not_available">Ссылка для загрузки недоступна для %s</string>
+        <string name="error_download_url_not_available_generic">Ссылка для загрузки недоступна</string>
+        <string name="error_reverting_file">Ошибка при откате файла %s: %s</string>
+
+        <string name="request">Запрос</string>
+        <string name="show_raw_request">Показать исходный запрос</string>
+        <string name="hide_raw_request">Скрыть исходный запрос</string>
+        <string name="copy_request">Копировать запрос</string>
+        <string name="clear_request">Очистить запрос</string>
+
+        <string name="auth_method">Метод авторизации</string>
+        <string name="auth_method_api_keys">API-ключи</string>
+        <string name="auth_method_login_password">Логин и пароль</string>
+        <string name="auth_method_no_auth">Пробовать без авторизации</string>
+        <string name="api_read_key">API-ключ для чтения</string>
+        <string name="api_write_key">API-ключ для записи</string>
+        <string name="login">Вход</string>
+        <string name="getting_api_keys">Получение API-ключей…</string>
+        <string name="login_successful">Вход выполнен успешно</string>
+        <string name="login_failed">Ошибка входа</string>
+        <string name="access_level_banned">Заблокирован</string>
+        <string name="access_level_no_logged">Не авторизован</string>
+        <string name="access_level_guest">Гость</string>
+        <string name="access_level_user">Пользователь</string>
+        <string name="access_level_developer">Разработчик</string>
+        <string name="access_level_admin">Администратор</string>
+        <string name="error_database_maintenance">Техническое обслуживание базы данных</string>
+        <string name="error_incorrect_credentials">Неверные учетные данные</string>
+        <string name="error_form_fields">Ошибка в полях формы</string>
+        <string name="error_cooldown">Пауза между запросами</string>
+        <string name="user_info">Пользователь: %1$s (%2$s)</string>
+
+        <string name="icon_change_disabled_welcome">При первом запуске сменить иконку нельзя, вы можете сделать это в настройках приложения после завершения первоначальной настройки.</string>
+
+        <string name="notification_permission">Разрешение на уведомления</string>
+        <string name="notification_permission_description">Позволяет отображать ход загрузки и уведомления об обновлениях</string>
+        <string name="notification_permission_optional">Это разрешение не обязательно. Вы можете продолжить без него.</string>
+        <string name="notification_permission_rationale">Разрешение на уведомления используется для отображения хода загрузки и уведомления об обновлениях. Это разрешение не обязательно.</string>
+        <string name="notification_icon">Иконка уведомлений</string>
+
+        <string name="menu_upload_routerscan">Загрузить данные RouterScan</string>
+        <string name="upload_routerscan_title">Загрузка данных RouterScan</string>
+        <string name="select_routerscan_file">Выберите файл RouterScan</string>
+        <string name="select_server">Выберите сервер</string>
+        <string name="upload_file">Загрузить файл</string>
+        <string name="uploading">Загрузка…</string>
+        <string name="upload_progress">Ход загрузки: %d%%</string>
+        <string name="upload_successful">Загрузка выполнена успешно</string>
+        <string name="upload_failed">Ошибка загрузки: %s</string>
+        <string name="file_format_csv">Формат CSV</string>
+        <string name="file_format_txt">Формат TXT</string>
+        <string name="supported_formats">Поддерживаемые форматы: CSV, TXT</string>
+        <string name="select_file_first">Сначала выберите файл</string>
+        <string name="select_server_first">Сначала выберите сервер</string>
+        <string name="file_size_format">Размер файла: %.2f МБ</string>
+        <string name="processing_upload">Обработка загрузки…</string>
+        <string name="upload_settings">Настройки загрузки</string>
+        <string name="check_existing_records">Проверять существующие записи</string>
+        <string name="no_wait_mode">Режим без ожидания</string>
+        <string name="add_comment">Добавить комментарий (необязательно)</string>
+        <string name="comment_hint">Введите комментарий к этой загрузке</string>
+
+        <string name="anonymous_upload">Анонимная загрузка</string>
+        <string name="authenticated_upload">Загрузка с авторизацией</string>
+        <string name="check_existing_records_desc">Проверять, существуют ли записи в базе данных перед добавлением (медленнее, но предотвращает дубликаты)</string>
+        <string name="no_wait_mode_desc">Пропуск поиска координат для новых точек доступа (быстрее, но точки не будут отображаться на карте)</string>
+        <string name="advanced_upload_warning_message">Эти параметры влияют на серверную обработку. Включайте их только при понимании последствий. Неправильное использование может снизить производительность базы данных.</string>
+        <string name="upload_options">Параметры загрузки</string>
+        <string name="show_advanced_upload_options">Показать расширенные параметры загрузки</string>
+        <string name="advanced_upload_warning_title">Расширенные параметры загрузки</string>
+
 
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
