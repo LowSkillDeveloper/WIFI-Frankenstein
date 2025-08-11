@@ -59,23 +59,32 @@ class PixieDustHelper(
 
     suspend fun getAvailableInterfaces(): List<IwInterface> = withContext(Dispatchers.IO) {
         try {
-            val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
-            val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch interface"
+            val iwCommand = "iw dev"
+            Log.d(TAG, "Executing command: $iwCommand")
 
-            val result = Shell.cmd(command).exec()
+            val result = Shell.cmd(iwCommand).exec()
+            Log.d(TAG, "Command exit code: ${result.code}")
+            Log.d(TAG, "Command success: ${result.isSuccess}")
+            Log.d(TAG, "Command output lines: ${result.out.size}")
+
+            result.out.forEachIndexed { index, line ->
+                Log.d(TAG, "OUT[$index]: $line")
+            }
+
+            if (result.err.isNotEmpty()) {
+                Log.w(TAG, "Command stderr lines: ${result.err.size}")
+                result.err.forEachIndexed { index, line ->
+                    Log.w(TAG, "ERR[$index]: $line")
+                }
+            }
 
             if (result.isSuccess && result.out.isNotEmpty()) {
-                val interfaces = parseInterfacesList(result.out.joinToString("\n"))
+                val interfaces = parseIwDevOutput(result.out.joinToString("\n"))
                 Log.d(TAG, "Parsed ${interfaces.size} interfaces: ${interfaces.map { it.name }}")
                 interfaces
             } else {
-                val iwCommand = "iw dev"
-                val iwResult = Shell.cmd(iwCommand).exec()
-                if (iwResult.isSuccess && iwResult.out.isNotEmpty()) {
-                    parseIwDevOutput(iwResult.out.joinToString("\n"))
-                } else {
-                    listOf(IwInterface("wlan0"))
-                }
+                Log.w(TAG, "Command failed or no output, using default wlan0")
+                listOf(IwInterface("wlan0"))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting interfaces", e)
@@ -84,24 +93,8 @@ class PixieDustHelper(
     }
 
     private fun parseInterfacesList(output: String): List<IwInterface> {
-        val interfaces = mutableListOf<IwInterface>()
-        val lines = output.lines()
+        Log.d(TAG, "Parsing interfaces list, input length: ${output.length} chars")
 
-        lines.forEach { line ->
-            val trimmed = line.trim()
-            if (trimmed.isNotEmpty() && !trimmed.startsWith("Selected") && !trimmed.startsWith("Available")) {
-                interfaces.add(IwInterface(trimmed))
-            }
-        }
-
-        return if (interfaces.isEmpty()) {
-            listOf(IwInterface("wlan0"))
-        } else {
-            interfaces
-        }
-    }
-
-    private fun parseIwDevOutput(output: String): List<IwInterface> {
         val interfaces = mutableListOf<IwInterface>()
         val lines = output.lines()
 
@@ -109,35 +102,50 @@ class PixieDustHelper(
         var currentType = ""
         var currentAddr = ""
 
-        lines.forEach { line ->
+        lines.forEachIndexed { index, line ->
             val trimmed = line.trim()
+            Log.v(TAG, "Interface parse line $index: $trimmed")
+
             when {
                 trimmed.startsWith("Interface ") -> {
                     currentInterface?.let {
                         interfaces.add(IwInterface(it, currentType, currentAddr))
+                        Log.d(TAG, "Added interface: name=$it, type=$currentType, addr=$currentAddr")
                     }
                     currentInterface = trimmed.substring(10).trim()
                     currentType = ""
                     currentAddr = ""
+                    Log.d(TAG, "Started parsing interface: $currentInterface")
                 }
                 trimmed.startsWith("type ") -> {
                     currentType = trimmed.substring(5).trim()
+                    Log.v(TAG, "Found type: $currentType")
                 }
                 trimmed.startsWith("addr ") -> {
                     currentAddr = trimmed.substring(5).trim()
+                    Log.v(TAG, "Found addr: $currentAddr")
                 }
             }
         }
 
         currentInterface?.let {
             interfaces.add(IwInterface(it, currentType, currentAddr))
+            Log.d(TAG, "Added final interface: name=$it, type=$currentType, addr=$currentAddr")
         }
 
-        return if (interfaces.isEmpty()) {
+        val result = if (interfaces.isEmpty()) {
+            Log.w(TAG, "No interfaces found, using default wlan0")
             listOf(IwInterface("wlan0"))
         } else {
+            Log.d(TAG, "Successfully parsed ${interfaces.size} interfaces")
             interfaces
         }
+
+        return result
+    }
+
+    private fun parseIwDevOutput(output: String): List<IwInterface> {
+        return parseInterfacesList(output)
     }
 
     fun checkRootAccess(): Boolean {
@@ -531,7 +539,7 @@ class PixieDustHelper(
                 callbacks.onStateChanged(PixieAttackState.ExtractingData)
                 callbacks.onProgressUpdate(context.getString(R.string.pixiedust_extracting_handshake))
 
-                performWpsRegistration(network, socketDir)
+                performWpsRegistration(network, socketDir, interfaceName)
                 delay(8000)
 
                 val attackData = extractPixieData(extractionTimeout)
@@ -1686,16 +1694,16 @@ update_config=0
         }
     }
 
-    private suspend fun performWpsRegistration(network: WpsNetwork, socketDir: String) {
+    private suspend fun performWpsRegistration(network: WpsNetwork, socketDir: String, interfaceName: String) {
         withContext(Dispatchers.IO) {
             try {
                 val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
-                val socketPath = "$socketDir/wlan0"
+                val socketPath = "$socketDir/$interfaceName"
 
                 Log.d(TAG, "Starting WPS registration for BSSID: ${network.bssid}")
                 callbacks.onLogEntry(LogEntry("Starting WPS registration for ${network.bssid}", LogColorType.INFO))
 
-                val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -g$socketPath wps_reg ${network.bssid} $DEFAULT_PIN"
+                val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -i$interfaceName -p$socketPath wps_reg ${network.bssid} $DEFAULT_PIN"
 
                 val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
 
