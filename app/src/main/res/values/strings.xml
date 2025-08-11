@@ -2,6 +2,7 @@
 
     <string name="app_name" translatable="false">WIFI Frankenstein</string>
     <string name="app_identifier" translatable="false">WIFIFrankenstein-1.1-official</string>
+    <string name="default_upload_comment" translatable="false">WIFI-Frankenstein</string>
 
     <string name="include_app_identifier">Include App Identifier</string>
     <string name="app_identifier_description">Send app identifier with requests</string>

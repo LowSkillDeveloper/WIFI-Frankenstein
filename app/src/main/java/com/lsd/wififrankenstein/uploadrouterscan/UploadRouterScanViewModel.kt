@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
@@ -153,9 +154,12 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
 
         val url = buildString {
             append(uploadUrl)
-            if (comment.isNotEmpty()) {
-                append("&comment=${java.net.URLEncoder.encode(comment, "UTF-8")}")
+            val finalComment = if (comment.isNotEmpty()) {
+                comment
+            } else {
+                getApplication<Application>().getString(R.string.default_upload_comment)
             }
+            append("&comment=${java.net.URLEncoder.encode(finalComment, "UTF-8")}")
             if (checkExisting) {
                 append("&checkexist=1")
             }
@@ -231,13 +235,5 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
         } finally {
             connection.disconnect()
         }
-    }
-
-    fun clearSelectedFile() {
-        _selectedFile.value = null
-    }
-
-    fun clearUploadResult() {
-        _uploadResult.value = null
     }
 }
