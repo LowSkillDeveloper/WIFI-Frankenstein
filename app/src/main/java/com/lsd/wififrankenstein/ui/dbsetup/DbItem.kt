@@ -13,6 +13,13 @@ enum class DbType {
 }
 
 @Serializable
+enum class AuthMethod {
+    API_KEYS,
+    LOGIN_PASSWORD,
+    NO_AUTH
+}
+
+@Serializable
 data class DbItem(
     val id: String,
     val path: String,
@@ -21,6 +28,13 @@ data class DbItem(
     val dbType: DbType,
     var isMain: Boolean = false,
     val apiKey: String? = null,
+    val apiReadKey: String? = null,
+    val apiWriteKey: String? = null,
+    val login: String? = null,
+    val password: String? = null,
+    val authMethod: AuthMethod? = null,
+    val userNick: String? = null,
+    val userLevel: Int? = null,
     val originalSizeInMB: Float,
     var cachedSizeInMB: Float,
     val tableName: String? = null,

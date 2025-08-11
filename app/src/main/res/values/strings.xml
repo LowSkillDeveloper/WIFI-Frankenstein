@@ -1453,6 +1453,28 @@
     <string name="copy_request">Copy Request</string>
     <string name="clear_request">Clear Request</string>
 
+    <string name="auth_method">Authorization Method</string>
+    <string name="auth_method_api_keys">API Keys</string>
+    <string name="auth_method_login_password">Login and Password</string>
+    <string name="auth_method_no_auth">Try without authorization</string>
+    <string name="api_read_key">Read API Key</string>
+    <string name="api_write_key">Write API Key</string>
+    <string name="login">Login</string>
+    <string name="getting_api_keys">Getting API keys…</string>
+    <string name="login_successful">Login successful</string>
+    <string name="login_failed">Login failed</string>
+    <string name="access_level_banned">Banned</string>
+    <string name="access_level_no_logged">Not logged in</string>
+    <string name="access_level_guest">Guest</string>
+    <string name="access_level_user">User</string>
+    <string name="access_level_developer">Developer</string>
+    <string name="access_level_admin">Administrator</string>
+    <string name="error_database_maintenance">Database maintenance</string>
+    <string name="error_incorrect_credentials">Incorrect credentials</string>
+    <string name="error_form_fields">Form fields error</string>
+    <string name="error_cooldown">Request cooldown</string>
+    <string name="user_info">User: %1$s (%2$s)</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

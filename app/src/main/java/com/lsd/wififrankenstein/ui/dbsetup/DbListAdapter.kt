@@ -37,6 +37,11 @@ class DbListAdapter(
         fun bind(item: DbItem) {
             binding.textViewDbType.text = when {
                 item.smartlinkType == "custom-auto-mapping" -> "${item.type} (${binding.root.context.getString(R.string.type_custom_auto)})"
+                item.dbType == DbType.WIFI_API && item.userNick != null -> {
+                    val userManager = UserManager(binding.root.context)
+                    val levelText = item.userLevel?.let { userManager.getTextGroup(it) } ?: ""
+                    "${item.type} - ${item.userNick} ($levelText)"
+                }
                 else -> item.type
             }
             binding.textViewDbPath.text =

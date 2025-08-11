@@ -23,7 +23,8 @@ import javax.net.ssl.X509TrustManager
 class API3WiFiHelper(
     private val context: Context,
     private val serverUrl: String,
-    private val apiKey: String
+    private val apiReadKey: String,
+    private val apiWriteKey: String? = null
 ) {
     private val cachedResults = mutableMapOf<String, List<Map<String, Any?>>>()
     private var lastRequestTime = 0L
@@ -109,7 +110,7 @@ class API3WiFiHelper(
                         }
 
                         val jsonObject = JSONObject().apply {
-                            put("key", apiKey)
+                            put("key", apiReadKey)
                             put("bssid", JSONArray(chunk.map { it.uppercase(Locale.ROOT) }))
                             if (includeAppIdentifier) {
                                 put("appinfo", context.getString(R.string.app_identifier))
@@ -207,7 +208,7 @@ class API3WiFiHelper(
                 "$serverUrl/3wifi.php?a=apidev"
             )
             val requestJson = JSONObject().apply {
-                put("key", apiKey)
+                put("key", apiReadKey)
                 put("bssid", JSONArray().put(testBSSID))
                 if (includeAppIdentifier) {
                     put("appinfo", context.getString(R.string.app_identifier))

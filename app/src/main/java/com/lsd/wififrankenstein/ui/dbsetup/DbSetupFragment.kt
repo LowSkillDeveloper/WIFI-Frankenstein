@@ -60,9 +60,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
+import org.json.JSONObject
 import java.io.File
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -1112,21 +1116,21 @@ class DbSetupFragment : Fragment() {
                 getString(R.string.db_type_sqlite_custom) -> {
                     binding.textInputLink.visibility = View.GONE
                     binding.buttonSelectFile.visibility = View.VISIBLE
-                    binding.textInputApiKey.visibility = View.GONE
-                    binding.textViewApiKeyHint.visibility = View.GONE
+                    binding.spinnerAuthMethod.visibility = View.GONE
+                    hideAllAuthFields()
                     checkStoragePermission()
                 }
                 getString(R.string.db_type_3wifi) -> {
                     binding.textInputLink.visibility = View.VISIBLE
                     binding.buttonSelectFile.visibility = View.GONE
-                    binding.textInputApiKey.visibility = View.VISIBLE
-                    binding.textViewApiKeyHint.visibility = View.VISIBLE
+                    binding.spinnerAuthMethod.visibility = View.VISIBLE
+                    setupAuthMethodSpinner()
                 }
                 getString(R.string.db_type_smartlink) -> {
                     binding.textInputLink.visibility = View.VISIBLE
                     binding.buttonSelectFile.visibility = View.GONE
-                    binding.textInputApiKey.visibility = View.GONE
-                    binding.textViewApiKeyHint.visibility = View.GONE
+                    binding.spinnerAuthMethod.visibility = View.GONE
+                    hideAllAuthFields()
                     binding.buttonAdd.text = getString(R.string.fetch_smartlink_databases)
                 }
             }
@@ -1136,7 +1140,6 @@ class DbSetupFragment : Fragment() {
         (binding.spinnerDbType.editText as? AutoCompleteTextView)?.setOnItemClickListener { _, _, position, _ ->
             val selectedType = adapter.getItem(position)?.toString()
             if (selectedType != null) {
-
                 saveLastDbType(selectedType)
             }
 
@@ -1144,26 +1147,34 @@ class DbSetupFragment : Fragment() {
                 0, 1 -> { // SQLite file (Custom) or SQLite file (3WiFi type)
                     binding.textInputLink.visibility = View.GONE
                     binding.buttonSelectFile.visibility = View.VISIBLE
-                    binding.textInputApiKey.visibility = View.GONE
-                    binding.textViewApiKeyHint.visibility = View.GONE
+                    binding.spinnerAuthMethod.visibility = View.GONE
+                    hideAllAuthFields()
                     checkStoragePermission()
                 }
                 2 -> { // 3WiFi API
                     binding.textInputLink.visibility = View.VISIBLE
                     binding.buttonSelectFile.visibility = View.GONE
-                    binding.textInputApiKey.visibility = View.VISIBLE
-                    binding.textViewApiKeyHint.visibility = View.VISIBLE
+                    binding.spinnerAuthMethod.visibility = View.VISIBLE
+                    setupAuthMethodSpinner()
                 }
                 3 -> { // SmartLinkDB
                     binding.textInputLink.visibility = View.VISIBLE
                     binding.buttonSelectFile.visibility = View.GONE
-                    binding.textInputApiKey.visibility = View.GONE
-                    binding.textViewApiKeyHint.visibility = View.GONE
+                    binding.spinnerAuthMethod.visibility = View.GONE
+                    hideAllAuthFields()
                     binding.buttonAdd.text = getString(R.string.fetch_smartlink_databases)
                 }
             }
             binding.buttonAdd.visibility = View.VISIBLE
         }
+    }
+
+    private fun hideAllAuthFields() {
+        binding.textInputApiReadKey.visibility = View.GONE
+        binding.textInputApiWriteKey.visibility = View.GONE
+        binding.textInputLogin.visibility = View.GONE
+        binding.textInputPassword.visibility = View.GONE
+        binding.textViewUserInfo.visibility = View.GONE
     }
 
     private fun setupRecyclerView() {
@@ -1206,6 +1217,101 @@ class DbSetupFragment : Fragment() {
         })
 
         itemTouchHelper.attachToRecyclerView(binding.recyclerViewDbs)
+    }
+
+    private fun setupAuthMethodSpinner() {
+        val authMethods = arrayOf(
+            getString(R.string.auth_method_api_keys),
+            getString(R.string.auth_method_login_password),
+            getString(R.string.auth_method_no_auth)
+        )
+
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, authMethods)
+        (binding.spinnerAuthMethod.editText as? AutoCompleteTextView)?.setAdapter(adapter)
+
+        (binding.spinnerAuthMethod.editText as? AutoCompleteTextView)?.setOnItemClickListener { _, _, position, _ ->
+            when (position) {
+                0 -> showApiKeysFields()
+                1 -> showLoginPasswordFields()
+                2 -> showNoAuthFields()
+            }
+        }
+    }
+
+    private fun showApiKeysFields() {
+        binding.textInputApiReadKey.visibility = View.VISIBLE
+        binding.textInputApiWriteKey.visibility = View.VISIBLE
+        binding.textInputLogin.visibility = View.GONE
+        binding.textInputPassword.visibility = View.GONE
+        binding.textViewUserInfo.visibility = View.GONE
+    }
+
+    private fun showLoginPasswordFields() {
+        binding.textInputApiReadKey.visibility = View.GONE
+        binding.textInputApiWriteKey.visibility = View.GONE
+        binding.textInputLogin.visibility = View.VISIBLE
+        binding.textInputPassword.visibility = View.VISIBLE
+        binding.textViewUserInfo.visibility = View.GONE
+    }
+
+    private fun showNoAuthFields() {
+        binding.textInputApiReadKey.visibility = View.GONE
+        binding.textInputApiWriteKey.visibility = View.GONE
+        binding.textInputLogin.visibility = View.GONE
+        binding.textInputPassword.visibility = View.GONE
+        binding.textViewUserInfo.visibility = View.GONE
+    }
+
+    private suspend fun getApiKeysFromLogin(serverUrl: String, login: String, password: String): Triple<String?, String?, Pair<String, Int>?> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val url = URL("$serverUrl/api/apikeys")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+
+                val postData = "login=${URLEncoder.encode(login, "UTF-8")}&" +
+                        "password=${URLEncoder.encode(password, "UTF-8")}&" +
+                        "genread=1"
+
+                connection.outputStream.use { it.write(postData.toByteArray()) }
+
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(response)
+
+                if (json.getBoolean("result")) {
+                    val profile = json.getJSONObject("profile")
+                    val keys = json.getJSONArray("data")
+
+                    var readKey: String? = null
+                    var writeKey: String? = null
+
+                    for (i in 0 until keys.length()) {
+                        val keyData = keys.getJSONObject(i)
+                        val access = keyData.getString("access")
+                        when (access) {
+                            "read" -> readKey = keyData.getString("key")
+                            "write" -> writeKey = keyData.getString("key")
+                        }
+                    }
+
+                    val userInfo = Pair(
+                        profile.getString("nick"),
+                        profile.getInt("level")
+                    )
+
+                    Triple(readKey, writeKey, userInfo)
+                } else {
+                    val error = json.getString("error")
+                    val userManager = UserManager(requireContext())
+                    val errorDesc = userManager.getErrorDesc(error)
+                    throw Exception(errorDesc)
+                }
+            } catch (e: Exception) {
+                throw e
+            }
+        }
     }
 
     private fun handleIndexManagement(dbItem: DbItem) {
@@ -1583,13 +1689,6 @@ class DbSetupFragment : Fragment() {
             path = path.trimEnd('/')
         }
 
-        val apiKey = if (dbType == DbType.WIFI_API) {
-            binding.textInputApiKey.editText?.text.toString().takeIf { it.isNotBlank() }
-                ?: "000000000000"
-        } else {
-            null
-        }
-
         when (dbType) {
             DbType.SQLITE_FILE_3WIFI -> {
                 val uri = path.toUri()
@@ -1645,7 +1744,33 @@ class DbSetupFragment : Fragment() {
                 }
             }
             DbType.WIFI_API -> {
-                addDbItem(dbType, type, path, null, apiKey, null, null)
+                val authMethodText = binding.spinnerAuthMethod.editText?.text.toString()
+                val authMethod = when (authMethodText) {
+                    getString(R.string.auth_method_api_keys) -> AuthMethod.API_KEYS
+                    getString(R.string.auth_method_login_password) -> AuthMethod.LOGIN_PASSWORD
+                    else -> AuthMethod.NO_AUTH
+                }
+
+                when (authMethod) {
+                    AuthMethod.API_KEYS -> {
+                        val readKey = binding.textInputApiReadKey.editText?.text.toString().takeIf { it.isNotBlank() } ?: "000000000000"
+                        val writeKey = binding.textInputApiWriteKey.editText?.text.toString().takeIf { it.isNotBlank() } ?: "000000000000"
+                        addApiServerWithKeys(path, readKey, writeKey, authMethod)
+                    }
+                    AuthMethod.LOGIN_PASSWORD -> {
+                        val login = binding.textInputLogin.editText?.text.toString()
+                        val password = binding.textInputPassword.editText?.text.toString()
+                        if (login.isNotBlank() && password.isNotBlank()) {
+                            addApiServerWithLogin(path, login, password, authMethod)
+                        } else {
+                            showSnackbar(getString(R.string.enter_valid_path_or_url))
+                            return
+                        }
+                    }
+                    AuthMethod.NO_AUTH -> {
+                        addApiServerWithKeys(path, "000000000000", "000000000000", authMethod)
+                    }
+                }
             }
             DbType.SMARTLINK_SQLITE_FILE_3WIFI, DbType.SMARTLINK_SQLITE_FILE_CUSTOM -> {
                 viewModel.fetchSmartLinkDatabases(path)
@@ -1653,6 +1778,77 @@ class DbSetupFragment : Fragment() {
             }
             DbType.LOCAL_APP_DB -> {
                 addDbItem(dbType, type, path, null, null, null, null)
+            }
+        }
+    }
+
+    private fun addApiServerWithKeys(serverUrl: String, readKey: String, writeKey: String, authMethod: AuthMethod) {
+        val newItem = DbItem(
+            id = UUID.randomUUID().toString(),
+            path = serverUrl,
+            directPath = null,
+            type = getString(R.string.db_type_3wifi),
+            dbType = DbType.WIFI_API,
+            apiReadKey = readKey,
+            apiWriteKey = writeKey,
+            authMethod = authMethod,
+            originalSizeInMB = 0f,
+            cachedSizeInMB = 0f
+        )
+
+        viewModel.addDb(newItem)
+        clearInputs()
+        showSnackbar(getString(R.string.db_added_successfully))
+    }
+
+    private fun addApiServerWithLogin(serverUrl: String, login: String, password: String, authMethod: AuthMethod) {
+        val progressDialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(R.layout.dialog_test_progress)
+            .setCancelable(false)
+            .create()
+
+        progressDialog.show()
+
+        lifecycleScope.launch {
+            try {
+                val (readKey, writeKey, userInfo) = getApiKeysFromLogin(serverUrl, login, password)
+
+                progressDialog.dismiss()
+
+                if (readKey != null) {
+                    val newItem = DbItem(
+                        id = UUID.randomUUID().toString(),
+                        path = serverUrl,
+                        directPath = null,
+                        type = getString(R.string.db_type_3wifi),
+                        dbType = DbType.WIFI_API,
+                        apiReadKey = readKey,
+                        apiWriteKey = writeKey,
+                        login = login,
+                        password = password,
+                        authMethod = authMethod,
+                        userNick = userInfo?.first,
+                        userLevel = userInfo?.second,
+                        originalSizeInMB = 0f,
+                        cachedSizeInMB = 0f
+                    )
+
+                    viewModel.addDb(newItem)
+                    clearInputs()
+
+                    val userManager = UserManager(requireContext())
+                    val levelText = userInfo?.second?.let { userManager.getTextGroup(it) } ?: ""
+                    val userInfoText = getString(R.string.user_info, userInfo?.first ?: "", levelText)
+                    binding.textViewUserInfo.text = userInfoText
+                    binding.textViewUserInfo.visibility = View.VISIBLE
+
+                    showSnackbar(getString(R.string.login_successful))
+                } else {
+                    showSnackbar(getString(R.string.login_failed))
+                }
+            } catch (e: Exception) {
+                progressDialog.dismiss()
+                showSnackbar(e.message ?: getString(R.string.login_failed))
             }
         }
     }
@@ -1839,7 +2035,11 @@ class DbSetupFragment : Fragment() {
 
     private fun clearInputs() {
         binding.textInputLink.editText?.text?.clear()
-        binding.textInputApiKey.editText?.text?.clear()
+        binding.textInputApiReadKey.editText?.text?.clear()
+        binding.textInputApiWriteKey.editText?.text?.clear()
+        binding.textInputLogin.editText?.text?.clear()
+        binding.textInputPassword.editText?.text?.clear()
+        binding.textViewUserInfo.visibility = View.GONE
         binding.buttonSelectFile.tag = null
     }
 
