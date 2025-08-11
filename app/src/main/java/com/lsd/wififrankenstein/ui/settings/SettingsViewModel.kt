@@ -372,6 +372,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _tryAlternativeUrl.value = value
     }
 
+    fun setAppIconDeferred(icon: String) {
+        if (icon != _currentAppIcon.value) {
+            prefs.edit { putString("app_icon", icon) }
+            _currentAppIcon.value = icon
+        }
+    }
+
     fun getIgnoreSSLCertificate() = _ignoreSSLCertificate.value == true
     @SuppressLint("UseKtx")
     fun setIgnoreSSLCertificate(value: Boolean) {

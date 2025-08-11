@@ -87,7 +87,7 @@ class WelcomeThemeFragment : Fragment() {
                     4 -> "p3wifi_pixel"
                     else -> "default"
                 }
-                settingsViewModel.setAppIcon(selectedIcon)
+                settingsViewModel.setAppIconDeferred(selectedIcon)
                 welcomeViewModel.setSelectedAppIcon(selectedIcon)
             }
 

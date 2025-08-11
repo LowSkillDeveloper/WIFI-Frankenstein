@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.lsd.wififrankenstein.databinding.ActivityWelcomeBinding
+import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.welcome.WelcomeCompletedFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeDatabasesFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeDisclaimerFragment
@@ -138,6 +139,8 @@ class WelcomeActivity : AppCompatActivity() {
 
     private fun startMainActivity() {
         try {
+            applySelectedIcon()
+
             val intent = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
@@ -152,6 +155,16 @@ class WelcomeActivity : AppCompatActivity() {
                 startActivity(launchIntent)
             }
             finish()
+        }
+    }
+
+    private fun applySelectedIcon() {
+        val prefs = getSharedPreferences("settings", MODE_PRIVATE)
+        val selectedIcon = prefs.getString("app_icon", "default") ?: "default"
+
+        if (selectedIcon != "default") {
+            val settingsViewModel = SettingsViewModel(application)
+            settingsViewModel.setAppIcon(selectedIcon)
         }
     }
 
