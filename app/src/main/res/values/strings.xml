@@ -1477,6 +1477,12 @@
 
     <string name="icon_change_disabled_welcome">При первом запуске сменить иконку нельзя, вы можете сделать это в настройках приложения по окончанию первой настройки.</string>
 
+    <string name="notification_permission">Notification Permission</string>
+    <string name="notification_permission_description">Allows showing download progress and update notifications</string>
+    <string name="notification_permission_optional">This permission is optional. You can continue without it.</string>
+    <string name="notification_permission_rationale">Notification permission is used to show download progress and notify about updates. This permission is optional.</string>
+    <string name="notification_icon">Notification icon</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

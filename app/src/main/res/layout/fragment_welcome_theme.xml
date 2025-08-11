@@ -16,7 +16,8 @@
             android:layout_marginTop="24dp"
             android:text="@string/theme_setup"
             android:textAlignment="center"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline4"
+            android:textSize="24sp"
+            android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -28,7 +29,7 @@
             android:layout_marginTop="16dp"
             android:text="@string/choose_your_preferences"
             android:textAlignment="center"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+            android:textSize="16sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/textViewThemeSetupTitle" />
@@ -54,7 +55,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/choose_theme"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
 
                 <RadioGroup
                     android:id="@+id/radioGroupTheme"
@@ -105,7 +107,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/choose_color_theme"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
 
                 <RadioGroup
                     android:id="@+id/radioGroupColorTheme"
@@ -156,7 +159,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/choose_app_icon"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/textViewIconDisabled"
@@ -164,8 +168,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:text="@string/icon_change_disabled_welcome"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="#757575"
                     android:padding="12dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

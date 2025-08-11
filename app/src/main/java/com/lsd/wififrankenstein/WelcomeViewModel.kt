@@ -62,6 +62,13 @@ class WelcomeViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private val _notificationPermissionGranted = MutableLiveData<Boolean>()
+    val notificationPermissionGranted: LiveData<Boolean> = _notificationPermissionGranted
+
+    fun setNotificationPermissionGranted(granted: Boolean) {
+        _notificationPermissionGranted.value = granted
+    }
+
     fun setSelectedTheme(theme: Int) {
         _selectedTheme.postValue(theme)
     }

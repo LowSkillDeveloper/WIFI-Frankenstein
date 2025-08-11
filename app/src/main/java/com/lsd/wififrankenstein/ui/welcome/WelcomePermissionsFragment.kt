@@ -57,6 +57,16 @@ class WelcomePermissionsFragment : Fragment() {
         }
     }
 
+    private val requestNotificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        updateNotificationPermissionUI(granted)
+        welcomeViewModel.setNotificationPermissionGranted(granted)
+        if (!granted) {
+            showNotificationPermissionDeniedDialog()
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -79,6 +89,10 @@ class WelcomePermissionsFragment : Fragment() {
             requestStoragePermission()
         }
 
+        binding.buttonRequestNotificationPermission.setOnClickListener {
+            requestNotificationPermission()
+        }
+
         welcomeViewModel.locationPermissionGranted.observe(viewLifecycleOwner) { granted ->
             updateLocationPermissionUI(granted)
         }
@@ -87,8 +101,13 @@ class WelcomePermissionsFragment : Fragment() {
             updateStoragePermissionUI(granted)
         }
 
+        welcomeViewModel.notificationPermissionGranted.observe(viewLifecycleOwner) { granted ->
+            updateNotificationPermissionUI(granted)
+        }
+
         updateLocationPermissionUI(hasLocationPermission())
         updateStoragePermissionUI(hasStoragePermission())
+        updateNotificationPermissionUI(hasNotificationPermission())
 
         (activity as? WelcomeActivity)?.updateNavigationButtons(
             showPrev = true,
@@ -102,17 +121,21 @@ class WelcomePermissionsFragment : Fragment() {
 
         val locationGranted = hasLocationPermission()
         val storageGranted = hasStoragePermission()
+        val notificationGranted = hasNotificationPermission()
 
         updateLocationPermissionUI(locationGranted)
         updateStoragePermissionUI(storageGranted)
+        updateNotificationPermissionUI(notificationGranted)
 
         welcomeViewModel.setLocationPermissionGranted(locationGranted)
         welcomeViewModel.setStoragePermissionGranted(storageGranted)
+        welcomeViewModel.setNotificationPermissionGranted(notificationGranted)
     }
 
     private fun setupPermissionCards() {
         val locationNeeded = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
         val storageNeeded = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+        val notificationNeeded = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
         if (!locationNeeded) {
             binding.cardViewLocationPermission.visibility = View.GONE
@@ -124,12 +147,17 @@ class WelcomePermissionsFragment : Fragment() {
             welcomeViewModel.setStoragePermissionGranted(true)
         }
 
+        if (!notificationNeeded) {
+            binding.cardViewNotificationPermission.visibility = View.GONE
+            welcomeViewModel.setNotificationPermissionGranted(true)
+        }
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             binding.textViewStorageTitle.text = getString(R.string.storage_permission_legacy)
             binding.textViewStorageDescription.text = getString(R.string.storage_permission_description_legacy)
         }
 
-        if (!locationNeeded && !storageNeeded) {
+        if (!locationNeeded && !storageNeeded && !notificationNeeded) {
             binding.textViewPermissionsDescription.text = getString(R.string.permissions_not_required_version)
             binding.textViewPermissionsFooter.text = getString(R.string.permissions_granted_automatically)
         }
@@ -167,6 +195,15 @@ class WelcomePermissionsFragment : Fragment() {
                 Manifest.permission.WRITE_EXTERNAL_STORAGE
             ) == PackageManager.PERMISSION_GRANTED
         }
+    }
+
+    private fun hasNotificationPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+
+        return ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun requestLocationPermission() {
@@ -225,6 +262,26 @@ class WelcomePermissionsFragment : Fragment() {
         }
     }
 
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
+        if (ActivityCompat.shouldShowRequestPermissionRationale(
+                requireActivity(),
+                Manifest.permission.POST_NOTIFICATIONS
+            )) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.notification_permission)
+                .setMessage(R.string.notification_permission_rationale)
+                .setPositiveButton(R.string.ok) { _, _ ->
+                    requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        } else {
+            requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
     private fun showLocationPermissionDeniedDialog() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.permission_denied)
@@ -242,6 +299,17 @@ class WelcomePermissionsFragment : Fragment() {
             .setMessage(R.string.storage_permission_denied_message)
             .setPositiveButton(R.string.request_again) { _, _ ->
                 requestStoragePermission()
+            }
+            .setNegativeButton(R.string.continue_anyway, null)
+            .show()
+    }
+
+    private fun showNotificationPermissionDeniedDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.permission_denied)
+            .setMessage(R.string.notification_permission_denied_message)
+            .setPositiveButton(R.string.request_again) { _, _ ->
+                requestNotificationPermission()
             }
             .setNegativeButton(R.string.continue_anyway, null)
             .show()
@@ -290,6 +358,29 @@ class WelcomePermissionsFragment : Fragment() {
             )
             binding.buttonRequestStoragePermission.text = getString(R.string.request_permission)
             binding.buttonRequestStoragePermission.isEnabled = true
+        }
+    }
+
+    private fun updateNotificationPermissionUI(granted: Boolean) {
+        var finalGranted = granted
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            finalGranted = true
+        }
+
+        if (finalGranted) {
+            binding.imageViewNotificationStatus.setImageResource(R.drawable.ic_check_circle)
+            binding.imageViewNotificationStatus.setColorFilter(
+                ContextCompat.getColor(requireContext(), R.color.green_500)
+            )
+            binding.buttonRequestNotificationPermission.text = getString(R.string.permission_granted)
+            binding.buttonRequestNotificationPermission.isEnabled = false
+        } else {
+            binding.imageViewNotificationStatus.setImageResource(R.drawable.ic_error)
+            binding.imageViewNotificationStatus.setColorFilter(
+                ContextCompat.getColor(requireContext(), R.color.error_red)
+            )
+            binding.buttonRequestNotificationPermission.text = getString(R.string.request_permission)
+            binding.buttonRequestNotificationPermission.isEnabled = true
         }
     }
 
