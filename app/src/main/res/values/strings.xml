@@ -1475,6 +1475,8 @@
     <string name="error_cooldown">Request cooldown</string>
     <string name="user_info">User: %1$s (%2$s)</string>
 
+    <string name="icon_change_disabled_welcome">При первом запуске сменить иконку нельзя, вы можете сделать это в настройках приложения по окончанию первой настройки.</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

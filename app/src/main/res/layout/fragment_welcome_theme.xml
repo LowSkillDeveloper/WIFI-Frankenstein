@@ -158,11 +158,15 @@
                     android:text="@string/choose_app_icon"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
 
-                <Spinner
-                    android:id="@+id/spinnerAppIcon"
+                <TextView
+                    android:id="@+id/textViewIconDisabled"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginTop="8dp"
+                    android:text="@string/icon_change_disabled_welcome"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:padding="12dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
