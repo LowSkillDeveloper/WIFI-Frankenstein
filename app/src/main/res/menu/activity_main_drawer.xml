@@ -20,6 +20,12 @@
             android:id="@+id/nav_api_query"
             android:icon="@drawable/outline_arrow_upload_ready_24"
             android:title="@string/menu_api_query" />
+
+        <item
+            android:id="@+id/nav_upload_routerscan"
+            android:icon="@drawable/ic_file_upload"
+            android:title="@string/menu_upload_routerscan" />
+
         <item
             android:id="@+id/nav_wifi_map"
             android:icon="@drawable/ic_menu_mapmode"

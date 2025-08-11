@@ -1483,6 +1483,28 @@
     <string name="notification_permission_rationale">Notification permission is used to show download progress and notify about updates. This permission is optional.</string>
     <string name="notification_icon">Notification icon</string>
 
+    <string name="menu_upload_routerscan">Upload RouterScan Data</string>
+    <string name="upload_routerscan_title">Upload RouterScan Data</string>
+    <string name="select_routerscan_file">Select RouterScan File</string>
+    <string name="select_server">Select Server</string>
+    <string name="upload_file">Upload File</string>
+    <string name="uploading">Uploading…</string>
+    <string name="upload_progress">Upload progress: %d%%</string>
+    <string name="upload_successful">Upload successful</string>
+    <string name="upload_failed">Upload failed: %s</string>
+    <string name="file_format_csv">CSV Format</string>
+    <string name="file_format_txt">TXT Format</string>
+    <string name="supported_formats">Supported formats: CSV, TXT</string>
+    <string name="select_file_first">Please select a file first</string>
+    <string name="select_server_first">Please select a server first</string>
+    <string name="file_size_format">File size: %.2f MB</string>
+    <string name="processing_upload">Processing upload…</string>
+    <string name="upload_settings">Upload Settings</string>
+    <string name="check_existing_records">Check for existing records</string>
+    <string name="no_wait_mode">No wait mode</string>
+    <string name="add_comment">Add comment (optional)</string>
+    <string name="comment_hint">Enter comment for this upload</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
