@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.io.InterruptedIOException
 
 class PixieDustHelper(
     private val context: Context,
@@ -1269,11 +1270,17 @@ class PixieDustHelper(
                 supplicantOutput = BufferedReader(InputStreamReader(supplicantProcess!!.inputStream))
 
                 scope.launch {
-                    var line: String?
-                    while (supplicantOutput?.readLine().also { line = it } != null) {
-                        line?.let { parseLine(it) }
+                    try {
+                        var line: String?
+                        while (supplicantOutput?.readLine().also { line = it } != null) {
+                            line?.let { parseLine(it) }
+                        }
+                        Log.d(TAG, "wpa_supplicant output ended")
+                    } catch (e: InterruptedIOException) {
+                        Log.d(TAG, "wpa_supplicant output reading interrupted")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error reading wpa_supplicant output", e)
                     }
-                    Log.d(TAG, "wpa_supplicant output ended")
                 }
 
                 val socketFile = "$socketDir/$interfaceName"
@@ -1703,53 +1710,79 @@ update_config=0
                 Log.d(TAG, "Starting WPS registration for BSSID: ${network.bssid}")
                 callbacks.onLogEntry(LogEntry("Starting WPS registration for ${network.bssid}", LogColorType.INFO))
 
-                val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -i $interfaceName -p $socketPath wps_reg ${network.bssid} $DEFAULT_PIN"
-                val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
+                if (!Shell.cmd("test -S $socketPath").exec().isSuccess) {
+                    callbacks.onLogEntry(LogEntry("Control socket not found: $socketPath", LogColorType.ERROR))
+                    return@withContext
+                }
+                callbacks.onLogEntry(LogEntry("Using control socket: $socketPath", LogColorType.INFO))
 
-                val outputReader = BufferedReader(InputStreamReader(process.inputStream))
-                val errorReader = BufferedReader(InputStreamReader(process.errorStream))
+                val commands = listOf(
+                    "wps_reg ${network.bssid} $DEFAULT_PIN"
+                )
 
-                val outputLines = mutableListOf<String>()
-                val errorLines = mutableListOf<String>()
+                commands.forEach { cmd ->
+                    val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && echo '$cmd' | ./wpa_cli$arch -i $interfaceName -p $socketDir"
 
-                val outputJob = scope.async {
-                    try {
-                        var line: String?
-                        while (outputReader.readLine().also { line = it } != null) {
-                            line?.let {
-                                outputLines.add(it)
-                                parseWpaCliLine(it)
+                    Log.d(TAG, "Executing WPS command: $cmd")
+
+                    val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
+
+                    val outputReader = BufferedReader(InputStreamReader(process.inputStream))
+                    val errorReader = BufferedReader(InputStreamReader(process.errorStream))
+
+                    val outputLines = mutableListOf<String>()
+                    val errorLines = mutableListOf<String>()
+
+                    val outputJob = scope.async {
+                        try {
+                            var line: String?
+                            while (outputReader.readLine().also { line = it } != null) {
+                                line?.let {
+                                    outputLines.add(it)
+                                    parseWpaCliLine(it)
+                                }
                             }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Error reading wpa_cli output", e)
                         }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Error reading wpa_cli output", e)
                     }
+
+                    val errorJob = scope.async {
+                        try {
+                            var line: String?
+                            while (errorReader.readLine().also { line = it } != null) {
+                                line?.let {
+                                    errorLines.add(it)
+                                    Log.w("WPA_CLI_ERR", it)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Error reading wpa_cli error output", e)
+                        }
+                    }
+
+                    val exitCode = process.waitFor()
+
+                    outputJob.await()
+                    errorJob.await()
+
+                    outputReader.close()
+                    errorReader.close()
+
+                    if (exitCode == 0) {
+                        callbacks.onLogEntry(LogEntry("WPS command sent successfully: $cmd", LogColorType.SUCCESS))
+                    } else {
+                        callbacks.onLogEntry(LogEntry("WPS command failed with exit code $exitCode: $cmd", LogColorType.ERROR))
+                        errorLines.forEach { error ->
+                            callbacks.onLogEntry(LogEntry("Error: $error", LogColorType.ERROR))
+                        }
+                    }
+
+                    Log.d(TAG, "WPS command finished with exit code: $exitCode")
+                    delay(2000)
                 }
 
-                val errorJob = scope.async {
-                    try {
-                        var line: String?
-                        while (errorReader.readLine().also { line = it } != null) {
-                            line?.let {
-                                errorLines.add(it)
-                                Log.w("WPA_CLI_ERR", it)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Error reading wpa_cli error output", e)
-                    }
-                }
-
-                val exitCode = process.waitFor()
-
-                outputJob.await()
-                errorJob.await()
-
-                outputReader.close()
-                errorReader.close()
-
-                Log.d(TAG, "wpa_cli finished with exit code: $exitCode")
-                callbacks.onLogEntry(LogEntry("WPS registration completed", LogColorType.INFO))
+                callbacks.onLogEntry(LogEntry("WPS registration process completed", LogColorType.INFO))
 
             } catch (e: Exception) {
                 Log.w(TAG, "WPS registration failed", e)

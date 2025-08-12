@@ -80,12 +80,12 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
 
                 if (hasBinaries) {
                     _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binaries_ready))
-
-                    val interfaces = pixieHelper.getAvailableInterfaces()
-                    _availableInterfaces.postValue(interfaces)
                 } else {
                     _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binary_files_not_available))
                 }
+
+                val interfaces = pixieHelper.getAvailableInterfaces()
+                _availableInterfaces.postValue(interfaces)
             }
 
             if (hasRoot) {
