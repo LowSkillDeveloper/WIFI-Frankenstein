@@ -1515,6 +1515,18 @@
     <string name="logging_stopped">Logging stopped</string>
     <string name="log_file_created">Log file created in Downloads folder</string>
 
+    <string name="logging_settings">Logging settings</string>
+    <string name="logging_info">Logs are saved in Downloads/WiFi_Frankenstein_Logs/</string>
+    <string name="logging_session_warning">Logging is active only for the current session. You will need to enable it again the next time the app is launched.</string>
+    <string name="delete_log_folder">Delete log folder</string>
+    <string name="share_last_log">Share last log</string>
+    <string name="log_folder_deleted">Log folder deleted</string>
+    <string name="log_folder_delete_error">Error deleting, system restrictions! Please delete manually</string>
+    <string name="no_logs_found">No logs found</string>
+    <string name="logging_enabled">Logging enabled for the current session</string>
+    <string name="logging_disabled">Logging disabled</string>
+
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

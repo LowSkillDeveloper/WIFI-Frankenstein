@@ -1313,6 +1313,17 @@
         <string name="show_advanced_upload_options">Показати розширені параметри завантаження</string>
         <string name="advanced_upload_warning_title">Розширені параметри завантаження</string>
 
+    <string name="logging_settings">Налаштування логування</string>
+    <string name="logging_info">Логи зберігаються в Downloads/WiFi_Frankenstein_Logs/</string>
+    <string name="logging_session_warning">Логування активне лише для поточної сесії. Під час наступного запуску застосунку його потрібно буде ввімкнути знову.</string>
+    <string name="delete_log_folder">Видалити папку з логами</string>
+    <string name="share_last_log">Поділитися останнім логом</string>
+    <string name="log_folder_deleted">Папку з логами видалено</string>
+    <string name="log_folder_delete_error">Помилка під час видалення, обмеження системи! Видаліть вручну</string>
+    <string name="no_logs_found">Логи не знайдено</string>
+    <string name="logging_enabled">Логування ввімкнено для поточної сесії</string>
+    <string name="logging_disabled">Логування вимкнено</string>
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
