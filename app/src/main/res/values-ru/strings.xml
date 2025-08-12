@@ -1270,7 +1270,7 @@
 
         <string name="cancel_download_title">Отмена загрузки</string>
         <string name="cancel_download_message">Вы уверены, что хотите отменить загрузку %s?</string>
-        <string name="revert">Отменить изменения</string>
+        <string name="revert">Отменить</string>
 
         <string name="error_download_url_not_available">Ссылка для загрузки недоступна для %s</string>
         <string name="error_download_url_not_available_generic">Ссылка для загрузки недоступна</string>

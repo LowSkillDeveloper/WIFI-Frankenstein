@@ -1240,7 +1240,7 @@
 
         <string name="cancel_download_title">Скасування завантаження</string>
         <string name="cancel_download_message">Ви впевнені, що хочете скасувати завантаження %s?</string>
-        <string name="revert">Відмінити зміни</string>
+        <string name="revert">Відмінити</string>
 
         <string name="error_download_url_not_available">Посилання для завантаження недоступне для %s</string>
         <string name="error_download_url_not_available_generic">Посилання для завантаження недоступне</string>
