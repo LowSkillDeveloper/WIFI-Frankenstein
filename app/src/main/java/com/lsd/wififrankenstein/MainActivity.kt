@@ -76,11 +76,6 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
 
-        if (!this::class.java.name.contains("Welcome")) {
-            FileLogger.init(applicationContext)
-            FileLogger.d("MainActivity", getString(R.string.app_started))
-        }
-
         updateChecker = UpdateChecker(applicationContext)
 
         val shouldCheckUpdates = getSharedPreferences("settings", MODE_PRIVATE)
@@ -272,7 +267,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         Log.d("MainActivity", "onDestroy called")
-        FileLogger.stop()
         super.onDestroy()
     }
 

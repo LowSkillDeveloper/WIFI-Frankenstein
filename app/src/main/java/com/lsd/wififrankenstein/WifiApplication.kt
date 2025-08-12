@@ -12,28 +12,30 @@ class WifiApplication : Application() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(defaultHandler))
 
-        FileLogger.init(this)
-
-        FileLogger.logMemoryInfo()
-        FileLogger.logThreadInfo()
-        FileLogger.i("WifiApplication", "Application started with detailed logging")
+        android.util.Log.i("WifiApplication", "Application started")
     }
 
     override fun onTerminate() {
-        FileLogger.i("WifiApplication", "Application terminating")
-        FileLogger.stop()
+        android.util.Log.i("WifiApplication", "Application terminating")
+        if (FileLogger.isLoggingEnabled()) {
+            FileLogger.stop()
+        }
         super.onTerminate()
     }
 
     override fun onLowMemory() {
         super.onLowMemory()
-        FileLogger.w("WifiApplication", "Low memory warning")
-        FileLogger.logMemoryInfo()
+        android.util.Log.w("WifiApplication", "Low memory warning")
+        if (FileLogger.isLoggingEnabled()) {
+            FileLogger.logMemoryInfo()
+        }
     }
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        FileLogger.w("WifiApplication", "Memory trim requested, level: $level")
-        FileLogger.logMemoryInfo()
+        android.util.Log.w("WifiApplication", "Memory trim requested, level: $level")
+        if (FileLogger.isLoggingEnabled()) {
+            FileLogger.logMemoryInfo()
+        }
     }
 }

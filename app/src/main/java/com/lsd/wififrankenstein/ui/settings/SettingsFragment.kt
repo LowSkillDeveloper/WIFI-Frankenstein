@@ -3,6 +3,7 @@ package com.lsd.wififrankenstein.ui.settings
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -28,6 +29,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentSettingsBinding
+import java.io.File
 
 class SettingsFragment : Fragment() {
 
@@ -68,10 +70,59 @@ class SettingsFragment : Fragment() {
         setupMapSliders()
         observeViewModel()
         setupDeveloperSettings()
-
+        setupLoggingSettings()
 
         binding.layoutDbSettingsContent.visibility = View.VISIBLE
         binding.layoutAppSettingsContent.visibility = View.VISIBLE
+    }
+
+    private fun setupLoggingSettings() {
+        binding.switchEnableLogging.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setEnableLogging(isChecked)
+            if (isChecked) {
+                Toast.makeText(requireContext(), getString(R.string.logging_enabled), Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.logging_disabled), Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        binding.buttonDeleteLogFolder.setOnClickListener {
+            if (viewModel.deleteLogFolder()) {
+                Toast.makeText(requireContext(), getString(R.string.log_folder_deleted), Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.log_folder_delete_error), Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        binding.buttonShareLastLog.setOnClickListener {
+            val logFile = viewModel.getLastLogFile()
+            if (logFile != null && logFile.exists()) {
+                shareLogFile(logFile)
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.no_logs_found), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun shareLogFile(logFile: File) {
+        try {
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                logFile
+            )
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "WiFi Frankenstein Log")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            startActivity(Intent.createChooser(shareIntent, "Share log file"))
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Error sharing log file", Toast.LENGTH_SHORT).show()
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -81,9 +132,25 @@ class SettingsFragment : Fragment() {
         updateStorageAccessInfo()
     }
 
+    private val requestLegacyPermissions = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        updateStorageAccessInfo()
+    }
+
+    private fun requestLegacyStoragePermissions() {
+        requestLegacyPermissions.launch(arrayOf(
+            android.Manifest.permission.READ_EXTERNAL_STORAGE,
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ))
+    }
+
     private fun setupExpandButtons() {
         binding.buttonExpandDbSettings.setOnClickListener {
             toggleExpansion(binding.layoutDbSettingsContent, binding.buttonExpandDbSettings)
+        }
+        binding.buttonExpandLoggingSettings.setOnClickListener {
+            toggleExpansion(binding.layoutLoggingSettingsContent, binding.buttonExpandLoggingSettings)
         }
         binding.buttonExpandWifiMapSettings.setOnClickListener {
             toggleExpansion(binding.layoutWifiMapSettingsContent, binding.buttonExpandWifiMapSettings)
@@ -284,10 +351,14 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupStorageAccessButton() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             binding.buttonRequestStorageAccess.visibility = View.VISIBLE
             binding.buttonRequestStorageAccess.setOnClickListener {
-                requestStorageAccess()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    requestStorageAccess()
+                } else {
+                    requestLegacyStoragePermissions()
+                }
             }
         } else {
             binding.buttonRequestStorageAccess.visibility = View.GONE
@@ -314,6 +385,28 @@ class SettingsFragment : Fragment() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             binding.buttonRequestStorageAccess.visibility = View.VISIBLE
             if (Environment.isExternalStorageManager()) {
+                binding.textViewWarningStorageAccessInfo.visibility = View.GONE
+                binding.textViewStorageAccessInfo.visibility = View.VISIBLE
+                binding.textViewStorageAccessInfo.text = getString(R.string.storage_access_granted)
+                binding.textViewStorageAccessInfo.setTextColor(ContextCompat.getColor(requireContext(), R.color.green_500))
+            } else {
+                binding.textViewWarningStorageAccessInfo.visibility = View.VISIBLE
+                binding.textViewStorageAccessInfo.visibility = View.VISIBLE
+                binding.textViewStorageAccessInfo.text = getString(R.string.storage_access_info)
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            binding.buttonRequestStorageAccess.visibility = View.VISIBLE
+            val hasReadPermission = ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+
+            val hasWritePermission = ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (hasReadPermission && hasWritePermission) {
                 binding.textViewWarningStorageAccessInfo.visibility = View.GONE
                 binding.textViewStorageAccessInfo.visibility = View.VISIBLE
                 binding.textViewStorageAccessInfo.text = getString(R.string.storage_access_granted)
@@ -535,11 +628,13 @@ class SettingsFragment : Fragment() {
         binding.buttonExpandAppSettings.setIconResource(R.drawable.ic_expand_less)
 
         val visibility = if (expand) View.VISIBLE else View.GONE
+        binding.layoutLoggingSettingsContent.visibility = visibility
         binding.layoutThemeSettingsContent.visibility = visibility
         binding.layoutAPI3WiFiSettingsContent.visibility = visibility
         binding.layoutWifiMapSettingsContent.visibility = visibility
 
         val iconResource = if (expand) R.drawable.ic_expand_less else R.drawable.ic_expand_more
+        binding.buttonExpandLoggingSettings.setIconResource(iconResource)
         binding.buttonExpandThemeSettings.setIconResource(iconResource)
         binding.buttonExpandAPI3WiFiSettings.setIconResource(iconResource)
         binding.buttonExpandWifiMapSettings.setIconResource(iconResource)
@@ -557,6 +652,10 @@ class SettingsFragment : Fragment() {
                 else -> R.id.radioButtonSystemTheme
             }
             binding.radioGroupTheme.check(radioButtonId)
+        }
+
+        viewModel.enableLogging.observe(viewLifecycleOwner) { isEnabled ->
+            binding.switchEnableLogging.isChecked = isEnabled
         }
 
         viewModel.prioritizeNetworksWithData.observe(viewLifecycleOwner) { isPrioritized ->

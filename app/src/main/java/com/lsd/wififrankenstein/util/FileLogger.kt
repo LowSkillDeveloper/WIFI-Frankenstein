@@ -17,6 +17,7 @@ import java.lang.reflect.Method
 object FileLogger {
     private const val TAG = "FileLogger"
     private var isInitialized = false
+    private var isEnabled = false
     private var context: Context? = null
     private var logWriter: BufferedWriter? = null
     private val logQueue = ConcurrentLinkedQueue<String>()
@@ -24,15 +25,16 @@ object FileLogger {
     private var logcatJob: Job? = null
     private var originalSystemOut: PrintStream? = null
     private var originalSystemErr: PrintStream? = null
+    private var currentLogFileName: String? = null
 
     private var logMethods: Map<String, Method>? = null
     private var isLogIntercepted = false
 
-    fun init(appContext: Context) {
-        if (isInitialized) return
+    fun enableLogging(appContext: Context) {
+        if (isEnabled) return
 
+        isEnabled = true
         context = appContext.applicationContext
-        isInitialized = true
 
         CoroutineScope(Dispatchers.IO).launch {
             initializeWriter()
@@ -42,16 +44,28 @@ object FileLogger {
             startQueueProcessor()
         }
 
-        AndroidLog.d("FileLogger", "FileLogger initialized with advanced interception")
+        AndroidLog.d("FileLogger", "FileLogger enabled with advanced interception")
     }
+
+    fun disableLogging() {
+        if (!isEnabled) return
+
+        isEnabled = false
+        stop()
+        AndroidLog.d("FileLogger", "FileLogger disabled")
+    }
+
+    fun isLoggingEnabled(): Boolean = isEnabled
 
     private suspend fun initializeWriter() {
         try {
             val packageName = context?.packageName ?: return
             val logFileName = "wifi_frankenstein_detailed_log_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.txt"
+            currentLogFileName = logFileName
 
             val outputStream = createLogFile(logFileName) ?: return
             logWriter = BufferedWriter(OutputStreamWriter(outputStream))
+            isInitialized = true
 
             val header = """
 === WiFi Frankenstein Detailed Log Started ===
@@ -78,7 +92,71 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
         }
     }
 
+    fun deleteLogFolder(): Boolean {
+        return try {
+            val context = this.context ?: return false
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                deleteLogFolderWithMediaStore(context)
+            } else {
+                deleteLogFolderLegacy()
+            }
+        } catch (e: Exception) {
+            AndroidLog.e(TAG, "Error deleting log folder", e)
+            false
+        }
+    }
+
+    private fun deleteLogFolderWithMediaStore(context: Context): Boolean {
+        return try {
+            val resolver = context.contentResolver
+            val uri = MediaStore.Files.getContentUri("external")
+            val selection = "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ?"
+            val selectionArgs = arrayOf("%WiFi_Frankenstein_Logs%")
+
+            resolver.delete(uri, selection, selectionArgs)
+            true
+        } catch (e: Exception) {
+            AndroidLog.e(TAG, "Error deleting with MediaStore", e)
+            false
+        }
+    }
+
+    private fun deleteLogFolderLegacy(): Boolean {
+        return try {
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val logDir = File(downloadsDir, "WiFi_Frankenstein_Logs")
+
+            if (logDir.exists()) {
+                logDir.deleteRecursively()
+            } else {
+                true
+            }
+        } catch (e: Exception) {
+            AndroidLog.e(TAG, "Error deleting folder legacy", e)
+            false
+        }
+    }
+
+    fun getLastLogFile(): File? {
+        return try {
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val logDir = File(downloadsDir, "WiFi_Frankenstein_Logs")
+
+            if (!logDir.exists()) return null
+
+            logDir.listFiles()?.filter { it.name.endsWith(".txt") }?.maxByOrNull { it.lastModified() }
+        } catch (e: Exception) {
+            AndroidLog.e(TAG, "Error getting last log file", e)
+            null
+        }
+    }
+
+    fun getCurrentLogFileName(): String? = currentLogFileName
+
     private fun interceptSystemStreams() {
+        if (!isEnabled) return
+
         try {
             originalSystemOut = System.out
             originalSystemErr = System.err
@@ -86,36 +164,40 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
             System.setOut(object : PrintStream(originalSystemOut!!) {
                 override fun print(s: String?) {
                     originalSystemOut?.print(s)
-                    s?.let { logSystemOutput("System.out", it, false) }
+                    if (isEnabled) s?.let { logSystemOutput("System.out", it, false) }
                 }
 
                 override fun println(s: String?) {
                     originalSystemOut?.println(s)
-                    s?.let { logSystemOutput("System.out", it, true) }
+                    if (isEnabled) s?.let { logSystemOutput("System.out", it, true) }
                 }
 
                 override fun write(b: ByteArray, off: Int, len: Int) {
                     originalSystemOut?.write(b, off, len)
-                    val output = String(b, off, len)
-                    logSystemOutput("System.out", output, false)
+                    if (isEnabled) {
+                        val output = String(b, off, len)
+                        logSystemOutput("System.out", output, false)
+                    }
                 }
             })
 
             System.setErr(object : PrintStream(originalSystemErr!!) {
                 override fun print(s: String?) {
                     originalSystemErr?.print(s)
-                    s?.let { logSystemOutput("System.err", it, false) }
+                    if (isEnabled) s?.let { logSystemOutput("System.err", it, false) }
                 }
 
                 override fun println(s: String?) {
                     originalSystemErr?.println(s)
-                    s?.let { logSystemOutput("System.err", it, true) }
+                    if (isEnabled) s?.let { logSystemOutput("System.err", it, true) }
                 }
 
                 override fun write(b: ByteArray, off: Int, len: Int) {
                     originalSystemErr?.write(b, off, len)
-                    val output = String(b, off, len)
-                    logSystemOutput("System.err", output, false)
+                    if (isEnabled) {
+                        val output = String(b, off, len)
+                        logSystemOutput("System.err", output, false)
+                    }
                 }
             })
 
@@ -125,6 +207,8 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
     }
 
     private fun logSystemOutput(source: String, message: String, isNewLine: Boolean) {
+        if (!isEnabled) return
+
         val timestamp = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault()).format(Date())
         val stackTrace = getCallerInfo()
         val entry = if (isNewLine) {
@@ -136,6 +220,8 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
     }
 
     private fun setupLogInterception() {
+        if (!isEnabled) return
+
         try {
             val logClass = AndroidLog::class.java
             logMethods = mapOf(
@@ -152,6 +238,8 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
     }
 
     private suspend fun startLogcatCapture() {
+        if (!isEnabled) return
+
         logcatJob = CoroutineScope(Dispatchers.IO).launch {
             try {
                 val packageName = context?.packageName ?: return@launch
@@ -167,7 +255,7 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
                 logQueue.offer("--------- logcat capture started ---------\n")
 
                 var line: String?
-                while (reader.readLine().also { line = it } != null && isActive) {
+                while (reader.readLine().also { line = it } != null && isActive && isEnabled) {
                     line?.let { logLine ->
                         if (logLine.contains(packageName) ||
                             logLine.contains("AndroidRuntime") ||
@@ -181,15 +269,19 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
                     }
                 }
             } catch (e: Exception) {
-                logQueue.offer("Logcat capture failed: ${e.message}\n")
-                AndroidLog.w(TAG, "Logcat capture failed", e)
+                if (isEnabled) {
+                    logQueue.offer("Logcat capture failed: ${e.message}\n")
+                    AndroidLog.w(TAG, "Logcat capture failed", e)
+                }
             }
         }
     }
 
     private suspend fun startQueueProcessor() {
+        if (!isEnabled) return
+
         writerJob = CoroutineScope(Dispatchers.IO).launch {
-            while (isActive) {
+            while (isActive && isEnabled) {
                 try {
                     val batch = mutableListOf<String>()
                     repeat(50) {
@@ -199,7 +291,7 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
                         }
                     }
 
-                    if (batch.isNotEmpty()) {
+                    if (batch.isNotEmpty() && isEnabled) {
                         logWriter?.apply {
                             batch.forEach { entry ->
                                 write(entry)
@@ -210,7 +302,9 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
 
                     delay(100)
                 } catch (e: Exception) {
-                    AndroidLog.e(TAG, "Error processing log queue", e)
+                    if (isEnabled) {
+                        AndroidLog.e(TAG, "Error processing log queue", e)
+                    }
                 }
             }
         }
@@ -277,6 +371,8 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
     }
 
     private fun writeDetailedLog(level: String, tag: String, message: String, throwable: Throwable? = null) {
+        if (!isEnabled) return
+
         val timestamp = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault()).format(Date())
         val pid = android.os.Process.myPid()
         val tid = Thread.currentThread().id
@@ -300,11 +396,13 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
             originalSystemOut?.let { System.setOut(it) }
             originalSystemErr?.let { System.setErr(it) }
 
-            val stopMessage = "\n=== Detailed logging stopped at ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())} ===\n"
-            logWriter?.apply {
-                write(stopMessage)
-                flush()
-                close()
+            if (isInitialized) {
+                val stopMessage = "\n=== Detailed logging stopped at ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())} ===\n"
+                logWriter?.apply {
+                    write(stopMessage)
+                    flush()
+                    close()
+                }
             }
         } catch (e: Exception) {
             AndroidLog.e(TAG, "Error stopping logger", e)
@@ -315,6 +413,8 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
     }
 
     fun logMemoryInfo() {
+        if (!isEnabled) return
+
         val runtime = Runtime.getRuntime()
         val memoryInfo = """
 Memory Info:
@@ -328,6 +428,8 @@ Memory Info:
     }
 
     fun logThreadInfo() {
+        if (!isEnabled) return
+
         val threadInfo = """
 Thread Info:
 - Active Threads: ${Thread.activeCount()}
@@ -341,36 +443,36 @@ Thread Info:
 
     fun d(tag: String, message: String) {
         AndroidLog.d(tag, message)
-        writeDetailedLog("D", tag, message)
+        if (isEnabled) writeDetailedLog("D", tag, message)
     }
 
     fun i(tag: String, message: String) {
         AndroidLog.i(tag, message)
-        writeDetailedLog("I", tag, message)
+        if (isEnabled) writeDetailedLog("I", tag, message)
     }
 
     fun w(tag: String, message: String) {
         AndroidLog.w(tag, message)
-        writeDetailedLog("W", tag, message)
+        if (isEnabled) writeDetailedLog("W", tag, message)
     }
 
     fun e(tag: String, message: String) {
         AndroidLog.e(tag, message)
-        writeDetailedLog("E", tag, message)
+        if (isEnabled) writeDetailedLog("E", tag, message)
     }
 
     fun e(tag: String, message: String, throwable: Throwable) {
         AndroidLog.e(tag, message, throwable)
-        writeDetailedLog("E", tag, message, throwable)
+        if (isEnabled) writeDetailedLog("E", tag, message, throwable)
     }
 
     fun v(tag: String, message: String) {
         AndroidLog.v(tag, message)
-        writeDetailedLog("V", tag, message)
+        if (isEnabled) writeDetailedLog("V", tag, message)
     }
 
     fun wtf(tag: String, message: String) {
         AndroidLog.wtf(tag, message)
-        writeDetailedLog("WTF", tag, message)
+        if (isEnabled) writeDetailedLog("WTF", tag, message)
     }
 }

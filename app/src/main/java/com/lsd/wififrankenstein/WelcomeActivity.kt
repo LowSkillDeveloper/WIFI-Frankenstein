@@ -45,8 +45,7 @@ class WelcomeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         applyTheme()
         super.onCreate(savedInstanceState)
-        FileLogger.init(applicationContext)
-        FileLogger.d("WelcomeActivity", getString(R.string.welcome_activity_started))
+        android.util.Log.d("WelcomeActivity", "Welcome activity started")
         lifecycleScope.launch {
             val isFirstLaunch = withContext(Dispatchers.IO) {
                 viewModel.isFirstLaunch()

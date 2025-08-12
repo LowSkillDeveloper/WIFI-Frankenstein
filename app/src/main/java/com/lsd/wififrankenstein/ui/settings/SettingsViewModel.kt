@@ -14,6 +14,8 @@ import androidx.lifecycle.MutableLiveData
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.dbsetup.API3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
+import com.lsd.wififrankenstein.util.FileLogger
+import java.io.File
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -107,6 +109,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _autoScrollToNetworksWithData = MutableLiveData<Boolean>()
     val autoScrollToNetworksWithData: LiveData<Boolean> = _autoScrollToNetworksWithData
 
+    private val _enableLogging = MutableLiveData<Boolean>()
+    val enableLogging: LiveData<Boolean> = _enableLogging
+
     init {
         _currentTheme.value = prefs.getInt("night_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         _currentAppIcon.value = prefs.getString("app_icon", "default")
@@ -141,7 +146,27 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _ignoreSSLCertificate.value = api3WiFiPrefs.getBoolean("ignoreSSLCertificate", false)
         _includeAppIdentifier.value = api3WiFiPrefs.getBoolean("includeAppIdentifier", true)
         _showWipFeatures.value = prefs.getBoolean("show_wip_features", false)
+        _enableLogging.value = FileLogger.isLoggingEnabled()
     }
+
+    fun setEnableLogging(enabled: Boolean) {
+        _enableLogging.value = enabled
+        if (enabled) {
+            FileLogger.enableLogging(getApplication())
+        } else {
+            FileLogger.disableLogging()
+        }
+    }
+
+    fun deleteLogFolder(): Boolean {
+        return FileLogger.deleteLogFolder()
+    }
+
+    fun getLastLogFile(): File? {
+        return FileLogger.getLastLogFile()
+    }
+
+    fun getEnableLogging(): Boolean = _enableLogging.value == true
 
     fun setShowAdvancedUploadOptions(isEnabled: Boolean) {
         prefs.edit { putBoolean("show_advanced_upload_options", isEnabled) }
