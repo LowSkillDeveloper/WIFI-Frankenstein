@@ -13,6 +13,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.lang.reflect.Method
+import android.content.ContentUris
 
 object FileLogger {
     private const val TAG = "FileLogger"
@@ -96,10 +97,16 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
         return try {
             val context = this.context ?: return false
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                deleteLogFolderWithMediaStore(context)
-            } else {
-                deleteLogFolderLegacy()
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                    deleteLogFolderForAndroid11Plus(context)
+                }
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+                    deleteLogFolderForAndroid10(context)
+                }
+                else -> {
+                    deleteLogFolderLegacy()
+                }
             }
         } catch (e: Exception) {
             AndroidLog.e(TAG, "Error deleting log folder", e)
@@ -122,14 +129,70 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
         }
     }
 
+    private fun deleteLogFolderForAndroid11Plus(context: Context): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
+                deleteLogFolderLegacy()
+            } else {
+                deleteLogFolderForAndroid10(context)
+            }
+        } catch (e: Exception) {
+            AndroidLog.e(TAG, "Error deleting with Android 11+ method", e)
+            deleteLogFolderForAndroid10(context)
+        }
+    }
+
+    private fun deleteLogFolderForAndroid10(context: Context): Boolean {
+        return try {
+            val resolver = context.contentResolver
+            val collection = MediaStore.Files.getContentUri("external")
+
+            val projection = arrayOf(
+                MediaStore.Files.FileColumns._ID,
+                MediaStore.Files.FileColumns.DISPLAY_NAME,
+                MediaStore.Files.FileColumns.RELATIVE_PATH
+            )
+
+            val selection = "${MediaStore.Files.FileColumns.RELATIVE_PATH} LIKE ?"
+            val selectionArgs = arrayOf("%WiFi_Frankenstein_Logs%")
+
+            var deletedCount = 0
+            resolver.query(collection, projection, selection, selectionArgs, null)?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID)
+
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(idColumn)
+                    val uri = ContentUris.withAppendedId(collection, id)
+
+                    try {
+                        if (resolver.delete(uri, null, null) > 0) {
+                            deletedCount++
+                        }
+                    } catch (e: Exception) {
+                        AndroidLog.w(TAG, "Could not delete file with ID: $id", e)
+                    }
+                }
+            }
+
+            AndroidLog.d(TAG, "Deleted $deletedCount files using MediaStore")
+            true
+        } catch (e: Exception) {
+            AndroidLog.e(TAG, "Error deleting with MediaStore", e)
+            false
+        }
+    }
+
     private fun deleteLogFolderLegacy(): Boolean {
         return try {
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val logDir = File(downloadsDir, "WiFi_Frankenstein_Logs")
 
-            if (logDir.exists()) {
-                logDir.deleteRecursively()
+            if (logDir.exists() && logDir.isDirectory) {
+                val deleted = logDir.deleteRecursively()
+                AndroidLog.d(TAG, "Legacy delete result: $deleted for path: ${logDir.absolutePath}")
+                deleted
             } else {
+                AndroidLog.d(TAG, "Log directory does not exist: ${logDir.absolutePath}")
                 true
             }
         } catch (e: Exception) {
@@ -140,14 +203,76 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
 
     fun getLastLogFile(): File? {
         return try {
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager() -> {
+                    getLastLogFileLegacy()
+                }
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+                    getLastLogFileMediaStore()
+                }
+                else -> {
+                    getLastLogFileLegacy()
+                }
+            }
+        } catch (e: Exception) {
+            AndroidLog.e(TAG, "Error getting last log file", e)
+            null
+        }
+    }
+
+    private fun getLastLogFileMediaStore(): File? {
+        return try {
+            val context = this.context ?: return null
+            val resolver = context.contentResolver
+            val collection = MediaStore.Files.getContentUri("external")
+
+            val projection = arrayOf(
+                MediaStore.Files.FileColumns._ID,
+                MediaStore.Files.FileColumns.DISPLAY_NAME,
+                MediaStore.Files.FileColumns.DATE_MODIFIED,
+                MediaStore.Files.FileColumns.RELATIVE_PATH
+            )
+
+            val selection = "${MediaStore.Files.FileColumns.RELATIVE_PATH} LIKE ? AND ${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ?"
+            val selectionArgs = arrayOf("%WiFi_Frankenstein_Logs%", "%.txt")
+            val sortOrder = "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC"
+
+            resolver.query(collection, projection, selection, selectionArgs, sortOrder)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                    val pathColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.RELATIVE_PATH)
+
+                    val fileName = cursor.getString(nameColumn)
+                    val relativePath = cursor.getString(pathColumn)
+
+                    val fullPath = Environment.getExternalStorageDirectory().toString() + "/" + relativePath + fileName
+                    val file = File(fullPath)
+
+                    if (file.exists()) {
+                        return file
+                    }
+                }
+            }
+
+            getLastLogFileLegacy()
+        } catch (e: Exception) {
+            AndroidLog.e(TAG, "Error getting last log file with MediaStore", e)
+            getLastLogFileLegacy()
+        }
+    }
+
+    private fun getLastLogFileLegacy(): File? {
+        return try {
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val logDir = File(downloadsDir, "WiFi_Frankenstein_Logs")
 
             if (!logDir.exists()) return null
 
-            logDir.listFiles()?.filter { it.name.endsWith(".txt") }?.maxByOrNull { it.lastModified() }
+            logDir.listFiles()?.filter {
+                it.isFile && it.name.endsWith(".txt") && it.name.contains("wifi_frankenstein")
+            }?.maxByOrNull { it.lastModified() }
         } catch (e: Exception) {
-            AndroidLog.e(TAG, "Error getting last log file", e)
+            AndroidLog.e(TAG, "Error getting last log file legacy", e)
             null
         }
     }
