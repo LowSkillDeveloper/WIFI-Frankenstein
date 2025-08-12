@@ -1703,8 +1703,7 @@ update_config=0
                 Log.d(TAG, "Starting WPS registration for BSSID: ${network.bssid}")
                 callbacks.onLogEntry(LogEntry("Starting WPS registration for ${network.bssid}", LogColorType.INFO))
 
-                val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -i$interfaceName -p$socketPath wps_reg ${network.bssid} $DEFAULT_PIN"
-
+                val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -i $interfaceName -p $socketPath wps_reg ${network.bssid} $DEFAULT_PIN"
                 val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
 
                 val outputReader = BufferedReader(InputStreamReader(process.inputStream))
