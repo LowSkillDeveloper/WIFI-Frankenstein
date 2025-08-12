@@ -6,7 +6,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import androidx.core.database.sqlite.transaction
 import java.io.File
 import java.io.FileOutputStream

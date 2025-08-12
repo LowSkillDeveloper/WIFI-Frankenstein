@@ -1,6 +1,6 @@
 package com.lsd.wififrankenstein.util
 
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 
 object MacAddressUtils {
     private const val TAG = "MacAddressUtils"

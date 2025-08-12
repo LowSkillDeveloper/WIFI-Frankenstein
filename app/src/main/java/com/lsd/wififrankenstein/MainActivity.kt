@@ -1,9 +1,10 @@
 package com.lsd.wififrankenstein
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import android.view.MenuItem
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -22,6 +23,7 @@ import com.lsd.wififrankenstein.databinding.ActivityMainBinding
 import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
+import com.lsd.wififrankenstein.util.FileLogger
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -73,6 +75,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         super.onCreate(savedInstanceState)
+
+        if (!this::class.java.name.contains("Welcome")) {
+            FileLogger.init(applicationContext)
+            FileLogger.d("MainActivity", getString(R.string.app_started))
+        }
 
         updateChecker = UpdateChecker(applicationContext)
 
@@ -241,6 +248,32 @@ class MainActivity : AppCompatActivity() {
                         }
                 }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Log.d("MainActivity", "onStart called")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("MainActivity", "onResume called")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.d("MainActivity", "onPause called")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Log.d("MainActivity", "onStop called")
+    }
+
+    override fun onDestroy() {
+        Log.d("MainActivity", "onDestroy called")
+        FileLogger.stop()
+        super.onDestroy()
     }
 
     private fun applyTheme() {

@@ -2,7 +2,7 @@ package com.lsd.wififrankenstein.ui.maclocation
 
 import android.app.Application
 import android.content.Context
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

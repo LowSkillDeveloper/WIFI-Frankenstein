@@ -1,7 +1,7 @@
 package com.lsd.wififrankenstein.util
 
 import android.database.sqlite.SQLiteDatabase
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 
 object DatabaseOptimizer {
     private const val TAG = "DatabaseOptimizer"

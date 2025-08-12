@@ -3,7 +3,7 @@ package com.lsd.wififrankenstein.ui.dbsetup.localappdb
 import android.app.Application
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData

@@ -3,6 +3,7 @@ package com.lsd.wififrankenstein
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
+import com.lsd.wififrankenstein.util.Log
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +21,7 @@ import com.lsd.wififrankenstein.ui.welcome.WelcomePermissionsFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeRootFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeThemeFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeUpdatesFragment
+import com.lsd.wififrankenstein.util.FileLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -43,7 +45,8 @@ class WelcomeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         applyTheme()
         super.onCreate(savedInstanceState)
-
+        FileLogger.init(applicationContext)
+        FileLogger.d("WelcomeActivity", getString(R.string.welcome_activity_started))
         lifecycleScope.launch {
             val isFirstLaunch = withContext(Dispatchers.IO) {
                 viewModel.isFirstLaunch()
@@ -174,6 +177,31 @@ class WelcomeActivity : AppCompatActivity() {
         binding.buttonPrev.visibility = if (showPrev) View.VISIBLE else View.INVISIBLE
         binding.buttonNext.visibility = if (showNext) View.VISIBLE else View.GONE
         binding.buttonNext.text = nextText
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Log.d("WelcomeActivity", "onStart called")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("WelcomeActivity", "onResume called")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.d("WelcomeActivity", "onPause called")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Log.d("WelcomeActivity", "onStop called")
+    }
+
+    override fun onDestroy() {
+        Log.d("WelcomeActivity", "onDestroy called")
+        super.onDestroy()
     }
 
     inner class OnboardingAdapter(activity: AppCompatActivity) : FragmentStateAdapter(activity) {

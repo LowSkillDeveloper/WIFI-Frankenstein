@@ -13,7 +13,7 @@ import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View

@@ -14,7 +14,7 @@ import android.net.wifi.WpsInfo
 import android.os.Build
 import android.os.Bundle
 import android.text.method.LinkMovementMethod
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import android.util.TypedValue
 import android.view.ContextMenu
 import android.view.Gravity

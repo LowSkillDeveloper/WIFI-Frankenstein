@@ -1,7 +1,7 @@
 package com.lsd.wififrankenstein.ui.databasefinder
 
 import android.content.Context
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import androidx.core.net.toUri
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.dbsetup.API3WiFiHelper

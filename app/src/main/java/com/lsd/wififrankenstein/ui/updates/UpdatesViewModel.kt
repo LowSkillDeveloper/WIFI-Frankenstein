@@ -9,7 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Environment
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import android.webkit.URLUtil
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel

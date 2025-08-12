@@ -1,7 +1,7 @@
 package com.lsd.wififrankenstein.ui.dbsetup
 
 import android.content.Context
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import androidx.core.content.edit
 import com.lsd.wififrankenstein.R
 import kotlinx.coroutines.Dispatchers

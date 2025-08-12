@@ -1,7 +1,7 @@
 package com.lsd.wififrankenstein.ui.databasefinder
 
 import android.app.Application
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData

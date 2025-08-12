@@ -5,7 +5,7 @@ import android.content.ContentValues.TAG
 import android.content.res.Configuration
 import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.WebView

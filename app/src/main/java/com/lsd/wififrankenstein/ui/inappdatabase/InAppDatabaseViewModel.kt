@@ -2,7 +2,7 @@ package com.lsd.wififrankenstein.ui.inappdatabase
 
 import android.app.Application
 import android.net.Uri
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

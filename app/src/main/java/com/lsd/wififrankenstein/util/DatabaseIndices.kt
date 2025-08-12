@@ -1,7 +1,7 @@
 package com.lsd.wififrankenstein.util
 
 import android.database.sqlite.SQLiteDatabase
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 
 object DatabaseIndices {
     private const val TAG = "DatabaseIndices"

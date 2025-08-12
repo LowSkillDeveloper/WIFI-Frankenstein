@@ -1,6 +1,6 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView

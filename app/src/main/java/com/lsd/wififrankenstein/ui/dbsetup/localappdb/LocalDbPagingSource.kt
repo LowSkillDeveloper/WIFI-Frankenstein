@@ -1,6 +1,6 @@
 package com.lsd.wififrankenstein.ui.dbsetup.localappdb
 
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 

@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Build
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.R
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope

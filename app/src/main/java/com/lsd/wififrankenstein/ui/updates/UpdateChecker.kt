@@ -2,7 +2,7 @@ package com.lsd.wififrankenstein.ui.updates
 
 import android.content.Context
 import android.content.pm.PackageManager
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.network.NetworkClient
 import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem

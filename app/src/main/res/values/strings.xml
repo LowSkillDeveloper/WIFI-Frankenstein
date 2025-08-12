@@ -1509,6 +1509,12 @@
     <string name="show_advanced_upload_options">Show advanced upload options</string>
     <string name="advanced_upload_warning_title">Advanced Upload Options</string>
 
+    <string name="app_started">Application started</string>
+    <string name="welcome_activity_started">Welcome activity started</string>
+    <string name="logging_started">Logging started</string>
+    <string name="logging_stopped">Logging stopped</string>
+    <string name="log_file_created">Log file created in Downloads folder</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

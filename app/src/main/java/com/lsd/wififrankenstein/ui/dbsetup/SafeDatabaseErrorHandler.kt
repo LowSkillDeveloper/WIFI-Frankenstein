@@ -3,7 +3,7 @@ package com.lsd.wififrankenstein.ui.dbsetup
 import android.annotation.SuppressLint
 import android.database.DatabaseErrorHandler
 import android.database.sqlite.SQLiteDatabase
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import java.io.File
 
 class SafeDatabaseErrorHandler : DatabaseErrorHandler {

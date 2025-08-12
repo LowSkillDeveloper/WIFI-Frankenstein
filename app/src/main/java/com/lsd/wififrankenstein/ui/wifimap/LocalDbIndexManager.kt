@@ -2,7 +2,7 @@ package com.lsd.wififrankenstein.ui.wifimap
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

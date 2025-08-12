@@ -4,7 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.database.sqlite.SQLiteOpenHelper
 import android.graphics.Color
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel

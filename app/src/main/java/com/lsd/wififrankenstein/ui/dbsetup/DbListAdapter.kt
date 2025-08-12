@@ -1,7 +1,7 @@
 package com.lsd.wififrankenstein.ui.dbsetup
 
 import android.annotation.SuppressLint
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View

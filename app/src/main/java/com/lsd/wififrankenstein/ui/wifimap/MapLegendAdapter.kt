@@ -1,7 +1,7 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
 import android.graphics.drawable.GradientDrawable
-import android.util.Log
+import com.lsd.wififrankenstein.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
