@@ -3,7 +3,6 @@ package com.lsd.wififrankenstein
 import android.app.Application
 import com.lsd.wififrankenstein.util.FileLogger
 import com.lsd.wififrankenstein.util.GlobalExceptionHandler
-import java.io.PrintStream
 
 class WifiApplication : Application() {
 
@@ -14,28 +13,27 @@ class WifiApplication : Application() {
         Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(defaultHandler))
 
         FileLogger.init(this)
-        android.util.Log.i("WifiApplication", getString(R.string.app_started))
 
-        val originalOut = System.out
-        val originalErr = System.err
-
-        System.setOut(object : PrintStream(originalOut) {
-            override fun println(x: String?) {
-                originalOut.println(x)
-                x?.let { FileLogger.i("System.out", it) }
-            }
-        })
-
-        System.setErr(object : PrintStream(originalErr) {
-            override fun println(x: String?) {
-                originalErr.println(x)
-                x?.let { FileLogger.e("System.err", it) }
-            }
-        })
+        FileLogger.logMemoryInfo()
+        FileLogger.logThreadInfo()
+        FileLogger.i("WifiApplication", "Application started with detailed logging")
     }
 
     override fun onTerminate() {
+        FileLogger.i("WifiApplication", "Application terminating")
         FileLogger.stop()
         super.onTerminate()
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        FileLogger.w("WifiApplication", "Low memory warning")
+        FileLogger.logMemoryInfo()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        FileLogger.w("WifiApplication", "Memory trim requested, level: $level")
+        FileLogger.logMemoryInfo()
     }
 }

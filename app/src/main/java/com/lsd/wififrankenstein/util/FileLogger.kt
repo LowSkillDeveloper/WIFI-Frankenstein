@@ -6,12 +6,13 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.content.ContentValues
 import android.net.Uri
-import com.lsd.wififrankenstein.util.Log
+import android.util.Log as AndroidLog
 import kotlinx.coroutines.*
 import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.lang.reflect.Method
 
 object FileLogger {
     private const val TAG = "FileLogger"
@@ -21,6 +22,11 @@ object FileLogger {
     private val logQueue = ConcurrentLinkedQueue<String>()
     private var writerJob: Job? = null
     private var logcatJob: Job? = null
+    private var originalSystemOut: PrintStream? = null
+    private var originalSystemErr: PrintStream? = null
+
+    private var logMethods: Map<String, Method>? = null
+    private var isLogIntercepted = false
 
     fun init(appContext: Context) {
         if (isInitialized) return
@@ -30,27 +36,37 @@ object FileLogger {
 
         CoroutineScope(Dispatchers.IO).launch {
             initializeWriter()
+            interceptSystemStreams()
+            setupLogInterception()
             startLogcatCapture()
             startQueueProcessor()
         }
 
-        d("FileLogger", "FileLogger initialized")
+        AndroidLog.d("FileLogger", "FileLogger initialized with advanced interception")
     }
 
     private suspend fun initializeWriter() {
         try {
             val packageName = context?.packageName ?: return
-            val logFileName = "wifi_frankenstein_log_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.txt"
+            val logFileName = "wifi_frankenstein_detailed_log_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.txt"
 
             val outputStream = createLogFile(logFileName) ?: return
             logWriter = BufferedWriter(OutputStreamWriter(outputStream))
 
             val header = """
-=== WiFi Frankenstein Log Started ===
+=== WiFi Frankenstein Detailed Log Started ===
 Date: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}
 Package: $packageName
 Android Version: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})
 Device: ${Build.MANUFACTURER} ${Build.MODEL}
+Build: ${Build.DISPLAY}
+Hardware: ${Build.HARDWARE}
+Product: ${Build.PRODUCT}
+Process PID: ${android.os.Process.myPid()}
+Thread ID: ${Thread.currentThread().id}
+Thread Name: ${Thread.currentThread().name}
+Available Processors: ${Runtime.getRuntime().availableProcessors()}
+Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
 =====================================
 
 """.trimIndent()
@@ -58,7 +74,80 @@ Device: ${Build.MANUFACTURER} ${Build.MODEL}
             logQueue.offer(header)
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error initializing writer", e)
+            AndroidLog.e(TAG, "Error initializing writer", e)
+        }
+    }
+
+    private fun interceptSystemStreams() {
+        try {
+            originalSystemOut = System.out
+            originalSystemErr = System.err
+
+            System.setOut(object : PrintStream(originalSystemOut!!) {
+                override fun print(s: String?) {
+                    originalSystemOut?.print(s)
+                    s?.let { logSystemOutput("System.out", it, false) }
+                }
+
+                override fun println(s: String?) {
+                    originalSystemOut?.println(s)
+                    s?.let { logSystemOutput("System.out", it, true) }
+                }
+
+                override fun write(b: ByteArray, off: Int, len: Int) {
+                    originalSystemOut?.write(b, off, len)
+                    val output = String(b, off, len)
+                    logSystemOutput("System.out", output, false)
+                }
+            })
+
+            System.setErr(object : PrintStream(originalSystemErr!!) {
+                override fun print(s: String?) {
+                    originalSystemErr?.print(s)
+                    s?.let { logSystemOutput("System.err", it, false) }
+                }
+
+                override fun println(s: String?) {
+                    originalSystemErr?.println(s)
+                    s?.let { logSystemOutput("System.err", it, true) }
+                }
+
+                override fun write(b: ByteArray, off: Int, len: Int) {
+                    originalSystemErr?.write(b, off, len)
+                    val output = String(b, off, len)
+                    logSystemOutput("System.err", output, false)
+                }
+            })
+
+        } catch (e: Exception) {
+            AndroidLog.e(TAG, "Error intercepting system streams", e)
+        }
+    }
+
+    private fun logSystemOutput(source: String, message: String, isNewLine: Boolean) {
+        val timestamp = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault()).format(Date())
+        val stackTrace = getCallerInfo()
+        val entry = if (isNewLine) {
+            "$timestamp [SYSTEM] $source: $message [Called from: $stackTrace]\n"
+        } else {
+            "$timestamp [SYSTEM] $source: $message [Called from: $stackTrace]"
+        }
+        logQueue.offer(entry)
+    }
+
+    private fun setupLogInterception() {
+        try {
+            val logClass = AndroidLog::class.java
+            logMethods = mapOf(
+                "d" to logClass.getMethod("d", String::class.java, String::class.java),
+                "i" to logClass.getMethod("i", String::class.java, String::class.java),
+                "w" to logClass.getMethod("w", String::class.java, String::class.java),
+                "e" to logClass.getMethod("e", String::class.java, String::class.java),
+                "v" to logClass.getMethod("v", String::class.java, String::class.java)
+            )
+            isLogIntercepted = true
+        } catch (e: Exception) {
+            AndroidLog.e(TAG, "Could not setup log interception", e)
         }
     }
 
@@ -67,11 +156,15 @@ Device: ${Build.MANUFACTURER} ${Build.MODEL}
             try {
                 val packageName = context?.packageName ?: return@launch
 
-                val process = Runtime.getRuntime().exec("logcat -v threadtime")
+                val commands = arrayOf(
+                    "logcat", "-v", "threadtime", "-T", "1",
+                    "$packageName:V", "AndroidRuntime:E", "System.err:W", "DEBUG:V", "*:S"
+                )
+
+                val process = Runtime.getRuntime().exec(commands)
                 val reader = BufferedReader(InputStreamReader(process.inputStream))
 
-                logQueue.offer("--------- beginning of main\n")
-                logQueue.offer("--------- beginning of system\n")
+                logQueue.offer("--------- logcat capture started ---------\n")
 
                 var line: String?
                 while (reader.readLine().also { line = it } != null && isActive) {
@@ -79,15 +172,17 @@ Device: ${Build.MANUFACTURER} ${Build.MODEL}
                         if (logLine.contains(packageName) ||
                             logLine.contains("AndroidRuntime") ||
                             logLine.contains("System.err") ||
-                            logLine.contains("FATAL EXCEPTION")) {
+                            logLine.contains("FATAL EXCEPTION") ||
+                            logLine.contains("DEBUG") ||
+                            logLine.contains("beginning of")) {
 
-                            logQueue.offer("$logLine\n")
+                            logQueue.offer("[LOGCAT] $logLine\n")
                         }
                     }
                 }
             } catch (e: Exception) {
-                logQueue.offer("Logcat capture failed: ${e.message}, using internal logging only\n")
-                android.util.Log.w(TAG, "Logcat capture failed, using internal logging only", e)
+                logQueue.offer("Logcat capture failed: ${e.message}\n")
+                AndroidLog.w(TAG, "Logcat capture failed", e)
             }
         }
     }
@@ -96,18 +191,26 @@ Device: ${Build.MANUFACTURER} ${Build.MODEL}
         writerJob = CoroutineScope(Dispatchers.IO).launch {
             while (isActive) {
                 try {
-                    while (logQueue.isNotEmpty()) {
-                        val logEntry = logQueue.poll()
-                        logEntry?.let { entry ->
-                            logWriter?.apply {
-                                write(entry)
-                                flush()
-                            }
+                    val batch = mutableListOf<String>()
+                    repeat(50) {
+                        val entry = logQueue.poll()
+                        if (entry != null) {
+                            batch.add(entry)
                         }
                     }
+
+                    if (batch.isNotEmpty()) {
+                        logWriter?.apply {
+                            batch.forEach { entry ->
+                                write(entry)
+                            }
+                            flush()
+                        }
+                    }
+
                     delay(100)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error processing log queue", e)
+                    AndroidLog.e(TAG, "Error processing log queue", e)
                 }
             }
         }
@@ -121,7 +224,7 @@ Device: ${Build.MANUFACTURER} ${Build.MODEL}
                 createFileWithLegacyStorage(fileName)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error creating log file", e)
+            AndroidLog.e(TAG, "Error creating log file", e)
             null
         }
     }
@@ -151,71 +254,123 @@ Device: ${Build.MANUFACTURER} ${Build.MODEL}
         return FileOutputStream(file)
     }
 
+    private fun getCallerInfo(): String {
+        return try {
+            val stack = Thread.currentThread().stackTrace
+
+            for (i in 2 until minOf(stack.size, 10)) {
+                val element = stack[i]
+                val className = element.className
+
+                if (!className.contains("FileLogger") &&
+                    !className.contains("Log") &&
+                    !className.contains("PrintStream") &&
+                    !className.contains("Thread")) {
+
+                    return "${className.substringAfterLast('.')}.${element.methodName}(${element.fileName}:${element.lineNumber})"
+                }
+            }
+            "Unknown"
+        } catch (e: Exception) {
+            "Error getting caller info"
+        }
+    }
+
+    private fun writeDetailedLog(level: String, tag: String, message: String, throwable: Throwable? = null) {
+        val timestamp = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault()).format(Date())
+        val pid = android.os.Process.myPid()
+        val tid = Thread.currentThread().id
+        val threadName = Thread.currentThread().name
+        val callerInfo = getCallerInfo()
+
+        val logEntry = if (throwable != null) {
+            "$timestamp $pid-$tid/$level $tag: $message [Thread: $threadName] [Caller: $callerInfo]\n${AndroidLog.getStackTraceString(throwable)}\n"
+        } else {
+            "$timestamp $pid-$tid/$level $tag: $message [Thread: $threadName] [Caller: $callerInfo]\n"
+        }
+
+        logQueue.offer(logEntry)
+    }
+
     fun stop() {
         logcatJob?.cancel()
         writerJob?.cancel()
 
         try {
-            val stopMessage = "\n=== Logging stopped at ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())} ===\n"
+            originalSystemOut?.let { System.setOut(it) }
+            originalSystemErr?.let { System.setErr(it) }
+
+            val stopMessage = "\n=== Detailed logging stopped at ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())} ===\n"
             logWriter?.apply {
                 write(stopMessage)
                 flush()
                 close()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error stopping logger", e)
+            AndroidLog.e(TAG, "Error stopping logger", e)
         }
 
         logWriter = null
         isInitialized = false
     }
 
-    private fun writeLog(level: String, tag: String, message: String, throwable: Throwable? = null) {
-        val timestamp = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault()).format(Date())
-        val pid = android.os.Process.myPid()
-        val tid = Thread.currentThread().id
+    fun logMemoryInfo() {
+        val runtime = Runtime.getRuntime()
+        val memoryInfo = """
+Memory Info:
+- Used Memory: ${(runtime.totalMemory() - runtime.freeMemory()) / 1024 / 1024} MB
+- Free Memory: ${runtime.freeMemory() / 1024 / 1024} MB  
+- Total Memory: ${runtime.totalMemory() / 1024 / 1024} MB
+- Max Memory: ${runtime.maxMemory() / 1024 / 1024} MB
+""".trimIndent()
 
-        val logEntry = if (throwable != null) {
-            "$timestamp $pid-$tid/$level $tag: $message\n${android.util.Log.getStackTraceString(throwable)}\n"
-        } else {
-            "$timestamp $pid-$tid/$level $tag: $message\n"
-        }
+        writeDetailedLog("I", "MemoryInfo", memoryInfo)
+    }
 
-        logQueue.offer(logEntry)
+    fun logThreadInfo() {
+        val threadInfo = """
+Thread Info:
+- Active Threads: ${Thread.activeCount()}
+- Current Thread: ${Thread.currentThread().name} (ID: ${Thread.currentThread().id})
+- Thread State: ${Thread.currentThread().state}
+- Priority: ${Thread.currentThread().priority}
+""".trimIndent()
+
+        writeDetailedLog("I", "ThreadInfo", threadInfo)
     }
 
     fun d(tag: String, message: String) {
-        android.util.Log.d(tag, message)
-        writeLog("D", tag, message)
+        AndroidLog.d(tag, message)
+        writeDetailedLog("D", tag, message)
     }
 
     fun i(tag: String, message: String) {
-        android.util.Log.i(tag, message)
-        writeLog("I", tag, message)
+        AndroidLog.i(tag, message)
+        writeDetailedLog("I", tag, message)
     }
 
     fun w(tag: String, message: String) {
-        android.util.Log.w(tag, message)
-        writeLog("W", tag, message)
+        AndroidLog.w(tag, message)
+        writeDetailedLog("W", tag, message)
     }
 
     fun e(tag: String, message: String) {
-        android.util.Log.e(tag, message)
-        writeLog("E", tag, message)
+        AndroidLog.e(tag, message)
+        writeDetailedLog("E", tag, message)
     }
 
     fun e(tag: String, message: String, throwable: Throwable) {
-        android.util.Log.e(tag, message, throwable)
-        writeLog("E", tag, message, throwable)
+        AndroidLog.e(tag, message, throwable)
+        writeDetailedLog("E", tag, message, throwable)
     }
 
     fun v(tag: String, message: String) {
-        android.util.Log.v(tag, message)
-        writeLog("V", tag, message)
+        AndroidLog.v(tag, message)
+        writeDetailedLog("V", tag, message)
     }
 
     fun wtf(tag: String, message: String) {
-        android.util.Log.wtf(tag, message)
-        writeLog("WTF", tag, message)
+        AndroidLog.wtf(tag, message)
+        writeDetailedLog("WTF", tag, message)
     }
 }
