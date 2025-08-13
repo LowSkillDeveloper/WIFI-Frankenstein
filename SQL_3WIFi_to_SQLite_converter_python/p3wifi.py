@@ -15,6 +15,7 @@ import zipfile
 import threading
 from pathlib import Path
 import glob
+import gc
 
 def check_and_install_dependencies():
     required_packages = {'tqdm': 'tqdm'}
@@ -35,6 +36,32 @@ def check_and_install_dependencies():
         python = sys.executable
         subprocess.call([python] + sys.argv)
         sys.exit()
+
+def show_mode_menu():
+    menu = """
+╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                  p3WiFi Database Converter v4                                     ║
+║                               SQL to SQLite for WIFI Frankenstein                                 ║
+╠═══════════════════════════════════════════════════════════════════════════════════════════════════╣
+║                                         MODE OF OPERATION                                         ║
+╠═══════════════════════════════════════════════════════════════════════════════════════════════════╣
+║  1. Performance Mode (Recommended for powerful PCs)                                               ║
+║     • Requires: 16 GB RAM                                                                         ║
+║     • Uses multithreading and loads the entire file into memory                                   ║
+║     • Maximum processing speed                                                                    ║
+║                                                                                                   ║
+║  2. Economy Mode (For low-end PCs)                                                                ║
+║     • Requires: 2 GB RAM                                                                          ║
+║     • Minimal memory usage                                                                        ║
+║     • Processing time may increase by 4–5 times!!!                                                ║
+║     • Suitable for files of any size                                                              ║
+║                                                                                                   ║
+║  3. Exit                                                                                          ║
+╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+Select mode (1-3): """
+    return input(menu)
 
 def find_sql_files():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -63,6 +90,83 @@ def select_sql_file():
             print("Invalid choice. Please try again.")
         except (ValueError, KeyboardInterrupt):
             return None
+
+def stream_sql_file(sql_file, chunk_size=1024*1024):  # 1MB chunks
+    encodings = ['utf-8', 'latin1', 'cp1251', 'utf-8-sig']
+    
+    for encoding in encodings:
+        try:
+            with open(sql_file, 'r', encoding=encoding, buffering=chunk_size) as f:
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+                    yield chunk
+            return
+        except UnicodeDecodeError:
+            continue
+    
+    raise ValueError("Could not read file with any encoding")
+
+def extract_insert_statements_memory_efficient(sql_file, table_name):
+    print(f"Memory-efficient extraction for table: {table_name}")
+    
+    patterns = [
+        rf'INSERT\s+INTO\s+`?{re.escape(table_name)}`?\s*\([^)]+\)\s*VALUES\s*',
+        rf'INSERT\s+INTO\s+`?{re.escape(table_name)}`?\s+VALUES\s*'
+    ]
+    compiled_patterns = [re.compile(p, re.IGNORECASE) for p in patterns]
+    
+    buffer = ""
+    in_insert_block = False
+    current_values = ""
+    insert_count = 0
+    
+    file_size = os.path.getsize(sql_file)
+    processed_bytes = 0
+    
+    with tqdm(total=file_size, desc=f"Scanning {table_name}", unit="B", unit_scale=True) as pbar:
+        for chunk in stream_sql_file(sql_file):
+            buffer += chunk
+            processed_bytes += len(chunk)
+            pbar.update(len(chunk))
+            
+            lines = buffer.split('\n')
+            buffer = lines[-1]
+            
+            for line in lines[:-1]:
+                line = line.strip()
+                if not line or line.startswith('--'):
+                    continue
+                
+                if not in_insert_block:
+                    for pattern in compiled_patterns:
+                        if pattern.search(line):
+                            in_insert_block = True
+                            values_start = re.search(r'VALUES\s*', line, re.IGNORECASE)
+                            if values_start:
+                                current_values = line[values_start.end():]
+                            break
+                else:
+                    current_values += " " + line
+                
+                if in_insert_block and (line.endswith(';') or 'INSERT INTO' in line.upper()):
+                    if current_values.strip():
+                        yield current_values.rstrip(';').strip()
+                        insert_count += 1
+                    in_insert_block = False
+                    current_values = ""
+                    
+                    if 'INSERT INTO' in line.upper():
+                        for pattern in compiled_patterns:
+                            if pattern.search(line):
+                                in_insert_block = True
+                                values_start = re.search(r'VALUES\s*', line, re.IGNORECASE)
+                                if values_start:
+                                    current_values = line[values_start.end():]
+                                break
+    
+    print(f"Found {insert_count} INSERT blocks for table {table_name}")
 
 def extract_insert_statements(content, table_name):
     print(f"Extracting INSERT statements for table: {table_name}")
@@ -289,8 +393,114 @@ def process_insert_data(args):
             err_file.write(f"Error processing block for {table_name}: {str(e)}\n")
         return [], 1
 
+def execute_inserts_memory_efficient(db_file, sql_file, table_name, num_columns, error_file):
+    print(f"\nProcessing {table_name} table (Memory Efficient Mode)...")
+    
+    conn = sqlite3.connect(db_file, timeout=60)
+    cursor = conn.cursor()
+    
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.execute("PRAGMA cache_size=1000")
+    cursor.execute("PRAGMA temp_store=MEMORY")
+    cursor.execute("PRAGMA foreign_keys=OFF")
+    
+    processed_records = 0
+    total_errors = 0
+    batch_size = 800
+    current_batch = []
+    
+    placeholders = ', '.join(['?'] * num_columns)
+    sql = f'INSERT INTO {table_name} VALUES ({placeholders})'
+    
+    try:
+        for values_block in extract_insert_statements_memory_efficient(sql_file, table_name):
+            try:
+                parsed_rows = parse_values_block_robust(values_block)
+                
+                for row in parsed_rows:
+                    if row is None:
+                        total_errors += 1
+                        continue
+                        
+                    if len(row) < num_columns:
+                        row.extend([None] * (num_columns - len(row)))
+                    elif len(row) > num_columns:
+                        row = row[:num_columns]
+                    
+                    current_batch.append(row)
+                    
+                    if len(current_batch) >= batch_size:
+                        try:
+                            cursor.executemany(sql, current_batch)
+                            conn.commit()
+                            processed_records += len(current_batch)
+                            current_batch = []
+                            
+                            if processed_records % 10000 == 0:
+                                gc.collect()
+                                print(f"\rProcessed: {processed_records:,} records", end="", flush=True)
+                                
+                        except sqlite3.Error as e:
+                            print(f"\nDatabase error with batch: {str(e)}")
+                            for record in current_batch:
+                                try:
+                                    cursor.execute(sql, record)
+                                    conn.commit()
+                                    processed_records += 1
+                                except sqlite3.Error as single_error:
+                                    total_errors += 1
+                                    with open(error_file, 'a', encoding='utf-8') as err_file:
+                                        err_file.write(f"Single insert error: {str(single_error)}\n")
+                                        err_file.write(f"Failed record: {record}\n\n")
+                            current_batch = []
+                
+            except Exception as e:
+                print(f"Error processing values block: {str(e)}")
+                total_errors += 1
+                with open(error_file, 'a', encoding='utf-8') as err_file:
+                    err_file.write(f"Error processing block for {table_name}: {str(e)}\n")
+        
+        if current_batch:
+            try:
+                cursor.executemany(sql, current_batch)
+                conn.commit()
+                processed_records += len(current_batch)
+            except sqlite3.Error as e:
+                print(f"\nDatabase error with final batch: {str(e)}")
+                for record in current_batch:
+                    try:
+                        cursor.execute(sql, record)
+                        conn.commit()
+                        processed_records += 1
+                    except sqlite3.Error as single_error:
+                        total_errors += 1
+                        with open(error_file, 'a', encoding='utf-8') as err_file:
+                            err_file.write(f"Single insert error: {str(single_error)}\n")
+                            err_file.write(f"Failed record: {record}\n\n")
+    
+    finally:
+        conn.close()
+        gc.collect()
+        
+        verification_conn = sqlite3.connect(db_file)
+        verification_cursor = verification_conn.cursor()
+        verification_cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+        actual_count = verification_cursor.fetchone()[0]
+        verification_conn.close()
+        
+        print(f"\nFinal verification: {actual_count:,} records in {table_name} table")
+        
+        with open(error_file, 'a', encoding='utf-8') as err_file:
+            err_file.write(f"\n\n{'='*50}\nSUMMARY for {table_name} (Memory Efficient)\n{'='*50}\n")
+            err_file.write(f"Total successfully processed records: {processed_records}\n")
+            err_file.write(f"Total failed records: {total_errors}\n")
+            err_file.write(f"Actual records in database: {actual_count}\n")
+        
+    return processed_records, total_errors
+
 def execute_inserts_improved(db_file, sql_file, table_name, num_columns, error_file):
-    print(f"\nProcessing {table_name} table...")
+    print(f"\nProcessing {table_name} table (High Performance Mode)...")
     
     print("Reading SQL file...")
     content = None
@@ -930,8 +1140,8 @@ def show_compression_menu():
 Choose an option (1-3): """
     return input(menu)
 
-def get_user_preferences():
-    preferences = {}
+def get_user_preferences(memory_efficient_mode=False):
+    preferences = {'memory_efficient': memory_efficient_mode}
     
     while True:
         indexing_choice = show_indexing_menu()
@@ -1028,6 +1238,9 @@ def display_summary(preferences):
     print("CONVERSION SUMMARY")
     print("="*80)
     
+    mode_text = "Memory Efficient Mode" if preferences['memory_efficient'] else "High Performance Mode"
+    print(f"Processing Mode: {mode_text}")
+    
     indexing_types = {
         1: 'Full indexing (All indexes)',
         2: 'Basic indexing (Essential indexes)',
@@ -1063,9 +1276,27 @@ def main():
     sqlite3.connect(':memory:', timeout=60).close()
 
     print("╔═══════════════════════════════════════════════════════════════════════════════════════════════════╗")
-    print("║                                  p3WiFi Database Converter v3                                     ║")
+    print("║                                  p3WiFi Database Converter v4                                     ║")
     print("║                               SQL to SQLite for WIFI Frankenstein                                 ║")
     print("╚═══════════════════════════════════════════════════════════════════════════════════════════════════╝")
+
+    while True:
+        mode_choice = show_mode_menu()
+        if mode_choice == '3':
+            print("Exiting...")
+            return
+        elif mode_choice == '1':
+            memory_efficient_mode = False
+            print("\nPerformance mode selected")
+            break
+        elif mode_choice == '2':
+            memory_efficient_mode = True
+            print("\nEconomy mode selected")
+            print("⚠️  WARNING: Processing time may increase by 3–4 times")
+            print("   But memory usage will be minimal")
+            break
+        else:
+            print("Invalid choice. Please try again.")
 
     sql_file = 'input.sql'
     if not os.path.exists(sql_file):
@@ -1078,7 +1309,7 @@ def main():
         print(f"Using file: {sql_file}")
     
     while True:
-        preferences = get_user_preferences()
+        preferences = get_user_preferences(memory_efficient_mode)
         
         if preferences is None:
             print("Exiting...")
@@ -1095,13 +1326,22 @@ def main():
         print(f"\nStarting conversion process...")
         print(f"Source file: {sql_file}")
         print(f"Target database: {db_file}")
+        
+        if memory_efficient_mode:
+            print(f"Memory usage will be minimal (suitable for 2GB RAM systems)")
+        else:
+            print(f"Using high performance mode with parallel processing")
 
         with sqlite3.connect(db_file) as conn:
             cursor = conn.cursor()
             create_tables(cursor)
 
-        records_geo, errors_geo = execute_inserts_improved(db_file, sql_file, 'geo', 4, error_file_geo)
-        records_nets, errors_nets = execute_inserts_improved(db_file, sql_file, 'nets', 25, error_file_nets)
+        if memory_efficient_mode:
+            records_geo, errors_geo = execute_inserts_memory_efficient(db_file, sql_file, 'geo', 4, error_file_geo)
+            records_nets, errors_nets = execute_inserts_memory_efficient(db_file, sql_file, 'nets', 25, error_file_nets)
+        else:
+            records_geo, errors_geo = execute_inserts_improved(db_file, sql_file, 'geo', 4, error_file_geo)
+            records_nets, errors_nets = execute_inserts_improved(db_file, sql_file, 'nets', 25, error_file_nets)
 
         with sqlite3.connect(db_file) as conn:
             cursor = conn.cursor()
@@ -1115,6 +1355,8 @@ def main():
         print(f"\n" + "="*80)
         print("DATABASE CONVERSION COMPLETED")
         print("="*80)
+        mode_text = "Memory Efficient Mode" if memory_efficient_mode else "High Performance Mode"
+        print(f"Processing mode: {mode_text}")
         print(f"Total processing time: {timedelta(seconds=int(duration))}")
         print(f"Records processed:")
         print(f"  - Geo table: {records_geo:,} records (Errors: {errors_geo:,})")
