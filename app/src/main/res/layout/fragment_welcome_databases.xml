@@ -366,7 +366,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:hint="@string/api_write_key"
+                    android:hint="@string/api_write_key_optional"
                     android:visibility="gone">
 
                     <com.google.android.material.textfield.TextInputEditText
