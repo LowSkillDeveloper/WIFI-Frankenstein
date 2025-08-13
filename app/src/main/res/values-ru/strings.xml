@@ -1353,6 +1353,7 @@
     <string name="no_logs_found">Логи не найдены</string>
     <string name="logging_enabled">Логирование включено для текущей сессии</string>
     <string name="logging_disabled">Логирование выключено</string>
+    <string name="api_write_key_optional">Ключ записи (необязательно)</string>
 
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT

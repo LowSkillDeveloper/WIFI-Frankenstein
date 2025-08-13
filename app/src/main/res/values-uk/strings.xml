@@ -1323,6 +1323,7 @@
     <string name="no_logs_found">Логи не знайдено</string>
     <string name="logging_enabled">Логування ввімкнено для поточної сесії</string>
     <string name="logging_disabled">Логування вимкнено</string>
+    <string name="api_write_key_optional">Ключ запису (необов\'язково)</string>
 
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT

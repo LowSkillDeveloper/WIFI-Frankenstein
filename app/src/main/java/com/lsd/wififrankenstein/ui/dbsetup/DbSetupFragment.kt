@@ -1228,6 +1228,8 @@ class DbSetupFragment : Fragment() {
 
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, authMethods)
         (binding.spinnerAuthMethod.editText as? AutoCompleteTextView)?.setAdapter(adapter)
+        (binding.spinnerAuthMethod.editText as? AutoCompleteTextView)?.setText(authMethods[0], false)
+        showApiKeysFields()
 
         (binding.spinnerAuthMethod.editText as? AutoCompleteTextView)?.setOnItemClickListener { _, _, position, _ ->
             when (position) {

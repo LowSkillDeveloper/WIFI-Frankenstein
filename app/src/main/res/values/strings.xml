@@ -1526,6 +1526,8 @@
     <string name="logging_enabled">Logging enabled for the current session</string>
     <string name="logging_disabled">Logging disabled</string>
 
+    <string name="api_write_key_optional">Write key (optional)</string>
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
