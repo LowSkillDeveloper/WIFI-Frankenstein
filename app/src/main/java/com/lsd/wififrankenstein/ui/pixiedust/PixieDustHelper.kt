@@ -1716,14 +1716,50 @@ update_config=0
                 }
                 callbacks.onLogEntry(LogEntry("Using control socket: $socketPath", LogColorType.INFO))
 
+                val socketDirParam = if (Build.VERSION.SDK_INT >= 28) {
+                    " -g/data/vendor/wifi/wpa/wififrankenstein/$interfaceName "
+                } else {
+                    " -g/data/misc/wifi/wpswpatester/$interfaceName "
+                }
+
                 val commands = listOf(
-                    "wps_reg ${network.bssid} $DEFAULT_PIN"
+                    // Классический формат с IFNAME и socket dir
+                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec ./wpa_cli$arch$socketDirParam IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )",
+
+                    // Классический формат без IFNAME, только socket dir
+                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec ./wpa_cli$arch $socketDirParam wps_reg ${network.bssid} $DEFAULT_PIN )",
+
+                    // Формат с -i и -p (interface + path)
+                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec ./wpa_cli$arch -i $interfaceName -p $socketDir wps_reg ${network.bssid} $DEFAULT_PIN )",
+
+                    // Формат только с -p (path), без интерфейса
+                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec ./wpa_cli$arch -p $socketDir wps_reg ${network.bssid} $DEFAULT_PIN )",
+
+                    // Новый формат --bssid --pin с интерфейсом
+                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec ./wpa_cli$arch -i $interfaceName --bssid ${network.bssid} --pin $DEFAULT_PIN )",
+
+                    // Новый формат --bssid --pin без интерфейса
+                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec ./wpa_cli$arch --bssid ${network.bssid} --pin $DEFAULT_PIN )",
+
+                    // Простой формат wps_reg с интерфейсом
+                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec ./wpa_cli$arch -i $interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )",
+
+                    // Простой формат wps_reg без интерфейса
+                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec ./wpa_cli$arch wps_reg ${network.bssid} $DEFAULT_PIN )",
+
+                    // Альтернативный формат с полным путем к сокету
+                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec ./wpa_cli$arch -g $socketPath wps_reg ${network.bssid} $DEFAULT_PIN )",
+
+                    // Формат без параметров сокета вообще
+                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec ./wpa_cli$arch wps_reg ${network.bssid} $DEFAULT_PIN )"
                 )
 
-                commands.forEach { cmd ->
-                    val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && echo '$cmd' | ./wpa_cli$arch -i $interfaceName -p $socketDir"
+                var success = false
+                for ((index, cmd) in commands.withIndex()) {
+                    val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && $cmd"
 
-                    Log.d(TAG, "Executing WPS command: $cmd")
+                    Log.d(TAG, "Trying WPS command variant ${index + 1}/${commands.size}: $cmd")
+                    callbacks.onLogEntry(LogEntry("Trying WPS command variant ${index + 1}/${commands.size}", LogColorType.INFO))
 
                     val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
 
@@ -1769,20 +1805,34 @@ update_config=0
                     outputReader.close()
                     errorReader.close()
 
-                    if (exitCode == 0) {
-                        callbacks.onLogEntry(LogEntry("WPS command sent successfully: $cmd", LogColorType.SUCCESS))
+                    val hasUsageError = errorLines.any {
+                        it.contains("Usage:", ignoreCase = true) ||
+                                it.contains("Error", ignoreCase = true) ||
+                                it.contains("Invalid", ignoreCase = true)
+                    }
+
+                    if (exitCode == 0 && !hasUsageError) {
+                        callbacks.onLogEntry(LogEntry("WPS command variant ${index + 1} successful", LogColorType.SUCCESS))
+                        success = true
+                        break
                     } else {
-                        callbacks.onLogEntry(LogEntry("WPS command failed with exit code $exitCode: $cmd", LogColorType.ERROR))
-                        errorLines.forEach { error ->
-                            callbacks.onLogEntry(LogEntry("Error: $error", LogColorType.ERROR))
+                        callbacks.onLogEntry(LogEntry("WPS command variant ${index + 1} failed with exit code $exitCode", LogColorType.ERROR))
+                        if (errorLines.isNotEmpty()) {
+                            errorLines.take(3).forEach { error ->
+                                callbacks.onLogEntry(LogEntry("Error: $error", LogColorType.ERROR))
+                            }
                         }
                     }
 
-                    Log.d(TAG, "WPS command finished with exit code: $exitCode")
-                    delay(2000)
+                    Log.d(TAG, "WPS command variant ${index + 1} finished with exit code: $exitCode")
+                    delay(800)
                 }
 
-                callbacks.onLogEntry(LogEntry("WPS registration process completed", LogColorType.INFO))
+                if (success) {
+                    callbacks.onLogEntry(LogEntry("WPS registration initiated successfully", LogColorType.SUCCESS))
+                } else {
+                    callbacks.onLogEntry(LogEntry("All ${commands.size} WPS command variants failed", LogColorType.ERROR))
+                }
 
             } catch (e: Exception) {
                 Log.w(TAG, "WPS registration failed", e)
