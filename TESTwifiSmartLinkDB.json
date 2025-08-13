@@ -1,0 +1,20 @@
+{
+"databases": [
+{
+"id": "anti3wifi_zip",
+"name": "Anti3WiFi Database",
+"downloadUrl": "https://example.com/WIFI-Frankenstein/anti3wifi.zip",
+"version": "1.0",
+"type": "3wifi"
+},
+{
+"id": "p3wifi Database",
+"name": "Database from 3wifi.dev",
+"downloadUrl1": "https://example.com/p3wifi.zip.001",
+"downloadUrl2": "https://example.com/p3wifi.zip.002",
+"downloadUrl3": "https://example.com/p3wifi.zip.003",
+"version": "1.0",
+"type": "3wifi"
+}
+]
+}
