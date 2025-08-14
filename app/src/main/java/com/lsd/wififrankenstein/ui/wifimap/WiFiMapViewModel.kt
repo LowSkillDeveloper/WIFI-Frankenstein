@@ -12,6 +12,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.ui.dbsetup.API3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
@@ -30,6 +31,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.osmdroid.util.BoundingBox
 import java.util.Collections
+import com.lsd.wififrankenstein.ui.dbsetup.ThreeWifiDevMapHelper
 
 class WiFiMapViewModel(application: Application) : AndroidViewModel(application) {
     private val TAG = "WiFiMapViewModel"
@@ -54,6 +56,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     private val databaseHelpers = mutableMapOf<String, SQLiteOpenHelper>()
 
     private var clusterManager = getClusterManager()
+
+    private val mapHelpers = mutableMapOf<String, ThreeWifiDevMapHelper>()
 
     private val _showIndexingDialog = MutableLiveData<DbItem?>()
     val showIndexingDialog: LiveData<DbItem?> = _showIndexingDialog
@@ -143,6 +147,12 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 val databases = dbList ?: emptyList()
                 _availableDatabases.value = databases
                 assignColorsToDatabase(databases)
+
+                viewModelScope.launch {
+                    databases.filter { it.dbType == DbType.WIFI_API && !it.supportsMapApi }.forEach { database ->
+                        checkDatabaseMapSupport(database)
+                    }
+                }
             }
         }
     }
@@ -232,6 +242,44 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
         Log.d(TAG, "Memory class: $memoryClass, Limits enabled: $limitsEnabled, Max points PER DATABASE for zoom $zoom: ${if (maxPoints == Int.MAX_VALUE) "UNLIMITED" else maxPoints}")
         return maxPoints
+    }
+
+    suspend fun checkDatabaseMapSupport(dbItem: DbItem): Boolean {
+        if (dbItem.dbType != DbType.WIFI_API) return false
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val apiHelper = API3WiFiHelper(
+                    getApplication(),
+                    dbItem.path,
+                    dbItem.apiReadKey ?: "000000000000"
+                )
+
+                val supportsMap = apiHelper.checkMapApiSupport()
+
+                if (supportsMap) {
+                    val mapHelper = ThreeWifiDevMapHelper(
+                        getApplication(),
+                        dbItem.path,
+                        dbItem.apiReadKey ?: "000000000000"
+                    )
+                    mapHelpers[dbItem.id] = mapHelper
+                    Log.d(TAG, "Database ${dbItem.id} supports map API")
+                }
+
+                val currentList = _availableDatabases.value.orEmpty().toMutableList()
+                val index = currentList.indexOfFirst { it.id == dbItem.id }
+                if (index != -1) {
+                    currentList[index] = currentList[index].copy(supportsMapApi = supportsMap)
+                    _availableDatabases.postValue(currentList)
+                }
+
+                supportsMap
+            } catch (e: Exception) {
+                Log.e(TAG, "Error checking map support for ${dbItem.id}", e)
+                false
+            }
+        }
     }
 
     fun handleCustomDbSelection(dbItem: DbItem, isSelected: Boolean, selectedDatabases: Set<DbItem>) {
@@ -535,6 +583,35 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     Triple(macDecimal, network.latitude ?: 0.0, network.longitude ?: 0.0)
                 }.filter { it.first != -1L }
             }
+
+
+            DbType.WIFI_API -> {
+                if (database.supportsMapApi) {
+                    val mapHelper = mapHelpers[database.id]
+                    if (mapHelper != null) {
+                        Log.d(TAG, "Loading points via map API for ${database.id}")
+                        val mapPoints = mapHelper.getPointsInBoundingBox(boundingBox, zoom, maxPointsPerDb)
+
+                        Log.d(TAG, "Map API returned ${mapPoints.size} points for ${database.id}")
+
+                        mapPoints.map { mapPoint ->
+                            if (mapPoint.bssidDecimal > 0) {
+                                Triple(mapPoint.bssidDecimal, mapPoint.latitude, mapPoint.longitude)
+                            } else {
+                                val centerLat = mapPoint.latitude
+                                val centerLon = mapPoint.longitude
+                                Triple(-1L, centerLat, centerLon)
+                            }
+                        }
+                    } else {
+                        Log.w(TAG, "Map helper not found for ${database.id}, falling back to regular API")
+                        loadPointsViaRegularApi(database, boundingBox, maxPointsPerDb)
+                    }
+                } else {
+                    loadPointsViaRegularApi(database, boundingBox, maxPointsPerDb)
+                }
+            }
+
             DbType.SQLITE_FILE_CUSTOM -> {
                 if (database.directPath.isNullOrEmpty()) {
                     Log.e(TAG, "Direct path is null for database ${database.id}")
@@ -613,6 +690,15 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         emptyList()
     }
 
+    private suspend fun loadPointsViaRegularApi(
+        database: DbItem,
+        boundingBox: BoundingBox,
+        maxPointsPerDb: Int
+    ): List<Triple<Long, Double, Double>> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Loading points via regular API for ${database.id} (limited functionality)")
+        emptyList()
+    }
+
     suspend fun createLocalDbIndexes() {
         try {
             val dbHelper = LocalAppDbHelper(getApplication())
@@ -683,6 +769,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         clearCache()
         databaseHelpers.values.forEach { it.close() }
         databaseHelpers.clear()
+        mapHelpers.clear()
     }
 
     fun convertBssidToString(decimal: Long): String {
@@ -762,6 +849,44 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                 Log.w(TAG, "No info found in local database for BSSID: $bssidStr")
                             }
                         }
+
+                        DbType.WIFI_API -> {
+                            if (database.supportsMapApi) {
+                                val mapHelper = mapHelpers[database.id]
+                                if (mapHelper != null) {
+                                    Log.d(TAG, "Loading point info via map API for ${database.id}")
+                                    val info = mapHelper.getPointDetails(point.bssidDecimal)
+
+                                    if (info != null) {
+                                        Log.d(TAG, "Retrieved info via map API: $info")
+                                        val record = NetworkRecord(
+                                            essid = info["essid"] as? String ?: getApplication<Application>().getString(R.string.unknown_ssid),
+                                            password = (info["key"] as? String)?.takeIf { it.isNotEmpty() && it != "0" && it != "-" },
+                                            wpsPin = (info["wps"] as? String)?.takeIf { it.isNotEmpty() && it != "0" && it != "-" },
+                                            routerModel = null,
+                                            adminCredentials = emptyList(),
+                                            isHidden = false,
+                                            isWifiDisabled = false,
+                                            timeAdded = info["time"] as? String,
+                                            rawData = info
+                                        )
+
+                                        point.allRecords = listOf(record)
+                                        point.essid = record.essid
+                                        point.password = record.password
+                                        point.wpsPin = record.wpsPin
+                                        point.isDataLoaded = true
+                                    } else {
+                                        Log.w(TAG, "No info found via map API")
+                                    }
+                                } else {
+                                    Log.w(TAG, "Map helper not found for ${database.id}")
+                                }
+                            } else {
+                                Log.d(TAG, "Database ${database.id} doesn't support map API")
+                            }
+                        }
+
                         DbType.SQLITE_FILE_CUSTOM -> {
                             if (database.directPath.isNullOrEmpty()) {
                                 Log.e(TAG, "Direct path is null for database ${database.id}")
@@ -974,6 +1099,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch(Dispatchers.IO) {
             databaseHelpers.values.forEach { it.close() }
             databaseHelpers.clear()
+            mapHelpers.clear()
         }
     }
 }

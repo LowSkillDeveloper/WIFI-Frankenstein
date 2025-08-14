@@ -73,6 +73,29 @@ class API3WiFiHelper(
         }
     }
 
+    suspend fun checkMapApiSupport(): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val testUrl = "$serverUrl/fmap?tiles=0,0,1,1&zoom=1"
+                val connection = URL(testUrl).openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.connectTimeout = connectTimeout
+                connection.readTimeout = readTimeout
+
+                val responseCode = connection.responseCode
+                val isSupported = responseCode == HttpURLConnection.HTTP_OK
+
+                connection.disconnect()
+                Log.d("API3WiFiHelper", "Map API support check: $isSupported (response: $responseCode)")
+
+                isSupported
+            } catch (e: Exception) {
+                Log.e("API3WiFiHelper", "Error checking map API support", e)
+                false
+            }
+        }
+    }
+
     private fun ignoreSSLCertificates() {
         try {
             val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {

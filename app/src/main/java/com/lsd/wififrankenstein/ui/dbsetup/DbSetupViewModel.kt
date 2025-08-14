@@ -402,6 +402,16 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun updateDbItem(updatedItem: DbItem) {
+        val currentList = _dbList.value.orEmpty().toMutableList()
+        val index = currentList.indexOfFirst { it.id == updatedItem.id }
+        if (index != -1) {
+            currentList[index] = updatedItem
+            _dbList.value = currentList
+            saveDbList()
+            Log.d("DbSetupViewModel", "Updated DB item: ${updatedItem.id}")
+        }
+    }
 
     fun initializeSQLiteCustomHelper(dbUri: Uri, directPath: String?) {
         sqliteCustomHelper = SQLiteCustomHelper(getApplication(), dbUri, directPath)

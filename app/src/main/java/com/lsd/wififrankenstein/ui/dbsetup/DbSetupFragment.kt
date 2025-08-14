@@ -1799,6 +1799,26 @@ class DbSetupFragment : Fragment() {
         )
 
         viewModel.addDb(newItem)
+
+        lifecycleScope.launch {
+            try {
+                val apiHelper = API3WiFiHelper(requireContext(), serverUrl, readKey)
+                val supportsMap = apiHelper.checkMapApiSupport()
+
+                if (supportsMap) {
+                    val currentList = viewModel.dbList.value.orEmpty().toMutableList()
+                    val index = currentList.indexOfFirst { it.id == newItem.id }
+                    if (index != -1) {
+                        currentList[index] = currentList[index].copy(supportsMapApi = true)
+                        viewModel.updateDbItem(currentList[index])
+                        Log.d("DbSetupFragment", "Database ${newItem.id} supports map API")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("DbSetupFragment", "Error checking map support", e)
+            }
+        }
+
         clearInputs()
         showSnackbar(getString(R.string.db_added_successfully))
     }
@@ -1836,6 +1856,25 @@ class DbSetupFragment : Fragment() {
                     )
 
                     viewModel.addDb(newItem)
+                    lifecycleScope.launch {
+                        try {
+                            val apiHelper = API3WiFiHelper(requireContext(), serverUrl, readKey ?: "000000000000")
+                            val supportsMap = apiHelper.checkMapApiSupport()
+
+                            if (supportsMap) {
+                                val currentList = viewModel.dbList.value.orEmpty().toMutableList()
+                                val index = currentList.indexOfFirst { it.id == newItem.id }
+                                if (index != -1) {
+                                    currentList[index] = currentList[index].copy(supportsMapApi = true)
+                                    viewModel.updateDbItem(currentList[index])
+                                    Log.d("DbSetupFragment", "Database ${newItem.id} supports map API")
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("DbSetupFragment", "Error checking map support", e)
+                        }
+                    }
+
                     clearInputs()
 
                     val userManager = UserManager(requireContext())

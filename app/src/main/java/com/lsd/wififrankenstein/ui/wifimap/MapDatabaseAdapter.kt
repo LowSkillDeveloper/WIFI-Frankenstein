@@ -57,7 +57,12 @@ class MapDatabaseAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val database = databases[position]
         holder.checkbox.apply {
-            text = formatSourcePath(database.path)
+            val baseName = formatSourcePath(database.path)
+            text = if (database.dbType == DbType.WIFI_API && database.supportsMapApi) {
+                "$baseName (${context.getString(R.string.map_api_supported)})"
+            } else {
+                baseName
+            }
             isChecked = selectedDatabases.contains(database)
 
             setOnCheckedChangeListener { _, isChecked ->

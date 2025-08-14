@@ -43,5 +43,6 @@ data class DbItem(
     val version: String? = null,
     val updateUrl: String? = null,
     val smartlinkType: String? = null,
-    var isIndexed: Boolean = false
+    var isIndexed: Boolean = false,
+    var supportsMapApi: Boolean = false
 )
