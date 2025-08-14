@@ -78,15 +78,17 @@ class WiFiMapFragment : Fragment() {
     private var nextColorIndex = 0
 
     private var lastMapUpdateTime = 0L
-    private val MAP_UPDATE_DEBOUNCE_MS = 200L
+    private val MAP_UPDATE_DEBOUNCE_MS = 100L
     private var lastUpdateZoom = -1.0
     private var lastUpdateCenter: GeoPoint? = null
     private var lastClusterUpdateZoom = -1.0
     private var lastClusterUpdateCenter: GeoPoint? = null
 
     private var isUserInteracting = false
-    private var interactionEndTime = 0L
-    private val INTERACTION_COOLDOWN_MS = 300L
+
+    private val MIN_UPDATE_DELAY = 200L
+
+    private var lastInteractionTime = 0L
 
     private val settingsViewModel: SettingsViewModel by viewModels()
 
@@ -96,6 +98,7 @@ class WiFiMapFragment : Fragment() {
         private const val DEFAULT_LON = 37.6173
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
     }
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -190,14 +193,12 @@ class WiFiMapFragment : Fragment() {
             addMapListener(object : MapListener {
                 override fun onScroll(event: ScrollEvent): Boolean {
                     isUserInteracting = true
+                    lastInteractionTime = System.currentTimeMillis()
                     interactionTimer?.cancel()
 
                     interactionTimer = lifecycleScope.launch {
-                        delay(500)
+                        delay(MIN_UPDATE_DELAY)
                         isUserInteracting = false
-                        interactionEndTime = System.currentTimeMillis()
-
-                        delay(INTERACTION_COOLDOWN_MS)
                         scheduleMapUpdate()
                     }
                     return true
@@ -205,14 +206,12 @@ class WiFiMapFragment : Fragment() {
 
                 override fun onZoom(event: ZoomEvent): Boolean {
                     isUserInteracting = true
+                    lastInteractionTime = System.currentTimeMillis()
                     interactionTimer?.cancel()
 
                     interactionTimer = lifecycleScope.launch {
-                        delay(800)
+                        delay(MIN_UPDATE_DELAY)
                         isUserInteracting = false
-                        interactionEndTime = System.currentTimeMillis()
-
-                        delay(INTERACTION_COOLDOWN_MS)
                         scheduleMapUpdate()
                     }
                     return true
@@ -228,21 +227,19 @@ class WiFiMapFragment : Fragment() {
 
         Log.d(TAG, "scheduleMapUpdate called: forceUpdate=$forceUpdate, isUserInteracting=$isUserInteracting")
 
-        if (!forceUpdate) {
-            if (isUserInteracting) {
-                Log.d(TAG, "User is interacting, postponing update")
-                return
-            }
+        if (!forceUpdate && isUserInteracting) {
+            Log.d(TAG, "User is still interacting, skipping update")
+            return
+        }
 
-            if (currentTime - interactionEndTime < INTERACTION_COOLDOWN_MS && interactionEndTime > 0) {
-                Log.d(TAG, "Still in interaction cooldown: ${currentTime - interactionEndTime}ms < ${INTERACTION_COOLDOWN_MS}ms")
-                return
-            }
+        if (!forceUpdate && (currentTime - lastInteractionTime < MIN_UPDATE_DELAY)) {
+            Log.d(TAG, "Too soon after interaction: ${currentTime - lastInteractionTime}ms < ${MIN_UPDATE_DELAY}ms")
+            return
+        }
 
-            if (!shouldUpdateClusters(currentZoom, currentCenter)) {
-                Log.d(TAG, "Skipping cluster update - insufficient zoom/position change")
-                return
-            }
+        if (!forceUpdate && !shouldUpdateClusters(currentZoom, currentCenter)) {
+            Log.d(TAG, "Skipping update - insufficient zoom/position change")
+            return
         }
 
         updateJob?.cancel()
@@ -250,14 +247,14 @@ class WiFiMapFragment : Fragment() {
 
         updateJob = lifecycleScope.launch {
             if (!forceUpdate) {
-                delay(MAP_UPDATE_DEBOUNCE_MS)
+                delay(50)
             }
 
-            if ((lastMapUpdateTime == currentTime || forceUpdate) && !isUserInteracting) {
+            if (!isUserInteracting || forceUpdate) {
                 Log.d(TAG, "Executing map update")
                 updateVisiblePoints()
             } else {
-                Log.d(TAG, "Map update cancelled: userInteracting=$isUserInteracting, timeMatch=${lastMapUpdateTime == currentTime}")
+                Log.d(TAG, "Map update cancelled: user still interacting")
             }
         }
     }
@@ -278,7 +275,7 @@ class WiFiMapFragment : Fragment() {
         val zoomDiff = kotlin.math.abs(currentZoom - lastClusterUpdateZoom)
         Log.d(TAG, "Zoom diff: $zoomDiff (current: $currentZoom, last: $lastClusterUpdateZoom)")
 
-        if (zoomDiff >= 0.1) {
+        if (zoomDiff >= 0.3) {
             Log.d(TAG, "Zoom changed significantly ($zoomDiff), allowing update")
             lastClusterUpdateZoom = currentZoom
             lastClusterUpdateCenter = currentCenter
@@ -299,12 +296,11 @@ class WiFiMapFragment : Fragment() {
         } ?: 0.0
 
         val movementThreshold = when {
-            currentZoom >= 18.0 -> viewportDiagonal * 0.05
-            currentZoom >= 16.0 -> viewportDiagonal * 0.08
-            currentZoom >= 14.0 -> viewportDiagonal * 0.12
-            currentZoom >= 12.0 -> viewportDiagonal * 0.15
-            currentZoom >= 10.0 -> viewportDiagonal * 0.18
-            else -> viewportDiagonal * 0.2
+            currentZoom >= 16.0 -> viewportDiagonal * 0.1
+            currentZoom >= 14.0 -> viewportDiagonal * 0.15
+            currentZoom >= 12.0 -> viewportDiagonal * 0.2
+            currentZoom >= 10.0 -> viewportDiagonal * 0.25
+            else -> viewportDiagonal * 0.3
         }
 
         val shouldUpdate = centerDistance > movementThreshold
@@ -318,6 +314,7 @@ class WiFiMapFragment : Fragment() {
 
         return shouldUpdate
     }
+
     private fun setupRecyclerView() {
         binding.databasesRecyclerView.apply {
             layoutManager = LinearLayoutManager(context)
@@ -608,6 +605,8 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun resetMapState() {
+        isUserInteracting = false
+        lastInteractionTime = 0L
         lastMapUpdateTime = 0L
         lastUpdateZoom = -1.0
         lastUpdateCenter = null
@@ -616,6 +615,9 @@ class WiFiMapFragment : Fragment() {
 
         updateJob?.cancel()
         updateJob = null
+
+        viewModel.clearCache()
+        clearMarkers()
     }
 
     private fun observeViewModel() {
@@ -711,6 +713,11 @@ class WiFiMapFragment : Fragment() {
     private fun updateVisiblePoints() {
         Log.d(TAG, "updateVisiblePoints called")
 
+        if (isUserInteracting) {
+            Log.d(TAG, "User is interacting, skipping update")
+            return
+        }
+
         val zoom = binding.map.zoomLevelDouble
         lastUpdateZoom = zoom
         lastUpdateCenter = binding.map.mapCenter as? GeoPoint
@@ -722,6 +729,7 @@ class WiFiMapFragment : Fragment() {
         Log.d(TAG, "Min zoom for markers: $minZoom")
         Log.d(TAG, "Bounding box: $boundingBox")
         Log.d(TAG, "Selected databases: ${selectedDatabases.size}")
+        Log.d(TAG, "Interaction state: isUserInteracting=$isUserInteracting")
 
         if (selectedDatabases.isEmpty()) {
             Log.d(TAG, "No databases selected, clearing everything")
@@ -1084,13 +1092,18 @@ class WiFiMapFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        Log.d(TAG, "onStart: Checking databases")
+        Log.d(TAG, "onStart: Checking databases and resetting interaction state")
+        isUserInteracting = false
+        lastInteractionTime = 0L
     }
 
     override fun onResume() {
         super.onResume()
         binding.map.onResume()
         userLocationManager.startLocationUpdates()
+
+        Log.d(TAG, "onResume: Resetting map state")
+        resetMapState()
 
         checkDatabaseValidity()
         updateLegend()
@@ -1109,7 +1122,16 @@ class WiFiMapFragment : Fragment() {
                 ).show()
             }
         }
+
+        if (selectedDatabases.isNotEmpty()) {
+            lifecycleScope.launch {
+                delay(300)
+                scheduleMapUpdate(true)
+            }
+        }
     }
+
+
 
     private fun checkDatabaseValidity() {
         val availableDatabases = viewModel.availableDatabases.value ?: emptyList()
@@ -1130,10 +1152,18 @@ class WiFiMapFragment : Fragment() {
         super.onPause()
         binding.map.onPause()
         userLocationManager.stopLocationUpdates()
+
+        isUserInteracting = false
+        updateJob?.cancel()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+
+        updateJob?.cancel()
+        updateJob = null
+        isUserInteracting = false
+
         userLocationManager.onDestroy()
         _binding = null
     }

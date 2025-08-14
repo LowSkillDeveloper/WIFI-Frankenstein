@@ -196,18 +196,27 @@ class GridBasedClusterManager(
 
         buildSpatialIndex(points)
 
-        points.forEach { point ->
-            val cellX = floor(point.displayLatitude / gridSize).toInt()
-            val cellY = floor(point.displayLongitude / gridSize).toInt()
-            val key = Pair(cellX, cellY)
+        val databaseGroups = points.groupBy { it.databaseId }
 
-            val cell = cells.getOrPut(key) {
-                GridCell(cellX, cellY)
+        databaseGroups.forEach { (databaseId, dbPoints) ->
+            dbPoints.forEach { point ->
+                val cellX = floor(point.displayLatitude / gridSize).toInt()
+                val cellY = floor(point.displayLongitude / gridSize).toInt()
+                val key = Pair(cellX, cellY)
+
+                val cell = cells.getOrPut(key) {
+                    GridCell(cellX, cellY)
+                }
+                cell.addPoint(point)
             }
-            cell.addPoint(point)
         }
 
         val initialClusters = cells.values.map { cell ->
+            val dominantDatabaseId = cell.points
+                .groupBy { it.databaseId }
+                .maxByOrNull { it.value.size }
+                ?.key ?: cell.points.first().databaseId
+
             MarkerCluster(
                 centerLatitude = cell.centerLatitude,
                 centerLongitude = cell.centerLongitude

@@ -736,15 +736,38 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun getMaxPointsForZoom(zoom: Double): Int {
-        val maxPoints = when {
-            zoom >= 12.0 -> Int.MAX_VALUE
-            zoom >= 10.0 -> 100000
-            zoom >= 8.0 -> 80000
-            zoom >= 6.0 -> 60000
-            else -> 50000
+        val runtime = Runtime.getRuntime()
+        val maxMemory = runtime.maxMemory()
+        val memoryClass = when {
+            maxMemory < 128 * 1024 * 1024 -> "LOW"
+            maxMemory < 256 * 1024 * 1024 -> "MEDIUM"
+            else -> "HIGH"
         }
 
-        Log.d(TAG, "Max points for zoom $zoom: ${if (maxPoints == Int.MAX_VALUE) "UNLIMITED" else maxPoints}")
+        val maxPoints = when (memoryClass) {
+            "LOW" -> when {
+                zoom >= 14.0 -> Int.MAX_VALUE
+                zoom >= 12.0 -> 15000
+                zoom >= 10.0 -> 10000
+                zoom >= 8.0 -> 8000
+                else -> 6000
+            }
+            "MEDIUM" -> when {
+                zoom >= 13.0 -> Int.MAX_VALUE
+                zoom >= 11.0 -> 25000
+                zoom >= 9.0 -> 20000
+                zoom >= 7.0 -> 15000
+                else -> 12000
+            }
+            else -> when {
+                zoom >= 12.0 -> Int.MAX_VALUE
+                zoom >= 10.0 -> 50000
+                zoom >= 8.0 -> 40000
+                else -> 30000
+            }
+        }
+
+        Log.d(TAG, "Memory class: $memoryClass, Max points PER DATABASE for zoom $zoom: ${if (maxPoints == Int.MAX_VALUE) "UNLIMITED" else maxPoints}")
         return maxPoints
     }
 
@@ -754,10 +777,10 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         zoom: Double
     ): List<Triple<Long, Double, Double>> = withContext(Dispatchers.IO) {
         val cacheKey = "${database.id}_${createCacheKey(boundingBox)}"
-        val maxPoints = getMaxPointsForZoom(zoom)
-        val willBeLimited = zoom < 10.0 && maxPoints != Int.MAX_VALUE
+        val maxPointsPerDb = getMaxPointsForZoom(zoom)
+        val willBeLimited = zoom < 12.0 && maxPointsPerDb != Int.MAX_VALUE
 
-        Log.d(TAG, "Loading from DB: ${database.id}, maxPoints: $maxPoints, zoom: $zoom, willBeLimited: $willBeLimited")
+        Log.d(TAG, "Loading from DB: ${database.id}, maxPointsPerDb: $maxPointsPerDb, zoom: $zoom, willBeLimited: $willBeLimited")
 
         if (zoom < 14.0 && clusterManager.canUsePointsCache(boundingBox) &&
             !clusterManager.hasSignificantAreaChange(boundingBox)) {
@@ -767,7 +790,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
             if (cachedPoints.isNotEmpty()) {
                 Log.d(TAG, "Found ${cachedPoints.size} cached points for ${database.id}")
-                return@withContext cachedPoints.take(maxPoints).map {
+                return@withContext cachedPoints.take(maxPointsPerDb).map {
                     Triple(it.bssidDecimal, it.latitude, it.longitude)
                 }
             }
@@ -775,9 +798,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
         smartCache[cacheKey]?.let { cacheEntry ->
             Log.d(TAG, "Cache hit: ${cacheEntry.points.size} cached points for ${database.id}")
-            val limitedPoints = if (willBeLimited && cacheEntry.points.size > maxPoints) {
-                Log.d(TAG, "Limiting cached points: ${cacheEntry.points.size} -> $maxPoints")
-                cacheEntry.points.take(maxPoints)
+            val limitedPoints = if (willBeLimited && cacheEntry.points.size > maxPointsPerDb) {
+                Log.d(TAG, "Limiting cached points for ${database.id}: ${cacheEntry.points.size} -> $maxPointsPerDb")
+                cacheEntry.points.take(maxPointsPerDb)
             } else {
                 cacheEntry.points
             }
@@ -791,40 +814,22 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
-        Log.d(TAG, "Cache miss for ${database.id}, loading from database with limit $maxPoints")
+        Log.d(TAG, "Cache miss for ${database.id}, loading from database with limit $maxPointsPerDb per database")
 
         val containingCache = findContainingCache(database.id, boundingBox, zoom)
         if (containingCache != null) {
-            Log.d(TAG, "Using smart cache: filtering ${containingCache.points.size} points from larger area")
+            Log.d(TAG, "Using smart cache: filtering ${containingCache.points.size} points from larger area for ${database.id}")
             val filteredPoints = filterPointsInBounds(
                 containingCache.points.filter { it.databaseId == database.id },
                 boundingBox
-            )
-            Log.d(TAG, "Smart cache result: ${filteredPoints.size} points after filtering")
+            ).take(maxPointsPerDb)
+            Log.d(TAG, "Smart cache result for ${database.id}: ${filteredPoints.size} points after filtering")
 
             if (zoom >= 10.0) {
                 launchBackgroundCaching(database, boundingBox, zoom)
             }
 
             return@withContext filteredPoints.map {
-                Triple(it.bssidDecimal, it.latitude, it.longitude)
-            }
-        }
-
-        smartCache[cacheKey]?.let { cacheEntry ->
-            Log.d(TAG, "Cache hit: ${cacheEntry.points.size} cached points for ${database.id}")
-            val limitedPoints = if (willBeLimited && cacheEntry.points.size > maxPoints) {
-                Log.d(TAG, "Limiting cached points: ${cacheEntry.points.size} -> $maxPoints")
-                cacheEntry.points.take(maxPoints)
-            } else {
-                cacheEntry.points
-            }
-
-            if (zoom >= 10.0) {
-                launchBackgroundCaching(database, boundingBox, zoom)
-            }
-
-            return@withContext limitedPoints.map {
                 Triple(it.bssidDecimal, it.latitude, it.longitude)
             }
         }
@@ -838,10 +843,11 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     boundingBox.latSouth,
                     boundingBox.latNorth,
                     boundingBox.lonWest,
-                    boundingBox.lonEast
+                    boundingBox.lonEast,
+                    maxPointsPerDb
                 )
 
-                Log.d(TAG, "Local DB returned ${localPoints.size} points")
+                Log.d(TAG, "Local DB returned ${localPoints.size} points for ${database.id}")
 
                 localPoints.mapIndexed { index, network ->
                     if (index % 1000 == 0) {
@@ -865,8 +871,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     emptyList()
                 } else {
                     Log.d(TAG, "Using external indexes for database: ${database.id}")
-                    if (willBeLimited) maxPoints else Int.MAX_VALUE
-                    val allPoints = externalIndexManager.getPointsInBoundingBox(database.id, boundingBox)
+                    val allPoints = externalIndexManager.getPointsInBoundingBox(database.id, boundingBox, maxPointsPerDb)
                     Log.d(TAG, "External index returned ${allPoints.size} points for ${database.id}")
                     allPoints
                 }
@@ -876,8 +881,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 when (helper) {
                     is SQLite3WiFiHelper -> {
                         Log.d(TAG, "Using SQLite3WiFiHelper for ${database.id}")
-                        if (willBeLimited) maxPoints else Int.MAX_VALUE
-                        val allPoints = helper.getPointsInBoundingBox(boundingBox)
+                        val allPoints = helper.getPointsInBoundingBox(boundingBox, maxPointsPerDb)
                         Log.d(TAG, "SQLite3WiFiHelper returned ${allPoints.size} points for ${database.id}")
                         allPoints
                     }
@@ -887,11 +891,11 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             emptyList()
                         } else {
                             Log.d(TAG, "Using SQLiteCustomHelper for ${database.id}")
-                            if (willBeLimited) maxPoints else Int.MAX_VALUE
                             val allPoints = helper.getPointsInBoundingBox(
                                 boundingBox,
                                 database.tableName,
                                 database.columnMap,
+                                maxPointsPerDb
                             ) ?: emptyList()
                             Log.d(TAG, "SQLiteCustomHelper returned ${allPoints.size} points for ${database.id}")
                             allPoints
@@ -919,21 +923,28 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 )
             }
 
+            val finalPoints = if (willBeLimited && networkPoints.size > maxPointsPerDb) {
+                Log.d(TAG, "Limiting points for ${database.id}: ${networkPoints.size} -> $maxPointsPerDb")
+                networkPoints.take(maxPointsPerDb)
+            } else {
+                networkPoints
+            }
+
             val cacheEntry = CacheEntry(
-                points = networkPoints,
+                points = finalPoints,
                 boundingBox = boundingBox,
                 zoom = zoom,
-                wasLimited = willBeLimited && networkPoints.size >= maxPoints
+                wasLimited = willBeLimited && finalPoints.size >= maxPointsPerDb
             )
             smartCache[cacheKey] = cacheEntry
 
-            Log.d(TAG, "Cached ${networkPoints.size} points for ${database.id} (wasLimited: ${cacheEntry.wasLimited})")
+            Log.d(TAG, "Cached ${finalPoints.size} points for ${database.id} (wasLimited: ${cacheEntry.wasLimited})")
 
             if (zoom >= 10.0) {
                 launchBackgroundCaching(database, boundingBox, zoom)
             }
 
-            return@withContext networkPoints.map {
+            return@withContext finalPoints.map {
                 Triple(it.bssidDecimal, it.latitude, it.longitude)
             }
         }

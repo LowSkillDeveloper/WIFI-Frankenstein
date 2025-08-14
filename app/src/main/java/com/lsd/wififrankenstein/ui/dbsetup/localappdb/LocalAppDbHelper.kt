@@ -133,19 +133,20 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
     }
 
-    fun getPointsInBounds(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double): List<WifiNetwork> {
+    fun getPointsInBounds(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double, limit: Int = Int.MAX_VALUE): List<WifiNetwork> {
         val indexLevel = getIndexLevel()
+        val limitClause = if (limit != Int.MAX_VALUE) " LIMIT $limit" else ""
 
         val query = when (indexLevel) {
             "FULL", "BASIC" -> {
                 "SELECT * FROM $TABLE_NAME " +
                         "WHERE $COLUMN_LATITUDE BETWEEN ? AND ? " +
-                        "AND $COLUMN_LONGITUDE BETWEEN ? AND ?"
+                        "AND $COLUMN_LONGITUDE BETWEEN ? AND ?$limitClause"
             }
             else -> {
                 "SELECT * FROM $TABLE_NAME " +
                         "WHERE $COLUMN_LATITUDE BETWEEN ? AND ? " +
-                        "AND $COLUMN_LONGITUDE BETWEEN ? AND ?"
+                        "AND $COLUMN_LONGITUDE BETWEEN ? AND ?$limitClause"
             }
         }
 
@@ -154,7 +155,8 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
             arrayOf(minLat.toString(), maxLat.toString(), minLon.toString(), maxLon.toString())
         ).use { cursor ->
             val networks = mutableListOf<WifiNetwork>()
-            while (cursor.moveToNext()) {
+            var count = 0
+            while (cursor.moveToNext() && count < limit) {
                 networks.add(
                     WifiNetwork(
                         id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID)),
@@ -167,6 +169,7 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
                         longitude = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_LONGITUDE))
                     )
                 )
+                count++
             }
             networks
         }

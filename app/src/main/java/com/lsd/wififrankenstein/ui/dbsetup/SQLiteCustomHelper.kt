@@ -65,7 +65,8 @@ class SQLiteCustomHelper(
     suspend fun getPointsInBoundingBox(
         bounds: BoundingBox,
         tableName: String,
-        columnMap: Map<String, String>
+        columnMap: Map<String, String>,
+        limit: Int = Int.MAX_VALUE
     ): List<Triple<Long, Double, Double>>? {
         return withContext(Dispatchers.IO) {
             try {

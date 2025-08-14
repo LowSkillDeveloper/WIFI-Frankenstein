@@ -176,7 +176,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     private val TAG = "SQLite3WiFiHelper"
 
-    suspend fun getPointsInBoundingBox(bounds: BoundingBox): List<Triple<Long, Double, Double>> {
+    suspend fun getPointsInBoundingBox(bounds: BoundingBox, limit: Int = Int.MAX_VALUE): List<Triple<Long, Double, Double>> {
         Log.d(TAG, "Starting getPointsInBoundingBox with bounds: $bounds")
         return withContext(Dispatchers.IO) {
             val maxPoints = if (CompatibilityHelper.isLowMemoryDevice()) 25000 else 50000

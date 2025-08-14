@@ -311,7 +311,8 @@ class ExternalIndexManager(private val context: Context) {
 
     suspend fun getPointsInBoundingBox(
         dbId: String,
-        bounds: BoundingBox
+        bounds: BoundingBox,
+        maxPoints: Int = Int.MAX_VALUE
     ): List<Triple<Long, Double, Double>> = withContext(Dispatchers.IO) {
         try {
             val indexDbPath = getIndexDbPath(dbId)
@@ -343,23 +344,25 @@ class ExternalIndexManager(private val context: Context) {
 
                 val indexLevel = getIndexLevel(dbId)
 
+                val limitClause = if (maxPoints != Int.MAX_VALUE) " LIMIT $maxPoints" else ""
+
                 val query = when (indexLevel) {
                     "FULL", "BASIC" -> {
                         """
-                SELECT mac, latitude, longitude 
-                FROM indexed_data 
-                INDEXED BY idx_custom_latitude
-                WHERE latitude BETWEEN ? AND ?
-                AND longitude BETWEEN ? AND ?
-                """.trimIndent()
+                    SELECT mac, latitude, longitude 
+                    FROM indexed_data 
+                    INDEXED BY idx_custom_latitude
+                    WHERE latitude BETWEEN ? AND ?
+                    AND longitude BETWEEN ? AND ?$limitClause
+                    """.trimIndent()
                     }
                     else -> {
                         """
-                SELECT mac, latitude, longitude 
-                FROM indexed_data 
-                WHERE latitude BETWEEN ? AND ?
-                AND longitude BETWEEN ? AND ?
-                """.trimIndent()
+                    SELECT mac, latitude, longitude 
+                    FROM indexed_data 
+                    WHERE latitude BETWEEN ? AND ?
+                    AND longitude BETWEEN ? AND ?$limitClause
+                    """.trimIndent()
                     }
                 }
 
@@ -370,7 +373,8 @@ class ExternalIndexManager(private val context: Context) {
                     bounds.lonEast.toString()
                 )).use { cursor ->
                     return@withContext buildList {
-                        while (cursor.moveToNext()) {
+                        var count = 0
+                        while (cursor.moveToNext() && count < maxPoints) {
                             try {
                                 val macStr = cursor.getString(0)
                                 val mac = macToDecimal(macStr) ?: continue
@@ -378,6 +382,7 @@ class ExternalIndexManager(private val context: Context) {
                                 val lon = cursor.getDouble(2)
 
                                 add(Triple(mac, lat, lon))
+                                count++
                             } catch (e: Exception) {
                                 Log.e(TAG, "Error parsing point", e)
                                 continue
