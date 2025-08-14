@@ -439,21 +439,29 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                             try {
                                 val startTime = System.currentTimeMillis()
-                                val dbPoints = loadPointsFromDatabase(database, boundingBox, zoom, basePointsPerDatabase)
+
+                                val networkPoints = if (database.supportsMapApi && database.dbType == DbType.WIFI_API) {
+                                    loadMapApiPoints(database, boundingBox, zoom, basePointsPerDatabase)
+                                } else {
+                                    val dbPoints = loadPointsFromDatabase(database, boundingBox, zoom, basePointsPerDatabase)
+                                    dbPoints.mapIndexed { pointIndex, (bssidDecimal, lat, lon) ->
+                                        if (pointIndex % 1000 == 0) {
+                                            yield()
+                                        }
+                                        NetworkPoint(
+                                            latitude = lat,
+                                            longitude = lon,
+                                            bssidDecimal = bssidDecimal,
+                                            source = database.type,
+                                            databaseId = database.id,
+                                            color = getColorForDatabase(database.id)
+                                        )
+                                    }
+                                }
+
                                 val loadTime = System.currentTimeMillis() - startTime
 
                                 if (!isActive) return@async
-
-                                val networkPoints = dbPoints.map { (bssidDecimal, lat, lon) ->
-                                    NetworkPoint(
-                                        latitude = lat,
-                                        longitude = lon,
-                                        bssidDecimal = bssidDecimal,
-                                        source = database.type,
-                                        databaseId = database.id,
-                                        color = getColorForDatabase(database.id)
-                                    )
-                                }
 
                                 points.addAll(networkPoints)
 
@@ -533,6 +541,87 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private suspend fun loadMapApiPoints(
+        database: DbItem,
+        boundingBox: BoundingBox,
+        zoom: Double,
+        maxPointsPerDb: Int
+    ): List<NetworkPoint> = withContext(Dispatchers.IO) {
+        try {
+            val mapHelper = mapHelpers[database.id]
+            if (mapHelper == null) {
+                Log.w(TAG, "Map helper not found for ${database.id}")
+                return@withContext emptyList()
+            }
+
+            Log.d(TAG, "Loading points via map API for ${database.id}")
+            val mapPoints = mapHelper.getPointsInBoundingBox(boundingBox, zoom, maxPointsPerDb)
+
+            Log.d(TAG, "Map API returned ${mapPoints.size} points for ${database.id}")
+
+            mapPoints.mapIndexed { index, mapPoint ->
+                if (index % 1000 == 0) {
+                    yield()
+                }
+
+                val htmlData = parseHtmlData(mapPoint.popupHtml)
+
+                if (mapPoint.count > 1) {
+                    NetworkPoint(
+                        latitude = mapPoint.latitude,
+                        longitude = mapPoint.longitude,
+                        bssidDecimal = -1L,
+                        source = "Server Cluster",
+                        databaseId = database.id,
+                        essid = "Cluster (${mapPoint.count} points)",
+                        color = getColorForDatabase(database.id)
+                    )
+                } else {
+                    NetworkPoint(
+                        latitude = mapPoint.latitude,
+                        longitude = mapPoint.longitude,
+                        bssidDecimal = mapPoint.bssidDecimal,
+                        source = database.type,
+                        databaseId = database.id,
+                        essid = htmlData["essid"],
+                        password = htmlData["password"],
+                        color = getColorForDatabase(database.id),
+                        isDataLoaded = htmlData.isNotEmpty()
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading map API points for ${database.id}", e)
+            emptyList()
+        }
+    }
+
+    private fun parseHtmlData(html: String?): Map<String, String?> {
+        if (html.isNullOrBlank()) return emptyMap()
+
+        try {
+            val parts = html.split("<br>")
+            val result = mutableMapOf<String, String?>()
+
+            if (parts.size >= 1) {
+                result["bssid"] = parts[0].trim()
+            }
+            if (parts.size >= 2) {
+                val essid = parts[1].trim()
+                result["essid"] = if (essid == "&lt;empty&gt;" || essid.isEmpty()) null else essid
+            }
+            if (parts.size >= 3) {
+                val password = parts[2].trim()
+                result["password"] = if (password == "&lt;empty&gt;" || password.isEmpty()) null else password
+            }
+
+            return result
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing HTML data: $html", e)
+            return emptyMap()
+        }
+    }
+
     private suspend fun loadPointsFromDatabase(
         database: DbItem,
         boundingBox: BoundingBox,
@@ -595,13 +684,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                         Log.d(TAG, "Map API returned ${mapPoints.size} points for ${database.id}")
 
                         mapPoints.map { mapPoint ->
-                            if (mapPoint.bssidDecimal > 0) {
-                                Triple(mapPoint.bssidDecimal, mapPoint.latitude, mapPoint.longitude)
-                            } else {
-                                val centerLat = mapPoint.latitude
-                                val centerLon = mapPoint.longitude
-                                Triple(-1L, centerLat, centerLon)
-                            }
+                            Triple(mapPoint.bssidDecimal, mapPoint.latitude, mapPoint.longitude)
                         }
                     } else {
                         Log.w(TAG, "Map helper not found for ${database.id}, falling back to regular API")
@@ -852,35 +935,60 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                         DbType.WIFI_API -> {
                             if (database.supportsMapApi) {
-                                val mapHelper = mapHelpers[database.id]
-                                if (mapHelper != null) {
-                                    Log.d(TAG, "Loading point info via map API for ${database.id}")
-                                    val info = mapHelper.getPointDetails(point.bssidDecimal)
-
-                                    if (info != null) {
-                                        Log.d(TAG, "Retrieved info via map API: $info")
-                                        val record = NetworkRecord(
-                                            essid = info["essid"] as? String ?: getApplication<Application>().getString(R.string.unknown_ssid),
-                                            password = (info["key"] as? String)?.takeIf { it.isNotEmpty() && it != "0" && it != "-" },
-                                            wpsPin = (info["wps"] as? String)?.takeIf { it.isNotEmpty() && it != "0" && it != "-" },
-                                            routerModel = null,
-                                            adminCredentials = emptyList(),
-                                            isHidden = false,
-                                            isWifiDisabled = false,
-                                            timeAdded = info["time"] as? String,
-                                            rawData = info
+                                if (point.isDataLoaded && point.allRecords.isNotEmpty()) {
+                                    Log.d(TAG, "Using already loaded data for point ${convertBssidToString(point.bssidDecimal)}")
+                                } else if (point.essid != null || point.password != null) {
+                                    Log.d(TAG, "Creating record from preloaded point data")
+                                    val record = NetworkRecord(
+                                        essid = point.essid ?: getApplication<Application>().getString(R.string.unknown_ssid),
+                                        password = point.password,
+                                        wpsPin = point.wpsPin,
+                                        routerModel = null,
+                                        adminCredentials = emptyList(),
+                                        isHidden = false,
+                                        isWifiDisabled = false,
+                                        timeAdded = null,
+                                        rawData = mapOf(
+                                            "bssid" to convertBssidToString(point.bssidDecimal),
+                                            "essid" to point.essid,
+                                            "password" to point.password,
+                                            "wpsPin" to point.wpsPin
                                         )
+                                    )
 
-                                        point.allRecords = listOf(record)
-                                        point.essid = record.essid
-                                        point.password = record.password
-                                        point.wpsPin = record.wpsPin
-                                        point.isDataLoaded = true
-                                    } else {
-                                        Log.w(TAG, "No info found via map API")
-                                    }
+                                    point.allRecords = listOf(record)
+                                    point.isDataLoaded = true
                                 } else {
-                                    Log.w(TAG, "Map helper not found for ${database.id}")
+                                    val mapHelper = mapHelpers[database.id]
+                                    if (mapHelper != null) {
+                                        Log.d(TAG, "Loading point info via map API for ${database.id}")
+                                        val info = mapHelper.getPointDetails(point.bssidDecimal)
+
+                                        if (info != null) {
+                                            Log.d(TAG, "Retrieved info via map API: $info")
+                                            val record = NetworkRecord(
+                                                essid = info["essid"] as? String ?: getApplication<Application>().getString(R.string.unknown_ssid),
+                                                password = (info["key"] as? String)?.takeIf { it.isNotEmpty() && it != "0" && it != "-" },
+                                                wpsPin = (info["wps"] as? String)?.takeIf { it.isNotEmpty() && it != "0" && it != "-" },
+                                                routerModel = null,
+                                                adminCredentials = emptyList(),
+                                                isHidden = false,
+                                                isWifiDisabled = false,
+                                                timeAdded = info["time"] as? String,
+                                                rawData = info
+                                            )
+
+                                            point.allRecords = listOf(record)
+                                            point.essid = record.essid
+                                            point.password = record.password
+                                            point.wpsPin = record.wpsPin
+                                            point.isDataLoaded = true
+                                        } else {
+                                            Log.w(TAG, "No info found via map API")
+                                        }
+                                    } else {
+                                        Log.w(TAG, "Map helper not found for ${database.id}")
+                                    }
                                 }
                             } else {
                                 Log.d(TAG, "Database ${database.id} doesn't support map API")
