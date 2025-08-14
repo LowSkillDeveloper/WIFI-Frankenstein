@@ -90,6 +90,8 @@ class WiFiMapFragment : Fragment() {
 
     private var lastInteractionTime = 0L
 
+    private var wasAutoSeparated = false
+
     private val settingsViewModel: SettingsViewModel by viewModels()
 
     companion object {
@@ -126,9 +128,11 @@ class WiFiMapFragment : Fragment() {
 
     private fun setupToggleClusterButton() {
         isClustersPreventMerged = viewModel.getPreventClusterMerge()
+        wasAutoSeparated = false
         updateFabIcon()
 
         binding.fabToggleClusters.setOnClickListener {
+            wasAutoSeparated = false
             isClustersPreventMerged = !isClustersPreventMerged
             viewModel.setPreventClusterMerge(isClustersPreventMerged)
             updateFabIcon()
@@ -146,14 +150,22 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun updateFabIcon() {
-        if (isClustersPreventMerged) {
-            binding.fabToggleClusters.setImageResource(R.drawable.ic_layers)
-            binding.fabToggleClusters.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green_500))
-        } else {
-            binding.fabToggleClusters.setImageResource(R.drawable.ic_layers)
-            binding.fabToggleClusters.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.blue_500))
+        when {
+            isClustersPreventMerged && wasAutoSeparated -> {
+                binding.fabToggleClusters.setImageResource(R.drawable.ic_layers)
+                binding.fabToggleClusters.backgroundTintList =
+                    ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.orange_500))
+            }
+            isClustersPreventMerged -> {
+                binding.fabToggleClusters.setImageResource(R.drawable.ic_layers)
+                binding.fabToggleClusters.backgroundTintList =
+                    ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green_500))
+            }
+            else -> {
+                binding.fabToggleClusters.setImageResource(R.drawable.ic_layers)
+                binding.fabToggleClusters.backgroundTintList =
+                    ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.blue_500))
+            }
         }
     }
 
@@ -199,6 +211,7 @@ class WiFiMapFragment : Fragment() {
                     interactionTimer = lifecycleScope.launch {
                         delay(MIN_UPDATE_DELAY)
                         isUserInteracting = false
+                        checkAutoSeparation()
                         scheduleMapUpdate()
                     }
                     return true
@@ -212,11 +225,35 @@ class WiFiMapFragment : Fragment() {
                     interactionTimer = lifecycleScope.launch {
                         delay(MIN_UPDATE_DELAY)
                         isUserInteracting = false
+                        checkAutoSeparation()
                         scheduleMapUpdate()
                     }
                     return true
                 }
             })
+        }
+    }
+
+    private fun checkAutoSeparation() {
+        val currentZoom = binding.map.zoomLevelDouble
+
+        when {
+            currentZoom >= 17.0 && !isClustersPreventMerged && !wasAutoSeparated -> {
+                isClustersPreventMerged = true
+                wasAutoSeparated = true
+                viewModel.setPreventClusterMerge(true)
+                updateFabIcon()
+                clearMarkers()
+                scheduleMapUpdate(true)
+            }
+            currentZoom < 16.0 && wasAutoSeparated && isClustersPreventMerged -> {
+                isClustersPreventMerged = false
+                wasAutoSeparated = false
+                viewModel.setPreventClusterMerge(false)
+                updateFabIcon()
+                clearMarkers()
+                scheduleMapUpdate(true)
+            }
         }
     }
 
