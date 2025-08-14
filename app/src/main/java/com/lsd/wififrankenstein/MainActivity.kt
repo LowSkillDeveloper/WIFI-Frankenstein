@@ -77,6 +77,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         updateChecker = UpdateChecker(applicationContext)
+        handleNotificationIntent(intent)
 
         val shouldCheckUpdates = getSharedPreferences("settings", MODE_PRIVATE)
             .getBoolean("check_updates_on_open", true)
@@ -146,6 +147,24 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             viewModel.checkAndCopyFiles(applicationContext)
         }
+    }
+
+    private fun handleNotificationIntent(intent: Intent?) {
+        intent?.let {
+            when {
+                it.getBooleanExtra("open_updates", false) -> {
+                    findNavController(R.id.nav_host_fragment_content_main).navigate(R.id.nav_updates)
+                }
+                it.getBooleanExtra("open_db_setup", false) -> {
+                    findNavController(R.id.nav_host_fragment_content_main).navigate(R.id.dbSetupFragment)
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        handleNotificationIntent(intent)
     }
 
     private fun setupCategoryClickListeners(navController: NavController) {

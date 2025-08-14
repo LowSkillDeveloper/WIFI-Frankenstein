@@ -1538,6 +1538,63 @@
     <string name="location_permission_explanation">This app needs location permission to show your position on the map and help you navigate.</string>
     <string name="settings">Settings</string>
 
+    <string name="notification_settings">Настройки уведомлений</string>
+    <string name="notification_settings_description">Настройте типы уведомлений, которые хотите получать</string>
+    <string name="notification_settings_manage_desc">Управляйте уведомлениями о обновлениях и новостях</string>
+    <string name="manage_notification_settings">Управление уведомлениями</string>
+
+    <string name="notification_app_updates">Обновления приложения</string>
+    <string name="notification_app_updates_desc">Уведомления о выходе новой версии приложения</string>
+    <string name="notification_database_updates">Обновления баз данных</string>
+    <string name="notification_database_updates_desc">Уведомления об обновлениях установленных баз данных</string>
+    <string name="notification_component_updates">Обновления компонентов</string>
+    <string name="notification_component_updates_desc">Уведомления об обновлениях системных файлов (по умолчанию отключено)</string>
+    <string name="notification_recommended_databases">Рекомендуемые базы данных</string>
+    <string name="notification_recommended_databases_desc">Уведомления о новых базах данных от сообщества</string>
+    <string name="notification_general">Прочие уведомления</string>
+    <string name="notification_general_desc">Важные уведомления и новости от разработчиков</string>
+
+    <string name="notification_system_settings_info">Для полного отключения уведомлений используйте системные настройки</string>
+    <string name="notification_system_settings">Системные настройки уведомлений</string>
+
+    <string name="notification_channel_app_updates">Обновления приложения</string>
+    <string name="notification_channel_app_updates_desc">Уведомления о новых версиях приложения</string>
+    <string name="notification_channel_db_updates">Обновления баз данных</string>
+    <string name="notification_channel_db_updates_desc">Уведомления об обновлениях баз данных</string>
+    <string name="notification_channel_component_updates">Обновления компонентов</string>
+    <string name="notification_channel_component_updates_desc">Уведомления об обновлениях системных файлов</string>
+    <string name="notification_channel_recommended_db">Рекомендуемые базы</string>
+    <string name="notification_channel_recommended_db_desc">Уведомления о новых базах данных от сообщества</string>
+    <string name="notification_channel_general">Общие уведомления</string>
+    <string name="notification_channel_general_desc">Важные уведомления и новости</string>
+
+    <string name="notification_app_update_title">Доступна новая версия</string>
+    <string name="notification_app_update_text">WiFi Frankenstein %1$s готов к загрузке</string>
+    <string name="notification_db_update_title">Обновления баз данных</string>
+    <string name="notification_component_update_title">Обновления компонентов</string>
+    <string name="notification_recommended_db_title">Новые рекомендуемые базы</string>
+
+    <plurals name="notification_db_update_text">
+        <item quantity="one">Доступно %1$d обновление базы данных</item>
+        <item quantity="few">Доступно %1$d обновления баз данных</item>
+        <item quantity="many">Доступно %1$d обновлений баз данных</item>
+        <item quantity="other">Доступно %1$d обновлений баз данных</item>
+    </plurals>
+
+    <plurals name="notification_component_update_text">
+        <item quantity="one">Доступно %1$d обновление компонента</item>
+        <item quantity="few">Доступно %1$d обновления компонентов</item>
+        <item quantity="many">Доступно %1$d обновлений компонентов</item>
+        <item quantity="other">Доступно %1$d обновлений компонентов</item>
+    </plurals>
+
+    <plurals name="notification_recommended_db_text">
+        <item quantity="one">Доступна %1$d новая база данных</item>
+        <item quantity="few">Доступно %1$d новые базы данных</item>
+        <item quantity="many">Доступно %1$d новых баз данных</item>
+        <item quantity="other">Доступно %1$d новых баз данных</item>
+    </plurals>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

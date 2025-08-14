@@ -1,8 +1,8 @@
 [versions]
 agp = "8.12.0"
 jsoup = "1.21.1"
-kotlin = "2.2.20-Beta2"
-coreKtx = "1.17.0-rc01"
+kotlin = "2.2.10-RC2"
+coreKtx = "1.17.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
@@ -15,7 +15,7 @@ navigationFragmentKtx = "2.9.3"
 navigationUiKtx = "2.9.3"
 swiperefreshlayout = "1.2.0-beta01"
 recyclerview = "1.4.0"
-sqlite_version = "2.6.0-beta01"
+sqlite_version = "2.6.0-rc01"
 kotlinxSerializationJson = "1.9.0"
 kotlinxCoroutinesAndroid = "1.10.2"
 pagingRuntimeKtx = "3.4.0-alpha02"
@@ -31,6 +31,8 @@ libsu = "6.0.0"
 core = "3.5.3"
 zstdJni = "1.5.7-4"
 localbroadcastmanager = "1.1.0"
+workRuntimeKtx = "2.10.3"
+preferenceKtx = "1.2.1"
 playServicesLocation = "21.3.0"
 
 
@@ -68,6 +70,8 @@ libsu-nio = { group = "com.github.topjohnwu.libsu", name = "nio", version.ref = 
 core = { group = "com.google.zxing", name = "core", version.ref = "core" }
 zstd-jni = { group = "com.github.luben", name = "zstd-jni", version.ref = "zstdJni" }
 androidx-localbroadcastmanager = { group = "androidx.localbroadcastmanager", name = "localbroadcastmanager", version.ref = "localbroadcastmanager" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
+androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preferenceKtx" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 [plugins]

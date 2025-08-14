@@ -11,7 +11,7 @@ class WifiApplication : Application() {
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(defaultHandler))
-
+        setupNotificationWorker()
         android.util.Log.i("WifiApplication", "Application started")
     }
 
@@ -37,5 +37,19 @@ class WifiApplication : Application() {
         if (FileLogger.isLoggingEnabled()) {
             FileLogger.logMemoryInfo()
         }
+    }
+
+    private fun setupNotificationWorker() {
+        val workRequest = androidx.work.PeriodicWorkRequestBuilder<com.lsd.wififrankenstein.workers.NotificationWorker>(
+            12, java.util.concurrent.TimeUnit.HOURS,
+            2, java.util.concurrent.TimeUnit.HOURS
+        ).build()
+
+        androidx.work.WorkManager.getInstance(this)
+            .enqueueUniquePeriodicWork(
+                "notification_check",
+                androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+                workRequest
+            )
     }
 }

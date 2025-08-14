@@ -71,6 +71,7 @@ class SettingsFragment : Fragment() {
         observeViewModel()
         setupDeveloperSettings()
         setupLoggingSettings()
+        setupButtons()
 
         binding.layoutDbSettingsContent.visibility = View.VISIBLE
         binding.layoutAppSettingsContent.visibility = View.VISIBLE
@@ -145,9 +146,18 @@ class SettingsFragment : Fragment() {
         ))
     }
 
+    private fun setupButtons() {
+        binding.buttonNotificationSettings.setOnClickListener {
+            findNavController().navigate(R.id.action_nav_settings_to_notificationSettingsFragment)
+        }
+    }
+
     private fun setupExpandButtons() {
         binding.buttonExpandDbSettings.setOnClickListener {
             toggleExpansion(binding.layoutDbSettingsContent, binding.buttonExpandDbSettings)
+        }
+        binding.buttonExpandNotificationSettings.setOnClickListener {
+            toggleExpansion(binding.layoutNotificationSettingsContent, binding.buttonExpandNotificationSettings)
         }
         binding.buttonExpandLoggingSettings.setOnClickListener {
             toggleExpansion(binding.layoutLoggingSettingsContent, binding.buttonExpandLoggingSettings)
@@ -641,6 +651,9 @@ class SettingsFragment : Fragment() {
 
         binding.layoutDeveloperSettingsContent.visibility = View.GONE
         binding.buttonExpandDeveloperSettings.setIconResource(R.drawable.ic_expand_more)
+
+        binding.layoutNotificationSettingsContent.visibility = if (expand) View.VISIBLE else View.GONE
+        binding.buttonExpandNotificationSettings.setIconResource(if (expand) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
     }
 
     private fun observeViewModel() {

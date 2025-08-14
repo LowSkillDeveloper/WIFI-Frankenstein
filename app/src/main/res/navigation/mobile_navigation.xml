@@ -12,6 +12,16 @@
         tools:layout="@layout/fragment_rss_news" />
 
     <fragment
+        android:id="@+id/notificationSettingsFragment"
+        android:name="com.lsd.wififrankenstein.ui.settings.NotificationSettingsFragment"
+        android:label="@string/notification_settings"
+        tools:layout="@layout/fragment_notification_settings" />
+
+    <action
+        android:id="@+id/action_nav_settings_to_notificationSettingsFragment"
+        app:destination="@id/notificationSettingsFragment" />
+
+    <fragment
         android:id="@+id/nav_upload_routerscan"
         android:name="com.lsd.wififrankenstein.ui.uploadrouterscan.UploadRouterScanFragment"
         android:label="@string/menu_upload_routerscan"

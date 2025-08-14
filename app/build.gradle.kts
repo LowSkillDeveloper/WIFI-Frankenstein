@@ -103,6 +103,8 @@ dependencies {
     implementation(libs.core)
     implementation(libs.zstd.jni)
     implementation(libs.androidx.localbroadcastmanager)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.preference.ktx)
     implementation(libs.play.services.location)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
