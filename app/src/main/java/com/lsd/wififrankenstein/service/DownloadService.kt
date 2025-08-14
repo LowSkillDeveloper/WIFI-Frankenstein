@@ -35,12 +35,18 @@ class DownloadService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val activeDownloads = ConcurrentHashMap<String, Job>()
     private val notificationManager by lazy { getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }
+    private val notificationProgress = ConcurrentHashMap<String, Int>()
+    private val lastNotificationUpdate = ConcurrentHashMap<String, Long>()
+    private val lastBroadcastUpdate = ConcurrentHashMap<String, Long>()
 
     companion object {
         private const val TAG = "DownloadService"
         private const val NOTIFICATION_ID = 1001
         private const val COMPLETION_NOTIFICATION_BASE_ID = 2000
         private const val CHANNEL_ID = "download_channel"
+        private const val NOTIFICATION_UPDATE_INTERVAL_MS = 2000L
+        private const val PROGRESS_UPDATE_THRESHOLD = 10
+        private const val BROADCAST_UPDATE_INTERVAL_MS = 250L
 
         const val ACTION_START_DOWNLOAD = "start_download"
         const val ACTION_CANCEL_DOWNLOAD = "cancel_download"
@@ -126,7 +132,7 @@ class DownloadService : Service() {
     private fun startDownload(fileName: String, downloadUrl: String, serverVersion: String) {
         val job = serviceScope.launch {
             try {
-                showNotification(fileName, 0)
+                showInitialNotification(fileName)
 
                 val file = File(filesDir, fileName)
                 val url = URL(downloadUrl)
@@ -146,8 +152,8 @@ class DownloadService : Service() {
                             totalBytesRead += bytesRead
                             val progress = if (fileSize > 0) (totalBytesRead * 100 / fileSize) else 0
 
-                            updateNotification(fileName, progress)
-                            broadcastProgress(fileName, progress)
+                            updateNotificationOptimized(fileName, progress)
+                            broadcastProgressOptimized(fileName, progress)
                         }
                     }
                 }
@@ -165,6 +171,9 @@ class DownloadService : Service() {
                 cancelNotification(fileName)
             } finally {
                 activeDownloads.remove(fileName)
+                notificationProgress.remove(fileName)
+                lastNotificationUpdate.remove(fileName)
+                lastBroadcastUpdate.remove(fileName)
                 if (activeDownloads.isEmpty()) {
                     stopSelf()
                 }
@@ -177,6 +186,9 @@ class DownloadService : Service() {
     private fun cancelDownload(fileName: String) {
         activeDownloads[fileName]?.cancel()
         activeDownloads.remove(fileName)
+        notificationProgress.remove(fileName)
+        lastNotificationUpdate.remove(fileName)
+        lastBroadcastUpdate.remove(fileName)
         broadcastCancelled(fileName)
         cancelNotification(fileName)
 
@@ -188,6 +200,9 @@ class DownloadService : Service() {
     private fun cancelAllDownloads() {
         activeDownloads.values.forEach { it.cancel() }
         activeDownloads.clear()
+        notificationProgress.clear()
+        lastNotificationUpdate.clear()
+        lastBroadcastUpdate.clear()
         cancelAllNotifications()
         stopSelf()
     }
@@ -216,9 +231,47 @@ class DownloadService : Service() {
         }
     }
 
-    private fun showNotification(fileName: String, progress: Int) {
+    private fun showInitialNotification(fileName: String) {
         if (!hasNotificationPermission()) {
             Log.w(TAG, "No notification permission, skipping notification")
+            return
+        }
+
+        notificationProgress[fileName] = 0
+        lastNotificationUpdate[fileName] = System.currentTimeMillis()
+        lastBroadcastUpdate[fileName] = System.currentTimeMillis()
+        showNotification(fileName, 0)
+    }
+
+    private fun updateNotificationOptimized(fileName: String, progress: Int) {
+        if (!hasNotificationPermission()) {
+            return
+        }
+
+        val lastProgress = notificationProgress[fileName] ?: 0
+        val lastUpdateTime = lastNotificationUpdate[fileName] ?: 0
+        val currentTime = System.currentTimeMillis()
+
+        val progressDifference = kotlin.math.abs(progress - lastProgress)
+        val timeDifference = currentTime - lastUpdateTime
+
+        val shouldUpdate = when {
+            progress == 0 -> true
+            progress == 100 -> true
+            progressDifference >= PROGRESS_UPDATE_THRESHOLD && timeDifference >= NOTIFICATION_UPDATE_INTERVAL_MS -> true
+            timeDifference >= (NOTIFICATION_UPDATE_INTERVAL_MS * 2) -> true
+            else -> false
+        }
+
+        if (shouldUpdate) {
+            notificationProgress[fileName] = progress
+            lastNotificationUpdate[fileName] = currentTime
+            updateNotification(fileName, progress)
+        }
+    }
+
+    private fun showNotification(fileName: String, progress: Int) {
+        if (!hasNotificationPermission()) {
             return
         }
 
@@ -274,7 +327,7 @@ class DownloadService : Service() {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_file_download)
             .setContentTitle(getString(R.string.downloading_file))
-            .setContentText(fileName)
+            .setContentText(getString(R.string.downloading_file_progress, fileName, progress))
             .setProgress(100, progress, false)
             .setOngoing(true)
             .addAction(R.drawable.ic_close, getString(R.string.cancel), cancelPendingIntent)
@@ -329,6 +382,23 @@ class DownloadService : Service() {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
+    private fun broadcastProgressOptimized(fileName: String, progress: Int) {
+        val lastBroadcastTime = lastBroadcastUpdate[fileName] ?: 0
+        val currentTime = System.currentTimeMillis()
+        val timeDifference = currentTime - lastBroadcastTime
+
+        val shouldBroadcast = when {
+            progress == 0 || progress == 100 -> true
+            timeDifference >= BROADCAST_UPDATE_INTERVAL_MS -> true
+            else -> false
+        }
+
+        if (shouldBroadcast) {
+            lastBroadcastUpdate[fileName] = currentTime
+            broadcastProgress(fileName, progress)
+        }
+    }
+
     private fun broadcastComplete(fileName: String) {
         val intent = Intent(BROADCAST_DOWNLOAD_COMPLETE).apply {
             putExtra(EXTRA_FILE_NAME, fileName)
@@ -373,5 +443,8 @@ class DownloadService : Service() {
         super.onDestroy()
         serviceScope.cancel()
         cancelAllNotifications()
+        notificationProgress.clear()
+        lastNotificationUpdate.clear()
+        lastBroadcastUpdate.clear()
     }
 }
