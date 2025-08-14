@@ -549,9 +549,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         zoom: Double,
         selectedDatabases: Set<DbItem>
     ) {
-
-        checkMemoryAndCleanup()
-
         Log.d(TAG, "loadPointsInBoundingBox called: zoom=$zoom, databases=${selectedDatabases.size}")
 
         val currentTime = System.currentTimeMillis()
@@ -582,17 +579,62 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                 val expandedBoundingBox = expandBoundingBoxForPreload(boundingBox, zoom)
 
+                val totalMaxPoints = getMaxPointsForZoom(zoom)
+                val basePointsPerDatabase = if (totalMaxPoints == Int.MAX_VALUE) {
+                    Int.MAX_VALUE
+                } else {
+                    maxOf(2000, totalMaxPoints / selectedDatabases.size)
+                }
+
+                Log.d(TAG, "Total max points: $totalMaxPoints, Base points per database: $basePointsPerDatabase")
+
+                val databasePointCounts = mutableMapOf<String, Int>()
+
                 val allPoints = withContext(MapOperationExecutor.databaseDispatcher) {
                     val points = Collections.synchronizedList(mutableListOf<NetworkPoint>())
                     val totalDatabases = selectedDatabases.size
 
-                    val databaseJobs = selectedDatabases.mapIndexed { index, database ->
+                    val firstPassJobs = selectedDatabases.mapIndexed { index, database ->
+                        async {
+                            if (!isActive) return@async
+
+                            try {
+                                val quickSamplePoints = loadSamplePointsFromDatabase(database, expandedBoundingBox, 100)
+                                val estimatedTotal = quickSamplePoints.size * 100
+                                databasePointCounts[database.id] = estimatedTotal
+
+                                val progress = ((index + 1) * 10) / totalDatabases
+                                _loadingProgress.postValue(progress)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error sampling points from database ${database.id}", e)
+                                databasePointCounts[database.id] = 0
+                            }
+                        }
+                    }
+
+                    firstPassJobs.awaitAll()
+
+                    val minCount = databasePointCounts.values.minOrNull() ?: 1
+                    val maxCount = databasePointCounts.values.maxOrNull() ?: 1
+
+                    val adjustedLimits = selectedDatabases.associate { database ->
+                        val dbCount = databasePointCounts[database.id] ?: 1
+                        val priorityMultiplier = if (dbCount <= minCount * 2) 2.0 else 1.0
+                        val adjustedLimit = (basePointsPerDatabase * priorityMultiplier).toInt()
+                        database.id to minOf(adjustedLimit, if (totalMaxPoints == Int.MAX_VALUE) Int.MAX_VALUE else totalMaxPoints)
+                    }
+
+                    Log.d(TAG, "Database point counts: $databasePointCounts")
+                    Log.d(TAG, "Adjusted limits: $adjustedLimits")
+
+                    val secondPassJobs = selectedDatabases.mapIndexed { index, database ->
                         async {
                             if (!isActive) return@async
 
                             try {
                                 val startTime = System.currentTimeMillis()
-                                val dbPoints = loadPointsFromDatabase(database, expandedBoundingBox, zoom)
+                                val limit = adjustedLimits[database.id] ?: basePointsPerDatabase
+                                val dbPoints = loadPointsFromDatabase(database, expandedBoundingBox, zoom, limit)
                                 val loadTime = System.currentTimeMillis() - startTime
 
                                 if (!isActive) return@async
@@ -615,10 +657,10 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                                 points.addAll(networkPoints)
 
-                                val progress = ((index + 1) * 40) / totalDatabases
+                                val progress = 10 + ((index + 1) * 30) / totalDatabases
                                 _loadingProgress.postValue(progress)
 
-                                Log.d(TAG, "Loaded ${networkPoints.size} points from ${database.id} in ${loadTime}ms")
+                                Log.d(TAG, "Loaded ${networkPoints.size} points from ${database.id} (limit: $limit) in ${loadTime}ms")
                             } catch (e: CancellationException) {
                                 Log.d(TAG, "Database loading cancelled for ${database.id}")
                                 throw e
@@ -629,10 +671,17 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     }
 
                     try {
-                        databaseJobs.awaitAll()
+                        secondPassJobs.awaitAll()
                     } catch (e: CancellationException) {
                         Log.d(TAG, "All database loading cancelled")
                         throw e
+                    }
+
+                    Log.d(TAG, "Combined points from all databases: ${points.size}")
+
+                    val pointsByDatabase = points.groupBy { it.databaseId }
+                    pointsByDatabase.forEach { (dbId, dbPoints) ->
+                        Log.d(TAG, "Database $dbId final count: ${dbPoints.size}")
                     }
 
                     points.toList()
@@ -709,6 +758,62 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private suspend fun loadSamplePointsFromDatabase(
+        database: DbItem,
+        boundingBox: BoundingBox,
+        sampleSize: Int
+    ): List<Triple<Long, Double, Double>> = withContext(Dispatchers.IO) {
+        try {
+            when (database.dbType) {
+                DbType.LOCAL_APP_DB -> {
+                    val dbHelper = LocalAppDbHelper(getApplication())
+                    val localPoints = dbHelper.getPointsInBounds(
+                        boundingBox.latSouth,
+                        boundingBox.latNorth,
+                        boundingBox.lonWest,
+                        boundingBox.lonEast,
+                        sampleSize
+                    )
+                    localPoints.map { network ->
+                        val macDecimal = try {
+                            network.macAddress.replace(":", "").replace("-", "").toLongOrNull(16) ?: -1L
+                        } catch (_: Exception) { -1L }
+                        Triple(macDecimal, network.latitude ?: 0.0, network.longitude ?: 0.0)
+                    }.filter { it.first != -1L }
+                }
+                DbType.SQLITE_FILE_CUSTOM -> {
+                    if (database.directPath.isNullOrEmpty()) {
+                        emptyList()
+                    } else {
+                        externalIndexManager.getPointsInBoundingBox(database.id, boundingBox, sampleSize)
+                    }
+                }
+                else -> {
+                    val helper = getHelper(database)
+                    when (helper) {
+                        is SQLite3WiFiHelper -> helper.getPointsInBoundingBox(boundingBox, sampleSize)
+                        is SQLiteCustomHelper -> {
+                            if (database.tableName != null && database.columnMap != null) {
+                                helper.getPointsInBoundingBox(
+                                    boundingBox,
+                                    database.tableName,
+                                    database.columnMap,
+                                    sampleSize
+                                ) ?: emptyList()
+                            } else {
+                                emptyList()
+                            }
+                        }
+                        else -> emptyList()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading sample points from ${database.id}", e)
+            emptyList()
+        }
+    }
+
     private fun expandBoundingBoxForPreload(originalBox: BoundingBox, zoom: Double): BoundingBox {
         val latRange = originalBox.latNorth - originalBox.latSouth
         val lonRange = originalBox.lonEast - originalBox.lonWest
@@ -774,7 +879,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     private suspend fun loadPointsFromDatabase(
         database: DbItem,
         boundingBox: BoundingBox,
-        zoom: Double
+        zoom: Double,
+        maxPointsPerDb: Int
     ): List<Triple<Long, Double, Double>> = withContext(Dispatchers.IO) {
         val cacheKey = "${database.id}_${createCacheKey(boundingBox)}"
         val maxPointsPerDb = getMaxPointsForZoom(zoom)

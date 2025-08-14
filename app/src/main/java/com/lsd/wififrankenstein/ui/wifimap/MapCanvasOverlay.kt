@@ -104,10 +104,25 @@ class MapCanvasOverlay(
     }
 
     private fun drawCluster(canvas: Canvas, screenPoint: Point, point: NetworkPoint) {
-        val countText = point.essid?.substringBetween("(", " points)") ?: "0"
-        val count = countText.toIntOrNull() ?: 0
+        val countText = point.essid?.let { essid ->
+            when {
+                essid.startsWith("Mixed") -> {
+                    val match = "\\((.*?) points\\)".toRegex().find(essid)
+                    match?.groupValues?.get(1)?.replace(" + ", "+") ?: "0"
+                }
+                essid.contains(" points)") -> {
+                    essid.substringBetween("(", " points)")
+                }
+                else -> "1"
+            }
+        } ?: "1"
+
+        val count = countText.replace("+", " ").split(" ")
+            .mapNotNull { it.toIntOrNull() }
+            .sum()
 
         val isMultiPointCluster = count > 1
+        val isMixedCluster = point.essid?.startsWith("Mixed") == true
 
         val radius = if (isMultiPointCluster) {
             when {
@@ -143,6 +158,22 @@ class MapCanvasOverlay(
             12f
         }
 
+        if (isMixedCluster) {
+            val strokePaint = Paint().apply {
+                isAntiAlias = true
+                style = Paint.Style.STROKE
+                strokeWidth = 4f
+                color = android.graphics.Color.WHITE
+            }
+
+            canvas.drawCircle(
+                screenPoint.x.toFloat(),
+                screenPoint.y.toFloat(),
+                radius,
+                strokePaint
+            )
+        }
+
         clusterPaint.color = point.color
         canvas.drawCircle(
             screenPoint.x.toFloat(),
@@ -156,7 +187,7 @@ class MapCanvasOverlay(
             when {
                 count >= 1000000 -> "${count/1000000}M"
                 count >= 1000 -> "${count/1000}k"
-                else -> countText
+                else -> count.toString()
             }
         } else {
             "1"

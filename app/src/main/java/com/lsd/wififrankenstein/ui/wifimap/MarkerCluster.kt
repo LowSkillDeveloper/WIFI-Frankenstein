@@ -10,6 +10,12 @@ data class MarkerCluster(
 ) {
     val size: Int get() = points.size
 
+    val databaseCounts: Map<String, Int> get() = points
+        .groupBy { it.databaseId }
+        .mapValues { it.value.size }
+
+    val isMixedDatabase: Boolean get() = databaseCounts.size > 1
+
     fun addPoint(point: NetworkPoint) {
         points.add(point)
         recalculateCenter()
