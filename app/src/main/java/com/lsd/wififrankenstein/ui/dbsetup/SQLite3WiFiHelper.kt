@@ -177,10 +177,15 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     private val TAG = "SQLite3WiFiHelper"
 
     suspend fun getPointsInBoundingBox(bounds: BoundingBox, limit: Int = Int.MAX_VALUE): List<Triple<Long, Double, Double>> {
-        Log.d(TAG, "Starting getPointsInBoundingBox with bounds: $bounds")
+        Log.d(TAG, "Starting getPointsInBoundingBox with bounds: $bounds, limit: $limit")
         return withContext(Dispatchers.IO) {
-            val maxPoints = if (CompatibilityHelper.isLowMemoryDevice()) 25000 else 50000
-            val points = ArrayList<Triple<Long, Double, Double>>(maxPoints)
+            val effectiveLimit = limit
+            val initialCapacity = when {
+                effectiveLimit == Int.MAX_VALUE -> 10000
+                effectiveLimit > 50000 -> 50000
+                else -> effectiveLimit
+            }
+            val points = ArrayList<Triple<Long, Double, Double>>(initialCapacity)
 
             try {
                 databaseLock.withLock {
@@ -204,8 +209,8 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
                             var processedCount = 0
                             do {
-                                if (points.size >= maxPoints) {
-                                    Log.w(TAG, "Reached maximum points limit: $maxPoints")
+                                if (effectiveLimit != Int.MAX_VALUE && points.size >= effectiveLimit) {
+                                    Log.w(TAG, "Reached effective points limit: $effectiveLimit")
                                     break
                                 }
 
@@ -362,12 +367,16 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
             try {
                 if (bssids.isEmpty()) return@withContext emptyList()
 
-                val maxBssids = if (CompatibilityHelper.isLowMemoryDevice()) 50 else 100
-                val chunkedBssids = bssids.take(maxBssids * 10).chunked(maxBssids)
+                val maxBssids = when {
+                    bssids.size <= 100 -> bssids.size
+                    CompatibilityHelper.isLowMemoryDevice() -> 50
+                    else -> 100
+                }
+                val chunkedBssids = bssids.chunked(maxBssids)
 
                 val decimalBSSIDs = mutableMapOf<String, Long>()
 
-                bssids.take(maxBssids * 10).forEach { bssid ->
+                bssids.forEach { bssid ->
                     val decimal = convertMacToDecimal(bssid)
                     if (decimal != -1L) {
                         decimalBSSIDs[bssid] = decimal

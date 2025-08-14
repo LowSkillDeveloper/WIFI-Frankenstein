@@ -216,6 +216,11 @@ class SettingsFragment : Fragment() {
             viewModel.setForcePointSeparation(isChecked)
         }
 
+        binding.switchEnablePointLimits.isChecked = viewModel.getEnablePointLimits()
+        binding.switchEnablePointLimits.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setEnablePointLimits(isChecked)
+        }
+
         sliderMaxClusterSize.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 val intValue = value.toInt()
@@ -230,7 +235,6 @@ class SettingsFragment : Fragment() {
                 textViewMarkerVisibilityZoomValue.text = getString(R.string.zoom_level_value, value.toInt())
             }
         }
-
     }
 
 
@@ -665,6 +669,10 @@ class SettingsFragment : Fragment() {
                 else -> R.id.radioButtonSystemTheme
             }
             binding.radioGroupTheme.check(radioButtonId)
+        }
+
+        viewModel.enablePointLimits.observe(viewLifecycleOwner) { enabled ->
+            binding.switchEnablePointLimits.isChecked = enabled
         }
 
         viewModel.enableLogging.observe(viewLifecycleOwner) { isEnabled ->

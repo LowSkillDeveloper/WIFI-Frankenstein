@@ -192,6 +192,13 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun getMaxPointsForZoom(zoom: Double): Int {
+        val limitsEnabled = settingsPrefs.getBoolean("map_enable_point_limits", false)
+
+        if (!limitsEnabled) {
+            Log.d(TAG, "Point limits disabled, returning unlimited for zoom $zoom")
+            return Int.MAX_VALUE
+        }
+
         val runtime = Runtime.getRuntime()
         val maxMemory = runtime.maxMemory()
         val memoryClass = when {
@@ -223,7 +230,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
-        Log.d(TAG, "Memory class: $memoryClass, Max points PER DATABASE for zoom $zoom: ${if (maxPoints == Int.MAX_VALUE) "UNLIMITED" else maxPoints}")
+        Log.d(TAG, "Memory class: $memoryClass, Limits enabled: $limitsEnabled, Max points PER DATABASE for zoom $zoom: ${if (maxPoints == Int.MAX_VALUE) "UNLIMITED" else maxPoints}")
         return maxPoints
     }
 

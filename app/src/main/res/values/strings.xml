@@ -1602,6 +1602,10 @@
     <string name="low_memory_warning">Low memory detected, some features may be limited</string>
     <string name="file_access_error">Cannot access database file</string>
 
+    <string name="enable_point_limits">Enable point limits</string>
+    <string name="enable_point_limits_desc">Limit the number of points loaded from each database</string>
+    <string name="point_limits_recommendation">Recommended for weak devices when viewing large areas to improve performance and reduce memory usage</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

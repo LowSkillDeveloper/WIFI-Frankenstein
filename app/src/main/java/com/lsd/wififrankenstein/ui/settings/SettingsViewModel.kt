@@ -27,6 +27,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _usePostMethod = MutableLiveData<Boolean>()
     val usePostMethod: LiveData<Boolean> = _usePostMethod
 
+    private val _enablePointLimits = MutableLiveData<Boolean>()
+    val enablePointLimits: LiveData<Boolean> = _enablePointLimits
+
     private val _currentAppIcon = MutableLiveData<String>()
     val currentAppIcon: LiveData<String> = _currentAppIcon
 
@@ -147,6 +150,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _includeAppIdentifier.value = api3WiFiPrefs.getBoolean("includeAppIdentifier", true)
         _showWipFeatures.value = prefs.getBoolean("show_wip_features", false)
         _enableLogging.value = FileLogger.isLoggingEnabled()
+        _enablePointLimits.value = prefs.getBoolean("map_enable_point_limits", false)
+    }
+
+    fun getEnablePointLimits() = _enablePointLimits.value == true
+    fun setEnablePointLimits(value: Boolean) {
+        prefs.edit { putBoolean("map_enable_point_limits", value) }
+        _enablePointLimits.value = value
+        notifyMapSettingsChanged()
     }
 
     fun setEnableLogging(enabled: Boolean) {

@@ -74,7 +74,7 @@ class SQLiteCustomHelper(
                 val lonColumn = columnMap["longitude"] ?: return@withContext null
                 val macColumn = columnMap["mac"] ?: return@withContext null
 
-                val query = getOptimalQuery(tableName, columnMap, bounds)
+                val query = getOptimalQuery(tableName, columnMap, bounds, limit)
                 if (query.isEmpty()) return@withContext null
 
                 _database?.rawQuery(query, arrayOf(
@@ -144,7 +144,8 @@ class SQLiteCustomHelper(
     fun getOptimalQuery(
         tableName: String,
         columnMap: Map<String, String>,
-        bounds: BoundingBox
+        bounds: BoundingBox,
+        limit: Int = Int.MAX_VALUE
     ): String {
         val latColumn = columnMap["latitude"] ?: return ""
         val lonColumn = columnMap["longitude"] ?: return ""
@@ -160,20 +161,22 @@ class SQLiteCustomHelper(
                 )?.use { it.count > 0 } ?: false
 
                 if (hasCoordsIndex) {
+                    val limitClause = if (limit != Int.MAX_VALUE) " LIMIT $limit" else ""
                     """
-                SELECT $macColumn, $latColumn, $lonColumn 
-                FROM $tableName 
-                WHERE $latColumn >= ? AND $latColumn <= ?
-                AND $lonColumn >= ? AND $lonColumn <= ?
-                ORDER BY $latColumn, $lonColumn
-                """
+SELECT $macColumn, $latColumn, $lonColumn 
+FROM $tableName 
+WHERE $latColumn >= ? AND $latColumn <= ?
+AND $lonColumn >= ? AND $lonColumn <= ?
+ORDER BY $latColumn, $lonColumn$limitClause
+"""
                 } else {
+                    val limitClause = if (limit != Int.MAX_VALUE) " LIMIT $limit" else ""
                     """
-                SELECT $macColumn, $latColumn, $lonColumn 
-                FROM $tableName 
-                WHERE $latColumn >= ? AND $latColumn <= ?
-                AND $lonColumn >= ? AND $lonColumn <= ?
-                """
+SELECT $macColumn, $latColumn, $lonColumn 
+FROM $tableName 
+WHERE $latColumn >= ? AND $latColumn <= ?
+AND $lonColumn >= ? AND $lonColumn <=?$limitClause
+"""
                 }
             }
             else -> {
