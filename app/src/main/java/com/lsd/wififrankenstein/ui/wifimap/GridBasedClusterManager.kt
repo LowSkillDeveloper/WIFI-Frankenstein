@@ -1,6 +1,5 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
-import org.osmdroid.util.BoundingBox
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
@@ -15,10 +14,8 @@ class GridBasedClusterManager(
     private var lastZoomLevel = -1.0
     private var cachedClusters: List<MarkerCluster> = emptyList()
     private var cachedPoints: List<NetworkPoint> = emptyList()
-    private var cachedBounds: BoundingBox? = null
-
-    private val spatialIndex = mutableMapOf<String, MutableList<NetworkPoint>>()
-    private val gridCellSize = 0.01
+    private var cacheTimestamp = 0L
+    private val CLUSTER_CACHE_EXPIRY_MS = 5000L
 
     private data class GridCell(
         val x: Int,
@@ -79,112 +76,32 @@ class GridBasedClusterManager(
     }
 
     private fun canUseCachedClusters(zoomLevel: Double, points: List<NetworkPoint>): Boolean {
-        return false
+        val currentTime = System.currentTimeMillis()
+        val zoomDiff = kotlin.math.abs(zoomLevel - lastZoomLevel)
+        val cacheAge = currentTime - cacheTimestamp
+
+        return cachedClusters.isNotEmpty() &&
+                zoomDiff < 0.1 &&
+                cacheAge < CLUSTER_CACHE_EXPIRY_MS &&
+                points.size == cachedPoints.size
     }
 
     private fun updateCache(zoomLevel: Double, points: List<NetworkPoint>, clusters: List<MarkerCluster>) {
         lastZoomLevel = zoomLevel
         cachedClusters = clusters
         cachedPoints = points
-
-        if (points.isNotEmpty()) {
-            val minLat = points.minOf { it.latitude }
-            val maxLat = points.maxOf { it.latitude }
-            val minLon = points.minOf { it.longitude }
-            val maxLon = points.maxOf { it.longitude }
-
-            val baseBounds = BoundingBox(maxLat, maxLon, minLat, minLon)
-            cachedBounds = baseBounds.increaseByScale(1.5f)
-        }
+        cacheTimestamp = System.currentTimeMillis()
     }
 
-    fun canUsePointsCache(requestedBounds: BoundingBox): Boolean {
-        return cachedBounds != null && cachedPoints.isNotEmpty() &&
-                isAreaContainedIn(requestedBounds, cachedBounds!!)
+    fun clearAllCache() {
+        lastZoomLevel = -1.0
+        cachedClusters = emptyList()
+        cachedPoints = emptyList()
+        cacheTimestamp = 0L
     }
 
-    fun getCachedPointsInBounds(requestedBounds: BoundingBox): List<NetworkPoint> {
-        return cachedPoints.filter { point ->
-            requestedBounds.contains(point.latitude, point.longitude)
-        }
-    }
-
-    private fun isAreaContainedIn(innerBox: BoundingBox, outerBox: BoundingBox): Boolean {
-        return outerBox.contains(innerBox.latNorth, innerBox.lonEast) &&
-                outerBox.contains(innerBox.latSouth, innerBox.lonWest)
-    }
-
-    fun clearCacheOnHighZoom(zoomLevel: Double) {
-        if (zoomLevel >= 14.0 && lastZoomLevel < 14.0) {
-            cachedClusters = emptyList()
-            lastZoomLevel = -1.0
-        }
-    }
-
-    private fun buildSpatialIndex(points: List<NetworkPoint>) {
-        spatialIndex.clear()
-        points.forEach { point ->
-            val cellKey = getSpatialCellKey(point.latitude, point.longitude)
-            spatialIndex.getOrPut(cellKey) { mutableListOf() }.add(point)
-        }
-    }
-
-    private fun getSpatialCellKey(lat: Double, lon: Double): String {
-        val cellLat = (lat / gridCellSize).toInt()
-        val cellLon = (lon / gridCellSize).toInt()
-        return "$cellLat,$cellLon"
-    }
-
-    private fun getPointsInArea(bounds: BoundingBox): List<NetworkPoint> {
-        val result = mutableListOf<NetworkPoint>()
-
-        val minCellLat = (bounds.latSouth / gridCellSize).toInt()
-        val maxCellLat = (bounds.latNorth / gridCellSize).toInt()
-        val minCellLon = (bounds.lonWest / gridCellSize).toInt()
-        val maxCellLon = (bounds.lonEast / gridCellSize).toInt()
-
-        for (cellLat in minCellLat..maxCellLat) {
-            for (cellLon in minCellLon..maxCellLon) {
-                val cellKey = "$cellLat,$cellLon"
-                spatialIndex[cellKey]?.let { cellPoints ->
-                    result.addAll(cellPoints.filter { point ->
-                        bounds.contains(point.latitude, point.longitude)
-                    })
-                }
-            }
-        }
-
-        return result
-    }
-
-    fun hasSignificantAreaChange(newBounds: BoundingBox): Boolean {
-        val currentBounds = cachedBounds ?: return true
-
-        if (!boundsIntersect(currentBounds, newBounds)) {
-            return true
-        }
-
-        val currentArea = (currentBounds.latNorth - currentBounds.latSouth) *
-                (currentBounds.lonEast - currentBounds.lonWest)
-        val newArea = (newBounds.latNorth - newBounds.latSouth) *
-                (newBounds.lonEast - newBounds.lonWest)
-
-        return kotlin.math.abs(newArea - currentArea) / currentArea > 0.2
-    }
-
-    private fun boundsIntersect(bounds1: BoundingBox, bounds2: BoundingBox): Boolean {
-        return !(bounds1.latNorth < bounds2.latSouth ||
-                bounds1.latSouth > bounds2.latNorth ||
-                bounds1.lonEast < bounds2.lonWest ||
-                bounds1.lonWest > bounds2.lonEast)
-    }
-
-    private fun calculatePointsCenter(points: List<NetworkPoint>): Pair<Double, Double> {
-        if (points.isEmpty()) return Pair(0.0, 0.0)
-
-        val avgLat = points.sumOf { it.displayLatitude } / points.size
-        val avgLon = points.sumOf { it.displayLongitude } / points.size
-        return Pair(avgLat, avgLon)
+    fun forceRefresh() {
+        clearAllCache()
     }
 
     private fun performGridClustering(
@@ -192,7 +109,6 @@ class GridBasedClusterManager(
         zoomLevel: Double
     ): List<MarkerCluster> {
         val gridSize = calculateGridSize(zoomLevel)
-
         val databaseGroups = points.groupBy { it.databaseId }
         val allClusters = mutableListOf<MarkerCluster>()
 
@@ -346,55 +262,6 @@ class GridBasedClusterManager(
         }
 
         return mergedClusters
-    }
-
-    private fun mergeClustersToTargetSize(
-        clusters: MutableList<MarkerCluster>,
-        zoomLevel: Double
-    ): List<MarkerCluster> {
-        val targetClusterCount = when {
-            clusterAggressiveness >= 4.0f -> (clusters.size * 0.1).toInt().coerceAtLeast(1)
-            clusterAggressiveness >= 3.0f -> (clusters.size * 0.2).toInt().coerceAtLeast(1)
-            clusterAggressiveness >= 2.5f -> (clusters.size * 0.3).toInt().coerceAtLeast(1)
-            clusterAggressiveness >= 2.0f -> (clusters.size * 0.5).toInt().coerceAtLeast(1)
-            else -> (clusters.size * 0.7).toInt().coerceAtLeast(1)
-        }
-
-        while (clusters.size > targetClusterCount && clusters.size > 1) {
-            var minDistance = Double.MAX_VALUE
-            var mergeIndex1 = -1
-            var mergeIndex2 = -1
-
-            for (i in clusters.indices) {
-                for (j in i + 1 until clusters.size) {
-                    val cluster1 = clusters[i]
-                    val cluster2 = clusters[j]
-
-                    if (cluster1.size + cluster2.size > maxClusterSize) continue
-
-                    val distance = calculateDistance(
-                        cluster1.centerLatitude, cluster1.centerLongitude,
-                        cluster2.centerLatitude, cluster2.centerLongitude
-                    )
-
-                    if (distance < minDistance) {
-                        minDistance = distance
-                        mergeIndex1 = i
-                        mergeIndex2 = j
-                    }
-                }
-            }
-
-            if (mergeIndex1 == -1 || mergeIndex2 == -1) break
-
-            val cluster1 = clusters[mergeIndex1]
-            val cluster2 = clusters[mergeIndex2]
-
-            cluster2.points.forEach { cluster1.addPoint(it) }
-            clusters.removeAt(mergeIndex2)
-        }
-
-        return clusters
     }
 
     private fun performSuperAggressiveClustering(
@@ -578,129 +445,6 @@ class GridBasedClusterManager(
         }
 
         return separateOverlappingClusters(allClusters, databaseGroups)
-    }
-
-    private fun applySeparationToClusters(clusters: List<MarkerCluster>): List<MarkerCluster> {
-        if (clusters.isEmpty()) return clusters
-
-        val positionGroups = mutableMapOf<String, MutableList<MarkerCluster>>()
-
-        clusters.forEach { cluster ->
-            val key = "${(cluster.centerLatitude * 100000).toInt()}_${(cluster.centerLongitude * 100000).toInt()}"
-            positionGroups.getOrPut(key) { mutableListOf() }.add(cluster)
-        }
-
-        return positionGroups.flatMap { (_, groupClusters) ->
-            when {
-                groupClusters.size == 1 -> groupClusters
-                groupClusters.size <= 16 -> {
-                    val radius = 0.0001
-                    val angleStep = 2 * Math.PI / groupClusters.size
-
-                    groupClusters.mapIndexed { index, cluster ->
-                        val angle = angleStep * index
-                        val offsetLat = radius * sin(angle)
-                        val offsetLon = radius * cos(angle)
-
-                        MarkerCluster(
-                            centerLatitude = cluster.centerLatitude + offsetLat,
-                            centerLongitude = cluster.centerLongitude + offsetLon
-                        ).apply {
-                            cluster.points.forEach { point ->
-                                addPoint(point.copy(
-                                    offsetLatitude = point.offsetLatitude + offsetLat,
-                                    offsetLongitude = point.offsetLongitude + offsetLon
-                                ))
-                            }
-                        }
-                    }
-                }
-                else -> {
-                    val gridSize = 4
-                    val radius = 0.00008
-
-                    groupClusters.take(16).mapIndexed { index, cluster ->
-                        val row = index / gridSize
-                        val col = index % gridSize
-                        val offsetLat = (row - gridSize / 2.0) * radius
-                        val offsetLon = (col - gridSize / 2.0) * radius
-
-                        MarkerCluster(
-                            centerLatitude = cluster.centerLatitude + offsetLat,
-                            centerLongitude = cluster.centerLongitude + offsetLon
-                        ).apply {
-                            cluster.points.forEach { point ->
-                                addPoint(point.copy(
-                                    offsetLatitude = point.offsetLatitude + offsetLat,
-                                    offsetLongitude = point.offsetLongitude + offsetLon
-                                ))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun performAdaptiveGridClustering(
-        points: List<NetworkPoint>,
-        zoomLevel: Double,
-        mapCenter: Pair<Double, Double>?
-    ): List<MarkerCluster> {
-        val baseGridSize = calculateGridSize(zoomLevel)
-        val cells = mutableMapOf<Pair<Int, Int>, GridCell>()
-
-        points.forEach { point ->
-            val distanceFromCenter = mapCenter?.let { center ->
-                calculateDistance(
-                    center.first, center.second,
-                    point.displayLatitude, point.displayLongitude
-                )
-            } ?: 0.0
-
-            val adaptiveGridSize = when {
-                distanceFromCenter > 100000 -> baseGridSize * 3.0
-                distanceFromCenter > 50000 -> baseGridSize * 2.5
-                distanceFromCenter > 20000 -> baseGridSize * 2.0
-                distanceFromCenter > 10000 -> baseGridSize * 1.5
-                else -> baseGridSize
-            }
-
-            val cellX = floor(point.displayLatitude / adaptiveGridSize).toInt()
-            val cellY = floor(point.displayLongitude / adaptiveGridSize).toInt()
-            val key = Pair(cellX, cellY)
-
-            val cell = cells.getOrPut(key) {
-                GridCell(cellX, cellY)
-            }
-
-            if (cell.points.size < maxClusterSize) {
-                cell.addPoint(point)
-            }
-        }
-
-        return cells.values.map { cell ->
-            MarkerCluster(
-                centerLatitude = cell.centerLatitude,
-                centerLongitude = cell.centerLongitude
-            ).apply {
-                cell.points.forEach { point ->
-                    addPoint(point)
-                }
-            }
-        }
-    }
-
-    fun clearAllCache() {
-        lastZoomLevel = -1.0
-        cachedClusters = emptyList()
-        cachedPoints = emptyList()
-        cachedBounds = null
-        spatialIndex.clear()
-    }
-
-    fun forceRefresh() {
-        clearAllCache()
     }
 
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
