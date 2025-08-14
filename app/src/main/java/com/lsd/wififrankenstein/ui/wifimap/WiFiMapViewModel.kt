@@ -564,8 +564,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     yield()
                 }
 
-                val htmlData = parseHtmlData(mapPoint.popupHtml)
-
                 if (mapPoint.count > 1) {
                     NetworkPoint(
                         latitude = mapPoint.latitude,
@@ -577,16 +575,39 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                         color = getColorForDatabase(database.id)
                     )
                 } else {
+                    val htmlData = parseHtmlData(mapPoint.popupHtml)
+                    val essid = htmlData["essid"] ?: getApplication<Application>().getString(R.string.unknown_ssid)
+                    val password = htmlData["password"]
+                    val bssid = htmlData["bssid"]
+
+                    val record = NetworkRecord(
+                        essid = essid,
+                        password = password,
+                        wpsPin = null,
+                        routerModel = null,
+                        adminCredentials = emptyList(),
+                        isHidden = false,
+                        isWifiDisabled = false,
+                        timeAdded = null,
+                        rawData = mapOf(
+                            "bssid" to bssid,
+                            "essid" to essid,
+                            "password" to password,
+                            "source" to "map_api"
+                        )
+                    )
+
                     NetworkPoint(
                         latitude = mapPoint.latitude,
                         longitude = mapPoint.longitude,
                         bssidDecimal = mapPoint.bssidDecimal,
                         source = database.type,
                         databaseId = database.id,
-                        essid = htmlData["essid"],
-                        password = htmlData["password"],
+                        essid = essid,
+                        password = password,
                         color = getColorForDatabase(database.id),
-                        isDataLoaded = htmlData.isNotEmpty()
+                        isDataLoaded = true,
+                        allRecords = listOf(record)
                     )
                 }
             }

@@ -182,7 +182,7 @@ class WiFiMapFragment : Fragment() {
 
             canvasOverlay = MapCanvasOverlay { point ->
                 if (point.bssidDecimal == -1L) {
-                    controller.animateTo(
+                    binding.map.controller.animateTo(
                         GeoPoint(point.latitude, point.longitude),
                         zoomLevelDouble + 1.0,
                         400L
@@ -1027,7 +1027,28 @@ class WiFiMapFragment : Fragment() {
 
             val recyclerView = findViewById<RecyclerView>(R.id.recyclerViewRecords)
             recyclerView.layoutManager = LinearLayoutManager(requireContext())
-            val adapter = NetworkRecordsAdapter(point.allRecords, requireContext(), macAddress)
+            val records = if (point.allRecords.isNotEmpty()) {
+                point.allRecords
+            } else {
+                listOf(NetworkRecord(
+                    essid = point.essid ?: getString(R.string.unknown_ssid),
+                    password = point.password,
+                    wpsPin = point.wpsPin,
+                    routerModel = null,
+                    adminCredentials = emptyList(),
+                    isHidden = false,
+                    isWifiDisabled = false,
+                    timeAdded = null,
+                    rawData = mapOf(
+                        "bssid" to macAddress,
+                        "essid" to point.essid,
+                        "password" to point.password
+                    )
+                ))
+            }
+
+            findViewById<TextView>(R.id.textViewRecordCount).text = getString(R.string.multiple_records, records.size)
+            val adapter = NetworkRecordsAdapter(records, requireContext(), macAddress)
             recyclerView.adapter = adapter
 
             findViewById<ImageButton>(R.id.buttonCopyCoordinates).setOnClickListener {
