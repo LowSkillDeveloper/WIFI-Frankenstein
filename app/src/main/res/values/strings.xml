@@ -1597,6 +1597,11 @@
 
     <string name="downloading_file_progress">%1$s (%2$d%%)</string>
 
+    <string name="too_many_databases_selected">Too many databases selected for this device</string>
+    <string name="map_loading_error">Error loading map data</string>
+    <string name="low_memory_warning">Low memory detected, some features may be limited</string>
+    <string name="file_access_error">Cannot access database file</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

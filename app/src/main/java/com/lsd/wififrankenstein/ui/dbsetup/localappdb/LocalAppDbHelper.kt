@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
 import com.lsd.wififrankenstein.util.Log
 import androidx.core.database.sqlite.transaction
+import com.lsd.wififrankenstein.util.CompatibilityHelper
 import java.io.File
 import java.io.FileOutputStream
 
@@ -809,10 +810,11 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
 
     fun bulkInsertBatch(networks: List<WifiNetwork>): Int {
         var inserted = 0
+        val chunkSize = CompatibilityHelper.getRecommendedChunkSize()
 
         try {
             writableDatabase.transaction {
-                networks.chunked(1000).forEach { batch ->
+                networks.chunked(chunkSize).forEach { batch ->
                     batch.forEach { network ->
                         try {
                             val values = ContentValues().apply {
@@ -832,6 +834,10 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
                         } catch (e: Exception) {
                             Log.e("LocalAppDbHelper", "Error inserting record", e)
                         }
+                    }
+
+                    if (inserted % (chunkSize * 5) == 0) {
+                        Log.d("LocalAppDbHelper", "Inserted $inserted records so far")
                     }
                 }
             }

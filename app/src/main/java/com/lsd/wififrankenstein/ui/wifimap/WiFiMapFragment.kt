@@ -40,6 +40,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
+import com.lsd.wififrankenstein.util.CompatibilityHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -757,19 +758,34 @@ class WiFiMapFragment : Fragment() {
             return
         }
 
+        if (!CompatibilityHelper.canHandleLargeFiles() && selectedDatabases.size > 2) {
+            binding.textViewProgress.text = getString(R.string.too_many_databases_selected)
+            binding.textViewProgress.setTextColor(ContextCompat.getColor(requireContext(), R.color.error_red))
+            binding.textViewProgress.visibility = View.VISIBLE
+            binding.progressBar.stopAnimation()
+            return
+        }
+
         updateJob?.cancel()
 
         updateJob = lifecycleScope.launch {
-            val currentColors = selectedDatabases.associate { database ->
-                database.id to getColorForDatabase(database.id)
-            }
+            try {
+                val currentColors = selectedDatabases.associate { database ->
+                    database.id to getColorForDatabase(database.id)
+                }
 
-            Log.d(TAG, "Starting loadPointsInBoundingBox")
-            viewModel.loadPointsInBoundingBox(
-                boundingBox,
-                zoom,
-                selectedDatabases
-            )
+                Log.d(TAG, "Starting loadPointsInBoundingBox")
+                viewModel.loadPointsInBoundingBox(
+                    boundingBox,
+                    zoom,
+                    selectedDatabases
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in updateVisiblePoints", e)
+                binding.progressBar.stopAnimation()
+                binding.textViewProgress.text = getString(R.string.map_loading_error)
+                binding.textViewProgress.visibility = View.VISIBLE
+            }
         }
     }
 

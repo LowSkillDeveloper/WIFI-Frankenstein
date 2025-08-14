@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
+import com.lsd.wififrankenstein.util.CompatibilityHelper
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.DatabaseIndices
 import com.lsd.wififrankenstein.util.DatabaseOptimizer
@@ -77,21 +78,31 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     private fun openDatabaseFromUri(): SQLiteDatabase {
         val cachedFile = getCachedFile(dbUri)
         return if (cachedFile != null && !isOriginalFileChanged(dbUri, cachedFile)) {
-            SQLiteDatabase.openDatabase(
-                cachedFile.path,
-                null,
-                SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-                SafeDatabaseErrorHandler()
-            )
+            try {
+                SQLiteDatabase.openDatabase(
+                    cachedFile.path,
+                    null,
+                    SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
+                    SafeDatabaseErrorHandler()
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to open cached file, creating new one", e)
+                cachedFile.delete()
+                openDatabaseFromTempFile()
+            }
         } else {
-            val tempFile = copyUriToTempFile(dbUri)
-            SQLiteDatabase.openDatabase(
-                tempFile.path,
-                null,
-                SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-                SafeDatabaseErrorHandler()
-            )
+            openDatabaseFromTempFile()
         }
+    }
+
+    private fun openDatabaseFromTempFile(): SQLiteDatabase {
+        val tempFile = copyUriToTempFileWithRetry(dbUri)
+        return SQLiteDatabase.openDatabase(
+            tempFile.path,
+            null,
+            SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
+            SafeDatabaseErrorHandler()
+        )
     }
 
     fun getSelectedFileSize(): Float {
@@ -109,6 +120,19 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
     suspend fun loadNetworkInfo(bssidDecimal: Long): Map<String, Any?>? = withContext(Dispatchers.IO) {
         Log.d(TAG, "Starting loadNetworkInfo for decimal BSSID: $bssidDecimal")
+
+        if (CompatibilityHelper.isLowMemoryDevice()) {
+            val runtime = Runtime.getRuntime()
+            val usedMemory = runtime.totalMemory() - runtime.freeMemory()
+            val maxMemory = runtime.maxMemory()
+
+            if (usedMemory > maxMemory * 0.8) {
+                Log.w(TAG, "Low memory, clearing cache before network info load")
+                clearCache()
+                System.gc()
+            }
+        }
+
         databaseLock.withLock {
             try {
                 Log.d(TAG, "Acquired database lock for BSSID: $bssidDecimal")
@@ -155,40 +179,57 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     suspend fun getPointsInBoundingBox(bounds: BoundingBox): List<Triple<Long, Double, Double>> {
         Log.d(TAG, "Starting getPointsInBoundingBox with bounds: $bounds")
         return withContext(Dispatchers.IO) {
-            val points = ArrayList<Triple<Long, Double, Double>>(50000)
+            val maxPoints = if (CompatibilityHelper.isLowMemoryDevice()) 25000 else 50000
+            val points = ArrayList<Triple<Long, Double, Double>>(maxPoints)
 
             try {
-                val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
-                Log.d(TAG, "Index level: $indexLevel")
+                databaseLock.withLock {
+                    val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
+                    Log.d(TAG, "Index level: $indexLevel")
 
-                val query = DatabaseIndices.getOptimalGeoQuery(indexLevel)
+                    val query = DatabaseIndices.getOptimalGeoQuery(indexLevel)
 
-                Log.d(TAG, "Executing query with bounds: lat(${bounds.latSouth}-${bounds.latNorth}), lon(${bounds.lonWest}-${bounds.lonEast})")
+                    Log.d(TAG, "Executing query with bounds: lat(${bounds.latSouth}-${bounds.latNorth}), lon(${bounds.lonWest}-${bounds.lonEast})")
 
-                database?.rawQuery(query, arrayOf(
-                    bounds.latSouth.toString(),
-                    bounds.latNorth.toString(),
-                    bounds.lonWest.toString(),
-                    bounds.lonEast.toString()
-                ))?.use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        val bssidIndex = cursor.getColumnIndex("BSSID")
-                        val latIndex = cursor.getColumnIndex("latitude")
-                        val lonIndex = cursor.getColumnIndex("longitude")
+                    database?.rawQuery(query, arrayOf(
+                        bounds.latSouth.toString(),
+                        bounds.latNorth.toString(),
+                        bounds.lonWest.toString(),
+                        bounds.lonEast.toString()
+                    ))?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val bssidIndex = cursor.getColumnIndex("BSSID")
+                            val latIndex = cursor.getColumnIndex("latitude")
+                            val lonIndex = cursor.getColumnIndex("longitude")
 
-                        do {
-                            val bssid = cursor.getLong(bssidIndex)
-                            val lat = cursor.getDouble(latIndex)
-                            val lon = cursor.getDouble(lonIndex)
-                            points.add(Triple(bssid, lat, lon))
+                            var processedCount = 0
+                            do {
+                                if (points.size >= maxPoints) {
+                                    Log.w(TAG, "Reached maximum points limit: $maxPoints")
+                                    break
+                                }
 
-                            if (points.size % 10000 == 0) {
-                                yield()
-                            }
-                        } while (cursor.moveToNext())
+                                val bssid = cursor.getLong(bssidIndex)
+                                val lat = cursor.getDouble(latIndex)
+                                val lon = cursor.getDouble(lonIndex)
+                                points.add(Triple(bssid, lat, lon))
+
+                                processedCount++
+                                if (processedCount % 5000 == 0) {
+                                    yield()
+                                    if (CompatibilityHelper.isLowMemoryDevice() && processedCount % 10000 == 0) {
+                                        System.gc()
+                                    }
+                                }
+                            } while (cursor.moveToNext())
+                        }
+                        Log.d(TAG, "Retrieved ${points.size} points from database")
                     }
-                    Log.d(TAG, "Retrieved ${points.size} points from database")
                 }
+            } catch (e: OutOfMemoryError) {
+                Log.e(TAG, "OutOfMemoryError getting points in bounding box", e)
+                System.gc()
+                points.clear()
             } catch (e: Exception) {
                 Log.e(TAG, "Error getting points in bounding box", e)
             }
@@ -210,27 +251,89 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     }
 
     private fun copyUriToTempFile(uri: Uri): File {
-        val fileName = getFileNameFromUri(uri)
-        val tempFile = File(cacheDir, fileName)
+        return copyUriToTempFileWithRetry(uri)
+    }
 
-        if (tempFile.exists()) {
-            tempFile.delete()
-        }
+    private fun copyUriToTempFileWithRetry(uri: Uri, maxRetries: Int = 3): File {
+        var lastException: Exception? = null
 
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            FileOutputStream(tempFile).use { output ->
-                input.copyTo(output)
+        repeat(maxRetries) { attempt ->
+            try {
+                val fileName = getFileNameFromUri(uri)
+                val tempFile = File(cacheDir, fileName)
+
+                if (tempFile.exists()) {
+                    if (CompatibilityHelper.isFileAccessible(tempFile)) {
+                        val lastModified = getCachedLastModified(tempFile)
+                        val originalLastModified = getOriginalLastModified(uri)
+                        if (lastModified == originalLastModified) {
+                            selectedFileSize = tempFile.length().toFloat() / (1024 * 1024)
+                            return tempFile
+                        }
+                    }
+                    tempFile.delete()
+                }
+
+                val bufferSize = if (CompatibilityHelper.isLowMemoryDevice()) 4096 else 8192
+                var totalBytes = 0L
+
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(tempFile).use { output ->
+                        val buffer = ByteArray(bufferSize)
+                        var bytesRead: Int
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            totalBytes += bytesRead
+
+                            if (totalBytes > 500 * 1024 * 1024 && CompatibilityHelper.isLowMemoryDevice()) {
+                                throw IllegalStateException("File too large for this device")
+                            }
+                        }
+                    }
+                }
+
+                if (!CompatibilityHelper.isFileAccessible(tempFile)) {
+                    tempFile.delete()
+                    throw IllegalStateException("Copied file is not accessible")
+                }
+
+                val originalLastModified = getOriginalLastModified(uri)
+                saveCachedLastModified(tempFile, originalLastModified)
+                selectedFileSize = tempFile.length().toFloat() / (1024 * 1024)
+
+                return tempFile
+
+            } catch (e: Exception) {
+                lastException = e
+                Log.w(TAG, "Copy attempt ${attempt + 1} failed", e)
+                if (attempt < maxRetries - 1) {
+                    System.gc()
+                    Thread.sleep(1000)
+                }
             }
         }
-        val lastModified = context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-            cursor.moveToFirst()
-            cursor.getLong(cursor.getColumnIndexOrThrow("last_modified"))
-        } ?: System.currentTimeMillis()
-        saveCachedLastModified(tempFile, lastModified)
 
-        selectedFileSize = tempFile.length().toFloat() / (1024 * 1024)
+        throw IllegalArgumentException("Failed to copy URI to temp file after $maxRetries attempts", lastException)
+    }
 
-        return tempFile
+    private fun getOriginalLastModified(uri: Uri): Long {
+        return try {
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val lastModifiedIndex = cursor.getColumnIndex("last_modified")
+                    if (lastModifiedIndex != -1) {
+                        cursor.getLong(lastModifiedIndex)
+                    } else {
+                        System.currentTimeMillis()
+                    }
+                } else {
+                    System.currentTimeMillis()
+                }
+            } ?: System.currentTimeMillis()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to get original last modified time", e)
+            System.currentTimeMillis()
+        }
     }
 
     private fun getFileNameFromUri(uri: Uri): String {
@@ -257,9 +360,14 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     suspend fun searchNetworksByBSSIDsAsync(bssids: List<String>): List<Map<String, Any?>> =
         withContext(Dispatchers.IO) {
             try {
+                if (bssids.isEmpty()) return@withContext emptyList()
+
+                val maxBssids = if (CompatibilityHelper.isLowMemoryDevice()) 50 else 100
+                val chunkedBssids = bssids.take(maxBssids * 10).chunked(maxBssids)
+
                 val decimalBSSIDs = mutableMapOf<String, Long>()
 
-                bssids.forEach { bssid ->
+                bssids.take(maxBssids * 10).forEach { bssid ->
                     val decimal = convertMacToDecimal(bssid)
                     if (decimal != -1L) {
                         decimalBSSIDs[bssid] = decimal
@@ -271,19 +379,20 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                 val tableName = DatabaseTypeUtils.getMainTableName(database!!)
                 if (tableName == "unknown") return@withContext emptyList()
 
-                val chunkedBssids = decimalBSSIDs.values.toList().chunked(100)
-                Log.d(TAG, "Searching for ${decimalBSSIDs.size} BSSIDs in ${chunkedBssids.size} chunks")
-
                 val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
 
                 chunkedBssids.flatMap { chunk ->
-                    val placeholders = chunk.joinToString(",") { "?" }
+                    val chunkDecimals = chunk.mapNotNull { bssid -> decimalBSSIDs[bssid] }
+                    if (chunkDecimals.isEmpty()) return@flatMap emptyList()
+
+                    val placeholders = chunkDecimals.joinToString(",") { "?" }
                     val baseQuery = DatabaseIndices.getOptimalBssidQuery(indexLevel, tableName, true)
                     val query = baseQuery.replace("(?)", "($placeholders)")
 
                     Log.d(TAG, "Using query: $query")
-                    database?.rawQuery(query, chunk.map { it.toString() }.toTypedArray())?.use { cursor ->
+                    database?.rawQuery(query, chunkDecimals.map { it.toString() }.toTypedArray())?.use { cursor ->
                         buildList {
+                            var processedCount = 0
                             while (cursor.moveToNext()) {
                                 val result = mutableMapOf<String, Any?>()
                                 for (i in 0 until cursor.columnCount) {
@@ -302,10 +411,19 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
                                 }
 
                                 add(result)
+
+                                processedCount++
+                                if (processedCount % 1000 == 0) {
+                                    yield()
+                                }
                             }
                         }
                     } ?: emptyList()
                 }
+            } catch (e: OutOfMemoryError) {
+                Log.e(TAG, "OutOfMemoryError in searchNetworksByBSSIDsAsync", e)
+                System.gc()
+                emptyList()
             } catch (e: Exception) {
                 Log.e(TAG, "Error in searchNetworksByBSSIDsAsync: ${e.message}", e)
                 emptyList()

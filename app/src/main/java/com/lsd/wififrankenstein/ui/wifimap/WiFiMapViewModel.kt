@@ -531,11 +531,27 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private fun checkMemoryAndCleanup() {
+        val runtime = Runtime.getRuntime()
+        val maxMemory = runtime.maxMemory()
+        val usedMemory = runtime.totalMemory() - runtime.freeMemory()
+        val availableMemory = maxMemory - usedMemory
+
+        if (availableMemory < maxMemory * 0.2) {
+            Log.w(TAG, "Low memory detected, clearing caches")
+            clearCache()
+            System.gc()
+        }
+    }
+
     suspend fun loadPointsInBoundingBox(
         boundingBox: BoundingBox,
         zoom: Double,
         selectedDatabases: Set<DbItem>
     ) {
+
+        checkMemoryAndCleanup()
+
         Log.d(TAG, "loadPointsInBoundingBox called: zoom=$zoom, databases=${selectedDatabases.size}")
 
         val currentTime = System.currentTimeMillis()

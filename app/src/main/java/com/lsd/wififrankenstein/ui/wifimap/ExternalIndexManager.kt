@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.osmdroid.util.BoundingBox
 import java.io.File
+import java.io.FileInputStream
 import java.security.MessageDigest
 
 class ExternalIndexManager(private val context: Context) {
@@ -45,8 +46,9 @@ class ExternalIndexManager(private val context: Context) {
     }
 
     private fun calculateDbHash(dbPath: String): String {
+        val file = File(dbPath)
+
         return try {
-            val file = File(dbPath)
             if (!file.exists()) {
                 Log.e(TAG, "File does not exist: $dbPath")
                 return ""
@@ -60,15 +62,24 @@ class ExternalIndexManager(private val context: Context) {
                 return file.lastModified().toString()
             }
 
-            val bytes = file.readBytes()
             val md = MessageDigest.getInstance("SHA-256")
-            val digest = md.digest(bytes)
+            val inputStream = FileInputStream(file)
+            val buffer = ByteArray(8192)
+            var read: Int
+
+            inputStream.use { stream ->
+                while (stream.read(buffer).also { read = it } > 0) {
+                    md.update(buffer, 0, read)
+                }
+            }
+
+            val digest = md.digest()
             val hash = digest.joinToString("") { "%02x".format(it) }
             Log.d(TAG, "Generated hash: $hash")
             hash
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating hash", e)
-            ""
+            file.lastModified().toString()
         }
     }
 
@@ -108,6 +119,15 @@ class ExternalIndexManager(private val context: Context) {
             if (indexFile.exists()) {
                 indexFile.delete()
                 Log.d(TAG, "Deleted old index database: $indexDbPath")
+            }
+
+            val requiredSpace = File(dbPath).length() / 2
+            val availableSpace = indexFile.parentFile?.usableSpace ?: 0L
+
+            if (availableSpace < requiredSpace) {
+                Log.e(TAG, "Not enough space for index creation. Required: $requiredSpace, Available: $availableSpace")
+                progressCallback(100)
+                return@withContext false
             }
 
             val indexDb = SQLiteDatabase.openOrCreateDatabase(indexDbPath, null)

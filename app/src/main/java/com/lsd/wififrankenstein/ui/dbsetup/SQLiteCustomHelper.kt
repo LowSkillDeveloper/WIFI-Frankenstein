@@ -6,6 +6,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
+import com.lsd.wififrankenstein.util.CompatibilityHelper
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -482,25 +483,54 @@ class SQLiteCustomHelper(
     }
 
     private fun openDatabaseFromUri(): SQLiteDatabase {
-        val tempFile = copyUriToTempFile(dbUri)
+        val tempFile = copyUriToTempFileWithRetry(dbUri)
         return SQLiteDatabase.openDatabase(
             tempFile.path,
             null,
             SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
             SafeDatabaseErrorHandler()
-        )    }
+        )
+    }
 
-    private fun copyUriToTempFile(uri: Uri): File {
-        val fileName = getFileNameFromUri(uri)
-        val tempFile = File(context.cacheDir, fileName)
+    private fun copyUriToTempFileWithRetry(uri: Uri, maxRetries: Int = 3): File {
+        var lastException: Exception? = null
 
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            FileOutputStream(tempFile).use { output ->
-                input.copyTo(output)
+        repeat(maxRetries) { attempt ->
+            try {
+                val fileName = getFileNameFromUri(uri)
+                val tempFile = CompatibilityHelper.createTempFileWithFallback(context, fileName, ".sqlite")
+                    ?: throw IllegalStateException("Cannot create temp file")
+
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(tempFile).use { output ->
+                        val buffer = ByteArray(if (CompatibilityHelper.isLowMemoryDevice()) 4096 else 8192)
+                        var bytesRead: Int
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                        }
+                    }
+                }
+
+                if (CompatibilityHelper.isFileAccessible(tempFile)) {
+                    return tempFile
+                } else {
+                    tempFile.delete()
+                    throw IllegalStateException("Copied file is not accessible")
+                }
+            } catch (e: Exception) {
+                lastException = e
+                Log.w("SQLiteCustomHelper", "Attempt ${attempt + 1} failed", e)
+                if (attempt < maxRetries - 1) {
+                    Thread.sleep(1000)
+                }
             }
         }
 
-        return tempFile
+        throw IllegalArgumentException("Failed to copy URI to temp file after $maxRetries attempts", lastException)
+    }
+
+    private fun copyUriToTempFile(uri: Uri): File {
+        return copyUriToTempFileWithRetry(uri)
     }
 
     private fun getFileNameFromUri(uri: Uri): String {

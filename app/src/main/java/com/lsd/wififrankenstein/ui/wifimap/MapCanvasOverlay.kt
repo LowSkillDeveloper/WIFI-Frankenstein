@@ -3,6 +3,7 @@ package com.lsd.wififrankenstein.ui.wifimap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Point
+import com.lsd.wififrankenstein.util.Log
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Overlay
@@ -44,32 +45,51 @@ class MapCanvasOverlay(
     override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
         if (shadow || points.isEmpty()) return
 
-        val projection = mapView.projection
-        val viewBounds = projection.boundingBox ?: return
+        try {
+            val projection = mapView.projection
+            val viewBounds = projection.boundingBox ?: return
 
-        val visiblePoints = points.filter { point ->
-            val lat = point.displayLatitude
-            val lon = point.displayLongitude
+            val visiblePoints = points.filter { point ->
+                val lat = point.displayLatitude
+                val lon = point.displayLongitude
 
-            lat >= viewBounds.latSouth - 0.001 &&
-                    lat <= viewBounds.latNorth + 0.001 &&
-                    lon >= viewBounds.lonWest - 0.001 &&
-                    lon <= viewBounds.lonEast + 0.001
-        }
+                lat >= viewBounds.latSouth - 0.001 &&
+                        lat <= viewBounds.latNorth + 0.001 &&
+                        lon >= viewBounds.lonWest - 0.001 &&
+                        lon <= viewBounds.lonEast + 0.001
+            }
 
-        for (point in visiblePoints) {
-            val geoPoint = GeoPoint(point.displayLatitude, point.displayLongitude)
-            projection.toPixels(geoPoint, screenPoint)
+            val maxPointsPerFrame = when {
+                visiblePoints.size > 10000 -> 5000
+                visiblePoints.size > 5000 -> visiblePoints.size / 2
+                else -> visiblePoints.size
+            }
 
-            if (screenPoint.x >= 0 && screenPoint.x <= mapView.width &&
-                screenPoint.y >= 0 && screenPoint.y <= mapView.height) {
+            val pointsToRender = if (visiblePoints.size > maxPointsPerFrame) {
+                visiblePoints.take(maxPointsPerFrame)
+            } else {
+                visiblePoints
+            }
 
-                if (point.bssidDecimal == -1L) {
-                    drawCluster(canvas, screenPoint, point)
-                } else {
-                    drawPoint(canvas, screenPoint, point)
+            for (point in pointsToRender) {
+                val geoPoint = GeoPoint(point.displayLatitude, point.displayLongitude)
+                projection.toPixels(geoPoint, screenPoint)
+
+                if (screenPoint.x >= -50 && screenPoint.x <= mapView.width + 50 &&
+                    screenPoint.y >= -50 && screenPoint.y <= mapView.height + 50) {
+
+                    if (point.bssidDecimal == -1L) {
+                        drawCluster(canvas, screenPoint, point)
+                    } else {
+                        drawPoint(canvas, screenPoint, point)
+                    }
                 }
             }
+        } catch (e: OutOfMemoryError) {
+            Log.e("MapCanvasOverlay", "OutOfMemoryError during drawing", e)
+            System.gc()
+        } catch (e: Exception) {
+            Log.e("MapCanvasOverlay", "Error during drawing", e)
         }
     }
 
