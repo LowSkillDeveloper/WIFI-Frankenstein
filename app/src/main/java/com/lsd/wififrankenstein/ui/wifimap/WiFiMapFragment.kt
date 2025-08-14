@@ -377,31 +377,47 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun setupLocationButton() {
+        Log.d(TAG, "Setting up location button")
+
         binding.fabLocation.setOnClickListener {
+            Log.d(TAG, "Location button clicked")
+
             userLocationMarker?.let { marker ->
+                Log.d(TAG, "Moving to existing location marker")
                 binding.map.controller.animateTo(marker.position, 18.0, 400L)
             } ?: run {
+                Log.d(TAG, "No existing location marker, requesting new location")
+                Snackbar.make(binding.root, getString(R.string.location_requested), Snackbar.LENGTH_SHORT).show()
                 userLocationManager.requestSingleLocationUpdate()
             }
         }
+
+        Log.d(TAG, "Location button setup complete")
     }
 
     private fun setupUserLocation() {
+        Log.d(TAG, "Setting up user location manager")
+
         userLocationManager = UserLocationManager(requireContext())
 
         userLocationManager.userLocation.observe(viewLifecycleOwner) { location ->
+            Log.d(TAG, "User location received: $location")
             location?.let {
                 updateUserLocationMarker(it)
 
                 if (userLocationMarker == null) {
+                    Log.d(TAG, "First location received, animating to position")
                     binding.map.controller.animateTo(it, 18.0, 400L)
                 }
             }
         }
 
         userLocationManager.locationError.observe(viewLifecycleOwner) { error ->
-            Snackbar.make(binding.root, error, Snackbar.LENGTH_SHORT).show()
+            Log.e(TAG, "Location error: $error")
+            Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG).show()
         }
+
+        Log.d(TAG, "User location manager setup complete")
     }
 
     private fun updateUserLocationMarker(location: GeoPoint) {

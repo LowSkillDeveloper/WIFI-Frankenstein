@@ -72,8 +72,12 @@ class UserLocationManager(private val context: Context) : LocationListener {
     }
 
     fun requestSingleLocationUpdate() {
+        Log.d(TAG, "requestSingleLocationUpdate called")
+
         if (!hasLocationPermission()) {
-            _locationError.postValue("Location permission required")
+            val message = "Location permission required"
+            Log.w(TAG, message)
+            _locationError.postValue(message)
             return
         }
 
@@ -81,23 +85,35 @@ class UserLocationManager(private val context: Context) : LocationListener {
             val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
             val isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
 
+            Log.d(TAG, "GPS enabled: $isGpsEnabled, Network enabled: $isNetworkEnabled")
+
             if (!isGpsEnabled && !isNetworkEnabled) {
-                _locationError.postValue("Location services disabled")
+                val message = "Location services disabled"
+                Log.w(TAG, message)
+                _locationError.postValue(message)
                 return
             }
 
+            Log.d(TAG, "Requesting location updates")
+
             if (isGpsEnabled) {
+                Log.d(TAG, "Requesting GPS location")
                 locationManager.requestSingleUpdate(LocationManager.GPS_PROVIDER, this, null)
             }
 
             if (isNetworkEnabled) {
+                Log.d(TAG, "Requesting network location")
                 locationManager.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, this, null)
             }
 
         } catch (e: SecurityException) {
-            _locationError.postValue("Location permission denied")
+            val message = "Location permission denied"
+            Log.e(TAG, message, e)
+            _locationError.postValue(message)
         } catch (e: Exception) {
-            _locationError.postValue("Error getting location: ${e.message}")
+            val message = "Error getting location: ${e.message}"
+            Log.e(TAG, message, e)
+            _locationError.postValue(message)
         }
     }
 
