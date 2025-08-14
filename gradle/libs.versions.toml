@@ -31,6 +31,7 @@ libsu = "6.0.0"
 core = "3.5.3"
 zstdJni = "1.5.7-4"
 localbroadcastmanager = "1.1.0"
+playServicesLocation = "21.3.0"
 
 
 [libraries]
@@ -67,6 +68,7 @@ libsu-nio = { group = "com.github.topjohnwu.libsu", name = "nio", version.ref = 
 core = { group = "com.google.zxing", name = "core", version.ref = "core" }
 zstd-jni = { group = "com.github.luben", name = "zstd-jni", version.ref = "zstdJni" }
 androidx-localbroadcastmanager = { group = "androidx.localbroadcastmanager", name = "localbroadcastmanager", version.ref = "localbroadcastmanager" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -4,11 +4,13 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import com.lsd.wififrankenstein.util.Log
@@ -91,6 +93,7 @@ class WiFiMapFragment : Fragment() {
             private const val DEFAULT_ZOOM = 5.0
         private const val DEFAULT_LAT = 55.7558
         private const val DEFAULT_LON = 37.6173
+        private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
     }
 
     override fun onCreateView(
@@ -412,12 +415,65 @@ class WiFiMapFragment : Fragment() {
             }
         }
 
-        userLocationManager.locationError.observe(viewLifecycleOwner) { error ->
-            Log.e(TAG, "Location error: $error")
-            Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG).show()
+        userLocationManager.locationError.observe(viewLifecycleOwner) { errorKey ->
+            Log.e(TAG, "Location error: $errorKey")
+            val errorMessage = when (errorKey) {
+                "location_services_disabled" -> getString(R.string.location_services_disabled)
+                "location_permission_denied" -> getString(R.string.location_permission_denied)
+                "location_not_available" -> getString(R.string.location_not_available)
+                "location_updates_failed" -> getString(R.string.location_updates_failed)
+                "location_timeout" -> getString(R.string.location_timeout)
+                else -> errorKey
+            }
+            Snackbar.make(binding.root, errorMessage, Snackbar.LENGTH_LONG).show()
+        }
+
+        userLocationManager.permissionRequired.observe(viewLifecycleOwner) { permissions ->
+            requestLocationPermissions(permissions)
         }
 
         Log.d(TAG, "User location manager setup complete")
+    }
+
+    private fun requestLocationPermissions(permissions: Array<String>) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            requestPermissions(permissions, LOCATION_PERMISSION_REQUEST_CODE)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            LOCATION_PERMISSION_REQUEST_CODE -> {
+                if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    userLocationManager.startLocationUpdates()
+                } else {
+                    showLocationPermissionDialog()
+                }
+            }
+        }
+    }
+
+    private fun showLocationPermissionDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.location_permission_required)
+            .setMessage(R.string.location_permission_explanation)
+            .setPositiveButton(R.string.settings) { _, _ ->
+                openAppSettings()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+        intent.data = android.net.Uri.fromParts("package", requireContext().packageName, null)
+        startActivity(intent)
     }
 
     private fun updateUserLocationMarker(location: GeoPoint) {
@@ -1062,6 +1118,7 @@ class WiFiMapFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        userLocationManager.onDestroy()
         _binding = null
     }
 }
