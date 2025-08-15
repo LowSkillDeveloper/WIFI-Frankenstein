@@ -1606,7 +1606,7 @@
     <string name="enable_point_limits_desc">Limit the number of points loaded from each database</string>
     <string name="point_limits_recommendation">Recommended for weak devices when viewing large areas to improve performance and reduce memory usage</string>
 
-    <string name="map_api_supported">Map API</string>
+    <string name="map_api_supported">Online Map API</string>
     <string name="checking_map_support">Checking map support…</string>
     <string name="map_api_check_failed">Map API check failed</string>
 
