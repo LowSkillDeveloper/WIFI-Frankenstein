@@ -112,7 +112,8 @@
                             android:id="@+id/radiusInput"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="numberDecimal" />
+                            android:inputType="numberDecimal"
+                            android:digits="0123456789." />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -141,12 +142,11 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/progressIndicator"
+            <com.lsd.wififrankenstein.util.AnimatedLoadingBar
+                android:id="@+id/loadingBar"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="4dp"
                 android:layout_marginBottom="16dp"
-                android:indeterminate="true"
                 android:visibility="gone" />
 
             <TextView

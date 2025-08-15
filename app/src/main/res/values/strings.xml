@@ -1656,11 +1656,12 @@
     <string name="tap_map_to_select">Tap on map to select coordinates</string>
     <string name="location_selected">Location selected</string>
 
-    <string name="invalid_radius_local">Invalid radius (0.1-40 km)</string>
-    <string name="invalid_radius_api">Invalid radius (0.1-25 km for API sources)</string>
+    <string name="invalid_radius_local">Invalid radius (0.1–40 km)</string>
+    <string name="invalid_radius_api">Invalid radius (0.1–25 km for API sources)</string>
     <string name="radius_limited_for_api">Radius limited to 25 km due to API sources</string>
     <string name="max_radius_40km">Maximum 40 km</string>
     <string name="max_radius_25km_api">Maximum 25 km for API sources</string>
+    <string name="online_api_suffix">(Online API)</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

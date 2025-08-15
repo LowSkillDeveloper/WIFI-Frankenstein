@@ -2,12 +2,14 @@ package com.lsd.wififrankenstein.ui.ipranges
 
 import android.content.Context
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -24,9 +26,8 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
-import org.osmdroid.views.overlay.infowindow.InfoWindow
 import java.text.NumberFormat
-import java.util.Locale
+import java.util.*
 import kotlin.math.cos
 import kotlin.math.PI
 
@@ -42,6 +43,10 @@ class IpRangesFragment : Fragment() {
     private var radiusOverlay: Polygon? = null
     private var isUpdatingFromMap = false
     private var isUpdatingFromFields = false
+
+    companion object {
+        private const val TAG = "IpRangesFragment"
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -266,6 +271,128 @@ class IpRangesFragment : Fragment() {
         }
     }
 
+    private fun createCirclePoints(center: GeoPoint, radiusKm: Double): ArrayList<GeoPoint> {
+        val points = ArrayList<GeoPoint>()
+        val earthRadius = 6371.0
+        val radiusInDegrees = radiusKm / earthRadius * (180.0 / PI)
+
+        for (i in 0..36) {
+            val angle = i * 10.0 * PI / 180.0
+            val lat = center.latitude + radiusInDegrees * cos(angle)
+            val lon = center.longitude + radiusInDegrees * kotlin.math.sin(angle) / cos(center.latitude * PI / 180.0)
+            points.add(GeoPoint(lat, lon))
+        }
+
+        return points
+    }
+
+    private fun observeViewModel() {
+        viewModel.sources.observe(viewLifecycleOwner) { sources ->
+            setupSourceCheckboxes(sources)
+            updateRadiusHint()
+        }
+
+        viewModel.ipRanges.observe(viewLifecycleOwner) { ranges ->
+            adapter.submitList(ranges)
+
+            binding.statusText.visibility = View.VISIBLE
+            binding.statusText.text = if (ranges.isEmpty()) {
+                getString(R.string.no_ip_ranges_found)
+            } else {
+                getString(R.string.ip_ranges_found, ranges.size)
+            }
+
+            binding.actionButtonsContainer.visibility = if (ranges.isNotEmpty()) View.VISIBLE else View.GONE
+            updateSelectionUI(0)
+        }
+
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            if (isLoading) {
+                binding.loadingBar.startAnimation()
+            } else {
+                binding.loadingBar.stopAnimation()
+            }
+
+            binding.searchButton.isEnabled = !isLoading
+
+            if (isLoading) {
+                binding.statusText.visibility = View.VISIBLE
+                binding.statusText.text = getString(R.string.searching_ip_ranges)
+                binding.actionButtonsContainer.visibility = View.GONE
+            }
+        }
+
+        viewModel.error.observe(viewLifecycleOwner) { error ->
+            error?.let {
+                showError(it)
+                viewModel.clearError()
+            }
+        }
+    }
+
+    private fun setupSourceCheckboxes(sources: List<IpRangeSource>) {
+        binding.sourcesContainer.removeAllViews()
+
+        sources.forEach { source ->
+            val checkBox = MaterialCheckBox(requireContext()).apply {
+                text = source.name
+                isChecked = source.isSelected
+                setOnCheckedChangeListener { _, isChecked ->
+                    viewModel.updateSourceSelection(source.id, isChecked)
+                    updateRadiusHint()
+                    validateCurrentInput()
+                }
+            }
+            binding.sourcesContainer.addView(checkBox)
+        }
+        updateRadiusHint()
+    }
+
+    private fun hasApiSourcesSelected(): Boolean {
+        val selectedSources = getSelectedSources()
+        val apiSources = viewModel.sources.value?.filter {
+            selectedSources.contains(it.id) && it.type == IpRangeSourceType.API
+        } ?: emptyList()
+        return apiSources.isNotEmpty()
+    }
+
+    private fun updateRadiusHint() {
+        val hasApiSources = hasApiSourcesSelected()
+        val hint = if (hasApiSources) {
+            "${getString(R.string.radius_km)} (${getString(R.string.max_radius_25km_api)})"
+        } else {
+            "${getString(R.string.radius_km)} (${getString(R.string.max_radius_40km)})"
+        }
+        binding.radiusInputLayout.hint = hint
+    }
+
+    private fun validateCurrentInput() {
+        val latitude = binding.latitudeInput.text.toString().trim()
+        val longitude = binding.longitudeInput.text.toString().trim()
+        val radius = binding.radiusInput.text.toString().trim()
+
+        if (latitude.isNotEmpty() && longitude.isNotEmpty() && radius.isNotEmpty()) {
+            validateInput(latitude, longitude, radius)
+        }
+    }
+
+    private fun updateSelectionUI(selectedCount: Int) {
+        if (selectedCount > 0) {
+            binding.selectionCountText.visibility = View.VISIBLE
+            binding.selectionCountText.text = getString(R.string.selected_count, selectedCount)
+            binding.selectAllButton.text = getString(R.string.clear_selection)
+            binding.selectAllButton.setOnClickListener {
+                adapter.clearSelection()
+            }
+        } else {
+            binding.selectionCountText.visibility = View.GONE
+            binding.selectAllButton.text = getString(R.string.select_all)
+            binding.selectAllButton.setOnClickListener {
+                adapter.selectAll()
+            }
+        }
+    }
+
     private fun validateInput(latitude: String, longitude: String, radius: String): Boolean {
         var isValid = true
 
@@ -303,133 +430,6 @@ class IpRangesFragment : Fragment() {
         return isValid
     }
 
-    private fun hasApiSourcesSelected(): Boolean {
-        val selectedSources = getSelectedSources()
-        val apiSources = viewModel.sources.value?.filter {
-            selectedSources.contains(it.id) && it.type == IpRangeSourceType.API
-        } ?: emptyList()
-        return apiSources.isNotEmpty()
-    }
-
-    private fun updateRadiusHint() {
-        val hasApiSources = hasApiSourcesSelected()
-        val hint = if (hasApiSources) {
-            "${getString(R.string.radius_km)} (${getString(R.string.max_radius_25km_api)})"
-        } else {
-            "${getString(R.string.radius_km)} (${getString(R.string.max_radius_40km)})"
-        }
-        binding.radiusInputLayout.hint = hint
-    }
-
-    private fun setupSourceCheckboxes(sources: List<IpRangeSource>) {
-        binding.sourcesContainer.removeAllViews()
-
-        sources.forEach { source ->
-            val checkBox = MaterialCheckBox(requireContext()).apply {
-                text = source.name
-                isChecked = source.isSelected
-                setOnCheckedChangeListener { _, isChecked ->
-                    viewModel.updateSourceSelection(source.id, isChecked)
-                    updateRadiusHint()
-                    validateCurrentInput()
-                }
-            }
-            binding.sourcesContainer.addView(checkBox)
-        }
-        updateRadiusHint()
-    }
-
-    private fun validateCurrentInput() {
-        val latitude = binding.latitudeInput.text.toString().trim()
-        val longitude = binding.longitudeInput.text.toString().trim()
-        val radius = binding.radiusInput.text.toString().trim()
-
-        if (latitude.isNotEmpty() && longitude.isNotEmpty() && radius.isNotEmpty()) {
-            validateInput(latitude, longitude, radius)
-        }
-    }
-
-    private fun parseCoordinate(coordinate: String): Double? {
-        return try {
-            val normalizedCoordinate = coordinate.replace(",", ".")
-            NumberFormat.getInstance(Locale.US).parse(normalizedCoordinate)?.toDouble()
-        } catch (e: Exception) {
-            Log.d("IpRangesFragment", "Failed to parse coordinate: $coordinate", e)
-            null
-        }
-    }
-
-    private fun createCirclePoints(center: GeoPoint, radiusKm: Double): ArrayList<GeoPoint> {
-        val points = ArrayList<GeoPoint>()
-        val earthRadius = 6371.0
-        val radiusInDegrees = radiusKm / earthRadius * (180.0 / PI)
-
-        for (i in 0..36) {
-            val angle = i * 10.0 * PI / 180.0
-            val lat = center.latitude + radiusInDegrees * cos(angle)
-            val lon = center.longitude + radiusInDegrees * kotlin.math.sin(angle) / cos(center.latitude * PI / 180.0)
-            points.add(GeoPoint(lat, lon))
-        }
-
-        return points
-    }
-
-    private fun observeViewModel() {
-        viewModel.sources.observe(viewLifecycleOwner) { sources ->
-            setupSourceCheckboxes(sources)
-            updateRadiusHint()
-        }
-
-        viewModel.ipRanges.observe(viewLifecycleOwner) { ranges ->
-            adapter.submitList(ranges)
-
-            binding.statusText.visibility = View.VISIBLE
-            binding.statusText.text = if (ranges.isEmpty()) {
-                getString(R.string.no_ip_ranges_found)
-            } else {
-                getString(R.string.ip_ranges_found, ranges.size)
-            }
-
-            binding.actionButtonsContainer.visibility = if (ranges.isNotEmpty()) View.VISIBLE else View.GONE
-            updateSelectionUI(0)
-        }
-
-        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.progressIndicator.visibility = if (isLoading) View.VISIBLE else View.GONE
-            binding.searchButton.isEnabled = !isLoading
-
-            if (isLoading) {
-                binding.statusText.visibility = View.VISIBLE
-                binding.statusText.text = getString(R.string.searching_ip_ranges)
-                binding.actionButtonsContainer.visibility = View.GONE
-            }
-        }
-
-        viewModel.error.observe(viewLifecycleOwner) { error ->
-            error?.let {
-                showError(it)
-                viewModel.clearError()
-            }
-        }
-    }
-
-    private fun updateSelectionUI(selectedCount: Int) {
-        if (selectedCount > 0) {
-            binding.selectionCountText.visibility = View.VISIBLE
-            binding.selectionCountText.text = getString(R.string.selected_count, selectedCount)
-            binding.selectAllButton.text = getString(R.string.clear_selection)
-            binding.selectAllButton.setOnClickListener {
-                adapter.clearSelection()
-            }
-        } else {
-            binding.selectionCountText.visibility = View.GONE
-            binding.selectAllButton.text = getString(R.string.select_all)
-            binding.selectAllButton.setOnClickListener {
-                adapter.selectAll()
-            }
-        }
-    }
-
     private fun getSelectedSources(): List<String> {
         val selectedSources = mutableListOf<String>()
         for (i in 0 until binding.sourcesContainer.childCount) {
@@ -439,6 +439,16 @@ class IpRangesFragment : Fragment() {
             }
         }
         return selectedSources
+    }
+
+    private fun parseCoordinate(coordinate: String): Double? {
+        return try {
+            val normalizedCoordinate = coordinate.replace(",", ".")
+            NumberFormat.getInstance(Locale.US).parse(normalizedCoordinate)?.toDouble()
+        } catch (e: Exception) {
+            Log.d(TAG, "Failed to parse coordinate: $coordinate", e)
+            null
+        }
     }
 
     private fun copyToClipboard(text: String) {

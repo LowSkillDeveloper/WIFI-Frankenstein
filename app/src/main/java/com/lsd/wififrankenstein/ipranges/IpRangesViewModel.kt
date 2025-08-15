@@ -36,48 +36,98 @@ class IpRangesViewModel(application: Application) : AndroidViewModel(application
 
     fun loadSources() {
         viewModelScope.launch {
-            Log.d("IpRangesViewModel", "Loading sources...")
-            dbSetupViewModel.loadDbList()
-            val sources = mutableListOf<IpRangeSource>()
+            try {
+                dbSetupViewModel.loadDbList()
+                val dbList = dbSetupViewModel.dbList.value ?: emptyList()
 
-            val localDatabases = dbSetupViewModel.dbList.value?.filter {
-                it.dbType == DbType.SQLITE_FILE_3WIFI || it.dbType == DbType.SQLITE_FILE_CUSTOM
-            } ?: emptyList()
+                val sources = mutableListOf<IpRangeSource>()
 
-            Log.d("IpRangesViewModel", "Found ${localDatabases.size} local databases")
+                dbList.forEach { dbItem ->
+                    when (dbItem.dbType) {
+                        DbType.SQLITE_FILE_3WIFI, DbType.SQLITE_FILE_CUSTOM -> {
+                            sources.add(
+                                IpRangeSource(
+                                    id = dbItem.id,
+                                    name = formatDatabaseName(dbItem.path),
+                                    type = IpRangeSourceType.LOCAL_DATABASE,
+                                    isSelected = true,
+                                    dbItem = dbItem
+                                )
+                            )
+                        }
+                        DbType.WIFI_API -> {
+                            sources.add(
+                                IpRangeSource(
+                                    id = dbItem.id,
+                                    name = formatApiName(dbItem.path, dbItem.userNick),
+                                    type = IpRangeSourceType.API,
+                                    isSelected = true,
+                                    dbItem = dbItem
+                                )
+                            )
+                        }
+                        else -> {
+                            // Пропускаем неподдерживаемые типы
+                        }
+                    }
+                }
 
-            localDatabases.forEach { db ->
-                sources.add(
-                    IpRangeSource(
-                        id = "local_${db.id}",
-                        name = "${getApplication<Application>().getString(R.string.local_database)}: ${db.type}",
-                        type = IpRangeSourceType.LOCAL_DATABASE,
-                        isSelected = true,
-                        dbItem = db
-                    )
-                )
+                _sources.value = sources
+                Log.d("IpRangesViewModel", "Loaded ${sources.size} sources")
+            } catch (e: Exception) {
+                Log.e("IpRangesViewModel", "Error loading sources", e)
+                _error.value = e.message ?: getApplication<Application>().getString(R.string.unknown_error)
+            }
+        }
+    }
+
+    private fun formatDatabaseName(path: String): String {
+        return try {
+            when {
+                path.startsWith("content://") -> {
+                    val uri = android.net.Uri.parse(path)
+                    uri.lastPathSegment?.let { lastSegment ->
+                        val decodedSegment = android.net.Uri.decode(lastSegment)
+                        decodedSegment.substringAfterLast('/')
+                    } ?: path
+                }
+                path.startsWith("file://") -> {
+                    val uri = android.net.Uri.parse(path)
+                    uri.lastPathSegment ?: path
+                }
+                path == "local_db" -> getApplication<Application>().getString(R.string.local_database)
+                else -> {
+                    path.substringAfterLast('/')
+                }
+            }.substringAfterLast("%2F").substringBeforeLast(".").ifEmpty {
+                path.substringAfterLast('/').substringBeforeLast('.')
+            }
+        } catch (e: Exception) {
+            Log.e("IpRangesViewModel", "Error formatting database name: $path", e)
+            path.substringAfterLast('/').substringBeforeLast('.')
+        }
+    }
+
+    private fun formatApiName(path: String, userNick: String?): String {
+        return try {
+            val hostName = when {
+                path.startsWith("http://") || path.startsWith("https://") -> {
+                    val uri = android.net.Uri.parse(path)
+                    uri.host ?: path
+                }
+                else -> path
             }
 
-            val apiDatabases = dbSetupViewModel.dbList.value?.filter {
-                it.dbType == DbType.WIFI_API
-            } ?: emptyList()
-
-            Log.d("IpRangesViewModel", "Found ${apiDatabases.size} API databases")
-
-            apiDatabases.forEach { db ->
-                sources.add(
-                    IpRangeSource(
-                        id = "api_${db.id}",
-                        name = "${getApplication<Application>().getString(R.string.api_source)}: ${db.path}",
-                        type = IpRangeSourceType.API,
-                        isSelected = true,
-                        dbItem = db
-                    )
-                )
+            val baseApiName = if (!userNick.isNullOrEmpty()) {
+                "$hostName ($userNick)"
+            } else {
+                hostName
             }
 
-            Log.d("IpRangesViewModel", "Total sources: ${sources.size}")
-            _sources.value = sources
+            "$baseApiName ${getApplication<Application>().getString(R.string.online_api_suffix)}"
+        } catch (e: Exception) {
+            Log.e("IpRangesViewModel", "Error formatting API name: $path", e)
+            "$path ${getApplication<Application>().getString(R.string.online_api_suffix)}"
         }
     }
 
