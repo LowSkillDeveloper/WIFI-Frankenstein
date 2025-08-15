@@ -53,6 +53,7 @@ class MacLocationFragment : Fragment() {
             binding.wigleApiInput.setText(apiKeys.wigleApi)
             binding.googleApiInput.setText(apiKeys.googleApi)
             binding.combainApiInput.setText(apiKeys.combainApi)
+            binding.yandexLocatorApiInput.setText(apiKeys.yandexLocatorApi)
         }
 
         return binding.root
@@ -69,8 +70,9 @@ class MacLocationFragment : Fragment() {
             val wigleApi = binding.wigleApiInput.text.toString()
             val googleApi = binding.googleApiInput.text.toString()
             val combainApi = binding.combainApiInput.text.toString()
+            val yandexLocatorApi = binding.yandexLocatorApiInput.text.toString()
 
-            viewModel.saveApiKeys(wigleApi, googleApi, combainApi)
+            viewModel.saveApiKeys(wigleApi, googleApi, combainApi, yandexLocatorApi)
             Snackbar.make(binding.root, R.string.api_keys_saved, Snackbar.LENGTH_SHORT).show()
         }
     }
@@ -219,7 +221,8 @@ class MacLocationFragment : Fragment() {
             viewModel.saveApiKeys(
                 binding.wigleApiInput.text.toString(),
                 binding.googleApiInput.text.toString(),
-                binding.combainApiInput.text.toString()
+                binding.combainApiInput.text.toString(),
+                binding.yandexLocatorApiInput.text.toString()
             )
 
             viewModel.search(MacLocationViewModel.SearchType(searchType, query))
@@ -233,11 +236,12 @@ class MacLocationFragment : Fragment() {
         }
 
         binding.saveApiButton.setOnClickListener {
-            viewModel.saveApiKeys(
-                binding.wigleApiInput.text.toString(),
-                binding.googleApiInput.text.toString(),
-                binding.combainApiInput.text.toString()
-            )
+            val wigleApi = binding.wigleApiInput.text.toString()
+            val googleApi = binding.googleApiInput.text.toString()
+            val combainApi = binding.combainApiInput.text.toString()
+            val yandexLocatorApi = binding.yandexLocatorApiInput.text.toString()
+
+            viewModel.saveApiKeys(wigleApi, googleApi, combainApi, yandexLocatorApi)
             Snackbar.make(binding.root, R.string.api_keys_saved, Snackbar.LENGTH_SHORT).show()
         }
     }

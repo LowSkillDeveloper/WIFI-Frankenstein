@@ -157,6 +157,21 @@
                                 android:hint="@string/combain_api_hint"
                                 android:inputType="textVisiblePassword"/>
 
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="8dp"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/yandex_locator_api_input"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:hint="@string/yandex_locator_api_hint"
+                                    android:inputType="textVisiblePassword"/>
+
+                            </com.google.android.material.textfield.TextInputLayout>
+
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.button.MaterialButton

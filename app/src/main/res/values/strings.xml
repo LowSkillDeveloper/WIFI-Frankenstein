@@ -1610,6 +1610,17 @@
     <string name="checking_map_support">Checking map support…</string>
     <string name="map_api_check_failed">Map API check failed</string>
 
+    <string name="yandex_search">Yandex Maps GET</string>
+    <string name="microsoft_search">Microsoft Location</string>
+    <string name="search_yandex_starting">Starting Yandex search…</string>
+    <string name="search_microsoft_starting">Starting Microsoft search…</string>
+
+    <string name="altergeo_search">AlterGeo</string>
+    <string name="yandex_locator_search">Yandex Locator</string>
+    <string name="yandex_locator_api_hint">Yandex Locator API Key</string>
+    <string name="search_altergeo_starting">Starting AlterGeo search…</string>
+    <string name="search_yandex_locator_starting">Starting Yandex Locator search…</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

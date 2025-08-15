@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.protobuf.ProtoBuf
 import org.json.JSONObject
+import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -37,7 +38,8 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
     data class ApiKeys(
         val wigleApi: String,
         val googleApi: String,
-        val combainApi: String
+        val combainApi: String,
+        val yandexLocatorApi: String
     )
 
     data class SearchType(
@@ -76,18 +78,20 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
         val wigleApi = prefs.getString(KEY_WIGLE_API, "") ?: ""
         val googleApi = prefs.getString(KEY_GOOGLE_API, "") ?: ""
         val combainApi = prefs.getString(KEY_COMBAIN_API, "") ?: ""
-        _savedApiKeys.value = ApiKeys(wigleApi, googleApi, combainApi)
+        val yandexLocatorApi = prefs.getString(KEY_YANDEX_LOCATOR_API, "") ?: ""
+        _savedApiKeys.value = ApiKeys(wigleApi, googleApi, combainApi, yandexLocatorApi)
     }
 
-    fun saveApiKeys(wigleApi: String, googleApi: String, combainApi: String) {
+    fun saveApiKeys(wigleApi: String, googleApi: String, combainApi: String, yandexLocatorApi: String) {
         log("Saving API keys...")
         prefs.edit().apply {
             putString(KEY_WIGLE_API, wigleApi)
             putString(KEY_GOOGLE_API, googleApi)
             putString(KEY_COMBAIN_API, combainApi)
+            putString(KEY_YANDEX_LOCATOR_API, yandexLocatorApi)
             apply()
         }
-        _savedApiKeys.value = ApiKeys(wigleApi, googleApi, combainApi)
+        _savedApiKeys.value = ApiKeys(wigleApi, googleApi, combainApi, yandexLocatorApi)
         log("✅ API keys saved successfully")
     }
 
@@ -119,7 +123,7 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             _isLoading.value = true
             var completedTasks = 0
-            val totalTasks = 6
+            val totalTasks = 10
 
             fun checkCompletion() {
                 completedTasks++
@@ -142,6 +146,20 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                 }
                 launch {
                     searchMylnikov(mac)
+                    checkCompletion()
+                }
+
+                launch {
+                    searchAlterGeo(mac)
+                    checkCompletion()
+                }
+
+                if (_savedApiKeys.value?.yandexLocatorApi?.isNotBlank() == true) {
+                    launch {
+                        searchYandexLocator(mac)
+                        checkCompletion()
+                    }
+                } else {
                     checkCompletion()
                 }
 
@@ -177,6 +195,15 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                     checkCompletion()
                 }
 
+                launch {
+                    searchYandex(mac)
+                    checkCompletion()
+                }
+                launch {
+                    searchMicrosoft(mac)
+                    checkCompletion()
+                }
+
             } catch (e: Exception) {
                 log("❌ Search error: ${e.message}")
                 Log.e(TAG, "Search error", e)
@@ -184,6 +211,272 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                 _isLoading.value = false
             }
         }
+    }
+
+    private suspend fun searchAlterGeo(macAddress: String) =
+        withContext(Dispatchers.IO) {
+            try {
+                log("Starting AlterGeo search for MAC: $macAddress")
+
+                val cleanMac = macAddress.lowercase().replace(":", "-")
+                val url = URL("http://api.platform.altergeo.ru/loc/json?browser=firefox&sensor=false&wifi=mac:$cleanMac%7Css:0")
+
+                val connection = (url.openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    requestMethod = "GET"
+                }
+
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+
+                val jsonResponse = JSONObject(response)
+
+                if (jsonResponse.getString("status") == "OK") {
+                    val accuracy = jsonResponse.optDouble("accuracy", Double.MAX_VALUE)
+                    if (accuracy < 1000) {
+                        val location = jsonResponse.getJSONObject("location")
+                        val lat = location.getDouble("lat")
+                        val lon = location.getDouble("lng")
+
+                        if (isValidCoordinates(lat, lon)) {
+                            val locationResult = LocationResult(
+                                module = "altergeo",
+                                bssid = macAddress,
+                                latitude = lat,
+                                longitude = lon
+                            )
+                            log("✅ AlterGeo search successful. Found location: $lat, $lon")
+                            addResult(locationResult)
+                        } else {
+                            log("ℹ️ AlterGeo search completed but coordinates are invalid")
+                        }
+                    } else {
+                        log("ℹ️ AlterGeo search completed but accuracy too low: $accuracy")
+                    }
+                } else {
+                    log("ℹ️ AlterGeo search completed but no results found")
+                }
+            } catch (e: Exception) {
+                log("❌ AlterGeo search error: ${e.message}")
+                Log.e(TAG, "AlterGeo search error", e)
+            }
+        }
+
+    private suspend fun searchYandexLocator(macAddress: String) =
+        withContext(Dispatchers.IO) {
+            try {
+                log("Starting Yandex Locator search for MAC: $macAddress")
+
+                val apiKey = _savedApiKeys.value?.yandexLocatorApi ?: return@withContext
+
+                val xmlRequest = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <ya_lbs_request xmlns="http://api.lbs.yandex.net/geolocation">
+                    <common>
+                        <version>1.0</version>
+                        <api_key>$apiKey</api_key>
+                    </common>
+                    <wifi_networks>
+                        <network>
+                            <mac>$macAddress</mac>
+                        </network>
+                    </wifi_networks>
+                </ya_lbs_request>
+            """.trimIndent()
+
+                val url = URL("http://api.lbs.yandex.net/geolocation")
+
+                val connection = (url.openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    requestMethod = "POST"
+                    doOutput = true
+                    setRequestProperty("Content-Type", "text/xml")
+                }
+
+                val postData = "xml=" + java.net.URLEncoder.encode(xmlRequest, "UTF-8")
+                connection.outputStream.use {
+                    it.write(postData.toByteArray())
+                }
+
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+
+                val typeMatch = Regex("<type>([^<]+)</type>").find(response)
+                val latMatch = Regex("<latitude>([^<]+)</latitude>").find(response)
+                val lonMatch = Regex("<longitude>([^<]+)</longitude>").find(response)
+
+                if (typeMatch != null && typeMatch.groupValues[1] == "wifi" &&
+                    latMatch != null && lonMatch != null) {
+
+                    val lat = latMatch.groupValues[1].toDoubleOrNull()
+                    val lon = lonMatch.groupValues[1].toDoubleOrNull()
+
+                    if (lat != null && lon != null && isValidCoordinates(lat, lon)) {
+                        val locationResult = LocationResult(
+                            module = "yandex_locator",
+                            bssid = macAddress,
+                            latitude = lat,
+                            longitude = lon
+                        )
+                        log("✅ Yandex Locator search successful. Found location: $lat, $lon")
+                        addResult(locationResult)
+                    } else {
+                        log("ℹ️ Yandex Locator search completed but coordinates are invalid")
+                    }
+                } else {
+                    log("ℹ️ Yandex Locator search completed but no results found")
+                }
+            } catch (e: Exception) {
+                log("❌ Yandex Locator search error: ${e.message}")
+                Log.e(TAG, "Yandex Locator search error", e)
+            }
+        }
+
+    private suspend fun searchYandex(macAddress: String) =
+        withContext(Dispatchers.IO) {
+            try {
+                log("Starting Yandex search for MAC: $macAddress")
+
+                val cleanMac = macAddress.replace(":", "").replace("-", "")
+                val url = URL("http://mobile.maps.yandex.net/cellid_location/?clid=1866854&lac=-1&cellid=-1&operatorid=null&countrycode=null&signalstrength=-1&wifinetworks=$cleanMac:0&app")
+
+                val connection = (url.openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    requestMethod = "GET"
+                }
+
+                val responseCode = connection.responseCode
+                val response = if (responseCode == 404) {
+                    "<error code=\"6\">Not found</error>"
+                } else {
+                    connection.inputStream.bufferedReader().use { it.readText() }
+                }
+
+                val latitude = getStringBetween(response, " latitude=\"", "\"")
+                val longitude = getStringBetween(response, " longitude=\"", "\"")
+
+                if (latitude.isNotEmpty() && longitude.isNotEmpty()) {
+                    val lat = latitude.toDoubleOrNull()
+                    val lon = longitude.toDoubleOrNull()
+
+                    if (lat != null && lon != null && isValidCoordinates(lat, lon)) {
+                        val locationResult = LocationResult(
+                            module = "yandex",
+                            bssid = macAddress,
+                            latitude = lat,
+                            longitude = lon
+                        )
+                        log("✅ Yandex search successful. Found location: $lat, $lon")
+                        addResult(locationResult)
+                    } else {
+                        log("ℹ️ Yandex search completed but coordinates are invalid")
+                    }
+                } else {
+                    log("ℹ️ Yandex search completed but no results found")
+                }
+            } catch (e: Exception) {
+                if (e.message?.contains("Unable to resolve host") == true ||
+                    e.message?.contains("No address associated with hostname") == true) {
+                    log("❌ Yandex search (without a key) error: Exploit unavailable, use Yandex with API key")
+                } else {
+                    log("❌ Yandex search error: ${e.message}")
+                }
+                Log.e(TAG, "Yandex search error", e)
+            }
+        }
+
+    private suspend fun searchMicrosoft(macAddress: String) =
+        withContext(Dispatchers.IO) {
+            try {
+                log("Starting Microsoft search for MAC: $macAddress")
+
+                val cleanMac = macAddress.lowercase().replace("-", ":")
+                val timestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
+
+                val xmlRequest = """
+                <GetLocationUsingFingerprint xmlns="http://inference.location.live.com">
+                    <RequestHeader>
+                        <Timestamp>$timestamp</Timestamp>
+                        <ApplicationId>e1e71f6b-2149-45f3-a298-a20682ab5017</ApplicationId>
+                        <TrackingId>21BF9AD6-CFD3-46B3-B041-EE90BD34FDBC</TrackingId>
+                        <DeviceProfile ClientGuid="0fc571be-4624-4ce0-b04e-911bdeb1a222" Platform="Android" DeviceType="Mobile" OSVersion="Android" LFVersion="1.0" ExtendedDeviceInfo="" />
+                        <Authorization />
+                    </RequestHeader>
+                    <BeaconFingerprint>
+                        <Detections>
+                            <Wifi7 BssId="$cleanMac" rssi="-1" />
+                        </Detections>
+                    </BeaconFingerprint>
+                </GetLocationUsingFingerprint>
+            """.trimIndent()
+
+                val url = URL("https://inference.location.live.net/inferenceservice/v21/Pox/GetLocationUsingFingerprint")
+
+                val connection = (url.openConnection() as HttpsURLConnection).apply {
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    requestMethod = "POST"
+                    doOutput = true
+                    setRequestProperty("Content-Type", "text/xml")
+                    setRequestProperty("Accept", "*/*")
+                    setRequestProperty("User-Agent", "WifiLocation/1.0")
+                }
+
+                connection.outputStream.use {
+                    it.write(xmlRequest.toByteArray())
+                }
+
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+
+                val latMatch = Regex("<Latitude>([^<]+)</Latitude>").find(response)
+                val lonMatch = Regex("<Longitude>([^<]+)</Longitude>").find(response)
+                val uncertaintyMatch = Regex("<RadialUncertainty>([^<]+)</RadialUncertainty>").find(response)
+
+                if (latMatch != null && lonMatch != null && uncertaintyMatch != null) {
+                    val lat = latMatch.groupValues[1].toDoubleOrNull()
+                    val lon = lonMatch.groupValues[1].toDoubleOrNull()
+                    val uncertainty = uncertaintyMatch.groupValues[1].toDoubleOrNull()
+
+                    if (lat != null && lon != null && uncertainty != null &&
+                        uncertainty < 500 && isValidCoordinates(lat, lon)) {
+
+                        val locationResult = LocationResult(
+                            module = "microsoft",
+                            bssid = macAddress,
+                            latitude = lat,
+                            longitude = lon
+                        )
+                        log("✅ Microsoft search successful. Found location: $lat, $lon")
+                        addResult(locationResult)
+                    } else {
+                        log("ℹ️ Microsoft search completed but results are unreliable")
+                    }
+                } else {
+                    log("ℹ️ Microsoft search completed but no results found")
+                }
+            } catch (e: Exception) {
+                log("❌ Microsoft search error: ${e.message}")
+                Log.e(TAG, "Microsoft search error", e)
+            }
+        }
+
+    private fun getStringBetween(source: String, start: String, end: String): String {
+        val startIndex = source.indexOf(start)
+        if (startIndex == -1) return ""
+
+        val startPos = startIndex + start.length
+        val endIndex = source.indexOf(end, startPos)
+        if (endIndex == -1) return ""
+
+        return source.substring(startPos, endIndex)
+    }
+
+    private fun isValidCoordinates(lat: Double, lon: Double): Boolean {
+        if (lat == 0.0 && lon == 0.0) return false
+        if (lat == 12.3456 && lon == -7.891) return false
+        if (lat >= 56.864 && lat <= 56.865 && lon >= 60.610 && lon <= 60.612) return false
+        return true
     }
 
     private fun searchBySSID(ssid: String) {
@@ -649,5 +942,6 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
         private const val KEY_WIGLE_API = "wigle_api"
         private const val KEY_GOOGLE_API = "google_api"
         private const val KEY_COMBAIN_API = "combain_api"
+        private const val KEY_YANDEX_LOCATOR_API = "yandex_locator_api"
     }
 }
