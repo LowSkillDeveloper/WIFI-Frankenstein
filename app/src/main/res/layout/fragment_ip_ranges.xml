@@ -5,8 +5,10 @@
     android:layout_height="match_parent">
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:fillViewport="true"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
@@ -31,46 +33,77 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="@string/enter_coordinates"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/select_location_on_map"
                         android:textAppearance="?attr/textAppearanceHeadline6" />
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/latitudeInputLayout"
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="250dp"
+                        android:layout_marginBottom="16dp">
+
+                        <com.lsd.wififrankenstein.ui.ipranges.CustomMapView
+                            android:id="@+id/mapView"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent" />
+
+                    </FrameLayout>
+
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:hint="@string/latitude"
-                        app:endIconMode="clear_text">
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/enter_coordinates"
+                        android:textAppearance="?attr/textAppearanceSubtitle1" />
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/latitudeInput"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="numberDecimal|numberSigned" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/longitudeInputLayout"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:hint="@string/longitude"
-                        app:endIconMode="clear_text">
+                        android:orientation="horizontal">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/longitudeInput"
-                            android:layout_width="match_parent"
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/latitudeInputLayout"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:inputType="numberDecimal|numberSigned" />
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:hint="@string/latitude"
+                            app:endIconMode="clear_text">
 
-                    </com.google.android.material.textfield.TextInputLayout>
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/latitudeInput"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="numberDecimal|numberSigned"
+                                android:digits="0123456789.-" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/longitudeInputLayout"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:hint="@string/longitude"
+                            app:endIconMode="clear_text">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/longitudeInput"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="numberDecimal|numberSigned"
+                                android:digits="0123456789.-" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/radiusInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
                         android:layout_marginBottom="16dp"
                         android:hint="@string/radius_km"
                         app:endIconMode="clear_text">
@@ -164,7 +197,8 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/resultsRecyclerView"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
 
         </LinearLayout>
 
