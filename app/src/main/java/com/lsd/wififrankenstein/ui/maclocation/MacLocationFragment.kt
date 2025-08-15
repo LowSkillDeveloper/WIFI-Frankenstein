@@ -243,8 +243,10 @@ class MacLocationFragment : Fragment() {
             val googleApi = binding.googleApiInput.text.toString()
             val combainApi = binding.combainApiInput.text.toString()
             val yandexLocatorApi = binding.yandexLocatorApiInput.text.toString()
+            val mylnikovApi = binding.mylnikovApiInput.text.toString()
 
-            viewModel.saveApiKeys(wigleApi, googleApi, combainApi, yandexLocatorApi)
+            viewModel.saveApiKeys(wigleApi, googleApi, combainApi, yandexLocatorApi, mylnikovApi)
+
             Snackbar.make(binding.root, R.string.api_keys_saved, Snackbar.LENGTH_SHORT).show()
         }
     }
