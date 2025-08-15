@@ -677,7 +677,7 @@
     <string name="no_results_found">Результатів не знайдено</string>
     <string name="choose_map_app">Виберіть застосунок для карт</string>
     <string name="timetxt">Час</string>
-    <string name="coordinates_may_be_incorrect">⚠️ Координати можуть бути неточними</string>
+    <string name="coordinates_may_be_incorrect">⚠️ Координати можуть бути неточними. Сервіс швидше за все не знає реального місця розташування</string>
     <string name="basic_indices_available">Доступні базові індекси</string>
     <string name="no_indices_available">Індекси недоступні</string>
     <string name="checking_indexes">Перевірка індексів…</string>

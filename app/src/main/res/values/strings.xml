@@ -685,7 +685,7 @@
     <string name="post_request_failed" translatable="false">POST request failed, response:</string>
     <string name="get_request_response" translatable="false">GET request response:</string>
     <string name="separator_line" translatable="false">════════════════════════════════════════</string>
-    <string name="coordinates_may_be_incorrect">⚠️ Coordinates may be incorrect</string>
+    <string name="coordinates_may_be_incorrect">⚠️ Coordinates may be incorrect. The service most likely does not know the real location</string>
 
 
     <string name="basic_indices_available">Basic indices available</string>
