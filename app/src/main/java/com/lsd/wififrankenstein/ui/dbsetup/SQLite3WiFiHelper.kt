@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
+import com.lsd.wififrankenstein.ui.ipranges.IpRangeManager
 import com.lsd.wififrankenstein.util.CompatibilityHelper
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.DatabaseIndices
@@ -1149,6 +1150,168 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         private fun getFileNameFromUri(uri: Uri): String {
             val name = uri.lastPathSegment?.split("/")?.last() ?: "database"
             return "$name.sqlite"
+        }
+    }
+
+    suspend fun getIpRanges(latitude: Double, longitude: Double, radius: Double): List<Map<String, Any?>> =
+        withContext(Dispatchers.IO) {
+            Log.d(TAG, "Getting IP ranges for lat=$latitude, lon=$longitude, radius=$radius")
+            try {
+                databaseLock.withLock {
+                    val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+                    if (tableName == "unknown") {
+                        Log.e(TAG, "Unknown database type for IP ranges")
+                        return@withLock emptyList()
+                    }
+
+                    val latMin = latitude - (radius / 111.0)
+                    val latMax = latitude + (radius / 111.0)
+                    val lonMin = longitude - (radius / (111.0 * Math.cos(Math.toRadians(latitude))))
+                    val lonMax = longitude + (radius / (111.0 * Math.cos(Math.toRadians(latitude))))
+
+                    Log.d(TAG, "Search bounds: lat($latMin to $latMax), lon($lonMin to $lonMax)")
+
+                    val ips = mutableSetOf<Long>()
+
+                    val geoQuery = """
+                    SELECT DISTINCT n.IP, n.WANIP, g.latitude, g.longitude
+                    FROM $tableName n
+                    JOIN geo g ON n.BSSID = g.BSSID
+                    WHERE g.latitude IS NOT NULL 
+                    AND g.longitude IS NOT NULL
+                    AND g.latitude != 0 
+                    AND g.longitude != 0
+                    AND g.latitude BETWEEN ? AND ?
+                    AND g.longitude BETWEEN ? AND ?
+                    AND (n.IP != 0 OR n.WANIP != 0)
+                    LIMIT 1000
+                """
+
+                    database?.rawQuery(geoQuery, arrayOf(
+                        latMin.toString(),
+                        latMax.toString(),
+                        lonMin.toString(),
+                        lonMax.toString()
+                    ))?.use { cursor ->
+                        Log.d(TAG, "Query executed, processing results...")
+                        var processedCount = 0
+                        while (cursor.moveToNext()) {
+                            val ip = cursor.getLong(0)
+                            val wanip = cursor.getLong(1)
+                            val pointLat = cursor.getDouble(2)
+                            val pointLon = cursor.getDouble(3)
+
+                            val distance = calculateDistance(latitude, longitude, pointLat, pointLon)
+                            if (distance <= radius) {
+                                if (ip != 0L) ips.add(ip)
+                                if (wanip != 0L) ips.add(wanip)
+                            }
+                            processedCount++
+                        }
+                        Log.d(TAG, "Processed $processedCount points")
+                    }
+
+                    Log.d(TAG, "Found ${ips.size} unique IPs within radius")
+
+                    val ranges = mutableListOf<Map<String, Any?>>()
+                    val processedRanges = mutableSetOf<String>()
+                    val ipRangeManager = IpRangeManager(context)
+
+                    var lastUpper = 0L
+                    val sortedIps = ips.sorted()
+
+                    for (ip in sortedIps) {
+                        if (ip <= lastUpper) continue
+
+                        val ipRange = ipRangeManager.getIpRangeInfo(ip)
+                        if (ipRange != null) {
+                            lastUpper = ipRange.endIP
+                            val rangeString = ipRangeManager.prettyRange(ipRange.startIP, ipRange.endIP)
+
+                            if (!processedRanges.contains(rangeString)) {
+                                processedRanges.add(rangeString)
+                                ranges.add(mapOf(
+                                    "range" to rangeString,
+                                    "netname" to ipRange.netname,
+                                    "descr" to ipRange.description,
+                                    "country" to ipRange.country
+                                ))
+                            }
+                        }
+                    }
+
+                    ipRangeManager.close()
+                    Log.d(TAG, "Generated ${ranges.size} unique IP ranges")
+                    ranges.sortedBy { it["descr"] as String }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting IP ranges", e)
+                emptyList()
+            }
+        }
+
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        return r * c
+    }
+
+    private fun getIpRangeInfo(ip: Long): Map<String, Any?>? {
+        return try {
+            val positiveIp = if (ip < 0) ip + 4294967296L else ip
+
+            when {
+                isPrivateIP(positiveIp) -> {
+                    val networkAddress = positiveIp and 0xFFFF0000L
+                    mapOf(
+                        "range" to "${longToIp(networkAddress)}/16",
+                        "netname" to "Private Network",
+                        "descr" to "Local IP range - Private network address space",
+                        "country" to ""
+                    )
+                }
+                else -> {
+                    val networkAddress = positiveIp and 0xFFFFFF00L
+                    val countryCode = getCountryFromIP(positiveIp)
+                    mapOf(
+                        "range" to "${longToIp(networkAddress)}/24",
+                        "netname" to "Public Network",
+                        "descr" to "Public IP range - Internet routable address",
+                        "country" to countryCode
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting IP range info for $ip", e)
+            null
+        }
+    }
+
+    private fun isPrivateIP(ip: Long): Boolean {
+        return (ip >= 0x0A000000L && ip < 0x0B000000L) ||      // 10.0.0.0/8
+                (ip >= 0xAC100000L && ip < 0xAC200000L) ||      // 172.16.0.0/12
+                (ip >= 0xC0A80000L && ip < 0xC0A90000L) ||      // 192.168.0.0/16
+                (ip >= 0x7F000000L && ip < 0x80000000L) ||      // 127.0.0.0/8
+                (ip >= 0xA9FE0000L && ip < 0xA9FF0000L)         // 169.254.0.0/16
+    }
+
+    private fun longToIp(ip: Long): String {
+        val positiveIp = if (ip < 0) ip + 4294967296L else ip
+        return "${(positiveIp shr 24) and 0xFF}.${(positiveIp shr 16) and 0xFF}.${(positiveIp shr 8) and 0xFF}.${positiveIp and 0xFF}"
+    }
+
+    private fun getCountryFromIP(ip: Long): String {
+        return when {
+            ip >= 0x08000000L && ip < 0x10000000L -> "US"
+            ip >= 0x50000000L && ip < 0x60000000L -> "EU"
+            ip >= 0x7C000000L && ip < 0x7E000000L -> "RU"
+            ip >= 0xB0000000L && ip < 0xC0000000L -> "CN"
+            else -> ""
         }
     }
 

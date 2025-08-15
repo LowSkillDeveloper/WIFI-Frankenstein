@@ -1625,6 +1625,33 @@
     <string name="mylnikov_api_hint">Mylnikov API Key</string>
     <string name="search_mylnikov_paid_starting">Starting Mylnikov Paid search…</string>
 
+    <string name="menu_ip_ranges">IP Ranges</string>
+    <string name="ip_ranges_title">IP Ranges Search</string>
+    <string name="radius_km">Radius (km)</string>
+    <string name="search_sources">Search Sources</string>
+    <string name="search_ip_ranges">Search IP Ranges</string>
+    <string name="enter_coordinates">Enter coordinates and radius</string>
+    <string name="select_at_least_one_source">Select at least one source</string>
+    <string name="invalid_coordinates">Invalid coordinates</string>
+    <string name="invalid_radius">Invalid radius (0.1–25 km)</string>
+    <string name="no_ip_ranges_found">No IP ranges found</string>
+    <string name="ip_ranges_found">Found %d IP ranges</string>
+    <string name="range">Range</string>
+    <string name="netname">Network Name</string>
+    <string name="description">Description</string>
+    <string name="country">Country</string>
+    <string name="api_source">API Source</string>
+    <string name="copy_range">Copy Range</string>
+    <string name="searching_ip_ranges">Searching IP ranges…</string>
+
+    <string name="copy_all_ranges">Copy All Ranges</string>
+    <string name="copy_selected">Copy Selected</string>
+    <string name="select_all">Select All</string>
+    <string name="clear_selection">Clear Selection</string>
+    <string name="selected_count">Selected: %d</string>
+    <string name="no_ranges_selected">No ranges selected</string>
+    <string name="ranges_copied">%d ranges copied to clipboard</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

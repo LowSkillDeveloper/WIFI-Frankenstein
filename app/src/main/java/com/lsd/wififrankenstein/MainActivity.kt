@@ -193,7 +193,8 @@ class MainActivity : AppCompatActivity() {
                     toggleCategory("utilities", listOf(
                         R.id.nav_mac_location,
                         R.id.nav_wifi_analysis,
-                        R.id.nav_qr_generator
+                        R.id.nav_qr_generator,
+                        R.id.nav_ip_ranges
                     ), menuItem)
                     true
                 }
