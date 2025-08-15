@@ -1326,6 +1326,147 @@
     <string name="api_write_key_optional">Ключ запису (необов\'язково)</string>
 
 
+    <string name="location_button">Знайти місцезнаходження</string>
+    <string name="location_requested">Запитуємо місцезнаходження…</string>
+    <string name="error_getting_location">Помилка отримання місцезнаходження</string>
+    <string name="location_permission_denied">Дозвіл на місцезнаходження потрібен для показу вашої позиції на карті.</string>
+    <string name="location_not_available">Місцезнаходження зараз недоступне. Будь ласка, спробуйте пізніше.</string>
+    <string name="location_updates_failed">Не вдалося отримати оновлення місцезнаходження. Будь ласка, перевірте налаштування місцезнаходження.</string>
+    <string name="location_timeout">Запит місцезнаходження минув. Будь ласка, спробуйте знову.</string>
+    <string name="location_permission_explanation">Ця програма потребує дозволу на місцезнаходження для показу вашої позиції на карті та допомоги в навігації.</string>
+    <string name="settings">Налаштування</string>
+
+    <string name="notification_settings">Налаштування сповіщень</string>
+    <string name="notification_settings_description">Налаштуйте типи сповіщень, які хочете отримувати</string>
+    <string name="notification_settings_manage_desc">Керуйте сповіщеннями про оновлення та новини</string>
+    <string name="manage_notification_settings">Керування сповіщеннями</string>
+
+    <string name="notification_app_updates">Оновлення програми</string>
+    <string name="notification_app_updates_desc">Сповіщення про вихід нової версії програми</string>
+    <string name="notification_database_updates">Оновлення баз даних</string>
+    <string name="notification_database_updates_desc">Сповіщення про оновлення встановлених баз даних</string>
+    <string name="notification_component_updates">Оновлення компонентів</string>
+    <string name="notification_component_updates_desc">Сповіщення про оновлення системних файлів (за замовчуванням вимкнено)</string>
+    <string name="notification_recommended_databases">Рекомендовані бази даних</string>
+    <string name="notification_recommended_databases_desc">Сповіщення про нові бази даних від спільноти</string>
+    <string name="notification_general">Інші сповіщення</string>
+    <string name="notification_general_desc">Важливі сповіщення та новини від розробників</string>
+
+    <string name="notification_system_settings_info">Для повного вимкнення сповіщень використовуйте системні налаштування</string>
+    <string name="notification_system_settings">Системні налаштування сповіщень</string>
+
+    <string name="notification_channel_app_updates">Оновлення програми</string>
+    <string name="notification_channel_app_updates_desc">Сповіщення про нові версії програми</string>
+    <string name="notification_channel_db_updates">Оновлення баз даних</string>
+    <string name="notification_channel_db_updates_desc">Сповіщення про оновлення баз даних</string>
+    <string name="notification_channel_component_updates">Оновлення компонентів</string>
+    <string name="notification_channel_component_updates_desc">Сповіщення про оновлення системних файлів</string>
+    <string name="notification_channel_recommended_db">Рекомендовані бази</string>
+    <string name="notification_channel_recommended_db_desc">Сповіщення про нові бази даних від спільноти</string>
+    <string name="notification_channel_general">Загальні сповіщення</string>
+    <string name="notification_channel_general_desc">Важливі сповіщення та новини</string>
+
+    <string name="notification_app_update_title">Доступна нова версія</string>
+    <string name="notification_app_update_text">WiFi Frankenstein %1$s готовий до завантаження</string>
+    <string name="notification_db_update_title">Оновлення баз даних</string>
+    <string name="notification_component_update_title">Оновлення компонентів</string>
+    <string name="notification_recommended_db_title">Нові рекомендовані бази</string>
+
+    <plurals name="notification_db_update_text">
+        <item quantity="one">Доступне %1$d оновлення бази даних</item>
+        <item quantity="few">Доступно %1$d оновлення баз даних</item>
+        <item quantity="many">Доступно %1$d оновлень баз даних</item>
+        <item quantity="other">Доступно %1$d оновлень баз даних</item>
+    </plurals>
+
+    <plurals name="notification_component_update_text">
+        <item quantity="one">Доступне %1$d оновлення компонента</item>
+        <item quantity="few">Доступно %1$d оновлення компонентів</item>
+        <item quantity="many">Доступно %1$d оновлень компонентів</item>
+        <item quantity="other">Доступно %1$d оновлень компонентів</item>
+    </plurals>
+
+    <plurals name="notification_recommended_db_text">
+        <item quantity="one">Доступна %1$d нова база даних</item>
+        <item quantity="few">Доступно %1$d нові бази даних</item>
+        <item quantity="many">Доступно %1$d нових баз даних</item>
+        <item quantity="other">Доступно %1$d нових баз даних</item>
+    </plurals>
+
+    <string name="downloading_file_progress">%1$s (%2$d%%)</string>
+
+    <string name="too_many_databases_selected">Забагато баз даних вибрано для цього пристрою</string>
+    <string name="map_loading_error">Помилка завантаження даних карти</string>
+    <string name="low_memory_warning">Виявлено низьку пам\'ять, деякі функції можуть бути обмежені</string>
+    <string name="file_access_error">Не вдається отримати доступ до файлу бази даних</string>
+
+    <string name="enable_point_limits">Увімкнути обмеження точок</string>
+    <string name="enable_point_limits_desc">Обмежити кількість точок, що завантажуються з кожної бази даних</string>
+    <string name="point_limits_recommendation">Рекомендується для слабких пристроїв при перегляді великих областей для покращення продуктивності та зменшення використання пам\'яті</string>
+
+    <string name="map_api_supported">Онлайн Map API</string>
+    <string name="checking_map_support">Перевірка підтримки карти…</string>
+    <string name="map_api_check_failed">Перевірка Map API не вдалася</string>
+
+    <string name="yandex_search">Yandex Maps GET</string>
+    <string name="microsoft_search">Microsoft Location</string>
+    <string name="search_yandex_starting">Запуск пошуку Yandex…</string>
+    <string name="search_microsoft_starting">Запуск пошуку Microsoft…</string>
+
+    <string name="altergeo_search">AlterGeo</string>
+    <string name="yandex_locator_search">Yandex Locator</string>
+    <string name="yandex_locator_api_hint">Ключ API Yandex Locator</string>
+    <string name="search_altergeo_starting">Запуск пошуку AlterGeo…</string>
+    <string name="search_yandex_locator_starting">Запуск пошуку Yandex Locator…</string>
+
+    <string name="mylnikov_paid_search">Mylnikov Paid</string>
+    <string name="mylnikov_api_hint">Ключ API Mylnikov</string>
+    <string name="search_mylnikov_paid_starting">Запуск пошуку Mylnikov Paid…</string>
+
+    <string name="menu_ip_ranges">Діапазони IP</string>
+    <string name="ip_ranges_title">Пошук діапазонів IP</string>
+    <string name="radius_km">Радіус (км)</string>
+    <string name="search_sources">Джерела пошуку</string>
+    <string name="search_ip_ranges">Пошук діапазонів IP</string>
+    <string name="enter_coordinates">Введіть координати та радіус</string>
+    <string name="select_at_least_one_source">Виберіть хоча б одне джерело</string>
+    <string name="invalid_coordinates">Неправильні координати</string>
+    <string name="invalid_radius">Неправильний радіус (0.1–25 км)</string>
+    <string name="no_ip_ranges_found">Діапазони IP не знайдено</string>
+    <string name="ip_ranges_found">Знайдено %d діапазонів IP</string>
+    <string name="range">Діапазон</string>
+    <string name="netname">Ім\'я мережі</string>
+    <string name="description">Опис</string>
+    <string name="country">Країна</string>
+    <string name="api_source">Джерело API</string>
+    <string name="copy_range">Копіювати діапазон</string>
+    <string name="searching_ip_ranges">Пошук діапазонів IP…</string>
+
+    <string name="copy_all_ranges">Копіювати всі діапазони</string>
+    <string name="copy_selected">Копіювати вибрані</string>
+    <string name="select_all">Вибрати все</string>
+    <string name="clear_selection">Очистити вибір</string>
+    <string name="selected_count">Вибрано: %d</string>
+    <string name="no_ranges_selected">Діапазони не вибрано</string>
+    <string name="ranges_copied">%d діапазонів скопійовано в буфер обміну</string>
+
+    <string name="select_location_on_map">Виберіть місцезнаходження на карті</string>
+    <string name="tap_map_to_select">Торкніться карти, щоб вибрати координати</string>
+    <string name="location_selected">Місцезнаходження вибрано</string>
+
+    <string name="invalid_radius_local">Неправильний радіус (0.1–40 км)</string>
+    <string name="invalid_radius_api">Неправильний радіус (0.1–25 км для джерел API)</string>
+    <string name="radius_limited_for_api">Радіус обмежено до 25 км через джерела API</string>
+    <string name="max_radius_40km">Максимум 40 км</string>
+    <string name="max_radius_25km_api">Максимум 25 км для джерел API</string>
+    <string name="online_api_suffix">(Онлайн API)</string>
+
+    <string name="app_started">Програму запущено</string>
+    <string name="welcome_activity_started">Екран привітання запущено</string>
+    <string name="logging_started">Логування запущено</string>
+    <string name="logging_stopped">Логування зупинено</string>
+    <string name="log_file_created">Файл лога створено в папці Downloads</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

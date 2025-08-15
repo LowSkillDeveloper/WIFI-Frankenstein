@@ -1355,6 +1355,147 @@
     <string name="logging_disabled">Логирование выключено</string>
     <string name="api_write_key_optional">Ключ записи (необязательно)</string>
 
+    <string name="location_button">Найти местоположение</string>
+    <string name="location_requested">Запрашиваем местоположение…</string>
+    <string name="error_getting_location">Ошибка получения местоположения</string>
+    <string name="location_permission_denied">Разрешение на местоположение требуется для показа вашей позиции на карте.</string>
+    <string name="location_not_available">Местоположение в настоящее время недоступно. Пожалуйста, попробуйте позже.</string>
+    <string name="location_updates_failed">Не удалось получить обновления местоположения. Пожалуйста, проверьте настройки местоположения.</string>
+    <string name="location_timeout">Запрос местоположения истек. Пожалуйста, попробуйте снова.</string>
+    <string name="location_permission_explanation">Это приложение требует разрешения на местоположение для показа вашей позиции на карте и помощи в навигации.</string>
+    <string name="settings">Настройки</string>
+
+    <string name="notification_settings">Настройки уведомлений</string>
+    <string name="notification_settings_description">Настройте типы уведомлений, которые хотите получать</string>
+    <string name="notification_settings_manage_desc">Управляйте уведомлениями о обновлениях и новостях</string>
+    <string name="manage_notification_settings">Управление уведомлениями</string>
+
+    <string name="notification_app_updates">Обновления приложения</string>
+    <string name="notification_app_updates_desc">Уведомления о выходе новой версии приложения</string>
+    <string name="notification_database_updates">Обновления баз данных</string>
+    <string name="notification_database_updates_desc">Уведомления об обновлениях установленных баз данных</string>
+    <string name="notification_component_updates">Обновления компонентов</string>
+    <string name="notification_component_updates_desc">Уведомления об обновлениях системных файлов (по умолчанию отключено)</string>
+    <string name="notification_recommended_databases">Рекомендуемые базы данных</string>
+    <string name="notification_recommended_databases_desc">Уведомления о новых базах данных от сообщества</string>
+    <string name="notification_general">Прочие уведомления</string>
+    <string name="notification_general_desc">Важные уведомления и новости от разработчиков</string>
+
+    <string name="notification_system_settings_info">Для полного отключения уведомлений используйте системные настройки</string>
+    <string name="notification_system_settings">Системные настройки уведомлений</string>
+
+    <string name="notification_channel_app_updates">Обновления приложения</string>
+    <string name="notification_channel_app_updates_desc">Уведомления о новых версиях приложения</string>
+    <string name="notification_channel_db_updates">Обновления баз данных</string>
+    <string name="notification_channel_db_updates_desc">Уведомления об обновлениях баз данных</string>
+    <string name="notification_channel_component_updates">Обновления компонентов</string>
+    <string name="notification_channel_component_updates_desc">Уведомления об обновлениях системных файлов</string>
+    <string name="notification_channel_recommended_db">Рекомендуемые базы</string>
+    <string name="notification_channel_recommended_db_desc">Уведомления о новых базах данных от сообщества</string>
+    <string name="notification_channel_general">Общие уведомления</string>
+    <string name="notification_channel_general_desc">Важные уведомления и новости</string>
+
+    <string name="notification_app_update_title">Доступна новая версия</string>
+    <string name="notification_app_update_text">WiFi Frankenstein %1$s готов к загрузке</string>
+    <string name="notification_db_update_title">Обновления баз данных</string>
+    <string name="notification_component_update_title">Обновления компонентов</string>
+    <string name="notification_recommended_db_title">Новые рекомендуемые базы</string>
+
+    <plurals name="notification_db_update_text">
+        <item quantity="one">Доступно %1$d обновление базы данных</item>
+        <item quantity="few">Доступно %1$d обновления баз данных</item>
+        <item quantity="many">Доступно %1$d обновлений баз данных</item>
+        <item quantity="other">Доступно %1$d обновлений баз данных</item>
+    </plurals>
+
+    <plurals name="notification_component_update_text">
+        <item quantity="one">Доступно %1$d обновление компонента</item>
+        <item quantity="few">Доступно %1$d обновления компонентов</item>
+        <item quantity="many">Доступно %1$d обновлений компонентов</item>
+        <item quantity="other">Доступно %1$d обновлений компонентов</item>
+    </plurals>
+
+    <plurals name="notification_recommended_db_text">
+        <item quantity="one">Доступна %1$d новая база данных</item>
+        <item quantity="few">Доступно %1$d новые базы данных</item>
+        <item quantity="many">Доступно %1$d новых баз данных</item>
+        <item quantity="other">Доступно %1$d новых баз данных</item>
+    </plurals>
+
+    <string name="downloading_file_progress">%1$s (%2$d%%)</string>
+
+    <string name="too_many_databases_selected">Слишком много баз данных выбрано для этого устройства</string>
+    <string name="map_loading_error">Ошибка загрузки данных карты</string>
+    <string name="low_memory_warning">Обнаружена низкая память, некоторые функции могут быть ограничены</string>
+    <string name="file_access_error">Не удается получить доступ к файлу базы данных</string>
+
+    <string name="enable_point_limits">Включить ограничения точек</string>
+    <string name="enable_point_limits_desc">Ограничить количество точек, загружаемых из каждой базы данных</string>
+    <string name="point_limits_recommendation">Рекомендуется для слабых устройств при просмотре больших областей для улучшения производительности и снижения использования памяти</string>
+
+    <string name="map_api_supported">Онлайн Map API</string>
+    <string name="checking_map_support">Проверка поддержки карты…</string>
+    <string name="map_api_check_failed">Проверка Map API не удалась</string>
+
+    <string name="yandex_search">Yandex Maps GET</string>
+    <string name="microsoft_search">Microsoft Location</string>
+    <string name="search_yandex_starting">Запуск поиска Yandex…</string>
+    <string name="search_microsoft_starting">Запуск поиска Microsoft…</string>
+
+    <string name="altergeo_search">AlterGeo</string>
+    <string name="yandex_locator_search">Yandex Locator</string>
+    <string name="yandex_locator_api_hint">Ключ API Yandex Locator</string>
+    <string name="search_altergeo_starting">Запуск поиска AlterGeo…</string>
+    <string name="search_yandex_locator_starting">Запуск поиска Yandex Locator…</string>
+
+    <string name="mylnikov_paid_search">Mylnikov Paid</string>
+    <string name="mylnikov_api_hint">Ключ API Mylnikov</string>
+    <string name="search_mylnikov_paid_starting">Запуск поиска Mylnikov Paid…</string>
+
+    <string name="menu_ip_ranges">Диапазоны IP</string>
+    <string name="ip_ranges_title">Поиск диапазонов IP</string>
+    <string name="radius_km">Радиус (км)</string>
+    <string name="search_sources">Источники поиска</string>
+    <string name="search_ip_ranges">Поиск диапазонов IP</string>
+    <string name="enter_coordinates">Введите координаты и радиус</string>
+    <string name="select_at_least_one_source">Выберите хотя бы один источник</string>
+    <string name="invalid_coordinates">Неверные координаты</string>
+    <string name="invalid_radius">Неверный радиус (0.1–25 км)</string>
+    <string name="no_ip_ranges_found">Диапазоны IP не найдены</string>
+    <string name="ip_ranges_found">Найдено %d диапазонов IP</string>
+    <string name="range">Диапазон</string>
+    <string name="netname">Имя сети</string>
+    <string name="description">Описание</string>
+    <string name="country">Страна</string>
+    <string name="api_source">Источник API</string>
+    <string name="copy_range">Копировать диапазон</string>
+    <string name="searching_ip_ranges">Поиск диапазонов IP…</string>
+
+    <string name="copy_all_ranges">Копировать все диапазоны</string>
+    <string name="copy_selected">Копировать выбранные</string>
+    <string name="select_all">Выбрать все</string>
+    <string name="clear_selection">Очистить выбор</string>
+    <string name="selected_count">Выбрано: %d</string>
+    <string name="no_ranges_selected">Диапазоны не выбраны</string>
+    <string name="ranges_copied">%d диапазонов скопировано в буфер обмена</string>
+
+    <string name="select_location_on_map">Выберите местоположение на карте</string>
+    <string name="tap_map_to_select">Нажмите на карту, чтобы выбрать координаты</string>
+    <string name="location_selected">Местоположение выбрано</string>
+
+    <string name="invalid_radius_local">Неверный радиус (0.1–40 км)</string>
+    <string name="invalid_radius_api">Неверный радиус (0.1–25 км для источников API)</string>
+    <string name="radius_limited_for_api">Радиус ограничен 25 км из-за источников API</string>
+    <string name="max_radius_40km">Максимум 40 км</string>
+    <string name="max_radius_25km_api">Максимум 25 км для источников API</string>
+    <string name="online_api_suffix">(Онлайн API)</string>
+
+    <string name="app_started">Приложение запущено</string>
+    <string name="welcome_activity_started">Экран приветствия запущен</string>
+    <string name="logging_started">Логирование запущено</string>
+    <string name="logging_stopped">Логирование остановлено</string>
+    <string name="log_file_created">Файл лога создан в папке Downloads</string>
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
