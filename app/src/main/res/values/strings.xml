@@ -1621,6 +1621,10 @@
     <string name="search_altergeo_starting">Starting AlterGeo search…</string>
     <string name="search_yandex_locator_starting">Starting Yandex Locator search…</string>
 
+    <string name="mylnikov_paid_search">Mylnikov Paid</string>
+    <string name="mylnikov_api_hint">Mylnikov API Key</string>
+    <string name="search_mylnikov_paid_starting">Starting Mylnikov Paid search…</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

@@ -39,7 +39,8 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
         val wigleApi: String,
         val googleApi: String,
         val combainApi: String,
-        val yandexLocatorApi: String
+        val yandexLocatorApi: String,
+        val mylnikovApi: String
     )
 
     data class SearchType(
@@ -79,19 +80,21 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
         val googleApi = prefs.getString(KEY_GOOGLE_API, "") ?: ""
         val combainApi = prefs.getString(KEY_COMBAIN_API, "") ?: ""
         val yandexLocatorApi = prefs.getString(KEY_YANDEX_LOCATOR_API, "") ?: ""
-        _savedApiKeys.value = ApiKeys(wigleApi, googleApi, combainApi, yandexLocatorApi)
+        val mylnikovApi = prefs.getString(KEY_MYLNIKOV_API, "") ?: ""
+        _savedApiKeys.value = ApiKeys(wigleApi, googleApi, combainApi, yandexLocatorApi, mylnikovApi)
     }
 
-    fun saveApiKeys(wigleApi: String, googleApi: String, combainApi: String, yandexLocatorApi: String) {
+    fun saveApiKeys(wigleApi: String, googleApi: String, combainApi: String, yandexLocatorApi: String, mylnikovApi: String) {
         log("Saving API keys...")
         prefs.edit().apply {
             putString(KEY_WIGLE_API, wigleApi)
             putString(KEY_GOOGLE_API, googleApi)
             putString(KEY_COMBAIN_API, combainApi)
             putString(KEY_YANDEX_LOCATOR_API, yandexLocatorApi)
+            putString(KEY_MYLNIKOV_API, mylnikovApi)
             apply()
         }
-        _savedApiKeys.value = ApiKeys(wigleApi, googleApi, combainApi, yandexLocatorApi)
+        _savedApiKeys.value = ApiKeys(wigleApi, googleApi, combainApi, yandexLocatorApi, mylnikovApi)
         log("✅ API keys saved successfully")
     }
 
@@ -123,7 +126,7 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             _isLoading.value = true
             var completedTasks = 0
-            val totalTasks = 10
+            val totalTasks = 11
 
             fun checkCompletion() {
                 completedTasks++
@@ -157,6 +160,15 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                 if (_savedApiKeys.value?.yandexLocatorApi?.isNotBlank() == true) {
                     launch {
                         searchYandexLocator(mac)
+                        checkCompletion()
+                    }
+                } else {
+                    checkCompletion()
+                }
+
+                if (_savedApiKeys.value?.mylnikovApi?.isNotBlank() == true) {
+                    launch {
+                        searchMylnikovPaid(mac)
                         checkCompletion()
                     }
                 } else {
@@ -212,6 +224,49 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
             }
         }
     }
+
+    private suspend fun searchMylnikovPaid(macAddress: String) =
+        withContext(Dispatchers.IO) {
+            try {
+                log("Starting Mylnikov Paid search for MAC: $macAddress")
+
+                val url = URL("https://api.mylnikov.org/wifi/main.py/get?bssid=$macAddress")
+
+                val connection = (url.openConnection() as HttpsURLConnection).apply {
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    requestMethod = "GET"
+                }
+
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+
+                val jsonResponse = JSONObject(response)
+
+                if (jsonResponse.getInt("result") == 200) {
+                    val data = jsonResponse.getJSONObject("data")
+                    val lat = data.getDouble("lat")
+                    val lon = data.getDouble("lon")
+
+                    if (isValidCoordinates(lat, lon)) {
+                        val locationResult = LocationResult(
+                            module = "mylnikov_paid",
+                            bssid = macAddress,
+                            latitude = lat,
+                            longitude = lon
+                        )
+                        log("✅ Mylnikov Paid search successful. Found location: $lat, $lon")
+                        addResult(locationResult)
+                    } else {
+                        log("ℹ️ Mylnikov Paid search completed but coordinates are invalid")
+                    }
+                } else {
+                    log("ℹ️ Mylnikov Paid search completed but no results found")
+                }
+            } catch (e: Exception) {
+                log("❌ Mylnikov Paid search error: ${e.message}")
+                Log.e(TAG, "Mylnikov Paid search error", e)
+            }
+        }
 
     private suspend fun searchAlterGeo(macAddress: String) =
         withContext(Dispatchers.IO) {
@@ -943,5 +998,6 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
         private const val KEY_GOOGLE_API = "google_api"
         private const val KEY_COMBAIN_API = "combain_api"
         private const val KEY_YANDEX_LOCATOR_API = "yandex_locator_api"
+        private const val KEY_MYLNIKOV_API = "mylnikov_api"
     }
 }
