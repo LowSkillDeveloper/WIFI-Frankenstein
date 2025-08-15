@@ -2,7 +2,7 @@
 
 ![App Version](https://img.shields.io/badge/app_version-1.1-blue)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
-![Kotlin](https://img.shields.io/badge/kotlin-2.2.20_Beta2-purple)
+![Kotlin](https://img.shields.io/badge/kotlin-2.2.10-purple)
 
 
 
@@ -53,7 +53,10 @@ The application combines various WiFi tools and functionality into one powerful 
 - **WPS Connect**: Possibility to connect via WPS 
 - **3WiFi API Integration**: Advanced settings and direct API requests
 - **Distance Calculation**: Measure distance to WiFi access point
+- **Offline IP ranges**: Using local databases, we find ranges of IP addresses for scanning with RouterScan
 - **Updates**: Support for updating the application and its components
+
+3WIFI 
 
 ### 🎨 Customization
 - **Theme Options**: Multiple color styles to customize the app appearance
@@ -80,11 +83,13 @@ The application combines various WiFi tools and functionality into one powerful 
 | WPA Generators (Router Keygen) | ✅ Supported | ❌ Not supported |
 | WPS Generators | ✅ Supported | ⚠️ Limited |
 | Neighbor-based WPS PIN suggestions | ✅ Supported | ❌ Not supported |
+| 3WIFI offline IP ranges | ✅ Supported | ❌ Not supported |
 | WiFi Channel Analysis | ✅ Supported | ❌ Not supported |
 | Additional WiFi Information | ✅ Yes | ⚠️ Limited |
 | Custom SQLite Databases | ✅ Supported | ❌ Not supported |
 | WiFi Maps | ✅ Yes | ❌ Not supported |
-| WiFi Location by MAC | ✅ Yes | ❌ Not supported |
+| WiFi API Maps | ⚠️ Limited | ❌ Not supported |
+| WiFi Location (geoMAC) | ✅ Yes | ❌ Not supported |
 | Database Updates | ✅ SmartLinkDB | ❌ Not supported |
 | App/Component Updates | ✅ Supported | ⚠️ Notification only |
 | Customizable Themes | ✅ Multiple options | ⚠️ Dark mode only |
