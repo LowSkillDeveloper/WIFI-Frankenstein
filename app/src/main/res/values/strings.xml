@@ -1729,6 +1729,8 @@
     <string name="sql_constraint_error">Ошибка структуры данных: %1$s</string>
     <string name="parsing_sql_data">Обработка SQL данных…</string>
 
+    <string name="category_api_3wifi">API 3WIFI</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

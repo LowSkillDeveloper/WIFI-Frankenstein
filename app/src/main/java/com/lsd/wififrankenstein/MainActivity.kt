@@ -54,7 +54,8 @@ class MainActivity : AppCompatActivity() {
     private val categoryStates = mutableMapOf(
         "root_functions" to false,
         "generators" to false,
-        "utilities" to false
+        "utilities" to false,
+        "api_3wifi" to false
     )
 
     companion object {
@@ -188,13 +189,20 @@ class MainActivity : AppCompatActivity() {
                     ), menuItem)
                     true
                 }
+                R.id.category_api_3wifi -> {
+                    toggleCategory("api_3wifi", listOf(
+                        R.id.nav_api_query,
+                        R.id.nav_upload_routerscan
+                    ), menuItem)
+                    true
+                }
                 R.id.category_utilities -> {
-                    Log.d("MainActivity", "Utilities category clicked")
                     toggleCategory("utilities", listOf(
                         R.id.nav_mac_location,
                         R.id.nav_wifi_analysis,
                         R.id.nav_qr_generator,
-                        R.id.nav_ip_ranges
+                        R.id.nav_ip_ranges,
+                        R.id.nav_convert_dumps
                     ), menuItem)
                     true
                 }

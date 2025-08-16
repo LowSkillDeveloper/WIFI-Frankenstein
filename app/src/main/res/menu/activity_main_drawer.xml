@@ -16,20 +16,26 @@
             android:id="@+id/nav_in_app_database"
             android:icon="@drawable/ic_database"
             android:title="@string/menu_in_app_database" />
-        <item
-            android:id="@+id/nav_api_query"
-            android:icon="@drawable/outline_arrow_upload_ready_24"
-            android:title="@string/menu_api_query" />
-
-        <item
-            android:id="@+id/nav_upload_routerscan"
-            android:icon="@drawable/ic_file_upload"
-            android:title="@string/menu_upload_routerscan" />
 
         <item
             android:id="@+id/nav_wifi_map"
             android:icon="@drawable/ic_menu_mapmode"
             android:title="@string/menu_wifi_map" />
+
+        <item
+            android:id="@+id/category_api_3wifi"
+            android:icon="@drawable/ic_expand_more"
+            android:title="@string/category_api_3wifi" />
+        <item
+            android:id="@+id/nav_api_query"
+            android:icon="@drawable/outline_arrow_upload_ready_24"
+            android:title="@string/menu_api_query"
+            android:visible="false" />
+        <item
+            android:id="@+id/nav_upload_routerscan"
+            android:icon="@drawable/ic_file_upload"
+            android:title="@string/menu_upload_routerscan"
+            android:visible="false" />
 
         <item
             android:id="@+id/category_root_functions"
@@ -85,17 +91,16 @@
             android:icon="@drawable/ic_qr_code"
             android:title="@string/menu_qr_generator"
             android:visible="false" />
-
         <item
             android:id="@+id/nav_ip_ranges"
             android:icon="@drawable/ic_language"
             android:title="@string/menu_ip_ranges"
             android:visible="false" />
-
         <item
             android:id="@+id/nav_convert_dumps"
             android:icon="@drawable/ic_transform"
-            android:title="@string/menu_convert_dumps" />
+            android:title="@string/menu_convert_dumps"
+            android:visible="false" />
 
         <item
             android:id="@+id/nav_rss_news"
