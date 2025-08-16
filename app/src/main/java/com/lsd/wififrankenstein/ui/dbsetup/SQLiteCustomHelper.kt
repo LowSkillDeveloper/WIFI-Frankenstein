@@ -14,6 +14,7 @@ import org.osmdroid.util.BoundingBox
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Collections
+import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 
 class SQLiteCustomHelper(
     private val context: Context,
@@ -625,6 +626,87 @@ AND $lonColumn >= ? AND $lonColumn <=?$limitClause
                 put(columnName, value)
             }
         }
+    }
+
+    fun searchNetworksByAdvancedQuery(
+        tableName: String,
+        columnMap: Map<String, String>,
+        advancedQuery: AdvancedSearchQuery,
+        offset: Int,
+        limit: Int
+    ): List<Map<String, Any?>> {
+        val conditions = mutableListOf<String>()
+        val params = mutableListOf<String>()
+
+        val macColumn = columnMap["mac"] ?: "bssid"
+        val essidColumn = columnMap["essid"] ?: "essid"
+        val passwordColumn = columnMap["wifi_pass"] ?: "wifi_pass"
+        val wpsPinColumn = columnMap["wps_pin"] ?: "wps_pin"
+
+        if (advancedQuery.bssid.isNotBlank()) {
+            if (advancedQuery.containsWildcards(advancedQuery.bssid)) {
+                val processedBssid = advancedQuery.bssid.replace("*", "%")
+                conditions.add("$macColumn LIKE ?")
+                params.add(processedBssid)
+            } else {
+                val macFormats = generateAllMacFormats(advancedQuery.bssid)
+                val macConditions = mutableListOf<String>()
+                macFormats.forEach { format ->
+                    macConditions.add("UPPER($macColumn) = UPPER(?)")
+                    params.add(format)
+                }
+                if (macConditions.isNotEmpty()) {
+                    conditions.add("(${macConditions.joinToString(" OR ")})")
+                }
+            }
+        }
+
+        if (advancedQuery.essid.isNotBlank()) {
+            val processedEssid = if (advancedQuery.containsWildcards(advancedQuery.essid)) {
+                advancedQuery.convertWildcards(advancedQuery.essid)
+            } else {
+                "%${advancedQuery.essid}%"
+            }
+
+            if (advancedQuery.caseSensitive) {
+                conditions.add("$essidColumn LIKE ? COLLATE BINARY")
+            } else {
+                conditions.add("UPPER($essidColumn) LIKE UPPER(?)")
+            }
+            params.add(processedEssid)
+        }
+
+        if (advancedQuery.password.isNotBlank()) {
+            val processedPassword = if (advancedQuery.containsWildcards(advancedQuery.password)) {
+                advancedQuery.convertWildcards(advancedQuery.password)
+            } else {
+                "%${advancedQuery.password}%"
+            }
+
+            if (advancedQuery.caseSensitive) {
+                conditions.add("$passwordColumn LIKE ? COLLATE BINARY")
+            } else {
+                conditions.add("UPPER($passwordColumn) LIKE UPPER(?)")
+            }
+            params.add(processedPassword)
+        }
+
+        if (advancedQuery.wpsPin.isNotBlank()) {
+            if (advancedQuery.containsWildcards(advancedQuery.wpsPin)) {
+                val processedWpsPin = advancedQuery.convertWildcards(advancedQuery.wpsPin)
+                conditions.add("$wpsPinColumn LIKE ?")
+                params.add(processedWpsPin)
+            } else {
+                conditions.add("$wpsPinColumn = ?")
+                params.add(advancedQuery.wpsPin)
+            }
+        }
+
+        if (conditions.isEmpty()) return emptyList()
+
+        val sql = "SELECT * FROM $tableName WHERE ${conditions.joinToString(" AND ")} LIMIT $limit OFFSET $offset"
+
+        return executeSearchQuery(sql, params.toTypedArray())
     }
 
     fun clearCache() {

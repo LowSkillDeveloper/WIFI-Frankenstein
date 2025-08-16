@@ -21,6 +21,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.Collections
 import java.util.Locale
+import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 
 class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, private val directPath: String?) : SQLiteOpenHelper(context, null, null, 1) {
     var database: SQLiteDatabase? = null
@@ -1313,6 +1314,99 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
             ip >= 0xB0000000L && ip < 0xC0000000L -> "CN"
             else -> ""
         }
+    }
+
+    fun searchNetworksByAdvancedQuery(
+        advancedQuery: AdvancedSearchQuery,
+        offset: Int,
+        limit: Int
+    ): List<Map<String, Any?>> {
+        val indexLevel = DatabaseIndices.determineIndexLevel(database!!)
+        val tableName = if (getTableNames().contains("nets")) "nets" else "base"
+
+        val conditions = mutableListOf<String>()
+        val args = mutableListOf<String>()
+
+        if (advancedQuery.bssid.isNotBlank()) {
+            if (advancedQuery.containsWildcards(advancedQuery.bssid)) {
+                val processedBssid = advancedQuery.bssid.replace("*", "%")
+                conditions.add("CAST(n.BSSID AS TEXT) LIKE ?")
+                args.add(processedBssid)
+            } else {
+                val possibleFormats = generateMacFormats(advancedQuery.bssid)
+                var bssidConditionAdded = false
+
+                possibleFormats.forEach { format ->
+                    val decimalValue = macToDecimalSafe(format)
+                    if (decimalValue != -1L) {
+                        conditions.add("n.BSSID = ?")
+                        args.add(decimalValue.toString())
+                        bssidConditionAdded = true
+                    }
+                }
+
+                if (!bssidConditionAdded) {
+                    conditions.add("CAST(n.BSSID AS TEXT) LIKE ?")
+                    args.add("%${advancedQuery.bssid}%")
+                }
+            }
+        }
+
+        if (advancedQuery.essid.isNotBlank()) {
+            val processedEssid = if (advancedQuery.containsWildcards(advancedQuery.essid)) {
+                advancedQuery.convertWildcards(advancedQuery.essid)
+            } else {
+                "%${advancedQuery.essid}%"
+            }
+
+            if (advancedQuery.caseSensitive) {
+                conditions.add("n.ESSID LIKE ? AND BINARY n.ESSID LIKE ?")
+                args.add(processedEssid)
+                args.add(processedEssid)
+            } else {
+                conditions.add("n.ESSID LIKE ?")
+                args.add(processedEssid)
+            }
+        }
+
+        if (advancedQuery.password.isNotBlank()) {
+            val processedPassword = if (advancedQuery.containsWildcards(advancedQuery.password)) {
+                advancedQuery.convertWildcards(advancedQuery.password)
+            } else {
+                "%${advancedQuery.password}%"
+            }
+
+            if (advancedQuery.caseSensitive) {
+                conditions.add("n.WiFiKey LIKE ? AND BINARY n.WiFiKey LIKE ?")
+                args.add(processedPassword)
+                args.add(processedPassword)
+            } else {
+                conditions.add("n.WiFiKey LIKE ?")
+                args.add(processedPassword)
+            }
+        }
+
+        if (advancedQuery.wpsPin.isNotBlank()) {
+            if (advancedQuery.containsWildcards(advancedQuery.wpsPin)) {
+                val processedWpsPin = advancedQuery.convertWildcards(advancedQuery.wpsPin)
+                conditions.add("LPAD(n.WPSPIN, 8, '0') LIKE ?")
+                args.add(processedWpsPin)
+            } else {
+                conditions.add("n.WPSPIN = ?")
+                args.add(advancedQuery.wpsPin)
+            }
+        }
+
+        if (conditions.isEmpty()) return emptyList()
+
+        val baseQuery = "SELECT DISTINCT n.*, g.latitude, g.longitude " +
+                "FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID " +
+                "WHERE (${conditions.joinToString(" AND ")}) " +
+                "LIMIT $limit OFFSET $offset"
+
+        return database?.rawQuery(baseQuery, args.toTypedArray())?.use { cursor ->
+            cursor.toSearchResultsRaw()
+        } ?: emptyList()
     }
 
     fun clearCache() {

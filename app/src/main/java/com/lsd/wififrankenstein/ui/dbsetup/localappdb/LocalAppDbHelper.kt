@@ -11,6 +11,7 @@ import androidx.core.database.sqlite.transaction
 import com.lsd.wififrankenstein.util.CompatibilityHelper
 import java.io.File
 import java.io.FileOutputStream
+import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 
 class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -932,6 +933,82 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
             Log.d("LocalAppDbHelper", "Database restored successfully from $uri")
         } catch (e: Exception) {
             Log.e("LocalAppDbHelper", "Error restoring database: ${e.message}", e)
+        }
+    }
+
+    fun searchRecordsWithAdvancedQuery(
+        advancedQuery: AdvancedSearchQuery,
+        offset: Int,
+        limit: Int
+    ): List<WifiNetwork> {
+        val conditions = mutableListOf<String>()
+        val params = mutableListOf<String>()
+
+        if (advancedQuery.bssid.isNotBlank()) {
+            if (advancedQuery.containsWildcards(advancedQuery.bssid)) {
+                val processedBssid = advancedQuery.bssid.replace("*", "%")
+                conditions.add("$COLUMN_MAC_ADDRESS LIKE ?")
+                params.add(processedBssid)
+            } else {
+                val macFormats = generateAllMacFormats(advancedQuery.bssid)
+                val macConditions = mutableListOf<String>()
+                macFormats.forEach { format ->
+                    macConditions.add("$COLUMN_MAC_ADDRESS = ?")
+                    params.add(format)
+                }
+                if (macConditions.isNotEmpty()) {
+                    conditions.add("(${macConditions.joinToString(" OR ")})")
+                }
+            }
+        }
+
+        if (advancedQuery.essid.isNotBlank()) {
+            val processedEssid = if (advancedQuery.containsWildcards(advancedQuery.essid)) {
+                advancedQuery.convertWildcards(advancedQuery.essid)
+            } else {
+                "%${advancedQuery.essid}%"
+            }
+
+            if (advancedQuery.caseSensitive) {
+                conditions.add("$COLUMN_WIFI_NAME LIKE ?")
+            } else {
+                conditions.add("$COLUMN_WIFI_NAME LIKE ? COLLATE NOCASE")
+            }
+            params.add(processedEssid)
+        }
+
+        if (advancedQuery.password.isNotBlank()) {
+            val processedPassword = if (advancedQuery.containsWildcards(advancedQuery.password)) {
+                advancedQuery.convertWildcards(advancedQuery.password)
+            } else {
+                "%${advancedQuery.password}%"
+            }
+
+            if (advancedQuery.caseSensitive) {
+                conditions.add("$COLUMN_WIFI_PASSWORD LIKE ?")
+            } else {
+                conditions.add("$COLUMN_WIFI_PASSWORD LIKE ? COLLATE NOCASE")
+            }
+            params.add(processedPassword)
+        }
+
+        if (advancedQuery.wpsPin.isNotBlank()) {
+            if (advancedQuery.containsWildcards(advancedQuery.wpsPin)) {
+                val processedWpsPin = advancedQuery.convertWildcards(advancedQuery.wpsPin)
+                conditions.add("$COLUMN_WPS_CODE LIKE ?")
+                params.add(processedWpsPin)
+            } else {
+                conditions.add("$COLUMN_WPS_CODE = ?")
+                params.add(advancedQuery.wpsPin)
+            }
+        }
+
+        if (conditions.isEmpty()) return emptyList()
+
+        val sql = "SELECT * FROM $TABLE_NAME WHERE ${conditions.joinToString(" AND ")} LIMIT $limit OFFSET $offset"
+
+        return readableDatabase.rawQuery(sql, params.toTypedArray()).use { cursor ->
+            buildWifiNetworkList(cursor)
         }
     }
 

@@ -1657,6 +1657,18 @@
     <string name="max_radius_25km_api">Maximum 25 km for API sources</string>
     <string name="online_api_suffix">(Online API)</string>
 
+    <string name="bssid_field">BSSID (* - любой символ)</string>
+    <string name="essid_field">ESSID (□ - символ, ◯ - набор символов)</string>
+    <string name="password_field">Пароль</string>
+    <string name="wps_pin_field">WPS PIN</string>
+    <string name="advanced_search">Продвинутый поиск</string>
+
+    <string name="simple_mode">Простой</string>
+    <string name="insert_any_char">□</string>
+    <string name="insert_any_string">◯</string>
+    <string name="insert_wildcard">*</string>
+
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

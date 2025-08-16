@@ -23,6 +23,7 @@ import com.lsd.wififrankenstein.databinding.FragmentDatabaseFinderBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 
 class DatabaseFinderFragment : Fragment() {
 
@@ -88,6 +89,8 @@ class DatabaseFinderFragment : Fragment() {
         setupSourcesButton()
         setupFiltersButton()
         setupDbSettingsButton()
+        setupAdvancedSearchToggle()
+        setupScrollToTop()
         requestPermissions()
     }
 
@@ -232,6 +235,121 @@ class DatabaseFinderFragment : Fragment() {
                 .setPositiveButton(R.string.ok) { _, _ -> }
                 .show()
         }
+    }
+
+    private var isAdvancedMode = false
+
+    private fun setupAdvancedSearchToggle() {
+        binding.modeToggleGroup.check(R.id.buttonSimpleMode)
+
+        binding.modeToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                isAdvancedMode = checkedId == R.id.buttonAdvancedMode
+                updateSearchModeUI()
+            }
+        }
+
+        binding.buttonAdvancedSearch.setOnClickListener {
+            performAdvancedSearch()
+        }
+
+        setupWildcardButtons()
+    }
+
+    private fun updateSearchModeUI() {
+        if (isAdvancedMode) {
+            binding.simpleSearchContainer.visibility = View.GONE
+            binding.advancedSearchContainer.visibility = View.VISIBLE
+            binding.checkboxContainer.visibility = View.GONE
+            binding.buttonFilters.visibility = View.GONE
+        } else {
+            binding.simpleSearchContainer.visibility = View.VISIBLE
+            binding.advancedSearchContainer.visibility = View.GONE
+            binding.checkboxContainer.visibility = View.VISIBLE
+            binding.buttonFilters.visibility = View.VISIBLE
+        }
+    }
+
+    private fun setupWildcardButtons() {
+        binding.buttonBssidWildcard.setOnClickListener {
+            insertTextAtCursor(binding.editTextBssid, "*")
+        }
+
+        binding.buttonEssidAnyChar.setOnClickListener {
+            insertTextAtCursor(binding.editTextEssid, "□")
+        }
+
+        binding.buttonEssidAnyString.setOnClickListener {
+            insertTextAtCursor(binding.editTextEssid, "◯")
+        }
+
+        binding.buttonPasswordAnyChar.setOnClickListener {
+            insertTextAtCursor(binding.editTextPassword, "□")
+        }
+
+        binding.buttonPasswordAnyString.setOnClickListener {
+            insertTextAtCursor(binding.editTextPassword, "◯")
+        }
+
+        binding.buttonWpsPinAnyChar.setOnClickListener {
+            insertTextAtCursor(binding.editTextWpsPin, "□")
+        }
+
+        binding.buttonWpsPinAnyString.setOnClickListener {
+            insertTextAtCursor(binding.editTextWpsPin, "◯")
+        }
+    }
+
+    private fun insertTextAtCursor(editText: com.google.android.material.textfield.TextInputEditText, text: String) {
+        val start = editText.selectionStart
+        val end = editText.selectionEnd
+        val currentText = editText.text?.toString() ?: ""
+
+        val newText = StringBuilder(currentText)
+            .replace(start, end, text)
+            .toString()
+
+        editText.setText(newText)
+        editText.setSelection(start + text.length)
+    }
+
+    private fun performAdvancedSearch() {
+        val advancedQuery = AdvancedSearchQuery(
+            bssid = binding.editTextBssid.text.toString().trim(),
+            essid = binding.editTextEssid.text.toString().trim(),
+            password = binding.editTextPassword.text.toString().trim(),
+            wpsPin = binding.editTextWpsPin.text.toString().trim(),
+            caseSensitive = binding.checkBoxCaseSensitive.isChecked
+        )
+
+        if (!advancedQuery.hasContent()) {
+            return
+        }
+
+        Log.d("DatabaseFinderFragment", "Advanced search: $advancedQuery")
+        viewModel.performAdvancedSearch(advancedQuery)
+    }
+
+    private fun setupScrollToTop() {
+        binding.fabScrollToTop.setOnClickListener {
+            binding.appBarLayout.setExpanded(true, true)
+            binding.recyclerViewResults.smoothScrollToPosition(0)
+        }
+
+        binding.recyclerViewResults.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+
+                val layoutManager = recyclerView.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager
+                val firstVisiblePosition = layoutManager?.findFirstVisibleItemPosition() ?: 0
+
+                if (firstVisiblePosition > 2) {
+                    binding.fabScrollToTop.show()
+                } else {
+                    binding.fabScrollToTop.hide()
+                }
+            }
+        })
     }
 
     override fun onDestroyView() {

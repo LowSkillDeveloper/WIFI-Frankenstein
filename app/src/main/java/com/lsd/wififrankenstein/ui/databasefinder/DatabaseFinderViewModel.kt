@@ -46,6 +46,9 @@ class DatabaseFinderViewModel(application: Application) : AndroidViewModel(appli
 
     private val _searchWholeWords = MutableStateFlow(false)
 
+    private val _isAdvancedMode = MutableStateFlow(false)
+    val isAdvancedMode = _isAdvancedMode.asStateFlow()
+
     fun setSearchWholeWords(value: Boolean) {
         _searchWholeWords.value = value
     }
@@ -157,6 +160,39 @@ class DatabaseFinderViewModel(application: Application) : AndroidViewModel(appli
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error during search: ${e.message}", e)
+            }
+        }
+    }
+
+    fun performAdvancedSearch(advancedQuery: AdvancedSearchQuery) {
+        Log.d(TAG, "Starting advanced search: $advancedQuery")
+
+        viewModelScope.launch {
+            _isSearching.value = true
+            try {
+                val pagerFlow = Pager(
+                    config = PagingConfig(
+                        pageSize = 10,
+                        enablePlaceholders = false,
+                        prefetchDistance = 7,
+                        initialLoadSize = 5,
+                        maxSize = 100
+                    ),
+                    pagingSourceFactory = {
+                        DatabaseFinderAdvancedPagingSource(
+                            getApplication(),
+                            advancedQuery,
+                            dbSetupViewModel.dbList.value ?: emptyList(),
+                            selectedSources
+                        )
+                    }
+                ).flow.cachedIn(viewModelScope)
+
+                pagerFlow.collectLatest {
+                    _searchResults.value = it
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during advanced search: ${e.message}", e)
             }
         }
     }
