@@ -1,18 +1,26 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
+import com.lsd.wififrankenstein.util.PerformanceManager
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import java.util.concurrent.Executors
 
-class MapOperationExecutor {
-    companion object {
-        val databaseDispatcher: CoroutineDispatcher = Executors.newFixedThreadPool(2)
+object MapOperationExecutor {
+    val databaseDispatcher: CoroutineDispatcher by lazy {
+        Executors.newFixedThreadPool(PerformanceManager.getDatabaseThreadCount())
             .asCoroutineDispatcher()
-
-        val clusteringDispatcher: CoroutineDispatcher = Executors.newFixedThreadPool(1)
-            .asCoroutineDispatcher()
-
-        val uiUpdateDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate
     }
+
+    val clusteringDispatcher: CoroutineDispatcher by lazy {
+        Executors.newFixedThreadPool(PerformanceManager.getClusteringThreadCount())
+            .asCoroutineDispatcher()
+    }
+
+    val ioDispatcher: CoroutineDispatcher by lazy {
+        Executors.newFixedThreadPool(PerformanceManager.getIOThreadCount())
+            .asCoroutineDispatcher()
+    }
+
+    val uiUpdateDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate
 }

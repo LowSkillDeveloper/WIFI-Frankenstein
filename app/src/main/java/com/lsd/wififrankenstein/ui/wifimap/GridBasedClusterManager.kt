@@ -1,9 +1,12 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
+import com.lsd.wififrankenstein.util.PerformanceManager
+import kotlinx.coroutines.yield
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
 import kotlin.math.sqrt
+import java.util.Collections
 
 class GridBasedClusterManager(
     private val maxClusterSize: Int = 1000,
@@ -60,19 +63,70 @@ class GridBasedClusterManager(
         }
 
         val clusters = if (preventClusterMerge) {
-            processedPoints.map { point ->
-                MarkerCluster().apply { addPoint(point) }
+            processedPoints.chunked(PerformanceManager.getOptimalChunkSize()).flatMap { chunk ->
+                chunk.map { point ->
+                    MarkerCluster().apply { addPoint(point) }
+                }
             }
         } else {
             if (clusterAggressiveness >= 3.5f) {
                 performSuperAggressiveClustering(processedPoints, zoomLevel)
             } else {
-                performGridClustering(processedPoints, zoomLevel)
+                performGridClusteringParallel(processedPoints, zoomLevel)
             }
         }
 
         updateCache(zoomLevel, points, clusters)
         return clusters
+    }
+
+    private fun performGridClusteringParallel(
+        points: List<NetworkPoint>,
+        zoomLevel: Double
+    ): List<MarkerCluster> {
+        val gridSize = calculateGridSize(zoomLevel)
+        val databaseGroups = points.groupBy { it.databaseId }
+        val allClusters = Collections.synchronizedList(mutableListOf<MarkerCluster>())
+
+        val chunkSize = PerformanceManager.getOptimalChunkSize()
+
+        databaseGroups.values.forEach { dbPoints ->
+            dbPoints.chunked(chunkSize).forEach { chunk ->
+                val cells = mutableMapOf<Pair<Int, Int>, GridCell>()
+
+                chunk.forEach { point ->
+                    val cellX = floor(point.displayLatitude / gridSize).toInt()
+                    val cellY = floor(point.displayLongitude / gridSize).toInt()
+                    val key = Pair(cellX, cellY)
+
+                    val cell = cells.getOrPut(key) {
+                        GridCell(cellX, cellY)
+                    }
+                    cell.addPoint(point)
+                }
+
+                val chunkClusters = cells.values.map { cell ->
+                    MarkerCluster(
+                        centerLatitude = cell.centerLatitude,
+                        centerLongitude = cell.centerLongitude
+                    ).apply {
+                        cell.points.forEach { point ->
+                            addPoint(point)
+                        }
+                    }
+                }
+
+                allClusters.addAll(chunkClusters)
+            }
+        }
+
+        val separatedClusters = separateOverlappingClusters(allClusters, databaseGroups)
+
+        return if (clusterAggressiveness >= 1.5f) {
+            mergeClustersToTargetSizePerDatabase(separatedClusters, zoomLevel, databaseGroups)
+        } else {
+            separatedClusters.filter { it.size <= maxClusterSize }
+        }
     }
 
     private fun canUseCachedClusters(zoomLevel: Double, points: List<NetworkPoint>): Boolean {
@@ -278,6 +332,7 @@ class GridBasedClusterManager(
 
         val clusters = mutableListOf<MarkerCluster>()
         val remainingPoints = points.toMutableList()
+        val chunkSize = PerformanceManager.getOptimalChunkSize()
 
         repeat(targetClusterCount) {
             if (remainingPoints.isEmpty()) return@repeat
@@ -290,6 +345,7 @@ class GridBasedClusterManager(
             cluster.addPoint(seedPoint)
 
             val pointsToAdd = mutableListOf<NetworkPoint>()
+            var processedCount = 0
 
             for (point in remainingPoints) {
                 if (cluster.size >= maxClusterSize) break
@@ -308,6 +364,11 @@ class GridBasedClusterManager(
 
                 if (distance <= maxDistance) {
                     pointsToAdd.add(point)
+                }
+
+                processedCount++
+                if (processedCount % chunkSize == 0) {
+                    Thread.yield()
                 }
             }
 
@@ -372,76 +433,81 @@ class GridBasedClusterManager(
         }
 
         val processedPoints = if (forcePointSeparation) {
-            spreadOverlappingPointsEfficient(points)
+            spreadOverlappingPointsEfficientParallel(points)
         } else {
             points
         }
 
         val clusters = if (preventClusterMerge) {
-            processedPoints.map { point ->
-                MarkerCluster().apply { addPoint(point) }
+            processedPoints.chunked(PerformanceManager.getOptimalChunkSize()).flatMap { chunk ->
+                chunk.map { point ->
+                    MarkerCluster().apply { addPoint(point) }
+                }
             }
         } else {
-            performAdaptiveGridClusteringPerDatabase(processedPoints, zoomLevel, mapCenter)
+            performAdaptiveGridClusteringPerDatabaseParallel(processedPoints, zoomLevel, mapCenter)
         }
 
         updateCache(zoomLevel, points, clusters)
         return clusters
     }
 
-    private fun performAdaptiveGridClusteringPerDatabase(
+    private fun performAdaptiveGridClusteringPerDatabaseParallel(
         points: List<NetworkPoint>,
         zoomLevel: Double,
         mapCenter: Pair<Double, Double>?
     ): List<MarkerCluster> {
         val baseGridSize = calculateGridSize(zoomLevel)
         val databaseGroups = points.groupBy { it.databaseId }
-        val allClusters = mutableListOf<MarkerCluster>()
+        val allClusters = Collections.synchronizedList(mutableListOf<MarkerCluster>())
+        val chunkSize = PerformanceManager.getOptimalChunkSize()
 
         databaseGroups.forEach { (databaseId, dbPoints) ->
-            val cells = mutableMapOf<Pair<Int, Int>, GridCell>()
+            dbPoints.chunked(chunkSize).forEach { chunk ->
+                val cells = mutableMapOf<Pair<Int, Int>, GridCell>()
 
-            dbPoints.forEach { point ->
-                val distanceFromCenter = mapCenter?.let { center ->
-                    calculateDistance(
-                        center.first, center.second,
-                        point.displayLatitude, point.displayLongitude
-                    )
-                } ?: 0.0
+                chunk.forEach { point ->
+                    val distanceFromCenter = mapCenter?.let { center ->
+                        calculateDistance(
+                            center.first, center.second,
+                            point.displayLatitude, point.displayLongitude
+                        )
+                    } ?: 0.0
 
-                val adaptiveGridSize = when {
-                    distanceFromCenter > 100000 -> baseGridSize * 3.0
-                    distanceFromCenter > 50000 -> baseGridSize * 2.5
-                    distanceFromCenter > 20000 -> baseGridSize * 2.0
-                    distanceFromCenter > 10000 -> baseGridSize * 1.5
-                    else -> baseGridSize
-                }
+                    val adaptiveGridSize = when {
+                        distanceFromCenter > 100000 -> baseGridSize * 3.0
+                        distanceFromCenter > 50000 -> baseGridSize * 2.5
+                        distanceFromCenter > 20000 -> baseGridSize * 2.0
+                        distanceFromCenter > 10000 -> baseGridSize * 1.5
+                        else -> baseGridSize
+                    }
 
-                val cellX = floor(point.displayLatitude / adaptiveGridSize).toInt()
-                val cellY = floor(point.displayLongitude / adaptiveGridSize).toInt()
-                val key = Pair(cellX, cellY)
+                    val cellX = floor(point.displayLatitude / adaptiveGridSize).toInt()
+                    val cellY = floor(point.displayLongitude / adaptiveGridSize).toInt()
+                    val key = Pair(cellX, cellY)
 
-                val cell = cells.getOrPut(key) {
-                    GridCell(cellX, cellY)
-                }
+                    val cell = cells.getOrPut(key) {
+                        GridCell(cellX, cellY)
+                    }
 
-                if (cell.points.size < maxClusterSize) {
-                    cell.addPoint(point)
-                }
-            }
-
-            val databaseClusters = cells.values.map { cell ->
-                MarkerCluster(
-                    centerLatitude = cell.centerLatitude,
-                    centerLongitude = cell.centerLongitude
-                ).apply {
-                    cell.points.forEach { point ->
-                        addPoint(point)
+                    if (cell.points.size < maxClusterSize) {
+                        cell.addPoint(point)
                     }
                 }
-            }
 
-            allClusters.addAll(databaseClusters)
+                val chunkClusters = cells.values.map { cell ->
+                    MarkerCluster(
+                        centerLatitude = cell.centerLatitude,
+                        centerLongitude = cell.centerLongitude
+                    ).apply {
+                        cell.points.forEach { point ->
+                            addPoint(point)
+                        }
+                    }
+                }
+
+                allClusters.addAll(chunkClusters)
+            }
         }
 
         return separateOverlappingClusters(allClusters, databaseGroups)
@@ -456,6 +522,54 @@ class GridBasedClusterManager(
                 sin(dLon / 2) * sin(dLon / 2)
         val c = 2 * kotlin.math.atan2(sqrt(a), sqrt(1 - a))
         return earthRadius * c
+    }
+
+    private fun spreadOverlappingPointsEfficientParallel(points: List<NetworkPoint>): List<NetworkPoint> {
+        if (points.isEmpty()) return points
+
+        val positionGroups = mutableMapOf<String, MutableList<NetworkPoint>>()
+        val chunkSize = PerformanceManager.getOptimalChunkSize()
+
+        points.chunked(chunkSize).forEach { chunk ->
+            chunk.forEach { point ->
+                val key = "${(point.latitude * 100000).toInt()}_${(point.longitude * 100000).toInt()}"
+                positionGroups.getOrPut(key) { mutableListOf() }.add(point)
+            }
+        }
+
+        return positionGroups.flatMap { (_, groupPoints) ->
+            when {
+                groupPoints.size == 1 -> groupPoints
+                groupPoints.size <= 16 -> {
+                    val radius = 0.00003
+                    val angleStep = 2 * Math.PI / groupPoints.size
+
+                    groupPoints.mapIndexed { index, point ->
+                        val angle = angleStep * index
+                        point.copy(
+                            offsetLatitude = radius * sin(angle),
+                            offsetLongitude = radius * cos(angle)
+                        )
+                    }
+                }
+                else -> {
+                    val gridSize = 4
+                    val radius = 0.00002
+
+                    groupPoints.take(16).mapIndexed { index, point ->
+                        val row = index / gridSize
+                        val col = index % gridSize
+                        val offsetLat = (row - gridSize / 2.0) * radius
+                        val offsetLon = (col - gridSize / 2.0) * radius
+
+                        point.copy(
+                            offsetLatitude = offsetLat,
+                            offsetLongitude = offsetLon
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun spreadOverlappingPointsEfficient(points: List<NetworkPoint>): List<NetworkPoint> {

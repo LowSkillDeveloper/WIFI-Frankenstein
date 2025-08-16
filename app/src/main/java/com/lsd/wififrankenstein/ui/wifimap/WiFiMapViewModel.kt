@@ -32,6 +32,8 @@ import kotlinx.coroutines.yield
 import org.osmdroid.util.BoundingBox
 import java.util.Collections
 import com.lsd.wififrankenstein.ui.dbsetup.ThreeWifiDevMapHelper
+import com.lsd.wififrankenstein.util.AdvancedCache
+import com.lsd.wififrankenstein.util.PerformanceManager
 
 class WiFiMapViewModel(application: Application) : AndroidViewModel(application) {
     private val TAG = "WiFiMapViewModel"
@@ -49,6 +51,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
     private val _loadingProgress = MutableLiveData<Int>()
     val loadingProgress: LiveData<Int> = _loadingProgress
+
+    private val advancedCache = AdvancedCache.create<String, List<NetworkPoint>>()
+    private val pointInfoCache = AdvancedCache.create<Long, Map<String, Any?>>()
 
     private val _error = MutableLiveData<String>()
     val error: LiveData<String> = _error
@@ -202,46 +207,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun getMaxPointsForZoom(zoom: Double): Int {
-        val limitsEnabled = settingsPrefs.getBoolean("map_enable_point_limits", false)
-
-        if (!limitsEnabled) {
-            Log.d(TAG, "Point limits disabled, returning unlimited for zoom $zoom")
-            return Int.MAX_VALUE
-        }
-
-        val runtime = Runtime.getRuntime()
-        val maxMemory = runtime.maxMemory()
-        val memoryClass = when {
-            maxMemory < 128 * 1024 * 1024 -> "LOW"
-            maxMemory < 256 * 1024 * 1024 -> "MEDIUM"
-            else -> "HIGH"
-        }
-
-        val maxPoints = when (memoryClass) {
-            "LOW" -> when {
-                zoom >= 14.0 -> Int.MAX_VALUE
-                zoom >= 12.0 -> 15000
-                zoom >= 10.0 -> 10000
-                zoom >= 8.0 -> 8000
-                else -> 6000
-            }
-            "MEDIUM" -> when {
-                zoom >= 13.0 -> Int.MAX_VALUE
-                zoom >= 11.0 -> 25000
-                zoom >= 9.0 -> 20000
-                zoom >= 7.0 -> 15000
-                else -> 12000
-            }
-            else -> when {
-                zoom >= 12.0 -> Int.MAX_VALUE
-                zoom >= 10.0 -> 50000
-                zoom >= 8.0 -> 40000
-                else -> 30000
-            }
-        }
-
-        Log.d(TAG, "Memory class: $memoryClass, Limits enabled: $limitsEnabled, Max points PER DATABASE for zoom $zoom: ${if (maxPoints == Int.MAX_VALUE) "UNLIMITED" else maxPoints}")
-        return maxPoints
+        return PerformanceManager.getMaxPointsPerOperation()
     }
 
     suspend fun checkDatabaseMapSupport(dbItem: DbItem): Boolean {
@@ -421,14 +387,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             try {
                 _loadingProgress.postValue(0)
 
-                val totalMaxPoints = getMaxPointsForZoom(zoom)
-                val basePointsPerDatabase = if (totalMaxPoints == Int.MAX_VALUE) {
-                    Int.MAX_VALUE
-                } else {
-                    maxOf(2000, totalMaxPoints / selectedDatabases.size)
-                }
+                val basePointsPerDatabase = PerformanceManager.getMaxPointsPerOperation()
 
-                Log.d(TAG, "Base points per database: $basePointsPerDatabase")
+                Log.d(TAG, "Unlimited points per database: $basePointsPerDatabase")
 
                 val allPoints = withContext(MapOperationExecutor.databaseDispatcher) {
                     val points = Collections.synchronizedList(mutableListOf<NetworkPoint>())
@@ -440,13 +401,24 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             try {
                                 val startTime = System.currentTimeMillis()
 
+                                val cacheKey = "${database.id}_${boundingBox.latSouth}_${boundingBox.latNorth}_${boundingBox.lonWest}_${boundingBox.lonEast}_$zoom"
+
+                                val cachedPoints = advancedCache.get(cacheKey)
+                                if (cachedPoints != null) {
+                                    Log.d(TAG, "Using advanced cache for ${database.id}: ${cachedPoints.size} points")
+                                    points.addAll(cachedPoints)
+                                    val progress = ((index + 1) * 60) / selectedDatabases.size
+                                    _loadingProgress.postValue(progress)
+                                    return@async
+                                }
+
                                 val networkPoints = if (database.supportsMapApi && database.dbType == DbType.WIFI_API) {
                                     loadMapApiPoints(database, boundingBox, zoom, basePointsPerDatabase)
                                 } else {
                                     val dbPoints = loadPointsFromDatabase(database, boundingBox, zoom, basePointsPerDatabase)
                                     dbPoints.mapIndexed { pointIndex, (bssidDecimal, lat, lon) ->
-                                        if (pointIndex % 1000 == 0) {
-                                            yield()
+                                        if (pointIndex % 10000 == 0) {
+                                            Thread.yield()
                                         }
                                         NetworkPoint(
                                             latitude = lat,
@@ -464,6 +436,10 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                 if (!isActive) return@async
 
                                 points.addAll(networkPoints)
+
+                                if (networkPoints.size >= 10000) {
+                                    advancedCache.put(cacheKey, networkPoints)
+                                }
 
                                 val progress = ((index + 1) * 60) / selectedDatabases.size
                                 _loadingProgress.postValue(progress)
@@ -654,7 +630,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         simpleCache[cacheKey]?.let { cacheEntry ->
             if (isCacheValid(cacheEntry) && cacheEntry.points.isNotEmpty()) {
                 Log.d(TAG, "Using valid cache for ${database.id}: ${cacheEntry.points.size} points")
-                return@withContext cacheEntry.points.take(maxPointsPerDb).map {
+                return@withContext cacheEntry.points.map {
                     Triple(it.bssidDecimal, it.latitude, it.longitude)
                 }
             } else {
@@ -662,7 +638,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
-        Log.d(TAG, "Loading fresh data for ${database.id}, maxPointsPerDb: $maxPointsPerDb")
+        Log.d(TAG, "Loading fresh unlimited data for ${database.id}")
 
         val points = when (database.dbType) {
             DbType.LOCAL_APP_DB -> {
@@ -672,14 +648,14 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     boundingBox.latNorth,
                     boundingBox.lonWest,
                     boundingBox.lonEast,
-                    maxPointsPerDb
+                    Int.MAX_VALUE
                 )
 
-                Log.d(TAG, "Local DB returned ${localPoints.size} points for ${database.id}")
+                Log.d(TAG, "Local DB returned ${localPoints.size} unlimited points for ${database.id}")
 
                 localPoints.mapIndexed { index, network ->
-                    if (index % 1000 == 0) {
-                        yield()
+                    if (index % PerformanceManager.getOptimalChunkSize() == 0) {
+                        Thread.yield()
                     }
 
                     val macDecimal = try {
@@ -694,25 +670,24 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 }.filter { it.first != -1L }
             }
 
-
             DbType.WIFI_API -> {
                 if (database.supportsMapApi) {
                     val mapHelper = mapHelpers[database.id]
                     if (mapHelper != null) {
-                        Log.d(TAG, "Loading points via map API for ${database.id}")
-                        val mapPoints = mapHelper.getPointsInBoundingBox(boundingBox, zoom, maxPointsPerDb)
+                        Log.d(TAG, "Loading unlimited points via map API for ${database.id}")
+                        val mapPoints = mapHelper.getPointsInBoundingBox(boundingBox, zoom, Int.MAX_VALUE)
 
-                        Log.d(TAG, "Map API returned ${mapPoints.size} points for ${database.id}")
+                        Log.d(TAG, "Map API returned ${mapPoints.size} unlimited points for ${database.id}")
 
                         mapPoints.map { mapPoint ->
                             Triple(mapPoint.bssidDecimal, mapPoint.latitude, mapPoint.longitude)
                         }
                     } else {
                         Log.w(TAG, "Map helper not found for ${database.id}, falling back to regular API")
-                        loadPointsViaRegularApi(database, boundingBox, maxPointsPerDb)
+                        loadPointsViaRegularApi(database, boundingBox, Int.MAX_VALUE)
                     }
                 } else {
-                    loadPointsViaRegularApi(database, boundingBox, maxPointsPerDb)
+                    loadPointsViaRegularApi(database, boundingBox, Int.MAX_VALUE)
                 }
             }
 
@@ -721,9 +696,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     Log.e(TAG, "Direct path is null for database ${database.id}")
                     emptyList()
                 } else {
-                    Log.d(TAG, "Using external indexes for database: ${database.id}")
-                    val allPoints = externalIndexManager.getPointsInBoundingBox(database.id, boundingBox, maxPointsPerDb)
-                    Log.d(TAG, "External index returned ${allPoints.size} points for ${database.id}")
+                    Log.d(TAG, "Using external indexes for unlimited data from database: ${database.id}")
+                    val allPoints = externalIndexManager.getPointsInBoundingBox(database.id, boundingBox, Int.MAX_VALUE)
+                    Log.d(TAG, "External index returned ${allPoints.size} unlimited points for ${database.id}")
                     allPoints
                 }
             }
@@ -731,9 +706,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 val helper = getHelper(database)
                 when (helper) {
                     is SQLite3WiFiHelper -> {
-                        Log.d(TAG, "Using SQLite3WiFiHelper for ${database.id}")
-                        val allPoints = helper.getPointsInBoundingBox(boundingBox, maxPointsPerDb)
-                        Log.d(TAG, "SQLite3WiFiHelper returned ${allPoints.size} points for ${database.id}")
+                        Log.d(TAG, "Using SQLite3WiFiHelper for unlimited data from ${database.id}")
+                        val allPoints = helper.getPointsInBoundingBox(boundingBox, Int.MAX_VALUE)
+                        Log.d(TAG, "SQLite3WiFiHelper returned ${allPoints.size} unlimited points for ${database.id}")
                         allPoints
                     }
                     is SQLiteCustomHelper -> {
@@ -741,14 +716,14 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             Log.e(TAG, "Table name or column map is null for database ${database.id}")
                             emptyList()
                         } else {
-                            Log.d(TAG, "Using SQLiteCustomHelper for ${database.id}")
+                            Log.d(TAG, "Using SQLiteCustomHelper for unlimited data from ${database.id}")
                             val allPoints = helper.getPointsInBoundingBox(
                                 boundingBox,
                                 database.tableName,
                                 database.columnMap,
-                                maxPointsPerDb
+                                Int.MAX_VALUE
                             ) ?: emptyList()
-                            Log.d(TAG, "SQLiteCustomHelper returned ${allPoints.size} points for ${database.id}")
+                            Log.d(TAG, "SQLiteCustomHelper returned ${allPoints.size} unlimited points for ${database.id}")
                             allPoints
                         }
                     }
@@ -762,8 +737,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
         if (points.isNotEmpty()) {
             val networkPoints = points.mapIndexed { index, (bssid, lat, lon) ->
-                if (index % 1000 == 0) {
-                    yield()
+                if (index % PerformanceManager.getOptimalChunkSize() == 0) {
+                    Thread.yield()
                 }
                 NetworkPoint(
                     latitude = lat,
@@ -774,19 +749,17 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 )
             }
 
-            val finalPoints = networkPoints.take(maxPointsPerDb)
-
-            if (finalPoints.size >= 100) {
+            if (networkPoints.size >= 1000) {
                 val cacheEntry = CacheEntry(
-                    points = finalPoints,
+                    points = networkPoints,
                     boundingBox = boundingBox,
                     zoom = zoom
                 )
                 simpleCache[cacheKey] = cacheEntry
-                Log.d(TAG, "Cached ${finalPoints.size} points for ${database.id}")
+                Log.d(TAG, "Cached ${networkPoints.size} points for ${database.id}")
             }
 
-            return@withContext finalPoints.map {
+            return@withContext networkPoints.map {
                 Triple(it.bssidDecimal, it.latitude, it.longitude)
             }
         }
@@ -857,11 +830,16 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     fun clearCache() {
         currentLoadingJob?.cancel()
 
+        viewModelScope.launch {
+            advancedCache.clear()
+            pointInfoCache.clear()
+        }
+
         simpleCache.clear()
         clusterManager.clearAllCache()
 
         lastUpdateTime = 0L
-        Log.d(TAG, "Cleared all caches and cancelled background jobs")
+        Log.d(TAG, "Cleared all caches including advanced caches and cancelled background jobs")
     }
 
     fun forceRefresh() {
