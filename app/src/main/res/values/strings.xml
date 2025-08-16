@@ -1731,6 +1731,8 @@
 
     <string name="category_api_3wifi">API 3WIFI</string>
 
+    <string name="selected_file">Selected file: %s</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

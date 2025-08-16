@@ -1048,6 +1048,9 @@ class DbSetupFragment : Fragment() {
 
             val size = getFileSizeInMB(uri)
             viewModel.setSelectedFileSize(size)
+            val fileName = getDisplayNameFromUri(uri)
+            binding.textViewSelectedFile.text = getString(R.string.selected_file, fileName)
+            binding.textViewSelectedFile.visibility = View.VISIBLE
         } catch (e: Exception) {
             Log.e("DbSetupFragment", "Error processing selected file", e)
             Toast.makeText(
@@ -2082,6 +2085,7 @@ class DbSetupFragment : Fragment() {
         binding.textInputPassword.editText?.text?.clear()
         binding.textViewUserInfo.visibility = View.GONE
         binding.buttonSelectFile.tag = null
+        binding.textViewSelectedFile.visibility = View.GONE
     }
 
     private fun observeViewModel() {
@@ -2092,6 +2096,31 @@ class DbSetupFragment : Fragment() {
         viewModel.errorEvent.observe(viewLifecycleOwner) { errorMessage ->
             Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun getDisplayNameFromUri(uri: Uri): String {
+        var displayName = "Unknown file"
+        try {
+            context?.contentResolver?.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex("_display_name")
+                    if (nameIndex != -1) {
+                        val name = cursor.getString(nameIndex)
+                        if (name != null) {
+                            displayName = name
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("DbSetupFragment", "Error getting display name", e)
+        }
+
+        if (displayName == "Unknown file") {
+            displayName = uri.lastPathSegment?.split("/")?.last() ?: "Unknown file"
+        }
+
+        return displayName
     }
 
     private fun getDirectPathFromUri(uri: Uri): String? {
