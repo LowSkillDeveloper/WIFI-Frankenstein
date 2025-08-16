@@ -1,6 +1,7 @@
 pluginManagement {
     plugins {
         id("com.google.protobuf") version "0.9.5"
+        id("kotlin-parcelize")
     }
     repositories {
         google {

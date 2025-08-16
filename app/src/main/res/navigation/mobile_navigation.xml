@@ -34,6 +34,12 @@
         tools:layout="@layout/fragment_upload_routerscan" />
 
     <fragment
+        android:id="@+id/nav_convert_dumps"
+        android:name="com.lsd.wififrankenstein.ui.convertdumps.ConvertDumpsFragment"
+        android:label="@string/menu_convert_dumps"
+        tools:layout="@layout/fragment_convert_dumps" />
+
+    <fragment
         android:id="@+id/nav_iw_scanner"
         android:name="com.lsd.wififrankenstein.ui.iwscanner.IwScannerFragment"
         android:label="@string/menu_iw_scanner"

@@ -1664,10 +1664,70 @@
     <string name="advanced_search">Продвинутый поиск</string>
 
     <string name="simple_mode">Простой</string>
-    <string name="insert_any_char">□</string>
-    <string name="insert_any_string">◯</string>
-    <string name="insert_wildcard">*</string>
+    <string name="insert_any_char" translatable="false">□</string>
+    <string name="insert_any_string" translatable="false">◯</string>
+    <string name="insert_wildcard" translatable="false">*</string>
 
+
+    <string name="menu_convert_dumps">Конвертатор дампов 3wifi</string>
+    <string name="convert_dumps_title">Конвертация дампов</string>
+    <string name="select_dump_files">Выбрать файлы дампов</string>
+    <string name="conversion_mode">Режим конвертации</string>
+    <string name="performance_mode">Производительный режим</string>
+    <string name="performance_mode_desc">Быстрая обработка, требует больше RAM и использует несколько ядер процессора</string>
+    <string name="economy_mode">Экономный режим</string>
+    <string name="economy_mode_desc">Медленная обработка, минимум RAM и 1 ядро</string>
+    <string name="start_conversion">Начать конвертацию</string>
+    <string name="conversion_in_progress">Идёт конвертация…</string>
+    <string name="conversion_complete">Конвертация завершена</string>
+    <string name="conversion_error">Ошибка конвертации</string>
+    <string name="conversion_cancelled">Конвертация отменена</string>
+    <string name="select_files_first">Сначала выберите файлы</string>
+    <string name="file_type_routerscan">RouterScan TXT</string>
+    <string name="file_type_3wifi_sql">3WiFi SQL</string>
+    <string name="file_type_p3wifi_sql">p3WiFi SQL</string>
+    <string name="output_database">База данных: %1$s</string>
+    <string name="indexing_options">Опции индексирования</string>
+    <string name="full_indexing">Полное индексирование</string>
+    <string name="basic_indexing">Базовое индексирование</string>
+    <string name="no_indexing">Без индексирования</string>
+    <string name="estimated_time">Примерное время: %s</string>
+    <string name="processing_file">Обработка файла %1$s (%2$d%%)</string>
+    <string name="conversion_notification_channel">Конвертация дампов</string>
+    <string name="conversion_notification_desc">Уведомления о процессе конвертации</string>
+
+    <string name="conversion_type">Тип конвертации</string>
+    <string name="select_conversion_type">Выберите тип конвертации</string>
+    <string name="routerscan_desc">Множественные TXT файлы RouterScan</string>
+    <string name="wifi3_desc">Файлы base.sql и geo.sql от 3WiFi</string>
+    <string name="p3wifi_desc">Один файл input.sql от p3WiFi</string>
+    <string name="select_base_file">Выбрать base.sql</string>
+    <string name="select_geo_file">Выбрать geo.sql</string>
+    <string name="select_input_file">Выбрать input.sql</string>
+    <string name="select_txt_files">Выбрать TXT файлы</string>
+    <string name="file_selected">Файл выбран: %s</string>
+    <string name="files_selected">Выбрано файлов: %d</string>
+    <string name="base_file_required">Требуется файл base.sql</string>
+    <string name="geo_file_required">Требуется файл geo.sql</string>
+    <string name="input_file_required">Требуется файл input.sql</string>
+    <string name="txt_files_required">Требуется минимум один TXT файл</string>
+
+    <string name="select_output_location">Выбрать место сохранения</string>
+    <string name="output_location">Место сохранения:</string>
+    <string name="output_location_internal">Внутренняя память приложения</string>
+    <string name="output_location_custom">Выбранная папка</string>
+    <string name="select_save_location">Выберите где сохранить файл</string>
+    <string name="no_location_selected">Место сохранения не выбрано</string>
+
+    <string name="output_location_selected">Выбрана папка: %1$s</string>
+    <string name="output_file_name">Имя файла: %1$s</string>
+    <string name="processing_sql_file">Обработка %1$s файла: %2$s</string>
+    <string name="parsing_sql_statements">Разбор SQL инструкций…</string>
+    <string name="inserting_data">Вставка данных…</string>
+    <string name="processed_inserts">Обработано %1$d INSERT блоков</string>
+
+    <string name="sql_constraint_error">Ошибка структуры данных: %1$s</string>
+    <string name="parsing_sql_data">Обработка SQL данных…</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
