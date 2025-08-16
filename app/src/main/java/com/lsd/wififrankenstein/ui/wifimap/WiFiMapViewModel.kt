@@ -84,16 +84,36 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
     private val _databaseColors = mutableMapOf<String, Int>()
     private val availableColors = listOf(
-        Color.RED,
-        Color.BLUE,
-        Color.GREEN,
-        Color.rgb(139, 69, 19),
-        Color.MAGENTA,
-        Color.CYAN,
-        Color.rgb(255, 165, 0),
-        Color.rgb(128, 0, 128),
-        Color.rgb(165, 42, 42),
-        Color.rgb(255, 192, 203)
+        Color.rgb(25, 25, 112),    // Тёмно-синий
+        Color.rgb(0, 100, 0),      // Тёмно-зелёный
+        Color.rgb(139, 0, 0),      // Тёмно-красный
+        Color.rgb(72, 61, 139),    // Тёмно-фиолетовый
+        Color.rgb(47, 79, 79),     // Тёмно-серый
+        Color.rgb(85, 107, 47),    // Оливковый
+        Color.rgb(105, 105, 105),  // Тёмно-серый
+        Color.rgb(0, 0, 139),      // Тёмно-синий 2
+        Color.rgb(128, 0, 128),    // Фиолетовый
+        Color.rgb(165, 42, 42),    // Коричневый
+        Color.rgb(0, 128, 128),    // Тёмно-бирюзовый
+        Color.rgb(184, 134, 11),   // Тёмно-жёлтый
+        Color.rgb(128, 128, 0),    // Оливковый 2
+        Color.rgb(75, 0, 130),     // Индиго
+        Color.rgb(106, 90, 205),   // Серо-фиолетовый
+        Color.rgb(70, 130, 180),   // Стальной синий
+        Color.rgb(60, 179, 113),   // Средний морской зелёный
+        Color.rgb(205, 92, 92),    // Индийский красный
+        Color.rgb(32, 178, 170),   // Светло-морской зелёный
+        Color.rgb(218, 165, 32),   // Золотисто-жёлтый
+        Color.rgb(160, 82, 45),    // Коричневый седло
+        Color.rgb(188, 143, 143),  // Розово-коричневый
+        Color.rgb(95, 158, 160),   // Кадетский синий
+        Color.rgb(119, 136, 153),  // Светло-серый
+        Color.rgb(112, 128, 144),  // Серый
+        Color.rgb(30, 144, 255),   // Голубой
+        Color.rgb(65, 105, 225),   // Королевский синий
+        Color.rgb(0, 191, 255),    // Глубокий небесно-голубой
+        Color.rgb(135, 206, 235),  // Небесно-голубой
+        Color.rgb(176, 196, 222)   // Светло-стальной синий
     )
     private var nextColorIndex = 0
 
