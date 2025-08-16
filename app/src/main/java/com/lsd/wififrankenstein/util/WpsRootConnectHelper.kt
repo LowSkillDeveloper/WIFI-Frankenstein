@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.io.InterruptedIOException
 
 class WpsRootConnectHelper(
     private val context: Context,
@@ -258,7 +259,14 @@ class WpsRootConnectHelper(
                 restoreSystemWifi()
                 callbacks.onConnectionFailed(context.getString(R.string.wps_root_connection_error, e.message ?: "Unknown"))
             } finally {
-                connectionJob = null
+                try {
+                    stopOurProcesses()
+                    restoreSystemWifi()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in cleanup", e)
+                } finally {
+                    connectionJob = null
+                }
             }
         }
     }
@@ -334,9 +342,15 @@ class WpsRootConnectHelper(
                 supplicantOutput = BufferedReader(InputStreamReader(supplicantProcess!!.inputStream))
 
                 scope.launch {
-                    var line: String?
-                    while (supplicantOutput?.readLine().also { line = it } != null) {
-                        line?.let { parseLine(it) }
+                    try {
+                        var line: String?
+                        while (supplicantOutput?.readLine().also { line = it } != null) {
+                            line?.let { parseLine(it) }
+                        }
+                    } catch (e: InterruptedIOException) {
+                        Log.d(TAG, "Supplicant output reading interrupted")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error reading supplicant output", e)
                     }
                 }
 
@@ -468,39 +482,56 @@ class WpsRootConnectHelper(
     private suspend fun stopOurProcesses() {
         withContext(Dispatchers.IO) {
             try {
-                supplicantProcess?.destroy()
                 supplicantOutput?.close()
-                supplicantProcess = null
-                supplicantOutput = null
+            } catch (e: Exception) {
+                Log.w(TAG, "Error closing supplicant output", e)
+            }
 
-                val killCommands = listOf(
-                    "pkill -9 -f $binaryDir",
-                    "rm -rf /data/vendor/wifi/wpa/wpsconnect/",
-                    "rm -rf /data/misc/wifi/wpsconnect/"
-                )
+            try {
+                supplicantProcess?.destroy()
+            } catch (e: Exception) {
+                Log.w(TAG, "Error destroying supplicant process", e)
+            }
 
-                killCommands.forEach { command ->
+            supplicantProcess = null
+            supplicantOutput = null
+
+            val killCommands = listOf(
+                "pkill -9 -f $binaryDir",
+                "rm -rf /data/vendor/wifi/wpa/wpsconnect/",
+                "rm -rf /data/misc/wifi/wpsconnect/"
+            )
+
+            killCommands.forEach { command ->
+                try {
                     Shell.cmd(command).exec()
                     delay(200)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error executing kill command: $command", e)
                 }
-
-            } catch (e: Exception) {
-                Log.w(TAG, "Error stopping processes", e)
             }
         }
     }
 
     fun stopConnection() {
-        connectionJob?.cancel()
-        scope.launch {
-            stopOurProcesses()
-            restoreSystemWifi()
+        try {
+            connectionJob?.cancel()
+            scope.launch {
+                stopOurProcesses()
+                restoreSystemWifi()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping connection", e)
         }
     }
 
     fun cleanup() {
-        stopConnection()
-        scope.cancel()
+        try {
+            stopConnection()
+            scope.cancel()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during cleanup", e)
+        }
     }
 
     fun isConnecting(): Boolean = connectionJob?.isActive == true
