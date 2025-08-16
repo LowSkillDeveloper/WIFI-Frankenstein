@@ -14,6 +14,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.delay
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -77,12 +78,13 @@ class ConversionEngine(
 
             if (coroutineContext.isActive) {
                 Log.d("ConversionEngine", "Creating indexes...")
-                progressCallback("Creating indexes...", 90)
                 createIndexes(db)
 
                 Log.d("ConversionEngine", "Optimizing database...")
-                progressCallback("Optimizing database...", 95)
                 optimizeDatabase(db)
+
+                progressCallback("Complete", 100)
+                delay(100)
 
                 db.close()
 
@@ -96,7 +98,6 @@ class ConversionEngine(
                 }
 
                 Log.d("ConversionEngine", "Conversion complete")
-                progressCallback("Complete", 100)
 
                 Log.d("ConversionEngine", "Final file: ${finalFile.absolutePath}")
                 finalFile.absolutePath
@@ -106,6 +107,12 @@ class ConversionEngine(
                 throw InterruptedException("Conversion was cancelled")
             }
 
+        } catch (e: OutOfMemoryError) {
+            Log.e("ConversionEngine", "Out of memory during conversion", e)
+            if (tempFile.exists()) {
+                tempFile.delete()
+            }
+            throw IllegalStateException("Not enough memory to complete conversion. Try using Economy mode or reduce file size.")
         } catch (e: Exception) {
             Log.e("ConversionEngine", "Conversion error", e)
             if (tempFile.exists()) {
@@ -345,11 +352,13 @@ class ConversionEngine(
                         if (geoInserts.size >= batchSize) {
                             insertGeoBatch(db, geoInserts)
                             geoInserts.clear()
+                            yield()
                         }
 
                         if (netsInserts.size >= batchSize) {
                             insertNetsBatch(db, netsInserts)
                             netsInserts.clear()
+                            yield()
                         }
                     }
                 }
@@ -473,7 +482,7 @@ class ConversionEngine(
         reader.close()
     }
 
-    private fun processBufferForInserts(
+    private suspend fun processBufferForInserts(
         db: SQLiteDatabase,
         buffer: StringBuilder,
         tablePatterns: Map<String, List<String>>,
@@ -511,9 +520,9 @@ class ConversionEngine(
                                     val processedRow = Array<Any?>(columnsNeeded) { index ->
                                         val originalValue = if (index < valueArray.size) valueArray[index] else null
                                         when {
-                                            index == 15 && originalValue == null -> 0L  // WPSPIN
-                                            index == 9 && originalValue == null -> 0L   // BSSID
-                                            index == 8 && originalValue == null -> 0L   // NoBSSID
+                                            index == 15 && originalValue == null -> 0L
+                                            index == 9 && originalValue == null -> 0L
+                                            index == 8 && originalValue == null -> 0L
                                             else -> originalValue
                                         }
                                     }
@@ -524,6 +533,7 @@ class ConversionEngine(
                             if (batches.size >= batchSize) {
                                 executeBatch(db, tableName, batches)
                                 batches.clear()
+                                yield()
                             }
                         }
                     }
@@ -726,15 +736,15 @@ class ConversionEngine(
                     when (value) {
                         null -> {
                             when (i) {
-                                8, 9 -> statement.bindLong(i + 1, 0)  // NoBSSID, BSSID
-                                15 -> statement.bindLong(i + 1, 0)    // WPSPIN
+                                8, 9 -> statement.bindLong(i + 1, 0)
+                                15 -> statement.bindLong(i + 1, 0)
                                 else -> statement.bindNull(i + 1)
                             }
                         }
                         is Long -> statement.bindLong(i + 1, value)
                         is Double -> statement.bindDouble(i + 1, value)
                         is String -> {
-                            if (value.isEmpty() && i == 15) {  // WPSPIN
+                            if (value.isEmpty() && i == 15) {
                                 statement.bindLong(i + 1, 0)
                             } else {
                                 statement.bindString(i + 1, value)
@@ -742,7 +752,7 @@ class ConversionEngine(
                         }
                         else -> {
                             val strValue = value.toString()
-                            if (strValue.isEmpty() && i == 15) {  // WPSPIN
+                            if (strValue.isEmpty() && i == 15) {
                                 statement.bindLong(i + 1, 0)
                             } else {
                                 statement.bindString(i + 1, strValue)
@@ -798,34 +808,72 @@ class ConversionEngine(
         """)
     }
 
-    private fun createIndexes(db: SQLiteDatabase) {
-        when (indexing) {
-            IndexingOption.FULL -> {
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_nets_BSSID ON nets (BSSID)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_nets_ESSID ON nets (ESSID)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_nets_wpspin ON nets (WPSPIN)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_nets_wifikey ON nets (WiFiKey)")
-            }
-            IndexingOption.BASIC -> {
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_nets_BSSID ON nets (BSSID)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_nets_ESSID ON nets (ESSID)")
-            }
-            IndexingOption.NONE -> {
-                // No indexes
+    private suspend fun createIndexes(db: SQLiteDatabase) {
+        val indexes = when (indexing) {
+            IndexingOption.FULL -> listOf(
+                "CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID)",
+                "CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude)",
+                "CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude)",
+                "CREATE INDEX IF NOT EXISTS idx_nets_BSSID ON nets (BSSID)",
+                "CREATE INDEX IF NOT EXISTS idx_nets_ESSID ON nets (ESSID)",
+                "CREATE INDEX IF NOT EXISTS idx_nets_wpspin ON nets (WPSPIN)",
+                "CREATE INDEX IF NOT EXISTS idx_nets_wifikey ON nets (WiFiKey)"
+            )
+            IndexingOption.BASIC -> listOf(
+                "CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID)",
+                "CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude)",
+                "CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude)",
+                "CREATE INDEX IF NOT EXISTS idx_nets_BSSID ON nets (BSSID)",
+                "CREATE INDEX IF NOT EXISTS idx_nets_ESSID ON nets (ESSID)"
+            )
+            IndexingOption.NONE -> emptyList()
+        }
+
+        if (indexes.isEmpty()) return
+
+        val progressStep = 5.0 / indexes.size
+        var currentProgress = 90.0
+
+        for ((index, sql) in indexes.withIndex()) {
+            if (!coroutineContext.isActive) break
+
+            try {
+                progressCallback("Creating index ${index + 1}/${indexes.size}...", currentProgress.toInt())
+                yield()
+                db.execSQL(sql)
+                currentProgress += progressStep
+            } catch (e: Exception) {
+                Log.w("ConversionEngine", "Failed to create index: $sql", e)
             }
         }
     }
 
-    private fun optimizeDatabase(db: SQLiteDatabase) {
-        db.execSQL("ANALYZE")
-        db.execSQL("PRAGMA optimize")
-        db.execSQL("VACUUM")
+    private suspend fun optimizeDatabase(db: SQLiteDatabase) {
+        try {
+            progressCallback("Analyzing database...", 92)
+            yield()
+            db.execSQL("ANALYZE")
+
+            progressCallback("Optimizing queries...", 94)
+            yield()
+            db.execSQL("PRAGMA optimize")
+
+            if (mode == ConversionMode.PERFORMANCE) {
+                try {
+                    progressCallback("Compacting database...", 96)
+                    yield()
+                    db.execSQL("PRAGMA incremental_vacuum(1000)")
+                } catch (e: Exception) {
+                    Log.w("ConversionEngine", "Incremental vacuum failed, skipping: ${e.message}")
+                }
+            }
+
+            progressCallback("Finalizing...", 98)
+            yield()
+
+        } catch (e: Exception) {
+            Log.w("ConversionEngine", "Database optimization partially failed: ${e.message}")
+        }
     }
 
     private fun parseRouterScanLine(line: String): RouterScanNetwork? {
@@ -852,7 +900,6 @@ class ConversionEngine(
                     longitude = lon
                 }
             } catch (e: Exception) {
-                // Ignore coordinate parsing errors
             }
         }
 
@@ -880,7 +927,6 @@ class ConversionEngine(
                 return cleanMac.toLong(16)
             }
         } catch (e: Exception) {
-            // Ignore parsing errors
         }
 
         return 0L

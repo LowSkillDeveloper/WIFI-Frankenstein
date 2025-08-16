@@ -1733,6 +1733,13 @@
 
     <string name="selected_file">Selected file: %s</string>
 
+    <string name="analyzing_database">Analyzing database…</string>
+    <string name="optimizing_queries">Optimizing queries...</string>
+    <string name="compacting_database">Compacting database…</string>
+    <string name="finalizing">Finalizing...</string>
+    <string name="creating_index">Creating index %1$d/%2$d…</string>
+    <string name="memory_error">Not enough memory to complete conversion. Try using Economy mode.</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
