@@ -3,6 +3,7 @@ package com.lsd.wififrankenstein.util
 import android.content.Context
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
+import android.net.wifi.WpsInfo
 import android.os.Build
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.R
@@ -28,6 +29,7 @@ class WpsRootConnectHelper(
         private const val TAG = "WpsRootConnectHelper"
         private const val CONFIG_FILE = "wps_connect.conf"
         private const val CONNECTION_TIMEOUT = 60000L
+        private const val WPS_REMOVED_API_LEVEL = 29
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -37,6 +39,7 @@ class WpsRootConnectHelper(
     private var supplicantProcess: Process? = null
     private var supplicantOutput: BufferedReader? = null
     private var connectionJob: Job? = null
+    private var originalWifiState = false
 
     interface WpsConnectCallbacks {
         fun onConnectionProgress(message: String)
@@ -51,6 +54,24 @@ class WpsRootConnectHelper(
             shell.isRoot && shell.isAlive
         } catch (e: Exception) {
             Log.e(TAG, "Root check failed", e)
+            false
+        }
+    }
+
+    private fun isSystemWpsAvailable(): Boolean {
+        return if (Build.VERSION.SDK_INT < WPS_REMOVED_API_LEVEL) {
+            try {
+                val wpsInfo = WpsInfo()
+                wpsInfo.setup = WpsInfo.PBC
+                true
+            } catch (e: Exception) {
+                Log.w(TAG, "WPS not available", e)
+                false
+            } catch (e: NoSuchMethodError) {
+                Log.w(TAG, "WPS methods not found", e)
+                false
+            }
+        } else {
             false
         }
     }
@@ -212,26 +233,177 @@ class WpsRootConnectHelper(
                     return@launch
                 }
 
+                originalWifiState = wifiManager.isWifiEnabled
+
+                var success = false
+
+                if (isSystemWpsAvailable()) {
+                    callbacks.onConnectionProgress(context.getString(R.string.wps_root_trying_system_wps))
+                    success = trySystemWpsConnection(network, wpsPin)
+                }
+
+                if (!success) {
+                    callbacks.onConnectionProgress(context.getString(R.string.wps_root_trying_existing_supplicant))
+                    success = tryExistingSupplicantConnection(network, wpsPin)
+                }
+
+                if (!success) {
+                    callbacks.onConnectionProgress(context.getString(R.string.wps_root_using_custom_supplicant))
+                    success = useCustomSupplicantMethod(network, wpsPin, interfaceName)
+                }
+
+                if (success) {
+                    callbacks.onConnectionSuccess(network.SSID)
+                } else {
+                    callbacks.onConnectionFailed(context.getString(R.string.wps_root_connection_failed))
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "WPS connection failed", e)
+                callbacks.onConnectionFailed(context.getString(R.string.wps_root_connection_error, e.message ?: "Unknown"))
+            } finally {
+                try {
+                    stopOurProcesses()
+                    restoreSystemWifi()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in cleanup", e)
+                } finally {
+                    connectionJob = null
+                }
+            }
+        }
+    }
+
+    private suspend fun trySystemWpsConnection(network: ScanResult, wpsPin: String?): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                if (Build.VERSION.SDK_INT >= WPS_REMOVED_API_LEVEL) {
+                    return@withContext false
+                }
+
+                val wpsConfig = WpsInfo().apply {
+                    if (wpsPin != null) {
+                        setup = WpsInfo.KEYPAD
+                        pin = wpsPin
+                    } else {
+                        setup = WpsInfo.PBC
+                    }
+                    BSSID = network.BSSID
+                }
+
+                var connectionResult = false
+
+                wifiManager.startWps(wpsConfig, object : WifiManager.WpsCallback() {
+                    override fun onStarted(pin: String?) {
+                        callbacks.onLogEntry(context.getString(R.string.wps_root_system_wps_started))
+                    }
+
+                    override fun onSucceeded() {
+                        callbacks.onLogEntry(context.getString(R.string.wps_root_system_wps_succeeded))
+                        connectionResult = true
+                    }
+
+                    override fun onFailed(reason: Int) {
+                        callbacks.onLogEntry(context.getString(R.string.wps_root_system_wps_failed, reason))
+                        connectionResult = false
+                    }
+                })
+
+                delay(CONNECTION_TIMEOUT)
+                connectionResult
+            } catch (e: Exception) {
+                Log.e(TAG, "System WPS failed", e)
+                false
+            }
+        }
+    }
+
+    private suspend fun tryExistingSupplicantConnection(network: ScanResult, wpsPin: String?): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val controlPath = findExistingControlSocket()
+                if (controlPath == null) {
+                    callbacks.onLogEntry(context.getString(R.string.wps_root_no_existing_supplicant))
+                    return@withContext false
+                }
+
+                callbacks.onLogEntry(context.getString(R.string.wps_root_found_existing_supplicant, controlPath))
+
+                val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
+
+                if (!checkBinaryFiles()) {
+                    copyBinariesFromAssets()
+                    delay(2000)
+                    if (!checkBinaryFiles()) {
+                        return@withContext false
+                    }
+                }
+
+                val command = if (wpsPin != null) {
+                    "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pin ${network.BSSID} $wpsPin"
+                } else {
+                    "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pbc ${network.BSSID}"
+                }
+
+                val result = Shell.cmd(command).exec()
+                if (result.isSuccess) {
+                    callbacks.onLogEntry(context.getString(R.string.wps_root_existing_supplicant_command_sent))
+                    delay(CONNECTION_TIMEOUT / 2)
+                    return@withContext true
+                } else {
+                    callbacks.onLogEntry(context.getString(R.string.wps_root_existing_supplicant_failed))
+                    return@withContext false
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Existing supplicant connection failed", e)
+                false
+            }
+        }
+    }
+
+    private fun findExistingControlSocket(): String? {
+        val possiblePaths = listOf(
+            "/data/misc/wifi/wpa_supplicant",
+            "/data/system/wpa_supplicant",
+            "/var/run/wpa_supplicant",
+            "/data/vendor/wifi/wpa",
+            "/data/misc/wifi/sockets"
+        )
+
+        return possiblePaths.find { path ->
+            try {
+                val result = Shell.cmd("test -S $path/wlan0 && echo 'EXISTS'").exec()
+                result.out.contains("EXISTS")
+            } catch (e: Exception) {
+                false
+            }
+        }
+    }
+
+    private suspend fun useCustomSupplicantMethod(network: ScanResult, wpsPin: String?, interfaceName: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
                 if (!checkBinaryFiles()) {
                     copyBinariesFromAssets()
                     delay(3000)
 
                     if (!checkBinaryFiles()) {
                         callbacks.onConnectionFailed(context.getString(R.string.wps_root_binaries_missing))
-                        return@launch
+                        return@withContext false
                     }
                 }
 
                 callbacks.onConnectionProgress(context.getString(R.string.wps_root_preparing))
 
-                stopSystemWifi()
-                delay(2000)
+                gentlyStopSystemWifi()
+                delay(3000)
 
                 val socketDir = getSocketDirectory()
                 if (!startSupplicant(socketDir, interfaceName)) {
                     restoreSystemWifi()
                     callbacks.onConnectionFailed(context.getString(R.string.wps_root_supplicant_failed))
-                    return@launch
+                    return@withContext false
                 }
 
                 delay(3000)
@@ -247,51 +419,41 @@ class WpsRootConnectHelper(
                 stopOurProcesses()
                 restoreSystemWifi()
 
-                if (success) {
-                    callbacks.onConnectionSuccess(network.SSID)
-                } else {
-                    callbacks.onConnectionFailed(context.getString(R.string.wps_root_connection_failed))
-                }
-
+                success
             } catch (e: Exception) {
-                Log.e(TAG, "WPS connection failed", e)
-                stopOurProcesses()
-                restoreSystemWifi()
-                callbacks.onConnectionFailed(context.getString(R.string.wps_root_connection_error, e.message ?: "Unknown"))
-            } finally {
-                try {
-                    stopOurProcesses()
-                    restoreSystemWifi()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error in cleanup", e)
-                } finally {
-                    connectionJob = null
-                }
+                Log.e(TAG, "Custom supplicant method failed", e)
+                false
             }
         }
     }
 
-    private suspend fun stopSystemWifi() {
+    private suspend fun gentlyStopSystemWifi() {
         withContext(Dispatchers.IO) {
             try {
-                callbacks.onLogEntry(context.getString(R.string.wps_root_stopping_system_wifi))
+                callbacks.onLogEntry(context.getString(R.string.wps_root_gently_stopping_wifi))
 
                 wifiManager.isWifiEnabled = false
-                delay(2000)
+                delay(3000)
 
-                val stopCommands = listOf(
-                    "stop wpa_supplicant",
-                    "killall -9 wpa_supplicant",
-                    "pkill -9 -f wpa_supplicant"
+                val gentleCommands = listOf(
+                    "am force-stop com.android.settings",
+                    "killall wpa_supplicant",
+                    "pkill -f wpa_supplicant"
                 )
 
-                stopCommands.forEach { command ->
-                    Shell.cmd(command).exec()
-                    delay(500)
+                gentleCommands.forEach { command ->
+                    try {
+                        Shell.cmd(command).exec()
+                        delay(1000)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Gentle command failed: $command", e)
+                    }
                 }
 
+                delay(2000)
+
             } catch (e: Exception) {
-                Log.w(TAG, "Error stopping system WiFi", e)
+                Log.w(TAG, "Error gently stopping WiFi", e)
             }
         }
     }
@@ -302,7 +464,7 @@ class WpsRootConnectHelper(
                 callbacks.onLogEntry(context.getString(R.string.wps_root_restoring_wifi))
 
                 delay(2000)
-                wifiManager.isWifiEnabled = true
+                wifiManager.isWifiEnabled = originalWifiState
                 delay(3000)
 
             } catch (e: Exception) {
