@@ -1734,7 +1734,7 @@
     <string name="selected_file">Selected file: %s</string>
 
     <string name="analyzing_database">Analyzing database…</string>
-    <string name="optimizing_queries">Optimizing queries...</string>
+    <string name="optimizing_queries">Optimizing queries…</string>
     <string name="compacting_database">Compacting database…</string>
     <string name="finalizing">Finalizing...</string>
     <string name="creating_index">Creating index %1$d/%2$d…</string>
@@ -1758,6 +1758,37 @@
     <string name="disconnect_failed">Не удалось отключиться: %s</string>
     <string name="connected_via_app">Подключено через приложение</string>
     <string name="network_info_format">Сеть: %1$s\nBSSID: %2$s</string>
+
+    <string name="wps_root_trying_system_wps">Trying system WPS connection…</string>
+    <string name="wps_root_trying_existing_supplicant">Trying existing supplicant…</string>
+    <string name="wps_root_using_custom_supplicant">Using custom supplicant method…</string>
+    <string name="wps_root_no_existing_supplicant">No existing supplicant found</string>
+    <string name="wps_root_found_existing_supplicant">Found existing supplicant at: %1$s</string>
+    <string name="wps_root_existing_supplicant_command_sent">Command sent to existing supplicant</string>
+    <string name="wps_root_existing_supplicant_failed">Existing supplicant connection failed</string>
+    <string name="wps_root_gently_stopping_wifi">Gently stopping system WiFi…</string>
+    <string name="wps_root_system_wps_started">System WPS started</string>
+    <string name="wps_root_system_wps_succeeded">System WPS succeeded</string>
+    <string name="wps_root_system_wps_failed">System WPS failed with reason: %1$d</string>
+
+    <string name="wps_method_1">Метод 1 - Сложный</string>
+    <string name="wps_method_2">Метод 2 - Альтернативный</string>
+    <string name="wps_method_3">Метод 3 - Рекомендуемый</string>
+    <string name="wps_method_selection_title">Выберите метод WPS подключения</string>
+    <string name="wps_root_method2_failed">Метод 2 не удался</string>
+    <string name="wps_root_disconnecting">Отключение от текущей сети…</string>
+    <string name="wps_root_executing_command">Выполнение команды…</string>
+    <string name="wps_root_waiting_connection">Ожидание подключения…</string>
+    <string name="wps_root_epipe_error">Ошибка EPIPE в потоке</string>
+
+    <string name="wps_mode_selection_title">Выберите режим WPS</string>
+    <string name="wps_mode_pbc">PBC (Push Button Connect)</string>
+    <string name="wps_mode_pin">PIN (введите PIN-код)</string>
+    <string name="wps_pin_input_title">Введите WPS PIN</string>
+    <string name="wps_pin_input_hint">8-значный PIN код</string>
+    <string name="wps_pin_invalid">PIN код должен содержать 8 цифр</string>
+    <string name="wps_use_database_pin">Использовать PIN из базы: %s</string>
+    <string name="wps_enter_custom_pin">Ввести свой PIN</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

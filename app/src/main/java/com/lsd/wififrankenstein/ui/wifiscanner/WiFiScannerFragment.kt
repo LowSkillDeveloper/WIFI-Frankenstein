@@ -70,6 +70,7 @@ import java.util.Locale
 import android.provider.Settings
 import com.lsd.wififrankenstein.util.WiFiConnectionHelper
 import android.view.inputmethod.InputMethodManager
+import com.lsd.wififrankenstein.util.WpsMethodSelector
 
 
 class WiFiScannerFragment : Fragment() {
@@ -1401,7 +1402,7 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun connectUsingWpsRoot(network: ScanResult) {
-        val wpsHelper = WpsRootConnectHelper(
+        val methodSelector = WpsMethodSelector(
             requireContext(),
             object : WpsRootConnectHelper.WpsConnectCallbacks {
                 override fun onConnectionProgress(message: String) {
@@ -1429,12 +1430,8 @@ class WiFiScannerFragment : Fragment() {
                 override fun onLogEntry(message: String) {
                     Log.d("WpsRootConnect", message)
                 }
-            })
-
-        if (!wpsHelper.checkRootAccess()) {
-            Toast.makeText(requireContext(), getString(R.string.wps_root_no_root), Toast.LENGTH_SHORT).show()
-            return
-        }
+            }
+        )
 
         val databaseResults = viewModel.databaseResults.value?.get(network.BSSID.lowercase(Locale.ROOT))
         val wpsPin = databaseResults?.firstNotNullOfOrNull { result ->
@@ -1443,11 +1440,7 @@ class WiFiScannerFragment : Fragment() {
                 ?: result.databaseInfo["wps"]?.toString()
         }?.takeIf { it.isNotBlank() && it != "0" }
 
-        if (wpsPin != null) {
-            wpsHelper.connectToNetworkWps(network, wpsPin)
-        } else {
-            wpsHelper.connectToNetworkWps(network)
-        }
+        methodSelector.showMethodSelection(network, wpsPin)
     }
 
     private fun showWpsPinDialog(scanResult: ScanResult) {

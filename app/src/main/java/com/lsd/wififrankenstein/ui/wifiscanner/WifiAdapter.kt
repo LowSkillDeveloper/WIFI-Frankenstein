@@ -37,6 +37,7 @@ import com.lsd.wififrankenstein.databinding.ItemWpsResultBinding
 import com.lsd.wififrankenstein.util.NetworkDetailsExtractor
 import com.lsd.wififrankenstein.util.NetworkProtocol
 import com.lsd.wififrankenstein.util.QrNavigationHelper
+import com.lsd.wififrankenstein.util.WpsMethodSelector
 import com.lsd.wififrankenstein.util.WpsRootConnectHelper
 import com.lsd.wififrankenstein.util.calculateDistanceString
 import java.util.Locale
@@ -357,8 +358,9 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
         }
 
         private fun connectUsingWpsRoot(context: Context, result: NetworkDatabaseResult, wpsPin: String) {
-            val wpsHelper =
-                WpsRootConnectHelper(context, object : WpsRootConnectHelper.WpsConnectCallbacks {
+            val methodSelector = WpsMethodSelector(
+                context,
+                object : WpsRootConnectHelper.WpsConnectCallbacks {
                     override fun onConnectionProgress(message: String) {
                         (context as? Activity)?.runOnUiThread {
                             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -384,14 +386,10 @@ class WifiAdapter(private var wifiList: List<ScanResult>, private val context: C
                     override fun onLogEntry(message: String) {
                         Log.d("WpsRootConnect", message)
                     }
-                })
+                }
+            )
 
-            if (!wpsHelper.checkRootAccess()) {
-                Toast.makeText(context, context.getString(R.string.wps_root_no_root), Toast.LENGTH_SHORT).show()
-                return
-            }
-
-            wpsHelper.connectToNetworkWps(result.network, wpsPin)
+            methodSelector.showMethodSelection(result.network, wpsPin)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
