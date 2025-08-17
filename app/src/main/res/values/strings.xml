@@ -1742,16 +1742,21 @@
 
     <string name="connect_with_password">Подключиться с паролем</string>
     <string name="enter_password">Введите пароль</string>
-    <string name="connecting">Подключение…</string>
+    <string name="connecting">Подключение...</string>
     <string name="connection_successful">Успешно подключено к %s</string>
     <string name="connection_failed">Не удалось подключиться к %s</string>
     <string name="connection_timeout">Время ожидания подключения истекло</string>
     <string name="wifi_password_required">Требуется пароль WiFi</string>
     <string name="network_suggestion_added">Сеть добавлена в предложения</string>
     <string name="network_suggestion_failed">Не удалось добавить сеть в предложения</string>
-    <string name="connection_in_progress">Подключение в процессе…</string>
-    <string name="checking_connection">Проверка подключения…</string>
-    <string name="connection_actions">Подключение</string>
+    <string name="connection_in_progress">Подключение в процессе...</string>
+    <string name="checking_connection">Проверка подключения...</string>
+    <string name="disconnect_network">Отключиться</string>
+    <string name="forget_network">Забыть сеть</string>
+    <string name="disconnected_successfully">Успешно отключено</string>
+    <string name="network_forgotten">Сеть забыта</string>
+    <string name="disconnect_failed">Не удалось отключиться: %s</string>
+    <string name="connected_via_app">Подключено через приложение</string>
     <string name="network_info_format">Сеть: %1$s\nBSSID: %2$s</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT

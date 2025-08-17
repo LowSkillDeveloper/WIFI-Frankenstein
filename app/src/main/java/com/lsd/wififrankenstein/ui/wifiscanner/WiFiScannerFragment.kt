@@ -1068,6 +1068,11 @@ class WiFiScannerFragment : Fragment() {
             }
         }
 
+        val connectionHelper = WiFiConnectionHelper(requireContext())
+        val isConnectedViaApp = selectedWifi?.let { wifi ->
+            connectionHelper.isConnectedViaApp(wifi.SSID, wifi.BSSID)
+        } ?: false
+
         dialogView.findViewById<TextView>(R.id.action_copy_ssid)?.apply {
             tintDrawableStart(R.drawable.ic_content_copy)
             setOnClickListener {
@@ -1086,6 +1091,7 @@ class WiFiScannerFragment : Fragment() {
 
         dialogView.findViewById<TextView>(R.id.action_connect_with_password)?.apply {
             tintDrawableStart(R.drawable.ic_wifi)
+            visibility = if (isConnectedViaApp) View.GONE else View.VISIBLE
             setOnClickListener {
                 selectedWifi?.let { wifi ->
                     showPasswordDialog(wifi)
@@ -1095,6 +1101,28 @@ class WiFiScannerFragment : Fragment() {
                     "Wi-Fi network is not selected",
                     Toast.LENGTH_SHORT
                 ).show()
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_disconnect_network)?.apply {
+            tintDrawableStart(R.drawable.ic_cancel)
+            visibility = if (isConnectedViaApp) View.VISIBLE else View.GONE
+            setOnClickListener {
+                selectedWifi?.let { wifi ->
+                    disconnectFromNetwork(wifi)
+                    dialog.dismiss()
+                }
+            }
+        }
+
+        dialogView.findViewById<TextView>(R.id.action_forget_network)?.apply {
+            tintDrawableStart(R.drawable.ic_content_copy)
+            visibility = if (isConnectedViaApp) View.VISIBLE else View.GONE
+            setOnClickListener {
+                selectedWifi?.let { wifi ->
+                    forgetNetwork(wifi)
+                    dialog.dismiss()
+                }
             }
         }
 
@@ -1198,6 +1226,46 @@ class WiFiScannerFragment : Fragment() {
         dialog.show()
     }
 
+    private fun disconnectFromNetwork(scanResult: ScanResult) {
+        val connectionHelper = WiFiConnectionHelper(requireContext())
+
+        connectionHelper.disconnectAndForgetNetwork(
+            scanResult.SSID,
+            scanResult.BSSID,
+            object : WiFiConnectionHelper.DisconnectionCallback {
+                override fun onDisconnectionSuccess() {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.disconnected_successfully),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+
+                override fun onDisconnectionFailed(error: String) {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.disconnect_failed, error),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+
+                override fun onNetworkForgotten() {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.network_forgotten),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+        )
+    }
+
     private fun showPasswordDialog(scanResult: ScanResult) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_password_input, null)
         val passwordEditText = dialogView.findViewById<TextInputEditText>(R.id.editTextPassword)
@@ -1228,6 +1296,42 @@ class WiFiScannerFragment : Fragment() {
         passwordEditText.requestFocus()
         val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(passwordEditText, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+
+
+    private fun forgetNetwork(scanResult: ScanResult) {
+        val connectionHelper = WiFiConnectionHelper(requireContext())
+
+        connectionHelper.disconnectAndForgetNetwork(
+            scanResult.SSID,
+            scanResult.BSSID,
+            object : WiFiConnectionHelper.DisconnectionCallback {
+                override fun onDisconnectionSuccess() {
+
+                }
+
+                override fun onDisconnectionFailed(error: String) {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.disconnect_failed, error),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+
+                override fun onNetworkForgotten() {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.network_forgotten),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+        )
     }
 
     private fun connectToWiFiWithPassword(scanResult: ScanResult, password: String) {

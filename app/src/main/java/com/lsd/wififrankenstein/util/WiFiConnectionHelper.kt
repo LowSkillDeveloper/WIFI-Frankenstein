@@ -30,12 +30,37 @@ class WiFiConnectionHelper(private val context: Context) {
         fun onConnectionTimeout()
     }
 
+    interface DisconnectionCallback {
+        fun onDisconnectionSuccess()
+        fun onDisconnectionFailed(error: String)
+        fun onNetworkForgotten()
+    }
+
     private val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     private val handler = Handler(Looper.getMainLooper())
     private var timeoutRunnable: Runnable? = null
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var connectionReceiver: BroadcastReceiver? = null
+
+    private fun cleanup() {
+        timeoutRunnable?.let { handler.removeCallbacks(it) }
+        timeoutRunnable = null
+
+        networkCallback?.let {
+            connectivityManager.unregisterNetworkCallback(it)
+        }
+        networkCallback = null
+
+        connectionReceiver?.let {
+            try {
+                context.unregisterReceiver(it)
+            } catch (e: Exception) {
+
+            }
+        }
+        connectionReceiver = null
+    }
 
     suspend fun connectToNetwork(
         scanResult: ScanResult,
@@ -295,22 +320,105 @@ class WiFiConnectionHelper(private val context: Context) {
         }
     }
 
-    private fun cleanup() {
-        timeoutRunnable?.let { handler.removeCallbacks(it) }
-        timeoutRunnable = null
-
-        networkCallback?.let {
-            connectivityManager.unregisterNetworkCallback(it)
+    fun isConnectedViaApp(ssid: String, bssid: String): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            isConnectedViaSuggestion(ssid, bssid)
+        } else {
+            isConnectedViaConfiguration(ssid)
         }
-        networkCallback = null
+    }
 
-        connectionReceiver?.let {
-            try {
-                context.unregisterReceiver(it)
-            } catch (e: Exception) {
+    private fun isConnectedViaSuggestion(ssid: String, bssid: String): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
 
+        return try {
+            val currentSSID = getCurrentConnectedNetwork()
+            if (currentSSID != ssid) return false
+
+            val suggestions = wifiManager.networkSuggestions
+            suggestions.any { suggestion ->
+                suggestion.ssid == ssid &&
+                        (suggestion.bssid == null || suggestion.bssid.toString().equals(bssid, ignoreCase = true))
             }
+        } catch (e: Exception) {
+            false
         }
-        connectionReceiver = null
+    }
+
+    private fun isConnectedViaConfiguration(ssid: String): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return false
+
+        return try {
+            val currentSSID = getCurrentConnectedNetwork()
+            if (currentSSID != ssid) return false
+
+            val configurations = wifiManager.configuredNetworks ?: return false
+            configurations.any { config ->
+                config.SSID?.replace("\"", "") == ssid
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun disconnectAndForgetNetwork(ssid: String, bssid: String, callback: DisconnectionCallback) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            disconnectAndForgetSuggestion(ssid, bssid, callback)
+        } else {
+            disconnectAndForgetConfiguration(ssid, callback)
+        }
+    }
+
+    private fun disconnectAndForgetSuggestion(ssid: String, bssid: String, callback: DisconnectionCallback) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+
+        try {
+            val suggestions = wifiManager.networkSuggestions
+            val matchingSuggestions = suggestions.filter { suggestion ->
+                suggestion.ssid == ssid &&
+                        (suggestion.bssid == null || suggestion.bssid.toString().equals(bssid, ignoreCase = true))
+            }
+
+            if (matchingSuggestions.isNotEmpty()) {
+                val result = wifiManager.removeNetworkSuggestions(matchingSuggestions)
+                if (result == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
+                    wifiManager.disconnect()
+                    callback.onNetworkForgotten()
+                    callback.onDisconnectionSuccess()
+                } else {
+                    callback.onDisconnectionFailed("Failed to remove network suggestions")
+                }
+            } else {
+                callback.onDisconnectionFailed("Network not found in suggestions")
+            }
+        } catch (e: Exception) {
+            callback.onDisconnectionFailed("Error: ${e.message}")
+        }
+    }
+
+    private fun disconnectAndForgetConfiguration(ssid: String, callback: DisconnectionCallback) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return
+
+        try {
+            val configurations = wifiManager.configuredNetworks ?: emptyList()
+            val matchingConfig = configurations.find { config ->
+                config.SSID?.replace("\"", "") == ssid
+            }
+
+            if (matchingConfig != null) {
+                val removed = wifiManager.removeNetwork(matchingConfig.networkId)
+                if (removed) {
+                    wifiManager.disconnect()
+                    callback.onNetworkForgotten()
+                    callback.onDisconnectionSuccess()
+                } else {
+                    callback.onDisconnectionFailed("Failed to remove network configuration")
+                }
+            } else {
+                callback.onDisconnectionFailed("Network configuration not found")
+            }
+        } catch (e: Exception) {
+            callback.onDisconnectionFailed("Error: ${e.message}")
+        }
     }
 }
