@@ -1657,79 +1657,79 @@
     <string name="max_radius_25km_api">Maximum 25 km for API sources</string>
     <string name="online_api_suffix">(Online API)</string>
 
-    <string name="bssid_field">BSSID (* - любой символ)</string>
-    <string name="essid_field">ESSID (□ - символ, ◯ - набор символов)</string>
-    <string name="password_field">Пароль</string>
-    <string name="wps_pin_field">WPS PIN</string>
-    <string name="advanced_search">Продвинутый поиск</string>
-
-    <string name="simple_mode">Простой</string>
     <string name="insert_any_char" translatable="false">□</string>
     <string name="insert_any_string" translatable="false">◯</string>
     <string name="insert_wildcard" translatable="false">*</string>
 
+    <string name="bssid_field">BSSID (* - any character)</string>
+    <string name="essid_field">ESSID (□ - character, ◯ - set of characters)</string>
+    <string name="password_field">Password</string>
+    <string name="wps_pin_field">WPS PIN</string>
+    <string name="advanced_search">Advanced search</string>
 
-    <string name="menu_convert_dumps">Конвертатор дампов 3wifi</string>
-    <string name="convert_dumps_title">Конвертация дампов</string>
-    <string name="select_dump_files">Выбрать файлы дампов</string>
-    <string name="conversion_mode">Режим конвертации</string>
-    <string name="performance_mode">Производительный режим</string>
-    <string name="performance_mode_desc">Быстрая обработка, требует больше RAM и использует несколько ядер процессора</string>
-    <string name="economy_mode">Экономный режим</string>
-    <string name="economy_mode_desc">Медленная обработка, минимум RAM и 1 ядро</string>
-    <string name="start_conversion">Начать конвертацию</string>
-    <string name="conversion_in_progress">Идёт конвертация…</string>
-    <string name="conversion_complete">Конвертация завершена</string>
-    <string name="conversion_error">Ошибка конвертации</string>
-    <string name="conversion_cancelled">Конвертация отменена</string>
-    <string name="select_files_first">Сначала выберите файлы</string>
+    <string name="simple_mode">Simple</string>
+
+    <string name="menu_convert_dumps">3WiFi dump converter</string>
+    <string name="convert_dumps_title">Dump conversion</string>
+    <string name="select_dump_files">Select dump files</string>
+    <string name="conversion_mode">Conversion mode</string>
+    <string name="performance_mode">Performance mode</string>
+    <string name="performance_mode_desc">Fast processing, requires more RAM and uses multiple CPU cores</string>
+    <string name="economy_mode">Economy mode</string>
+    <string name="economy_mode_desc">Slow processing, minimal RAM and 1 core</string>
+    <string name="start_conversion">Start conversion</string>
+    <string name="conversion_in_progress">Conversion in progress…</string>
+    <string name="conversion_complete">Conversion complete</string>
+    <string name="conversion_error">Conversion error</string>
+    <string name="conversion_cancelled">Conversion cancelled</string>
+    <string name="select_files_first">Select files first</string>
     <string name="file_type_routerscan">RouterScan TXT</string>
     <string name="file_type_3wifi_sql">3WiFi SQL</string>
     <string name="file_type_p3wifi_sql">p3WiFi SQL</string>
-    <string name="output_database">База данных: %1$s</string>
-    <string name="indexing_options">Опции индексирования</string>
-    <string name="full_indexing">Полное индексирование</string>
-    <string name="basic_indexing">Базовое индексирование</string>
-    <string name="no_indexing">Без индексирования</string>
-    <string name="estimated_time">Примерное время: %s</string>
-    <string name="processing_file">Обработка файла %1$s (%2$d%%)</string>
-    <string name="conversion_notification_channel">Конвертация дампов</string>
-    <string name="conversion_notification_desc">Уведомления о процессе конвертации</string>
+    <string name="output_database">Database: %1$s</string>
+    <string name="indexing_options">Indexing options</string>
+    <string name="full_indexing">Full indexing</string>
+    <string name="basic_indexing">Basic indexing</string>
+    <string name="no_indexing">No indexing</string>
+    <string name="estimated_time">Estimated time: %s</string>
+    <string name="processing_file">Processing file %1$s (%2$d%%)</string>
+    <string name="conversion_notification_channel">Dump conversion</string>
+    <string name="conversion_notification_desc">Notifications about the conversion process</string>
 
-    <string name="conversion_type">Тип конвертации</string>
-    <string name="select_conversion_type">Выберите тип конвертации</string>
-    <string name="routerscan_desc">Множественные TXT файлы RouterScan</string>
-    <string name="wifi3_desc">Файлы base.sql и geo.sql от 3WiFi</string>
-    <string name="p3wifi_desc">Один файл input.sql от p3WiFi</string>
-    <string name="select_base_file">Выбрать base.sql</string>
-    <string name="select_geo_file">Выбрать geo.sql</string>
-    <string name="select_input_file">Выбрать input.sql</string>
-    <string name="select_txt_files">Выбрать TXT файлы</string>
-    <string name="file_selected">Файл выбран: %s</string>
-    <string name="files_selected">Выбрано файлов: %d</string>
-    <string name="base_file_required">Требуется файл base.sql</string>
-    <string name="geo_file_required">Требуется файл geo.sql</string>
-    <string name="input_file_required">Требуется файл input.sql</string>
-    <string name="txt_files_required">Требуется минимум один TXT файл</string>
+    <string name="conversion_type">Conversion type</string>
+    <string name="select_conversion_type">Select conversion type</string>
+    <string name="routerscan_desc">Multiple RouterScan TXT files</string>
+    <string name="wifi3_desc">base.sql and geo.sql files from 3WiFi</string>
+    <string name="p3wifi_desc">One input.sql file from p3WiFi</string>
+    <string name="select_base_file">Select base.sql</string>
+    <string name="select_geo_file">Select geo.sql</string>
+    <string name="select_input_file">Select input.sql</string>
+    <string name="select_txt_files">Select TXT files</string>
+    <string name="file_selected">File selected: %s</string>
+    <string name="files_selected">Files selected: %d</string>
+    <string name="base_file_required">base.sql file required</string>
+    <string name="geo_file_required">geo.sql file required</string>
+    <string name="input_file_required">input.sql file required</string>
+    <string name="txt_files_required">At least one TXT file required</string>
 
-    <string name="select_output_location">Выбрать место сохранения</string>
-    <string name="output_location">Место сохранения:</string>
-    <string name="output_location_internal">Внутренняя память приложения</string>
-    <string name="output_location_custom">Выбранная папка</string>
-    <string name="select_save_location">Выберите где сохранить файл</string>
-    <string name="no_location_selected">Место сохранения не выбрано</string>
+    <string name="select_output_location">Select output location</string>
+    <string name="output_location">Output location:</string>
+    <string name="output_location_internal">App internal storage</string>
+    <string name="output_location_custom">Custom folder</string>
+    <string name="select_save_location">Select where to save the file</string>
+    <string name="no_location_selected">No location selected</string>
 
-    <string name="output_location_selected">Выбрана папка: %1$s</string>
-    <string name="output_file_name">Имя файла: %1$s</string>
-    <string name="processing_sql_file">Обработка %1$s файла: %2$s</string>
-    <string name="parsing_sql_statements">Разбор SQL инструкций…</string>
-    <string name="inserting_data">Вставка данных…</string>
-    <string name="processed_inserts">Обработано %1$d INSERT блоков</string>
+    <string name="output_location_selected">Selected folder: %1$s</string>
+    <string name="output_file_name">File name: %1$s</string>
+    <string name="processing_sql_file">Processing %1$s file: %2$s</string>
+    <string name="parsing_sql_statements">Parsing SQL statements…</string>
+    <string name="inserting_data">Inserting data…</string>
+    <string name="processed_inserts">Processed %1$d INSERT blocks</string>
 
-    <string name="sql_constraint_error">Ошибка структуры данных: %1$s</string>
-    <string name="parsing_sql_data">Обработка SQL данных…</string>
+    <string name="sql_constraint_error">Data structure error: %1$s</string>
+    <string name="parsing_sql_data">Processing SQL data…</string>
 
-    <string name="category_api_3wifi">API 3WIFI</string>
+    <string name="category_api_3wifi">API 3WiFi</string>
 
     <string name="selected_file">Selected file: %s</string>
 
@@ -1740,24 +1740,24 @@
     <string name="creating_index">Creating index %1$d/%2$d…</string>
     <string name="memory_error">Not enough memory to complete conversion. Try using Economy mode.</string>
 
-    <string name="connect_with_password">Подключиться с паролем</string>
-    <string name="enter_password">Введите пароль</string>
-    <string name="connecting">Подключение...</string>
-    <string name="connection_successful">Успешно подключено к %s</string>
-    <string name="connection_failed">Не удалось подключиться к %s</string>
-    <string name="connection_timeout">Время ожидания подключения истекло</string>
-    <string name="wifi_password_required">Требуется пароль WiFi</string>
-    <string name="network_suggestion_added">Сеть добавлена в предложения</string>
-    <string name="network_suggestion_failed">Не удалось добавить сеть в предложения</string>
-    <string name="connection_in_progress">Подключение в процессе...</string>
-    <string name="checking_connection">Проверка подключения...</string>
-    <string name="disconnect_network">Отключиться</string>
-    <string name="forget_network">Забыть сеть</string>
-    <string name="disconnected_successfully">Успешно отключено</string>
-    <string name="network_forgotten">Сеть забыта</string>
-    <string name="disconnect_failed">Не удалось отключиться: %s</string>
-    <string name="connected_via_app">Подключено через приложение</string>
-    <string name="network_info_format">Сеть: %1$s\nBSSID: %2$s</string>
+    <string name="connect_with_password">Connect with password</string>
+    <string name="enter_password">Enter password</string>
+    <string name="connecting">Connecting...</string>
+    <string name="connection_successful">Successfully connected to %s</string>
+    <string name="connection_failed">Failed to connect to %s</string>
+    <string name="connection_timeout">Connection timeout</string>
+    <string name="wifi_password_required">WiFi password required</string>
+    <string name="network_suggestion_added">Network added to suggestions</string>
+    <string name="network_suggestion_failed">Failed to add network to suggestions</string>
+    <string name="connection_in_progress">Connection in progress...</string>
+    <string name="checking_connection">Checking connection...</string>
+    <string name="disconnect_network">Disconnect</string>
+    <string name="forget_network">Forget network</string>
+    <string name="disconnected_successfully">Disconnected successfully</string>
+    <string name="network_forgotten">Network forgotten</string>
+    <string name="disconnect_failed">Failed to disconnect: %s</string>
+    <string name="connected_via_app">Connected via app</string>
+    <string name="network_info_format">Network: %1$s\nBSSID: %2$s</string>
 
     <string name="wps_root_trying_system_wps">Trying system WPS connection…</string>
     <string name="wps_root_trying_existing_supplicant">Trying existing supplicant…</string>
@@ -1771,24 +1771,25 @@
     <string name="wps_root_system_wps_succeeded">System WPS succeeded</string>
     <string name="wps_root_system_wps_failed">System WPS failed with reason: %1$d</string>
 
-    <string name="wps_method_1">Метод 1 - Сложный</string>
-    <string name="wps_method_2">Метод 2 - Альтернативный</string>
-    <string name="wps_method_3">Метод 3 - Рекомендуемый</string>
-    <string name="wps_method_selection_title">Выберите метод WPS подключения</string>
-    <string name="wps_root_method2_failed">Метод 2 не удался</string>
-    <string name="wps_root_disconnecting">Отключение от текущей сети…</string>
-    <string name="wps_root_executing_command">Выполнение команды…</string>
-    <string name="wps_root_waiting_connection">Ожидание подключения…</string>
-    <string name="wps_root_epipe_error">Ошибка EPIPE в потоке</string>
+    <string name="wps_method_1">Method 1 - Complex</string>
+    <string name="wps_method_2">Method 2 - Alternative</string>
+    <string name="wps_method_3">Method 3 - Recommended</string>
+    <string name="wps_method_selection_title">Select WPS connection method</string>
+    <string name="wps_root_method2_failed">Method 2 failed</string>
+    <string name="wps_root_disconnecting">Disconnecting from current network…</string>
+    <string name="wps_root_executing_command">Executing command…</string>
+    <string name="wps_root_waiting_connection">Waiting for connection…</string>
+    <string name="wps_root_epipe_error">EPIPE error in stream</string>
 
-    <string name="wps_mode_selection_title">Выберите режим WPS</string>
+    <string name="wps_mode_selection_title">Select WPS mode</string>
     <string name="wps_mode_pbc">PBC (Push Button Connect)</string>
-    <string name="wps_mode_pin">PIN (введите PIN-код)</string>
-    <string name="wps_pin_input_title">Введите WPS PIN</string>
-    <string name="wps_pin_input_hint">8-значный PIN код</string>
-    <string name="wps_pin_invalid">PIN код должен содержать 8 цифр</string>
-    <string name="wps_use_database_pin">Использовать PIN из базы: %s</string>
-    <string name="wps_enter_custom_pin">Ввести свой PIN</string>
+    <string name="wps_mode_pin">PIN (enter PIN code)</string>
+    <string name="wps_pin_input_title">Enter WPS PIN</string>
+    <string name="wps_pin_input_hint">8-digit PIN code</string>
+    <string name="wps_pin_invalid">PIN must contain 8 digits</string>
+    <string name="wps_use_database_pin">Use PIN from database: %s</string>
+    <string name="wps_enter_custom_pin">Enter custom PIN</string>
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

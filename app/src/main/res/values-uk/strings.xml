@@ -1467,6 +1467,136 @@
     <string name="logging_stopped">Логування зупинено</string>
     <string name="log_file_created">Файл лога створено в папці Downloads</string>
 
+    <string name="bssid_field">BSSID (* - будь-який символ)</string>
+    <string name="essid_field">ESSID (□ - символ, ◯ - набір символів)</string>
+    <string name="password_field">Пароль</string>
+    <string name="wps_pin_field">WPS PIN</string>
+    <string name="advanced_search">Розширений пошук</string>
+
+    <string name="simple_mode">Простий</string>
+
+    <string name="menu_convert_dumps">Конвертер дампів 3WiFi</string>
+    <string name="convert_dumps_title">Конвертація дампів</string>
+    <string name="select_dump_files">Вибрати файли дампів</string>
+    <string name="conversion_mode">Режим конвертації</string>
+    <string name="performance_mode">Продуктивний режим</string>
+    <string name="performance_mode_desc">Швидка обробка, потребує більше RAM та кілька ядер процесора</string>
+    <string name="economy_mode">Економний режим</string>
+    <string name="economy_mode_desc">Повільна обробка, мінімум RAM та 1 ядро</string>
+    <string name="start_conversion">Почати конвертацію</string>
+    <string name="conversion_in_progress">Відбувається конвертація…</string>
+    <string name="conversion_complete">Конвертація завершена</string>
+    <string name="conversion_error">Помилка конвертації</string>
+    <string name="conversion_cancelled">Конвертація скасована</string>
+    <string name="select_files_first">Спочатку виберіть файли</string>
+    <string name="file_type_routerscan">RouterScan TXT</string>
+    <string name="file_type_3wifi_sql">3WiFi SQL</string>
+    <string name="file_type_p3wifi_sql">p3WiFi SQL</string>
+    <string name="output_database">База даних: %1$s</string>
+    <string name="indexing_options">Опції індексування</string>
+    <string name="full_indexing">Повне індексування</string>
+    <string name="basic_indexing">Базове індексування</string>
+    <string name="no_indexing">Без індексування</string>
+    <string name="estimated_time">Приблизний час: %s</string>
+    <string name="processing_file">Обробка файлу %1$s (%2$d%%)</string>
+    <string name="conversion_notification_channel">Конвертація дампів</string>
+    <string name="conversion_notification_desc">Сповіщення про процес конвертації</string>
+
+    <string name="conversion_type">Тип конвертації</string>
+    <string name="select_conversion_type">Виберіть тип конвертації</string>
+    <string name="routerscan_desc">Декілька TXT файлів RouterScan</string>
+    <string name="wifi3_desc">Файли base.sql і geo.sql від 3WiFi</string>
+    <string name="p3wifi_desc">Один файл input.sql від p3WiFi</string>
+    <string name="select_base_file">Вибрати base.sql</string>
+    <string name="select_geo_file">Вибрати geo.sql</string>
+    <string name="select_input_file">Вибрати input.sql</string>
+    <string name="select_txt_files">Вибрати TXT файли</string>
+    <string name="file_selected">Файл вибрано: %s</string>
+    <string name="files_selected">Вибрано файлів: %d</string>
+    <string name="base_file_required">Потрібен файл base.sql</string>
+    <string name="geo_file_required">Потрібен файл geo.sql</string>
+    <string name="input_file_required">Потрібен файл input.sql</string>
+    <string name="txt_files_required">Потрібен щонайменше один TXT файл</string>
+
+    <string name="select_output_location">Вибрати місце збереження</string>
+    <string name="output_location">Місце збереження:</string>
+    <string name="output_location_internal">Внутрішня памʼять додатку</string>
+    <string name="output_location_custom">Обрана папка</string>
+    <string name="select_save_location">Виберіть де зберегти файл</string>
+    <string name="no_location_selected">Місце збереження не вибрано</string>
+
+    <string name="output_location_selected">Вибрана папка: %1$s</string>
+    <string name="output_file_name">Імʼя файлу: %1$s</string>
+    <string name="processing_sql_file">Обробка %1$s файлу: %2$s</string>
+    <string name="parsing_sql_statements">Розбір SQL інструкцій…</string>
+    <string name="inserting_data">Вставка даних…</string>
+    <string name="processed_inserts">Оброблено %1$d INSERT блоків</string>
+
+    <string name="sql_constraint_error">Помилка структури даних: %1$s</string>
+    <string name="parsing_sql_data">Обробка SQL даних…</string>
+
+    <string name="category_api_3wifi">API 3WiFi</string>
+
+    <string name="selected_file">Файл вибрано: %s</string>
+
+    <string name="analyzing_database">Аналіз бази даних…</string>
+    <string name="optimizing_queries">Оптимізація запитів…</string>
+    <string name="compacting_database">Стискання бази даних…</string>
+    <string name="finalizing">Завершення...</string>
+    <string name="creating_index">Створення індексу %1$d/%2$d…</string>
+    <string name="memory_error">Недостатньо памʼяті для завершення конвертації. Спробуйте Економний режим.</string>
+
+    <string name="connect_with_password">Підключитися з паролем</string>
+    <string name="enter_password">Введіть пароль</string>
+    <string name="connecting">Підключення...</string>
+    <string name="connection_successful">Успішно підключено до %s</string>
+    <string name="connection_failed">Не вдалося підключитися до %s</string>
+    <string name="connection_timeout">Час очікування підключення вичерпано</string>
+    <string name="wifi_password_required">Потрібен пароль WiFi</string>
+    <string name="network_suggestion_added">Мережу додано до пропозицій</string>
+    <string name="network_suggestion_failed">Не вдалося додати мережу до пропозицій</string>
+    <string name="connection_in_progress">Підключення в процесі...</string>
+    <string name="checking_connection">Перевірка підключення...</string>
+    <string name="disconnect_network">Відключитися</string>
+    <string name="forget_network">Забути мережу</string>
+    <string name="disconnected_successfully">Успішно відключено</string>
+    <string name="network_forgotten">Мережу забуто</string>
+    <string name="disconnect_failed">Не вдалося відключитися: %s</string>
+    <string name="connected_via_app">Підключено через додаток</string>
+    <string name="network_info_format">Мережа: %1$s\nBSSID: %2$s</string>
+
+    <string name="wps_root_trying_system_wps">Спроба системного WPS підключення…</string>
+    <string name="wps_root_trying_existing_supplicant">Спроба існуючого supplicant…</string>
+    <string name="wps_root_using_custom_supplicant">Використання власного методу supplicant…</string>
+    <string name="wps_root_no_existing_supplicant">Існуючий supplicant не знайдено</string>
+    <string name="wps_root_found_existing_supplicant">Знайдено supplicant за адресою: %1$s</string>
+    <string name="wps_root_existing_supplicant_command_sent">Команду відправлено існуючому supplicant</string>
+    <string name="wps_root_existing_supplicant_failed">Зʼєднання з існуючим supplicant не вдалося</string>
+    <string name="wps_root_gently_stopping_wifi">Акуратно зупиняється системний WiFi…</string>
+    <string name="wps_root_system_wps_started">Системний WPS запущено</string>
+    <string name="wps_root_system_wps_succeeded">Системний WPS успішно виконано</string>
+    <string name="wps_root_system_wps_failed">Системний WPS не вдався з причини: %1$d</string>
+
+    <string name="wps_method_1">Метод 1 - Складний</string>
+    <string name="wps_method_2">Метод 2 - Альтернативний</string>
+    <string name="wps_method_3">Метод 3 - Рекомендований</string>
+    <string name="wps_method_selection_title">Виберіть метод WPS підключення</string>
+    <string name="wps_root_method2_failed">Метод 2 не вдався</string>
+    <string name="wps_root_disconnecting">Відключення від поточної мережі…</string>
+    <string name="wps_root_executing_command">Виконання команди…</string>
+    <string name="wps_root_waiting_connection">Очікування підключення…</string>
+    <string name="wps_root_epipe_error">Помилка EPIPE у потоці</string>
+
+    <string name="wps_mode_selection_title">Виберіть режим WPS</string>
+    <string name="wps_mode_pbc">PBC (Push Button Connect)</string>
+    <string name="wps_mode_pin">PIN (введіть PIN-код)</string>
+    <string name="wps_pin_input_title">Введіть WPS PIN</string>
+    <string name="wps_pin_input_hint">8-значний PIN код</string>
+    <string name="wps_pin_invalid">PIN код має містити 8 цифр</string>
+    <string name="wps_use_database_pin">Використати PIN з бази: %s</string>
+    <string name="wps_enter_custom_pin">Ввести власний PIN</string>
+
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
