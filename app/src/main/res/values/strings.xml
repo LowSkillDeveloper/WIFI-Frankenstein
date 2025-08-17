@@ -1740,6 +1740,20 @@
     <string name="creating_index">Creating index %1$d/%2$d…</string>
     <string name="memory_error">Not enough memory to complete conversion. Try using Economy mode.</string>
 
+    <string name="connect_with_password">Подключиться с паролем</string>
+    <string name="enter_password">Введите пароль</string>
+    <string name="connecting">Подключение…</string>
+    <string name="connection_successful">Успешно подключено к %s</string>
+    <string name="connection_failed">Не удалось подключиться к %s</string>
+    <string name="connection_timeout">Время ожидания подключения истекло</string>
+    <string name="wifi_password_required">Требуется пароль WiFi</string>
+    <string name="network_suggestion_added">Сеть добавлена в предложения</string>
+    <string name="network_suggestion_failed">Не удалось добавить сеть в предложения</string>
+    <string name="connection_in_progress">Подключение в процессе…</string>
+    <string name="checking_connection">Проверка подключения…</string>
+    <string name="connection_actions">Подключение</string>
+    <string name="network_info_format">Сеть: %1$s\nBSSID: %2$s</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

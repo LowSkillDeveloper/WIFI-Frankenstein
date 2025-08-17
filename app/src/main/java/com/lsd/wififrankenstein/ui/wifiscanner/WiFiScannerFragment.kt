@@ -68,6 +68,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import android.provider.Settings
+import com.lsd.wififrankenstein.util.WiFiConnectionHelper
+import android.view.inputmethod.InputMethodManager
+
 
 class WiFiScannerFragment : Fragment() {
 
@@ -1081,6 +1084,20 @@ class WiFiScannerFragment : Fragment() {
             }
         }
 
+        dialogView.findViewById<TextView>(R.id.action_connect_with_password)?.apply {
+            tintDrawableStart(R.drawable.ic_wifi)
+            setOnClickListener {
+                selectedWifi?.let { wifi ->
+                    showPasswordDialog(wifi)
+                    dialog.dismiss()
+                } ?: Toast.makeText(
+                    requireContext(),
+                    "Wi-Fi network is not selected",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
         dialogView.findViewById<TextView>(R.id.action_check_vendor)?.apply {
             tintDrawableStart(R.drawable.ic_info)
             setOnClickListener {
@@ -1179,6 +1196,104 @@ class WiFiScannerFragment : Fragment() {
         }
 
         dialog.show()
+    }
+
+    private fun showPasswordDialog(scanResult: ScanResult) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_password_input, null)
+        val passwordEditText = dialogView.findViewById<TextInputEditText>(R.id.editTextPassword)
+        val networkInfoText = dialogView.findViewById<TextView>(R.id.networkInfoText)
+
+        networkInfoText.text = getString(R.string.network_info_format, scanResult.SSID, scanResult.BSSID)
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.connect_with_password))
+            .setView(dialogView)
+            .setPositiveButton(getString(R.string.connect)) { _, _ ->
+                val password = passwordEditText.text.toString()
+                if (password.isNotBlank()) {
+                    connectToWiFiWithPassword(scanResult, password)
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.wifi_password_required),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .create()
+
+        dialog.show()
+
+        passwordEditText.requestFocus()
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.showSoftInput(passwordEditText, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    private fun connectToWiFiWithPassword(scanResult: ScanResult, password: String) {
+        val connectionHelper = WiFiConnectionHelper(requireContext())
+
+        lifecycleScope.launch {
+            try {
+                val success = connectionHelper.connectToNetwork(
+                    scanResult,
+                    password,
+                    object : WiFiConnectionHelper.ConnectionCallback {
+                        override fun onConnectionStarted() {
+                            requireActivity().runOnUiThread {
+                                Toast.makeText(
+                                    requireContext(),
+                                    getString(R.string.connecting),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+
+                        override fun onConnectionSuccess(ssid: String) {
+                            requireActivity().runOnUiThread {
+                                Toast.makeText(
+                                    requireContext(),
+                                    getString(R.string.connection_successful, ssid),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+
+                        override fun onConnectionFailed(error: String) {
+                            requireActivity().runOnUiThread {
+                                Toast.makeText(
+                                    requireContext(),
+                                    getString(R.string.connection_failed, error),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+
+                        override fun onConnectionTimeout() {
+                            requireActivity().runOnUiThread {
+                                Toast.makeText(
+                                    requireContext(),
+                                    getString(R.string.connection_timeout),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    }
+                )
+
+                if (!success) {
+                    Log.d("WiFiScannerFragment", "Connection attempt failed")
+                }
+            } catch (e: Exception) {
+                requireActivity().runOnUiThread {
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.connection_failed, e.message),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
     }
 
     private fun connectUsingWpsRoot(network: ScanResult) {
