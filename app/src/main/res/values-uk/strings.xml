@@ -1596,6 +1596,7 @@
     <string name="wps_use_database_pin">Використати PIN з бази: %s</string>
     <string name="wps_enter_custom_pin">Ввести власний PIN</string>
     <string name="database_file_not_found_removed">Базу даних було видалено зі списку, оскільки файл не знайдено</string>
+    <string name="conversion_long">Під час оптимізації БД та створення індексів відсотки не змінюються, але конвертація продовжує працювати!</string>
 
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT

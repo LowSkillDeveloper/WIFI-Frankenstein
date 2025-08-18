@@ -427,6 +427,12 @@
                 android:gravity="center"
                 android:alpha="0.7" />
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/conversion_long"
+                android:gravity="center" />
+
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton

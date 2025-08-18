@@ -1792,6 +1792,9 @@
 
     <string name="database_file_not_found_removed">The database has been removed from the list because the file was not found</string>
 
+    <string name="conversion_long">During database optimization and index creation, the percentage does not change, but the conversion continues to run!</string>
+
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
