@@ -34,9 +34,11 @@ class ConversionEngine(
         const val DB_VERSION = 1
         const val BATCH_SIZE_PERFORMANCE = 20000
         const val BATCH_SIZE_ECONOMY = 800
+        const val BATCH_SIZE_ROUTERSCAN = 500
         const val BUFFER_SIZE_PERFORMANCE = 512 * 1024
         const val BUFFER_SIZE_ECONOMY = 64 * 1024
         const val BUFFER_SIZE = 64 * 1024
+        const val DB_TIMEOUT = 30000L
     }
 
     suspend fun convertFiles(files: List<SelectedFile>): String = withContext(Dispatchers.IO) {
@@ -280,7 +282,7 @@ class ConversionEngine(
 
         val bufferSize = if (mode == ConversionMode.PERFORMANCE) BUFFER_SIZE_PERFORMANCE else BUFFER_SIZE_ECONOMY
         val reader = BufferedReader(InputStreamReader(inputStream), bufferSize)
-        val batchSize = if (mode == ConversionMode.PERFORMANCE) BATCH_SIZE_PERFORMANCE else BATCH_SIZE_ECONOMY
+        val batchSize = BATCH_SIZE_ROUTERSCAN
 
         val geoInserts = mutableListOf<Array<Any?>>()
         val netsInserts = mutableListOf<Array<Any?>>()
@@ -306,15 +308,13 @@ class ConversionEngine(
 
         BufferedReader(InputStreamReader(newInputStream), bufferSize).use { bufferedReader ->
 
-            db.beginTransaction()
-
             try {
                 bufferedReader.lineSequence().forEach { line ->
                     if (!coroutineContext.isActive) return@forEach
 
                     lineCount++
 
-                    if (lineCount % 100 == 0) {
+                    if (lineCount % 50 == 0) {
                         val progress = (lineCount * 100 / totalLines).coerceAtMost(100)
                         progressCallback(progress)
                         yield()
@@ -351,13 +351,13 @@ class ConversionEngine(
                         }
 
                         if (geoInserts.size >= batchSize) {
-                            insertGeoBatch(db, geoInserts)
+                            insertGeoBatchWithTransaction(db, geoInserts)
                             geoInserts.clear()
                             yield()
                         }
 
                         if (netsInserts.size >= batchSize) {
-                            insertNetsBatch(db, netsInserts)
+                            insertNetsBatchWithTransaction(db, netsInserts)
                             netsInserts.clear()
                             yield()
                         }
@@ -365,17 +365,36 @@ class ConversionEngine(
                 }
 
                 if (geoInserts.isNotEmpty()) {
-                    insertGeoBatch(db, geoInserts)
+                    insertGeoBatchWithTransaction(db, geoInserts)
                 }
                 if (netsInserts.isNotEmpty()) {
-                    insertNetsBatch(db, netsInserts)
+                    insertNetsBatchWithTransaction(db, netsInserts)
                 }
 
-                db.setTransactionSuccessful()
-
-            } finally {
-                db.endTransaction()
+            } catch (e: Exception) {
+                Log.e("ConversionEngine", "Error processing RouterScan file: $fileName", e)
+                throw e
             }
+        }
+    }
+
+    private fun insertGeoBatchWithTransaction(db: SQLiteDatabase, batch: List<Array<Any?>>) {
+        db.beginTransaction()
+        try {
+            insertGeoBatch(db, batch)
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    private fun insertNetsBatchWithTransaction(db: SQLiteDatabase, batch: List<Array<Any?>>) {
+        db.beginTransaction()
+        try {
+            insertNetsBatch(db, batch)
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
         }
     }
 
@@ -528,7 +547,8 @@ class ConversionEngine(
                                 }
                                 "base", "nets" -> {
                                     val columnsNeeded = if (tableName == "nets") 24 else 23
-                                    val startIndex = if (fileType == DumpFileType.P3WIFI_SQL && tableName == "nets") 1 else 0
+                                    val skipFirstColumn = fileType == DumpFileType.P3WIFI_SQL || fileType == DumpFileType.WIFI_3_SQL
+                                    val startIndex = if (skipFirstColumn) 1 else 0
 
                                     val processedRow = Array<Any?>(columnsNeeded) { index ->
                                         val sourceIndex = index + startIndex
@@ -782,44 +802,52 @@ class ConversionEngine(
     }
 
     private fun setupDatabase(db: SQLiteDatabase) {
-        db.execSQL("""
-            CREATE TABLE IF NOT EXISTS geo (
-                BSSID INTEGER,
-                latitude REAL,
-                longitude REAL,
-                quadkey INTEGER
-            )
-        """)
+        try {
+            db.execSQL("PRAGMA busy_timeout=$DB_TIMEOUT")
+            db.execSQL("PRAGMA journal_mode=WAL")
+            db.execSQL("PRAGMA wal_autocheckpoint=1000")
+        } catch (e: Exception) {
+            Log.w("ConversionEngine", "Some PRAGMA commands not supported: ${e.message}")
+        }
 
         db.execSQL("""
-            CREATE TABLE IF NOT EXISTS nets (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                time TEXT,
-                cmtid INTEGER,
-                IP INTEGER,
-                Port INTEGER,
-                Authorization TEXT,
-                name TEXT,
-                RadioOff INTEGER DEFAULT 0,
-                Hidden INTEGER DEFAULT 0,
-                NoBSSID INTEGER DEFAULT 0,
-                BSSID INTEGER DEFAULT 0,
-                ESSID TEXT,
-                Security INTEGER,
-                NoWiFiKey INTEGER DEFAULT 0,
-                WiFiKey TEXT DEFAULT '',
-                NoWPS INTEGER DEFAULT 0,
-                WPSPIN INTEGER DEFAULT 0,
-                LANIP INTEGER,
-                LANMask INTEGER,
-                WANIP INTEGER,
-                WANMask INTEGER,
-                WANGateway INTEGER,
-                DNS1 INTEGER,
-                DNS2 INTEGER,
-                DNS3 INTEGER
-            )
-        """)
+        CREATE TABLE IF NOT EXISTS geo (
+            BSSID INTEGER,
+            latitude REAL,
+            longitude REAL,
+            quadkey INTEGER
+        )
+    """)
+
+        db.execSQL("""
+        CREATE TABLE IF NOT EXISTS nets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            time TEXT,
+            cmtid INTEGER,
+            IP INTEGER,
+            Port INTEGER,
+            Authorization TEXT,
+            name TEXT,
+            RadioOff INTEGER DEFAULT 0,
+            Hidden INTEGER DEFAULT 0,
+            NoBSSID INTEGER DEFAULT 0,
+            BSSID INTEGER DEFAULT 0,
+            ESSID TEXT,
+            Security INTEGER,
+            NoWiFiKey INTEGER DEFAULT 0,
+            WiFiKey TEXT DEFAULT '',
+            NoWPS INTEGER DEFAULT 0,
+            WPSPIN INTEGER DEFAULT 0,
+            LANIP INTEGER,
+            LANMask INTEGER,
+            WANIP INTEGER,
+            WANMask INTEGER,
+            WANGateway INTEGER,
+            DNS1 INTEGER,
+            DNS2 INTEGER,
+            DNS3 INTEGER
+        )
+    """)
     }
 
     private suspend fun createIndexes(db: SQLiteDatabase) {
