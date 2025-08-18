@@ -1773,7 +1773,7 @@
 
     <string name="wps_method_1">Method 1 - Complex</string>
     <string name="wps_method_2">Method 2 - Alternative</string>
-    <string name="wps_method_3">Method 3 - Recommended</string>
+    <string name="wps_method_3">Recommended Method</string>
     <string name="wps_method_selection_title">Select WPS connection method</string>
     <string name="wps_root_method2_failed">Method 2 failed</string>
     <string name="wps_root_disconnecting">Disconnecting from current network…</string>

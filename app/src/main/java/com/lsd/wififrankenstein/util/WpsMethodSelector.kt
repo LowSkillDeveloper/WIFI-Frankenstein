@@ -16,18 +16,18 @@ class WpsMethodSelector(
 
     fun showMethodSelection(network: ScanResult, databasePin: String? = null) {
         val methods = arrayOf(
-            context.getString(R.string.wps_method_1),
+            context.getString(R.string.wps_method_3),
             context.getString(R.string.wps_method_2),
-            context.getString(R.string.wps_method_3)
+            context.getString(R.string.wps_method_1)
         )
 
         AlertDialog.Builder(context)
             .setTitle(R.string.wps_method_selection_title)
             .setItems(methods) { _, which ->
                 when (which) {
-                    0 -> showWpsModeSelection(network, databasePin, ::useMethod1)
+                    0 -> showWpsModeSelection(network, databasePin, ::useMethod3)
                     1 -> showWpsModeSelection(network, databasePin, ::useMethod2)
-                    2 -> showWpsModeSelection(network, databasePin, ::useMethod3)
+                    2 -> showWpsModeSelection(network, databasePin, ::useMethod1)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)

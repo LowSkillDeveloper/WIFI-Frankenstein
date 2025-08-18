@@ -1606,9 +1606,9 @@
     <string name="wps_root_system_wps_succeeded">Системный WPS успешно выполнен</string>
     <string name="wps_root_system_wps_failed">Системный WPS не удался, причина: %1$d</string>
 
-    <string name="wps_method_1">Метод 1 - Сложный</string>
-    <string name="wps_method_2">Метод 2 - Альтернативный</string>
-    <string name="wps_method_3">Метод 3 - Рекомендуемый</string>
+    <string name="wps_method_1">Метод 1 — Сложный</string>
+    <string name="wps_method_2">Метод 2 — Альтернативный</string>
+    <string name="wps_method_3">Рекомендуемый метод</string>
     <string name="wps_method_selection_title">Выберите метод WPS подключения</string>
     <string name="wps_root_method2_failed">Метод 2 не удался</string>
     <string name="wps_root_disconnecting">Отключение от текущей сети…</string>
