@@ -2094,7 +2094,14 @@ class DbSetupFragment : Fragment() {
         }
 
         viewModel.errorEvent.observe(viewLifecycleOwner) { errorMessage ->
-            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            when (errorMessage) {
+                "missing_file_removed" -> {
+                    Toast.makeText(context, getString(R.string.database_file_not_found_removed), Toast.LENGTH_LONG).show()
+                }
+                else -> {
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 

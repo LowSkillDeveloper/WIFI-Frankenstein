@@ -560,24 +560,41 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         val currentList = _dbList.value.orEmpty().toMutableList()
         val index = currentList.indexOfFirst { it.id == dbItem.id }
         if (index != -1) {
-            val updatedItem = dbItem.copy(
-                originalSizeInMB = getUpdatedOriginalFileSize(dbItem),
-                cachedSizeInMB = getUpdatedCachedFileSize(dbItem.path.toUri())
-            )
-            currentList[index] = updatedItem
-            _dbList.value = currentList
-            saveDbList()
+            val originalSize = getUpdatedOriginalFileSize(dbItem)
+            if (originalSize == -1f) {
+                Log.w("DbSetupViewModel", "Removing missing database file: ${dbItem.type}")
+                currentList.removeAt(index)
+                _dbList.value = currentList
+                saveDbList()
+                _errorEvent.value = "missing_file_removed"
+            } else {
+                val updatedItem = dbItem.copy(
+                    originalSizeInMB = originalSize,
+                    cachedSizeInMB = getUpdatedCachedFileSize(dbItem.path.toUri())
+                )
+                currentList[index] = updatedItem
+                _dbList.value = currentList
+                saveDbList()
+            }
         }
     }
 
     private fun getUpdatedOriginalFileSize(dbItem: DbItem): Float {
         return when (dbItem.dbType) {
             DbType.SQLITE_FILE_3WIFI, DbType.SQLITE_FILE_CUSTOM -> {
-                val uri = dbItem.path.toUri()
-                val fileDescriptor = getApplication<Application>().contentResolver.openFileDescriptor(uri, "r")
-                val fileSize = fileDescriptor?.statSize ?: 0
-                fileDescriptor?.close()
-                fileSize.toFloat() / (1024 * 1024)
+                try {
+                    val uri = dbItem.path.toUri()
+                    val fileDescriptor = getApplication<Application>().contentResolver.openFileDescriptor(uri, "r")
+                    val fileSize = fileDescriptor?.statSize ?: 0
+                    fileDescriptor?.close()
+                    fileSize.toFloat() / (1024 * 1024)
+                } catch (e: java.io.FileNotFoundException) {
+                    Log.w("DbSetupViewModel", "File not found for ${dbItem.type}: ${dbItem.path}")
+                    -1f
+                } catch (e: Exception) {
+                    Log.e("DbSetupViewModel", "Error getting file size for ${dbItem.type}", e)
+                    dbItem.originalSizeInMB
+                }
             }
             else -> dbItem.originalSizeInMB
         }
@@ -591,25 +608,36 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
     fun checkAndUpdateDatabases() {
         viewModelScope.launch {
             val currentList = _dbList.value ?: return@launch
-            val updatedList = currentList.map { dbItem ->
+            val updatedList = mutableListOf<DbItem>()
+
+            currentList.forEach { dbItem ->
                 when (dbItem.dbType) {
                     DbType.SQLITE_FILE_3WIFI, DbType.SQLITE_FILE_CUSTOM -> {
-                        val uri = dbItem.path.toUri()
                         val originalSize = getUpdatedOriginalFileSize(dbItem)
-                        if (originalSize != dbItem.originalSizeInMB) {
+                        if (originalSize == -1f) {
+                            Log.w("DbSetupViewModel", "Skipping missing database file: ${dbItem.type}")
+                            _errorEvent.postValue("missing_file_removed")
+                        } else if (originalSize != dbItem.originalSizeInMB) {
+                            val uri = dbItem.path.toUri()
                             SQLite3WiFiHelper.deleteCachedDatabase(getApplication(), uri)
                             val helper = SQLite3WiFiHelper(getApplication(), uri, dbItem.directPath)
                             val cachedSize = helper.getSelectedFileSize()
-                            dbItem.copy(originalSizeInMB = originalSize, cachedSizeInMB = cachedSize)
+                            updatedList.add(dbItem.copy(originalSizeInMB = originalSize, cachedSizeInMB = cachedSize))
                         } else {
-                            dbItem
+                            updatedList.add(dbItem)
                         }
                     }
-                    else -> dbItem
+                    else -> updatedList.add(dbItem)
                 }
             }
-            _dbList.postValue(updatedList)
-            saveDbList()
+
+            if (updatedList.size != currentList.size) {
+                _dbList.postValue(updatedList)
+                saveDbList()
+            } else {
+                _dbList.postValue(updatedList)
+                saveDbList()
+            }
         }
     }
 
