@@ -466,7 +466,7 @@ class ConversionEngine(
             }
 
             if (buffer.length > bufferSize * 4) {
-                processBufferForInserts(db, buffer, tablePatterns, batchSize)
+                processBufferForInserts(db, buffer, tablePatterns, batchSize, type)
 
                 val lastInsert = buffer.lastIndexOf("INSERT")
                 if (lastInsert > bufferSize) {
@@ -476,7 +476,7 @@ class ConversionEngine(
         }
 
         if (buffer.isNotEmpty()) {
-            processBufferForInserts(db, buffer, tablePatterns, batchSize, true)
+            processBufferForInserts(db, buffer, tablePatterns, batchSize, type, true)
         }
 
         reader.close()
@@ -487,6 +487,7 @@ class ConversionEngine(
         buffer: StringBuilder,
         tablePatterns: Map<String, List<String>>,
         batchSize: Int,
+        fileType: DumpFileType,
         isLastChunk: Boolean = false
     ) {
         for ((tableName, patterns) in tablePatterns) {
@@ -517,8 +518,11 @@ class ConversionEngine(
                                 }
                                 "base", "nets" -> {
                                     val columnsNeeded = if (tableName == "nets") 24 else 23
+                                    val startIndex = if (fileType == DumpFileType.P3WIFI_SQL && tableName == "nets") 1 else 0
+
                                     val processedRow = Array<Any?>(columnsNeeded) { index ->
-                                        val originalValue = if (index < valueArray.size) valueArray[index] else null
+                                        val sourceIndex = index + startIndex
+                                        val originalValue = if (sourceIndex < valueArray.size) valueArray[sourceIndex] else null
                                         when {
                                             index == 15 && originalValue == null -> 0L
                                             index == 9 && originalValue == null -> 0L
