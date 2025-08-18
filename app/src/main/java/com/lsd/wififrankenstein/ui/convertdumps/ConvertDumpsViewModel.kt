@@ -80,6 +80,12 @@ class ConvertDumpsViewModel : ViewModel() {
         clearAllFiles()
         updateCanStartConversion()
         updateEstimatedTime()
+
+        if (_outputLocation.value != null) {
+            val databaseType = getDatabaseTypeFromFiles()
+            val timestamp = System.currentTimeMillis()
+            _outputFileName.value = "Имя файла: ${databaseType}_$timestamp.db"
+        }
     }
 
     fun addRouterScanFiles(uris: List<Uri>) {
@@ -98,6 +104,7 @@ class ConvertDumpsViewModel : ViewModel() {
         _routerScanFiles.value = currentFiles + newFiles
         updateCanStartConversion()
         updateEstimatedTime()
+        updateOutputFileName()
     }
 
     fun removeRouterScanFile(uri: Uri) {
@@ -114,6 +121,7 @@ class ConvertDumpsViewModel : ViewModel() {
         _baseFile.value = SelectedFile(uri, fileName, 0L, DumpFileType.WIFI_3_SQL)
         updateCanStartConversion()
         updateEstimatedTime()
+        updateOutputFileName()
     }
 
     fun setGeoFile(uri: Uri) {
@@ -123,6 +131,7 @@ class ConvertDumpsViewModel : ViewModel() {
         _geoFile.value = SelectedFile(uri, fileName, 0L, DumpFileType.WIFI_3_SQL)
         updateCanStartConversion()
         updateEstimatedTime()
+        updateOutputFileName()
     }
 
     fun setInputFile(uri: Uri) {
@@ -132,6 +141,15 @@ class ConvertDumpsViewModel : ViewModel() {
         _inputFile.value = SelectedFile(uri, fileName, 0L, DumpFileType.P3WIFI_SQL)
         updateCanStartConversion()
         updateEstimatedTime()
+        updateOutputFileName()
+    }
+
+    private fun updateOutputFileName() {
+        if (_outputLocation.value != null) {
+            val databaseType = getDatabaseTypeFromFiles()
+            val timestamp = System.currentTimeMillis()
+            _outputFileName.value = "Имя файла: ${databaseType}_$timestamp.db"
+        }
     }
 
     fun getAllSelectedFiles(): List<SelectedFile> {
@@ -177,13 +195,24 @@ class ConvertDumpsViewModel : ViewModel() {
         if (uri != null) {
             val path = uri.path?.substringAfterLast(':') ?: "Unknown"
             _outputLocationText.value = "Выбрана папка: $path"
+            val databaseType = getDatabaseTypeFromFiles()
             val timestamp = System.currentTimeMillis()
-            _outputFileName.value = "Имя файла: converted_$timestamp.db"
+            _outputFileName.value = "Имя файла: ${databaseType}_$timestamp.db"
         } else {
             _outputLocationText.value = ""
             _outputFileName.value = ""
         }
         updateCanStartConversion()
+    }
+
+    private fun getDatabaseTypeFromFiles(): String {
+        val allFiles = getAllSelectedFiles()
+        return when {
+            allFiles.any { it.type == DumpFileType.P3WIFI_SQL } -> "p3wifi"
+            allFiles.any { it.type == DumpFileType.WIFI_3_SQL } -> "3wifi"
+            allFiles.any { it.type == DumpFileType.ROUTERSCAN_TXT } -> "routerscan"
+            else -> "converted"
+        }
     }
 
     fun conversionComplete(outputFile: String) {

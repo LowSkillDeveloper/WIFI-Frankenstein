@@ -42,7 +42,8 @@ class ConversionEngine(
     suspend fun convertFiles(files: List<SelectedFile>): String = withContext(Dispatchers.IO) {
         Log.d("ConversionEngine", "Starting conversion of ${files.size} files")
 
-        val fileName = "converted_${System.currentTimeMillis()}.db"
+        val databaseType = getDatabaseType(files)
+        val fileName = "${databaseType}_${System.currentTimeMillis()}.db"
         val tempFile = File(context.cacheDir, fileName)
 
         Log.d("ConversionEngine", "Temp file: ${tempFile.absolutePath}")
@@ -375,6 +376,15 @@ class ConversionEngine(
             } finally {
                 db.endTransaction()
             }
+        }
+    }
+
+    private fun getDatabaseType(files: List<SelectedFile>): String {
+        return when {
+            files.any { it.type == DumpFileType.P3WIFI_SQL } -> "p3wifi"
+            files.any { it.type == DumpFileType.WIFI_3_SQL } -> "3wifi"
+            files.any { it.type == DumpFileType.ROUTERSCAN_TXT } -> "routerscan"
+            else -> "converted"
         }
     }
 
