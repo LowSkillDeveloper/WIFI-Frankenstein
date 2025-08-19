@@ -545,9 +545,43 @@ class ConversionEngine(
                                         ))
                                     }
                                 }
-                                "base", "nets" -> {
-                                    val columnsNeeded = if (tableName == "nets") 24 else 23
-                                    val skipFirstColumn = fileType == DumpFileType.P3WIFI_SQL || fileType == DumpFileType.WIFI_3_SQL
+                                "base" -> {
+                                    if (fileType == DumpFileType.WIFI_3_SQL) {
+                                        val skipFirstColumn = true
+                                        val startIndex = if (skipFirstColumn) 1 else 0
+                                        val columnsNeeded = 23
+
+                                        val processedRow = Array<Any?>(columnsNeeded) { index ->
+                                            val sourceIndex = index + startIndex
+                                            val originalValue = if (sourceIndex < valueArray.size) valueArray[sourceIndex] else null
+                                            when {
+                                                index == 9 && originalValue == null -> 0L
+                                                index == 8 && originalValue == null -> 0L
+                                                else -> originalValue
+                                            }
+                                        }
+                                        batches.add(processedRow)
+                                    } else {
+                                        val columnsNeeded = 24
+                                        val skipFirstColumn = fileType == DumpFileType.P3WIFI_SQL
+                                        val startIndex = if (skipFirstColumn) 1 else 0
+
+                                        val processedRow = Array<Any?>(columnsNeeded) { index ->
+                                            val sourceIndex = index + startIndex
+                                            val originalValue = if (sourceIndex < valueArray.size) valueArray[sourceIndex] else null
+                                            when {
+                                                index == 15 && originalValue == null -> 0L
+                                                index == 9 && originalValue == null -> 0L
+                                                index == 8 && originalValue == null -> 0L
+                                                else -> originalValue
+                                            }
+                                        }
+                                        batches.add(processedRow)
+                                    }
+                                }
+                                "nets" -> {
+                                    val columnsNeeded = 24
+                                    val skipFirstColumn = fileType == DumpFileType.P3WIFI_SQL
                                     val startIndex = if (skipFirstColumn) 1 else 0
 
                                     val processedRow = Array<Any?>(columnsNeeded) { index ->
@@ -565,7 +599,7 @@ class ConversionEngine(
                             }
 
                             if (batches.size >= batchSize) {
-                                executeBatch(db, tableName, batches)
+                                executeBatch(db, tableName, batches, fileType)
                                 batches.clear()
                                 yield()
                             }
@@ -574,7 +608,7 @@ class ConversionEngine(
                 }
 
                 if (batches.isNotEmpty()) {
-                    executeBatch(db, tableName, batches)
+                    executeBatch(db, tableName, batches, fileType)
                 }
             }
         }
@@ -584,16 +618,70 @@ class ConversionEngine(
         }
     }
 
-    private fun executeBatch(db: SQLiteDatabase, tableName: String, batches: List<Array<Any?>>) {
+    private fun executeBatch(db: SQLiteDatabase, tableName: String, batches: List<Array<Any?>>, fileType: DumpFileType) {
         db.beginTransaction()
         try {
             when (tableName) {
                 "geo" -> insertGeoBatch(db, batches)
-                "base", "nets" -> insertNetsBatch(db, batches)
+                "base" -> {
+                    if (fileType == DumpFileType.WIFI_3_SQL) {
+                        insertBaseBatch(db, batches)
+                    } else {
+                        insertNetsBatch(db, batches)
+                    }
+                }
+                "nets" -> insertNetsBatch(db, batches)
             }
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
+        }
+    }
+
+    private fun insertBaseBatch(db: SQLiteDatabase, batch: List<Array<Any?>>) {
+        val sql = """INSERT INTO base (time, cmtid, IP, Port, Authorization, name, RadioOff, 
+                Hidden, NoBSSID, BSSID, ESSID, Security, WiFiKey, 
+                WPSPIN, LANIP, LANMask, WANIP, WANMask, WANGateway, DNS1, DNS2, DNS3) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+
+        val statement = db.compileStatement(sql)
+
+        try {
+            for (row in batch) {
+                statement.clearBindings()
+                for (i in 0 until 22) {
+                    val value = if (i < row.size) row[i] else null
+                    when (value) {
+                        null -> {
+                            when (i) {
+                                8, 9 -> statement.bindLong(i + 1, 0)
+                                13 -> statement.bindLong(i + 1, 0)
+                                else -> statement.bindNull(i + 1)
+                            }
+                        }
+                        is Long -> statement.bindLong(i + 1, value)
+                        is Double -> statement.bindDouble(i + 1, value)
+                        is String -> {
+                            if (value.isEmpty() && i == 13) {
+                                statement.bindLong(i + 1, 0)
+                            } else {
+                                statement.bindString(i + 1, value)
+                            }
+                        }
+                        else -> {
+                            val strValue = value.toString()
+                            if (strValue.isEmpty() && i == 13) {
+                                statement.bindLong(i + 1, 0)
+                            } else {
+                                statement.bindString(i + 1, strValue)
+                            }
+                        }
+                    }
+                }
+                statement.executeInsert()
+            }
+        } finally {
+            statement.close()
         }
     }
 
@@ -848,6 +936,34 @@ class ConversionEngine(
             DNS3 INTEGER
         )
     """)
+
+        db.execSQL("""
+        CREATE TABLE IF NOT EXISTS base (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            time TEXT,
+            cmtid INTEGER,
+            IP INTEGER,
+            Port INTEGER,
+            Authorization TEXT,
+            name TEXT,
+            RadioOff INTEGER DEFAULT 0,
+            Hidden INTEGER DEFAULT 0,
+            NoBSSID INTEGER DEFAULT 0,
+            BSSID INTEGER DEFAULT 0,
+            ESSID TEXT,
+            Security INTEGER,
+            WiFiKey TEXT DEFAULT '',
+            WPSPIN INTEGER DEFAULT 0,
+            LANIP INTEGER,
+            LANMask INTEGER,
+            WANIP INTEGER,
+            WANMask INTEGER,
+            WANGateway INTEGER,
+            DNS1 INTEGER,
+            DNS2 INTEGER,
+            DNS3 INTEGER
+        )
+    """)
     }
 
     private suspend fun createIndexes(db: SQLiteDatabase) {
@@ -859,14 +975,20 @@ class ConversionEngine(
                 "CREATE INDEX IF NOT EXISTS idx_nets_BSSID ON nets (BSSID)",
                 "CREATE INDEX IF NOT EXISTS idx_nets_ESSID ON nets (ESSID)",
                 "CREATE INDEX IF NOT EXISTS idx_nets_wpspin ON nets (WPSPIN)",
-                "CREATE INDEX IF NOT EXISTS idx_nets_wifikey ON nets (WiFiKey)"
+                "CREATE INDEX IF NOT EXISTS idx_nets_wifikey ON nets (WiFiKey)",
+                "CREATE INDEX IF NOT EXISTS idx_base_BSSID ON base (BSSID)",
+                "CREATE INDEX IF NOT EXISTS idx_base_ESSID ON base (ESSID)",
+                "CREATE INDEX IF NOT EXISTS idx_base_wpspin ON base (WPSPIN)",
+                "CREATE INDEX IF NOT EXISTS idx_base_wifikey ON base (WiFiKey)"
             )
             IndexingOption.BASIC -> listOf(
                 "CREATE INDEX IF NOT EXISTS idx_geo_BSSID ON geo (BSSID)",
                 "CREATE INDEX IF NOT EXISTS idx_geo_latitude ON geo (latitude)",
                 "CREATE INDEX IF NOT EXISTS idx_geo_longitude ON geo (longitude)",
                 "CREATE INDEX IF NOT EXISTS idx_nets_BSSID ON nets (BSSID)",
-                "CREATE INDEX IF NOT EXISTS idx_nets_ESSID ON nets (ESSID)"
+                "CREATE INDEX IF NOT EXISTS idx_nets_ESSID ON nets (ESSID)",
+                "CREATE INDEX IF NOT EXISTS idx_base_BSSID ON base (BSSID)",
+                "CREATE INDEX IF NOT EXISTS idx_base_ESSID ON base (ESSID)"
             )
             IndexingOption.NONE -> emptyList()
         }
