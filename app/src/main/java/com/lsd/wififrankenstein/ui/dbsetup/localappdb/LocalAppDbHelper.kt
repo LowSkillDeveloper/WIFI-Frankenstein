@@ -579,22 +579,23 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         query: String,
         searchFields: Set<String>,
         offset: Int,
-        limit: Int
+        limit: Int,
+        wholeWords: Boolean = false
     ): List<WifiNetwork> {
         debugIndexes()
 
         val allResults = mutableSetOf<WifiNetwork>()
 
         if ("name" in searchFields) {
-            allResults.addAll(searchByNamePaginated(query, offset, limit))
+            allResults.addAll(searchByNamePaginated(query, offset, limit, wholeWords))
         }
 
         if ("mac" in searchFields) {
-            allResults.addAll(searchByMacAllFormatsPaginated(query, offset, limit))
+            allResults.addAll(searchByMacAllFormatsPaginated(query, offset, limit, wholeWords))
         }
 
         if ("password" in searchFields) {
-            allResults.addAll(searchByPasswordPaginated(query, offset, limit))
+            allResults.addAll(searchByPasswordPaginated(query, offset, limit, wholeWords))
         }
 
         if ("wps" in searchFields) {
@@ -602,6 +603,36 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         }
 
         return allResults.distinctBy { "${it.macAddress}-${it.wifiName}" }.take(limit)
+    }
+
+    private fun searchByNamePaginated(query: String, offset: Int, limit: Int, wholeWords: Boolean = false): List<WifiNetwork> {
+        Log.d("LocalAppDbHelper", "searchByNamePaginated - using simple query without INDEXED BY")
+
+        val sql = if (wholeWords) {
+            "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_NAME = ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
+        } else {
+            "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_NAME LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
+        }
+
+        val searchParam = if (wholeWords) query else "%$query%"
+
+        return readableDatabase.rawQuery(sql, arrayOf(searchParam)).use { cursor ->
+            buildWifiNetworkList(cursor)
+        }
+    }
+
+    private fun searchByPasswordPaginated(query: String, offset: Int, limit: Int, wholeWords: Boolean = false): List<WifiNetwork> {
+        val sql = if (wholeWords) {
+            "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_PASSWORD = ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
+        } else {
+            "SELECT * FROM $TABLE_NAME WHERE $COLUMN_WIFI_PASSWORD LIKE ? COLLATE NOCASE LIMIT $limit OFFSET $offset"
+        }
+
+        val searchParam = if (wholeWords) query else "%$query%"
+
+        return readableDatabase.rawQuery(sql, arrayOf(searchParam)).use { cursor ->
+            buildWifiNetworkList(cursor)
+        }
     }
 
     private fun searchByNamePaginated(query: String, offset: Int, limit: Int): List<WifiNetwork> {
@@ -614,7 +645,17 @@ class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context,
         }
     }
 
-    private fun searchByMacAllFormatsPaginated(query: String, offset: Int, limit: Int): List<WifiNetwork> {
+    private fun searchByMacAllFormatsPaginated(query: String, offset: Int, limit: Int, wholeWords: Boolean = false): List<WifiNetwork> {
+        if (!wholeWords) {
+            val cleanQuery = query.replace("[^a-fA-F0-9:]".toRegex(), "")
+            val sql = "SELECT * FROM $TABLE_NAME WHERE UPPER($COLUMN_MAC_ADDRESS) LIKE ? OR REPLACE(REPLACE(UPPER($COLUMN_MAC_ADDRESS), ':', ''), '-', '') LIKE ? LIMIT $limit OFFSET $offset"
+            val searchPattern = "%${cleanQuery.uppercase()}%"
+
+            return readableDatabase.rawQuery(sql, arrayOf(searchPattern, searchPattern)).use { cursor ->
+                buildWifiNetworkList(cursor)
+            }
+        }
+
         val macFormats = generateAllMacFormats(query)
         val conditions = mutableListOf<String>()
         val params = mutableListOf<String>()

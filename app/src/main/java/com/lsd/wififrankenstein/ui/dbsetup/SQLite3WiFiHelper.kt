@@ -647,21 +647,31 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         filters.forEach { field ->
             when (field) {
                 "BSSID" -> {
-                    val possibleFormats = generateMacFormats(query)
-                    var bssidConditionAdded = false
+                    if (wholeWords) {
+                        val possibleFormats = generateMacFormats(query)
+                        var bssidConditionAdded = false
 
-                    possibleFormats.forEach { format ->
-                        val decimalValue = macToDecimalSafe(format)
-                        if (decimalValue != -1L) {
-                            conditions.add("n.BSSID = ?")
-                            args.add(decimalValue.toString())
-                            bssidConditionAdded = true
+                        possibleFormats.forEach { format ->
+                            val decimalValue = macToDecimalSafe(format)
+                            if (decimalValue != -1L) {
+                                conditions.add("n.BSSID = ?")
+                                args.add(decimalValue.toString())
+                                bssidConditionAdded = true
+                            }
                         }
-                    }
 
-                    if (!bssidConditionAdded) {
-                        conditions.add("CAST(n.BSSID AS TEXT) LIKE ?")
-                        args.add(if (wholeWords) query else "%$query%")
+                        if (!bssidConditionAdded) {
+                            conditions.add("CAST(n.BSSID AS TEXT) = ?")
+                            args.add(query)
+                        }
+                    } else {
+                        val cleanQuery = query.replace("[^a-fA-F0-9:]".toRegex(), "")
+                        conditions.add("CAST(n.BSSID AS TEXT) LIKE ? OR UPPER(printf('%012X', n.BSSID)) LIKE ? OR UPPER(substr(printf('%02X:%02X:%02X:%02X:%02X:%02X', (n.BSSID >> 40) & 255, (n.BSSID >> 32) & 255, (n.BSSID >> 24) & 255, (n.BSSID >> 16) & 255, (n.BSSID >> 8) & 255, n.BSSID & 255), 1, length(?)*3-2)) LIKE ?")
+                        val searchPattern = "%${cleanQuery.uppercase()}%"
+                        args.add(searchPattern)
+                        args.add(searchPattern)
+                        args.add(cleanQuery.uppercase())
+                        args.add(searchPattern)
                     }
                 }
                 "ESSID" -> {
@@ -727,7 +737,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
         filters.forEach { field ->
             val fieldResults = when (field) {
-                "BSSID" -> searchByBssidRaw(query, indexLevel, tableName)
+                "BSSID" -> searchByBssidRaw(query, indexLevel, tableName, wholeWords)
                 "ESSID" -> searchByEssidRaw(query, indexLevel, tableName, wholeWords)
                 "WiFiKey" -> searchByWifiKeyRaw(query, indexLevel, tableName, wholeWords)
                 "WPSPIN" -> searchByWpsPinRaw(query, indexLevel, tableName)
@@ -740,9 +750,9 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     }
 
     private fun searchByBssidRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String): List<Map<String, Any?>> {
-        val possibleFormats = generateMacFormats(query)
         val results = mutableListOf<Map<String, Any?>>()
 
+        val possibleFormats = generateMacFormats(query)
         Log.d(TAG, "BSSID raw search - Original query: $query")
         Log.d(TAG, "BSSID raw search - Generated formats: $possibleFormats")
 
@@ -758,11 +768,81 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
             }
         }
 
-        if (results.isEmpty() && !query.matches("[0-9]+".toRegex())) {
+        if (results.isEmpty()) {
             val fallbackSql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE CAST(n.BSSID AS TEXT) LIKE ?"
             Log.d(TAG, "BSSID raw search - Using fallback query: $fallbackSql")
 
             database?.rawQuery(fallbackSql, arrayOf("%$query%"))?.use { cursor ->
+                results.addAll(cursor.toSearchResultsRaw())
+            }
+        }
+
+        Log.d(TAG, "BSSID raw search - Found ${results.size} results")
+        return results
+    }
+
+    private fun searchByBssid(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
+        val results = mutableListOf<Map<String, Any?>>()
+
+        if (wholeWords) {
+            val possibleFormats = generateMacFormats(query)
+            Log.d(TAG, "BSSID exact search - Original query: $query")
+            Log.d(TAG, "BSSID exact search - Generated formats: $possibleFormats")
+
+            possibleFormats.forEach { format ->
+                val decimalValue = macToDecimalSafe(format)
+                if (decimalValue != -1L) {
+                    val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
+                    Log.d(TAG, "BSSID exact search - Using query: $sql with decimal: $decimalValue")
+
+                    database?.rawQuery(sql, arrayOf(decimalValue.toString()))?.use { cursor ->
+                        results.addAll(cursor.toSearchResults())
+                    }
+                }
+            }
+        } else {
+            val cleanQuery = query.replace("[^a-fA-F0-9:]".toRegex(), "")
+            val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE CAST(n.BSSID AS TEXT) LIKE ? OR UPPER(printf('%012X', n.BSSID)) LIKE ? OR UPPER(substr(printf('%02X:%02X:%02X:%02X:%02X:%02X', (n.BSSID >> 40) & 255, (n.BSSID >> 32) & 255, (n.BSSID >> 24) & 255, (n.BSSID >> 16) & 255, (n.BSSID >> 8) & 255, n.BSSID & 255), 1, length(?)*3-2)) LIKE ?"
+
+            val searchPattern = "%${cleanQuery.uppercase()}%"
+            Log.d(TAG, "BSSID partial search - Using pattern: $searchPattern")
+
+            database?.rawQuery(sql, arrayOf(searchPattern, searchPattern, cleanQuery.uppercase(), searchPattern))?.use { cursor ->
+                results.addAll(cursor.toSearchResults())
+            }
+        }
+
+        Log.d(TAG, "BSSID search - Found ${results.size} results")
+        return results
+    }
+
+    private fun searchByBssidRaw(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String, wholeWords: Boolean): List<Map<String, Any?>> {
+        val results = mutableListOf<Map<String, Any?>>()
+
+        if (wholeWords) {
+            val possibleFormats = generateMacFormats(query)
+            Log.d(TAG, "BSSID exact raw search - Original query: $query")
+            Log.d(TAG, "BSSID exact raw search - Generated formats: $possibleFormats")
+
+            possibleFormats.forEach { format ->
+                val decimalValue = macToDecimalSafe(format)
+                if (decimalValue != -1L) {
+                    val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE n.BSSID = ?"
+                    Log.d(TAG, "BSSID exact raw search - Using query: $sql with decimal: $decimalValue")
+
+                    database?.rawQuery(sql, arrayOf(decimalValue.toString()))?.use { cursor ->
+                        results.addAll(cursor.toSearchResultsRaw())
+                    }
+                }
+            }
+        } else {
+            val cleanQuery = query.replace("[^a-fA-F0-9:]".toRegex(), "")
+            val sql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE CAST(n.BSSID AS TEXT) LIKE ? OR UPPER(printf('%012X', n.BSSID)) LIKE ? OR UPPER(substr(printf('%02X:%02X:%02X:%02X:%02X:%02X', (n.BSSID >> 40) & 255, (n.BSSID >> 32) & 255, (n.BSSID >> 24) & 255, (n.BSSID >> 16) & 255, (n.BSSID >> 8) & 255, n.BSSID & 255), 1, length(?)*3-2)) LIKE ?"
+
+            val searchPattern = "%${cleanQuery.uppercase()}%"
+            Log.d(TAG, "BSSID partial raw search - Using pattern: $searchPattern")
+
+            database?.rawQuery(sql, arrayOf(searchPattern, searchPattern, cleanQuery.uppercase(), searchPattern))?.use { cursor ->
                 results.addAll(cursor.toSearchResultsRaw())
             }
         }
@@ -847,7 +927,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
 
         filters.forEach { field ->
             val fieldResults = when (field) {
-                "BSSID" -> searchByBssid(query, indexLevel, tableName)
+                "BSSID" -> searchByBssid(query, indexLevel, tableName, wholeWords)
                 "ESSID" -> searchByEssid(query, indexLevel, tableName, wholeWords)
                 "WiFiKey" -> searchByWifiKey(query, indexLevel, tableName, wholeWords)
                 "WPSPIN" -> searchByWpsPin(query, indexLevel, tableName)
@@ -860,9 +940,9 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
     }
 
     private fun searchByBssid(query: String, indexLevel: DatabaseIndices.IndexLevel, tableName: String): List<Map<String, Any?>> {
-        val possibleFormats = generateMacFormats(query)
         val results = mutableListOf<Map<String, Any?>>()
 
+        val possibleFormats = generateMacFormats(query)
         Log.d(TAG, "BSSID search - Original query: $query")
         Log.d(TAG, "BSSID search - Generated formats: $possibleFormats")
 
@@ -878,7 +958,7 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
             }
         }
 
-        if (results.isEmpty() && !query.matches("[0-9]+".toRegex())) {
+        if (results.isEmpty()) {
             val fallbackSql = "SELECT DISTINCT n.*, g.latitude, g.longitude FROM $tableName n LEFT JOIN geo g ON n.BSSID = g.BSSID WHERE CAST(n.BSSID AS TEXT) LIKE ?"
             Log.d(TAG, "BSSID search - Using fallback query: $fallbackSql")
 
@@ -1019,20 +1099,30 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         filters.forEach { field ->
             when (field) {
                 "BSSID" -> {
-                    val decimalBssid = if (query.contains(":") || query.contains("-")) {
-                        try {
-                            val decimal = query.replace(":", "").replace("-", "").toLong(16)
-                            conditions.add("n.BSSID = ?")
-                            args.add(decimal.toString())
-                            true
-                        } catch (_: Exception) {
-                            false
-                        }
-                    } else query.toLongOrNull() != null
+                    if (wholeWords) {
+                        val decimalBssid = if (query.contains(":") || query.contains("-")) {
+                            try {
+                                val decimal = query.replace(":", "").replace("-", "").toLong(16)
+                                conditions.add("n.BSSID = ?")
+                                args.add(decimal.toString())
+                                true
+                            } catch (_: Exception) {
+                                false
+                            }
+                        } else query.toLongOrNull() != null
 
-                    if (!decimalBssid) {
-                        conditions.add("CAST(n.BSSID AS TEXT) LIKE ?")
-                        args.add(if (wholeWords) query else "%$query%")
+                        if (!decimalBssid) {
+                            conditions.add("CAST(n.BSSID AS TEXT) = ?")
+                            args.add(query)
+                        }
+                    } else {
+                        val cleanQuery = query.replace("[^a-fA-F0-9:]".toRegex(), "")
+                        conditions.add("CAST(n.BSSID AS TEXT) LIKE ? OR UPPER(printf('%012X', n.BSSID)) LIKE ? OR UPPER(substr(printf('%02X:%02X:%02X:%02X:%02X:%02X', (n.BSSID >> 40) & 255, (n.BSSID >> 32) & 255, (n.BSSID >> 24) & 255, (n.BSSID >> 16) & 255, (n.BSSID >> 8) & 255, n.BSSID & 255), 1, length(?)*3-2)) LIKE ?")
+                        val searchPattern = "%${cleanQuery.uppercase()}%"
+                        args.add(searchPattern)
+                        args.add(searchPattern)
+                        args.add(cleanQuery.uppercase())
+                        args.add(searchPattern)
                     }
                 }
                 "ESSID" -> {

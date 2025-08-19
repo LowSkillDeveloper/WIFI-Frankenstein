@@ -274,7 +274,7 @@ AND $lonColumn >= ? AND $lonColumn <=?$limitClause
 
             mappedColumn?.let { dbColumn ->
                 val fieldResults = when (reverseColumnMap[columnName]) {
-                    "mac" -> searchByMacAllFormats(tableName, dbColumn, query)
+                    "mac" -> searchByMacAllFormats(tableName, dbColumn, query, wholeWords)
                     else -> searchByField(tableName, dbColumn, query, wholeWords)
                 }
                 allResults.addAll(fieldResults)
@@ -304,15 +304,23 @@ AND $lonColumn >= ? AND $lonColumn <=?$limitClause
             mappedColumn?.let { dbColumn ->
                 when (reverseColumnMap[columnName]) {
                     "mac" -> {
-                        val macFormats = generateAllMacFormats(query)
-                        macFormats.forEach { format ->
-                            allConditions.add("UPPER($dbColumn) = UPPER(?)")
-                            allParams.add(format)
-                            allConditions.add("REPLACE(REPLACE(UPPER($dbColumn), ':', ''), '-', '') = REPLACE(REPLACE(UPPER(?), ':', ''), '-', '')")
-                            allParams.add(format)
+                        if (wholeWords) {
+                            val macFormats = generateAllMacFormats(query)
+                            macFormats.forEach { format ->
+                                allConditions.add("UPPER($dbColumn) = UPPER(?)")
+                                allParams.add(format)
+                                allConditions.add("REPLACE(REPLACE(UPPER($dbColumn), ':', ''), '-', '') = REPLACE(REPLACE(UPPER(?), ':', ''), '-', '')")
+                                allParams.add(format)
+                            }
+                            allConditions.add("$dbColumn LIKE ?")
+                            allParams.add("%$query%")
+                        } else {
+                            val cleanQuery = query.replace("[^a-fA-F0-9:]".toRegex(), "")
+                            allConditions.add("UPPER($dbColumn) LIKE ? OR REPLACE(REPLACE(UPPER($dbColumn), ':', ''), '-', '') LIKE ?")
+                            val searchPattern = "%${cleanQuery.uppercase()}%"
+                            allParams.add(searchPattern)
+                            allParams.add(searchPattern)
                         }
-                        allConditions.add("$dbColumn LIKE ?")
-                        allParams.add("%$query%")
                     }
                     else -> {
                         if (wholeWords) {
@@ -334,8 +342,19 @@ AND $lonColumn >= ? AND $lonColumn <=?$limitClause
         return executeSearchQuery(sql, allParams.toTypedArray())
     }
 
-    private fun searchByMacAllFormats(tableName: String, columnName: String, query: String): List<Map<String, Any?>> {
-        Log.d(TAG, "Processing MAC search with all formats. Original: $query")
+    private fun searchByMacAllFormats(tableName: String, columnName: String, query: String, wholeWords: Boolean = true): List<Map<String, Any?>> {
+        Log.d(TAG, "Processing MAC search with all formats. Original: $query, wholeWords: $wholeWords")
+
+        if (!wholeWords) {
+            val cleanQuery = query.replace("[^a-fA-F0-9:]".toRegex(), "")
+            val sql = "SELECT DISTINCT * FROM $tableName WHERE UPPER($columnName) LIKE ? OR REPLACE(REPLACE(UPPER($columnName), ':', ''), '-', '') LIKE ?"
+            val searchPattern = "%${cleanQuery.uppercase()}%"
+
+            Log.d(TAG, "MAC partial search - SQL: $sql")
+            Log.d(TAG, "MAC partial search - Pattern: $searchPattern")
+
+            return executeSearchQuery(sql, arrayOf(searchPattern, searchPattern))
+        }
 
         val macFormats = generateAllMacFormats(query)
         Log.d(TAG, "Generated MAC formats: $macFormats")
@@ -356,8 +375,8 @@ AND $lonColumn >= ? AND $lonColumn <=?$limitClause
 
         val sql = "SELECT DISTINCT * FROM $tableName WHERE ${allConditions.joinToString(" OR ")}"
 
-        Log.d(TAG, "MAC search - SQL: $sql")
-        Log.d(TAG, "MAC search - Params count: ${allParams.size}")
+        Log.d(TAG, "MAC exact search - SQL: $sql")
+        Log.d(TAG, "MAC exact search - Params count: ${allParams.size}")
 
         return executeSearchQuery(sql, allParams.toTypedArray())
     }

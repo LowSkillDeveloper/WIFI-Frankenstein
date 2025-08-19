@@ -191,7 +191,7 @@ class PaginationHelper(
 
             val localDbHelper = LocalAppDbHelper(context)
             val dbResults = localDbHelper.searchRecordsWithFiltersPaginated(
-                query, searchFields, offset, limit
+                query, searchFields, offset, limit, searchWholeWords
             )
 
             dbResults.map { network ->
