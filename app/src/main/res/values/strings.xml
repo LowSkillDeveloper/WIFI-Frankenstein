@@ -1,7 +1,9 @@
 <resources>
 
     <string name="app_name" translatable="false">WIFI Frankenstein</string>
+    <string name="nav_header_title_with_version" translatable="false">%1$s %2$s</string>
     <string name="default_upload_comment" translatable="false">WIFI-Frankenstein</string>
+    <string name="unofficial_version_warning">Unofficial modified version</string>
 
     <string name="include_app_identifier">Include App Identifier</string>
     <string name="app_identifier_description">Send app identifier with requests</string>

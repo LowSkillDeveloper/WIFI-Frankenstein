@@ -23,7 +23,7 @@ object SignatureVerifier {
         return "WIFIFrankenstein-$versionName-$status$debugSuffix"
     }
 
-    private fun isOfficialBuild(context: Context): Boolean {
+    fun isOfficialBuild(context: Context): Boolean {
         return try {
             val expectedSignature = context.getString(R.string.official_signature_sha256)
             val currentSignature = getCurrentSignatureSha256(context)

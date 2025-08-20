@@ -21,6 +21,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import com.google.android.material.snackbar.Snackbar
 import com.lsd.wififrankenstein.databinding.ActivityMainBinding
 import com.lsd.wififrankenstein.network.NetworkUtils
+import com.lsd.wififrankenstein.ui.NavHeaderHelper
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
 import com.lsd.wififrankenstein.util.FileLogger
@@ -94,6 +95,9 @@ class MainActivity : AppCompatActivity() {
 
         val drawerLayout: DrawerLayout = binding.drawerLayout
         val navView = binding.navView
+        val headerView = navView.getHeaderView(0)
+        NavHeaderHelper.setupNavHeader(this, headerView)
+
         val navController = findNavController(R.id.nav_host_fragment_content_main)
 
         appBarConfiguration = AppBarConfiguration(

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <string name="unofficial_version_warning">Неофіційна модифікована версія</string>
     <string name="include_app_identifier">Включити ідентифікатор додатку</string>
     <string name="app_identifier_description">Надсилати ідентифікатор додатку із запитами</string>
     <string name="nav_header_subtitle">Нове покоління 3Wifi Локатора</string>

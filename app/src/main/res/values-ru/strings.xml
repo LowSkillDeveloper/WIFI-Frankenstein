@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <string name="unofficial_version_warning">Неофициальная модифицированная версия</string>
     <string name="include_app_identifier">Включить идентификатор приложения</string>
     <string name="app_identifier_description">Отправлять идентификатор приложения с запросами</string>
     <string name="nav_header_subtitle">Новое поколение 3Wifi Локатора</string>

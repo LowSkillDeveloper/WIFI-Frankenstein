@@ -22,15 +22,30 @@
             android:contentDescription="@string/about_title"
             android:src="@mipmap/ic_launcher" />
 
+
         <TextView
             android:id="@+id/text_about"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="8dp"
             android:textAlignment="center"
             android:textSize="20sp"
             android:textStyle="bold"
             tools:text="WIFI Frankenstein" />
+
+        <TextView
+            android:id="@+id/modification_warning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:textAlignment="center"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="8dp"
+            android:visibility="gone" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
