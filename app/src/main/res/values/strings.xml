@@ -1796,6 +1796,12 @@
     <string name="conversion_long">During database optimization and index creation, the percentage does not change, but the conversion continues to run!</string>
 
 
+    <string name="notification_permission_title">Notification Permission</string>
+    <string name="notification_permission_message">For proper background conversion, it is recommended to allow notifications. Without this permission, the conversion progress may be lost when the app is minimized.</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="continue_without_permission">Continue without Permission</string>
+    <string name="notification_permission_denied">Notification permission denied. Conversion may not work correctly in the background.</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
