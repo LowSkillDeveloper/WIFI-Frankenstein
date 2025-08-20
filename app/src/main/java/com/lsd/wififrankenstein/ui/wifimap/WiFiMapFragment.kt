@@ -1163,6 +1163,19 @@ class WiFiMapFragment : Fragment() {
         Log.d(TAG, "onResume: Resetting map state")
         resetMapState()
 
+        isClustersPreventMerged = false
+        wasAutoSeparated = false
+        viewModel.setPreventClusterMerge(false)
+        updateFabIcon()
+
+        if (selectedDatabases.isNotEmpty()) {
+            clearMarkers()
+            lifecycleScope.launch {
+                delay(300)
+                scheduleMapUpdate(true)
+            }
+        }
+
         checkDatabaseValidity()
         updateLegend()
 
@@ -1182,6 +1195,7 @@ class WiFiMapFragment : Fragment() {
         }
 
         if (selectedDatabases.isNotEmpty()) {
+            clearMarkers()
             lifecycleScope.launch {
                 delay(300)
                 scheduleMapUpdate(true)
