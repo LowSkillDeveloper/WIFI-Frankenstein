@@ -20,6 +20,11 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentConvertDumpsBinding
 import com.lsd.wififrankenstein.service.ConversionService
 import com.lsd.wififrankenstein.util.Log
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 
 class ConvertDumpsFragment : Fragment() {
 
@@ -74,6 +79,17 @@ class ConvertDumpsFragment : Fragment() {
     }
 
     private var currentFileSelection = FileSelectionType.NONE
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            proceedWithConversion()
+        } else {
+            showSnackbar(getString(R.string.notification_permission_denied))
+            proceedWithConversion()
+        }
+    }
 
     private enum class FileSelectionType {
         NONE, BASE_FILE, GEO_FILE, INPUT_FILE
@@ -308,6 +324,40 @@ class ConvertDumpsFragment : Fragment() {
     }
 
     private fun startConversion() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    proceedWithConversion()
+                }
+                else -> {
+                    showNotificationPermissionDialog()
+                }
+            }
+        } else {
+            proceedWithConversion()
+        }
+    }
+
+    private fun showNotificationPermissionDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.notification_permission_title))
+            .setMessage(getString(R.string.notification_permission_message))
+            .setPositiveButton(getString(R.string.grant_permission)) { _, _ ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+            .setNegativeButton(getString(R.string.continue_without_permission)) { _, _ ->
+                proceedWithConversion()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun proceedWithConversion() {
         val files = viewModel.getAllSelectedFiles()
         Log.d("ConvertDumpsFragment", "Starting conversion with ${files.size} files")
 
