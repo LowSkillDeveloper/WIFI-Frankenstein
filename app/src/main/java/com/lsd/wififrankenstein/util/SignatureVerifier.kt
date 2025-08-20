@@ -27,7 +27,11 @@ object SignatureVerifier {
         return try {
             val expectedSignature = context.getString(R.string.official_signature_sha256)
             val currentSignature = getCurrentSignatureSha256(context)
-            currentSignature == expectedSignature
+
+            val normalizedExpected = expectedSignature.replace(":", "").lowercase()
+            val normalizedCurrent = currentSignature?.lowercase()
+
+            normalizedCurrent == normalizedExpected
         } catch (e: Exception) {
             false
         }
