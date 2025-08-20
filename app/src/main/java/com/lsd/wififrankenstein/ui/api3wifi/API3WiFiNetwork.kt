@@ -3,6 +3,7 @@ package com.lsd.wififrankenstein.ui.api3wifi
 import android.content.Context
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import com.lsd.wififrankenstein.util.SignatureVerifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -159,7 +160,7 @@ class API3WiFiNetwork(
             }
         }
         if (includeAppIdentifier) {
-            builder.addQueryParameter("appinfo", context.getString(R.string.app_identifier))
+            builder.addQueryParameter("appinfo", SignatureVerifier.getAppIdentifier(context))
         }
     }
 
@@ -216,7 +217,7 @@ class API3WiFiNetwork(
             }
         }
         if (includeAppIdentifier) {
-            builder.add("appinfo", context.getString(R.string.app_identifier))
+            builder.add("appinfo", SignatureVerifier.getAppIdentifier(context))
         }
     }
 
@@ -259,7 +260,7 @@ class API3WiFiNetwork(
             }
         }
         if (includeAppIdentifier) {
-            jsonObject.put("appinfo", context.getString(R.string.app_identifier))
+            jsonObject.put("appinfo", SignatureVerifier.getAppIdentifier(context))
         }
         return jsonObject
 

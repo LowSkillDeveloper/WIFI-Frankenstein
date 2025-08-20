@@ -4,6 +4,7 @@ import android.content.Context
 import com.lsd.wififrankenstein.util.Log
 import androidx.core.content.edit
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.util.SignatureVerifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -136,7 +137,7 @@ class API3WiFiHelper(
                             put("key", apiReadKey)
                             put("bssid", JSONArray(chunk.map { it.uppercase(Locale.ROOT) }))
                             if (includeAppIdentifier) {
-                                put("appinfo", context.getString(R.string.app_identifier))
+                                put("appinfo", SignatureVerifier.getAppIdentifier(context))
                             }
                         }
                         Log.d("API3WiFiHelper", "Sending request: $jsonObject")
@@ -234,7 +235,7 @@ class API3WiFiHelper(
                 put("key", apiReadKey)
                 put("bssid", JSONArray().put(testBSSID))
                 if (includeAppIdentifier) {
-                    put("appinfo", context.getString(R.string.app_identifier))
+                    put("appinfo", SignatureVerifier.getAppIdentifier(context))
                 }
             }
 

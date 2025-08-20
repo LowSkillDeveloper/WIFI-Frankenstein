@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -29,10 +30,17 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true
-
-        resValue("string", "app_identifier", "WIFIFrankenstein-${versionName}-official")
-        resValue("string", "app_version_name", versionName!!)
     }
+
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(localPropertiesFile.inputStream())
+    }
+
+    val officialSignature = localProperties.getProperty("OFFICIAL_SIGNATURE_SHA256")
+        ?: System.getenv("OFFICIAL_SIGNATURE_SHA256")
+        ?: "no_official_signature_configured"
 
     buildTypes {
         release {
@@ -41,6 +49,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            resValue("string", "official_signature_sha256", officialSignature)
+            resValue("string", "is_debug_build", "false")
+        }
+
+        debug {
+            resValue("string", "official_signature_sha256", officialSignature)
+            resValue("string", "is_debug_build", "true")
         }
     }
 
