@@ -29,6 +29,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true
+
+        resValue("string", "app_identifier", "WIFIFrankenstein-${versionName}-official")
+        resValue("string", "app_version_name", versionName!!)
     }
 
     buildTypes {
@@ -51,6 +54,7 @@ android {
     }
 
     buildToolsVersion = "36.0.0"
+
 }
 
 kotlin {
