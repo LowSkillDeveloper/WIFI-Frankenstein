@@ -1628,9 +1628,6 @@
     <string name="database_file_not_found_removed">База данных была удалена из списка, так как файл не найден</string>
     <string name="conversion_long">Во время оптимизации БД и создания индексов проценты не меняются, но конвертация продолжает работать!</string>
 
-    <string name="notification_permission_title">Разрешение на уведомления</string>
-    <string name="notification_permission_message">Для корректной работы конвертации в фоновом режиме рекомендуется разрешить отправку уведомлений. Без этого разрешения прогресс конвертации может быть потерян при сворачивании приложения.</string>
-    <string name="grant_permission">Дать разрешение</string>
     <string name="continue_without_permission">Продолжить без разрешения</string>
     <string name="notification_permission_denied">Разрешение на уведомления отклонено. Конвертация может работать некорректно в фоновом режиме.</string>
 

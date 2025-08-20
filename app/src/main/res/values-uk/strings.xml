@@ -1224,12 +1224,9 @@
         <string name="download_complete">Завантаження завершено</string>
         <string name="file_downloaded_successfully">%s успішно завантажено</string>
 
-        <string name="notification_permission_title">Потрібен дозвіл на сповіщення</string>
-        <string name="notification_permission_message">Для відображення ходу завантаження додатку потрібен дозвіл на сповіщення. Ви можете продовжити без сповіщень, якщо бажаєте.</string>
         <string name="notification_permission_batch_message">Для відображення ходу завантаження кількох файлів додатку потрібен дозвіл на сповіщення. Ви можете продовжити без сповіщень, якщо бажаєте.</string>
         <string name="notification_permission_denied_title">Дозвіл на сповіщення відхилено</string>
         <string name="notification_permission_denied_message">Ви можете увімкнути сповіщення в налаштуваннях додатку або продовжити завантаження без них.</string>
-        <string name="grant_permission">Надати дозвіл</string>
         <string name="download_without_notifications">Завантажити без сповіщень</string>
         <string name="open_settings">Відкрити налаштування</string>
 
