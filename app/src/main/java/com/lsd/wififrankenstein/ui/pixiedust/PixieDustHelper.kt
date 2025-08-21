@@ -60,10 +60,13 @@ class PixieDustHelper(
 
     suspend fun getAvailableInterfaces(): List<IwInterface> = withContext(Dispatchers.IO) {
         try {
-            val iwCommand = "iw dev"
-            Log.d(TAG, "Executing command: $iwCommand")
+            val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
+            val iwBinary = "iw$arch"
+            val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./$iwBinary dev"
 
-            val result = Shell.cmd(iwCommand).exec()
+            Log.d(TAG, "Executing command: $command")
+
+            val result = Shell.cmd(command).exec()
             Log.d(TAG, "Command exit code: ${result.code}")
             Log.d(TAG, "Command success: ${result.isSuccess}")
             Log.d(TAG, "Command output lines: ${result.out.size}")
@@ -80,7 +83,7 @@ class PixieDustHelper(
             }
 
             if (result.isSuccess && result.out.isNotEmpty()) {
-                val interfaces = parseIwDevOutput(result.out.joinToString("\n"))
+                val interfaces = parseInterfacesList(result.out.joinToString("\n"))
                 Log.d(TAG, "Parsed ${interfaces.size} interfaces: ${interfaces.map { it.name }}")
                 interfaces
             } else {
@@ -143,10 +146,6 @@ class PixieDustHelper(
         }
 
         return result
-    }
-
-    private fun parseIwDevOutput(output: String): List<IwInterface> {
-        return parseInterfacesList(output)
     }
 
     fun checkRootAccess(): Boolean {
