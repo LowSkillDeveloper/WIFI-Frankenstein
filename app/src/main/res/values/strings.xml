@@ -1813,9 +1813,9 @@
     <string name="opening_file">Opening file %1$s…</string>
     <string name="calculating_file_size">Calculating file size…</string>
     <string name="reading_file_content">Reading file content…</string>
-    <string name="parsing_sql_data">Parsing SQL data…</string>
     <string name="inserting_batch_data">Inserting data (batch %1$d)…</string>
     <string name="copying_to_destination">Copying to destination…</string>
+    <string name="preparing_database_optimization">Preparing database optimization…</string>
 
 
 

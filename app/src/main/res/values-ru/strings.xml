@@ -1646,9 +1646,9 @@
     <string name="opening_file">Открытие файла %1$s…</string>
     <string name="calculating_file_size">Расчет размера файла…</string>
     <string name="reading_file_content">Чтение содержимого файла…</string>
-    <string name="parsing_sql_data">Парсинг SQL данных…</string>
     <string name="inserting_batch_data">Вставка данных (батч %1$d)…</string>
     <string name="copying_to_destination">Копирование в назначенное место…</string>
+    <string name="preparing_database_optimization">Подготовка к оптимизации базы данных…</string>
 
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
