@@ -1,7 +1,6 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
 import android.graphics.drawable.GradientDrawable
-import com.lsd.wififrankenstein.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,6 +9,7 @@ import androidx.core.net.toUri
 import androidx.recyclerview.widget.RecyclerView
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
+import com.lsd.wififrankenstein.util.Log
 
 class MapLegendAdapter : RecyclerView.Adapter<MapLegendAdapter.ViewHolder>() {
     private val items = mutableListOf<Pair<DbItem, Int>>()

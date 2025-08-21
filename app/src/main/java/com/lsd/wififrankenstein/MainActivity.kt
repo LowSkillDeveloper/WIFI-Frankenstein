@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
-import com.lsd.wififrankenstein.util.Log
 import android.view.MenuItem
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -24,7 +23,7 @@ import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.ui.NavHeaderHelper
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
-import com.lsd.wififrankenstein.util.FileLogger
+import com.lsd.wififrankenstein.util.Log
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.launch
 import org.json.JSONObject

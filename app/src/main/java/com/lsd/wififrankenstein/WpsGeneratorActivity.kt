@@ -5,7 +5,6 @@ import android.content.ContentValues.TAG
 import android.content.res.Configuration
 import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
-import com.lsd.wififrankenstein.util.Log
 import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -25,6 +24,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
+import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.WpsPinGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

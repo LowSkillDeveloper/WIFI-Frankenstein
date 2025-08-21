@@ -3,7 +3,6 @@ package com.lsd.wififrankenstein
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
-import com.lsd.wififrankenstein.util.Log
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -21,7 +20,7 @@ import com.lsd.wififrankenstein.ui.welcome.WelcomePermissionsFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeRootFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeThemeFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeUpdatesFragment
-import com.lsd.wififrankenstein.util.FileLogger
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

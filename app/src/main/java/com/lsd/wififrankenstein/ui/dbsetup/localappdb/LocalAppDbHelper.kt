@@ -6,12 +6,12 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
-import com.lsd.wififrankenstein.util.Log
 import androidx.core.database.sqlite.transaction
+import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 import com.lsd.wififrankenstein.util.CompatibilityHelper
+import com.lsd.wififrankenstein.util.Log
 import java.io.File
 import java.io.FileOutputStream
-import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 
 class LocalAppDbHelper(private val context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 

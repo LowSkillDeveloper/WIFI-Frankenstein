@@ -1,16 +1,21 @@
 package com.lsd.wififrankenstein.ui.convertdumps
 
+import android.Manifest
 import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -20,11 +25,6 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentConvertDumpsBinding
 import com.lsd.wififrankenstein.service.ConversionService
 import com.lsd.wififrankenstein.util.Log
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.appcompat.app.AlertDialog
-import androidx.core.content.ContextCompat
 
 class ConvertDumpsFragment : Fragment() {
 

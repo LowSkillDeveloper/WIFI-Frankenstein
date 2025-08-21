@@ -1,6 +1,5 @@
 package com.lsd.wififrankenstein.ui.welcome
 
-import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -8,7 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import com.lsd.wififrankenstein.util.Log
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,9 +27,9 @@ import com.lsd.wififrankenstein.ui.updates.SmartLinkDbUpdateAdapter
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
 import com.lsd.wififrankenstein.ui.updates.UpdatesAdapter
 import com.lsd.wififrankenstein.ui.updates.UpdatesViewModel
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import android.provider.Settings
 
 private const val POST_NOTIFICATIONS_PERMISSION = "android.permission.POST_NOTIFICATIONS"
 

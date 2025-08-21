@@ -2,7 +2,6 @@ package com.lsd.wififrankenstein.ui.databasefinder
 
 import android.content.Context
 import android.database.Cursor
-import com.lsd.wififrankenstein.util.Log
 import androidx.core.net.toUri
 import com.lsd.wififrankenstein.ui.dbsetup.API3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
@@ -11,6 +10,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.util.DatabaseIndices
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

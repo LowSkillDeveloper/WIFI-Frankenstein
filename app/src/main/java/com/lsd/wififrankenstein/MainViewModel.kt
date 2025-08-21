@@ -2,9 +2,9 @@ package com.lsd.wififrankenstein
 
 import android.app.Application
 import android.content.Context
-import com.lsd.wififrankenstein.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject

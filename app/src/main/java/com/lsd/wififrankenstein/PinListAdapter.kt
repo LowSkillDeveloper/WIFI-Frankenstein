@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
 import android.net.wifi.WpsInfo
-import com.lsd.wififrankenstein.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
@@ -19,6 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.lsd.wififrankenstein.util.Log
 
 class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiffCallback()) {
 

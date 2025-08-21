@@ -14,7 +14,6 @@ import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.Settings
-import com.lsd.wififrankenstein.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -47,6 +46,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
 import com.lsd.wififrankenstein.ui.welcome.DbSourceAdapter
 import com.lsd.wififrankenstein.ui.welcome.WelcomeDatabaseAdapter
+import com.lsd.wififrankenstein.util.Log
 import com.opencsv.CSVReader
 import com.opencsv.CSVWriter
 import kotlinx.coroutines.Deferred

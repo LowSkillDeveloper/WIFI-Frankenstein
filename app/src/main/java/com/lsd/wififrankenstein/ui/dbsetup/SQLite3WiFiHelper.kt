@@ -5,12 +5,13 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
+import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 import com.lsd.wififrankenstein.ui.ipranges.IpRangeManager
 import com.lsd.wififrankenstein.util.CompatibilityHelper
-import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.DatabaseIndices
 import com.lsd.wififrankenstein.util.DatabaseOptimizer
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -21,7 +22,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.Collections
 import java.util.Locale
-import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 
 class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, private val directPath: String?) : SQLiteOpenHelper(context, null, null, 1) {
     var database: SQLiteDatabase? = null

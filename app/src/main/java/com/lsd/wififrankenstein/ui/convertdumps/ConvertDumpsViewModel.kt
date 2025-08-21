@@ -1,7 +1,6 @@
 package com.lsd.wififrankenstein.ui.convertdumps
 
 import android.net.Uri
-import android.os.Bundle
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel

@@ -1,7 +1,6 @@
 package com.lsd.wififrankenstein.util
 
 import android.database.sqlite.SQLiteDatabase
-import com.lsd.wififrankenstein.util.Log
 
 object DatabaseTypeUtils {
     private const val TAG = "DatabaseTypeUtils"

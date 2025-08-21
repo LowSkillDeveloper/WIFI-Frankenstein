@@ -1,19 +1,32 @@
 package com.lsd.wififrankenstein.util
 
+import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.content.ContentValues
-import android.net.Uri
-import android.util.Log as AndroidLog
-import kotlinx.coroutines.*
-import java.io.*
-import java.text.SimpleDateFormat
-import java.util.*
-import java.util.concurrent.ConcurrentLinkedQueue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import java.io.BufferedReader
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStreamReader
+import java.io.OutputStream
+import java.io.OutputStreamWriter
+import java.io.PrintStream
 import java.lang.reflect.Method
-import android.content.ContentUris
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.ConcurrentLinkedQueue
+import android.util.Log as AndroidLog
 
 object FileLogger {
     private const val TAG = "FileLogger"

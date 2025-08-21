@@ -1,7 +1,5 @@
 package com.lsd.wififrankenstein.util
 
-import com.lsd.wififrankenstein.util.Log
-
 object MacAddressUtils {
     private const val TAG = "MacAddressUtils"
 

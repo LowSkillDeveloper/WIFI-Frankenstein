@@ -9,7 +9,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Environment
-import com.lsd.wififrankenstein.util.Log
 import android.webkit.URLUtil
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
@@ -20,6 +19,7 @@ import com.lsd.wififrankenstein.network.NetworkClient
 import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.service.DownloadService
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,8 +29,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.log10
 import kotlin.math.pow

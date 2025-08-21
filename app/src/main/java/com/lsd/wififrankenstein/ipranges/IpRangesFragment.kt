@@ -2,14 +2,12 @@ package com.lsd.wififrankenstein.ui.ipranges
 
 import android.content.Context
 import android.graphics.Color
-import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -27,9 +25,9 @@ import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
 import java.text.NumberFormat
-import java.util.*
-import kotlin.math.cos
+import java.util.Locale
 import kotlin.math.PI
+import kotlin.math.cos
 
 class IpRangesFragment : Fragment() {
 

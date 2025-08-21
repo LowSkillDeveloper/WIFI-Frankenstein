@@ -1,7 +1,6 @@
 package com.lsd.wififrankenstein.ui.databasefinder
 
 import android.app.Application
-import com.lsd.wififrankenstein.util.Log
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -18,6 +17,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.wifimap.ExternalIndexManager
 import com.lsd.wififrankenstein.util.DatabaseIndices
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

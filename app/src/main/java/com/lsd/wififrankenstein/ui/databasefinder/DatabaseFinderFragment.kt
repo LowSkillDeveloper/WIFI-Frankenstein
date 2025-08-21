@@ -5,7 +5,6 @@ import android.content.ContentValues.TAG
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import com.lsd.wififrankenstein.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,9 +20,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentDatabaseFinderBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 
 class DatabaseFinderFragment : Fragment() {
 

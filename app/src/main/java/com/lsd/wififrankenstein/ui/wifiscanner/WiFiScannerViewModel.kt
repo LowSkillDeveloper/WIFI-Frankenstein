@@ -13,7 +13,6 @@ import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.provider.Settings
-import com.lsd.wififrankenstein.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -30,6 +29,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
 import com.lsd.wififrankenstein.util.DatabaseIndices
+import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.WiFiManagerWrapper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

@@ -2,7 +2,6 @@ package com.lsd.wififrankenstein.ui.dbsetup.localappdb
 
 import android.annotation.SuppressLint
 import android.app.Application
-import com.lsd.wififrankenstein.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -10,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.cachedIn
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 

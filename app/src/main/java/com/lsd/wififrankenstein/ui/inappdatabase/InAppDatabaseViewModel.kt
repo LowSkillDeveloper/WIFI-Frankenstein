@@ -2,7 +2,6 @@ package com.lsd.wififrankenstein.ui.inappdatabase
 
 import android.app.Application
 import android.net.Uri
-import com.lsd.wififrankenstein.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -14,6 +13,7 @@ import androidx.paging.cachedIn
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

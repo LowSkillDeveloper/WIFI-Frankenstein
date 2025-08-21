@@ -6,6 +6,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
+import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 import com.lsd.wififrankenstein.util.CompatibilityHelper
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
@@ -14,7 +15,6 @@ import org.osmdroid.util.BoundingBox
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Collections
-import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 
 class SQLiteCustomHelper(
     private val context: Context,

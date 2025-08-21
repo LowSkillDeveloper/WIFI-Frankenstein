@@ -1,6 +1,5 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
-import com.lsd.wififrankenstein.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -8,6 +7,7 @@ import com.google.android.material.checkbox.MaterialCheckBox
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
+import com.lsd.wififrankenstein.util.Log
 
 class MapDatabaseAdapter(
     private val databases: List<DbItem>,

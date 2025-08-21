@@ -3,15 +3,14 @@ package com.lsd.wififrankenstein.workers
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.lsd.wififrankenstein.network.NetworkClient
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
 import com.lsd.wififrankenstein.util.NotificationHelper
-import com.lsd.wififrankenstein.network.NetworkClient
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.json.JSONObject
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Locale
 
 @Serializable
 data class GeneralNotification(

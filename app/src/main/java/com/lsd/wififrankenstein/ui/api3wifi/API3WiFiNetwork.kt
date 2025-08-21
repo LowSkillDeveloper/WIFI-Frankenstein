@@ -1,8 +1,6 @@
 package com.lsd.wififrankenstein.ui.api3wifi
 
 import android.content.Context
-import com.lsd.wififrankenstein.R
-import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.util.SignatureVerifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

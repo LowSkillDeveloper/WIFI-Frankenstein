@@ -20,7 +20,6 @@ import com.google.android.material.tabs.TabLayout
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentAboutBinding
 import com.lsd.wififrankenstein.util.SignatureVerifier
-import java.util.Locale
 
 class AboutFragment : Fragment() {
 

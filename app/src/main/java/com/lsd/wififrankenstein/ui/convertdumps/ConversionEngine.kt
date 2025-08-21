@@ -7,21 +7,20 @@ import androidx.documentfile.provider.DocumentFile
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
 import java.util.regex.Pattern
 import kotlin.coroutines.coroutineContext
-import kotlin.math.min
 
 class ConversionEngine(
     private val context: Context,

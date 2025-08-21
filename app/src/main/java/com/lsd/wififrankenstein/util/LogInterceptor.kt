@@ -1,6 +1,5 @@
 package com.lsd.wififrankenstein.util
 
-import com.lsd.wififrankenstein.util.Log
 import java.lang.reflect.Method
 
 object LogInterceptor {

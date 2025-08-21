@@ -8,15 +8,17 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
-import android.os.Bundle
 import android.os.IBinder
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.ui.convertdumps.ConversionEngine
 import com.lsd.wififrankenstein.ui.convertdumps.ConversionMode
+import com.lsd.wififrankenstein.ui.convertdumps.DumpFileType
 import com.lsd.wififrankenstein.ui.convertdumps.IndexingOption
 import com.lsd.wififrankenstein.ui.convertdumps.SelectedFile
 import com.lsd.wififrankenstein.util.Log
@@ -28,9 +30,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
-import com.lsd.wififrankenstein.ui.convertdumps.ConversionEngine
-import com.lsd.wififrankenstein.ui.convertdumps.DumpFileType
-import android.content.pm.ServiceInfo
 
 class ConversionService : Service() {
 

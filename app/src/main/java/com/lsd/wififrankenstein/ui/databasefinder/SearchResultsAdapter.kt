@@ -13,7 +13,6 @@ import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
-import com.lsd.wififrankenstein.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
@@ -38,6 +37,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.WpsGeneratorActivity
 import com.lsd.wififrankenstein.databinding.ItemSearchResultBinding
+import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.QrNavigationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

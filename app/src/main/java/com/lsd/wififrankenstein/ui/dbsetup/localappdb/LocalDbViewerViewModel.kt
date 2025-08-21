@@ -1,11 +1,11 @@
 package com.lsd.wififrankenstein.ui.dbsetup.localappdb
 
 import android.app.Application
-import com.lsd.wififrankenstein.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 

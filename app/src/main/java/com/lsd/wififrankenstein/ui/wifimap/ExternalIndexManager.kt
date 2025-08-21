@@ -2,10 +2,10 @@ package com.lsd.wififrankenstein.ui.wifimap
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
-import com.lsd.wififrankenstein.util.Log
 import androidx.core.content.edit
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.osmdroid.util.BoundingBox

@@ -8,7 +8,6 @@ import android.view.View
 import android.widget.TextView
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.SignatureVerifier
-import java.util.Locale
 
 object NavHeaderHelper {
 

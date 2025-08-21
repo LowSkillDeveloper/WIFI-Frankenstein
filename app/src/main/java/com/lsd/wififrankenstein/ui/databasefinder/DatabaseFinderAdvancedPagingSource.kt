@@ -1,10 +1,10 @@
 package com.lsd.wififrankenstein.ui.databasefinder
 
 import android.content.Context
-import com.lsd.wififrankenstein.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
+import com.lsd.wififrankenstein.util.Log
 
 class DatabaseFinderAdvancedPagingSource(
     private val context: Context,

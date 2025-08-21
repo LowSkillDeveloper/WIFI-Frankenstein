@@ -4,9 +4,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Build
-import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.iwscanner.IwInterface
+import com.lsd.wififrankenstein.util.Log
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

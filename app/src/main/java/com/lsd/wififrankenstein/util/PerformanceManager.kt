@@ -3,9 +3,6 @@ package com.lsd.wififrankenstein.util
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
-import java.util.concurrent.Executors
-import java.util.concurrent.ThreadPoolExecutor
-import kotlin.math.max
 import kotlin.math.min
 
 object PerformanceManager {

@@ -1,12 +1,11 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
 import com.lsd.wififrankenstein.util.PerformanceManager
-import kotlinx.coroutines.yield
+import java.util.Collections
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
 import kotlin.math.sqrt
-import java.util.Collections
 
 class GridBasedClusterManager(
     private val maxClusterSize: Int = 1000,

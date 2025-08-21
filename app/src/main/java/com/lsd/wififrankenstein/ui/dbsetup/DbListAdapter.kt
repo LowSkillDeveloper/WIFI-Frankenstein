@@ -1,7 +1,6 @@
 package com.lsd.wififrankenstein.ui.dbsetup
 
 import android.annotation.SuppressLint
-import com.lsd.wififrankenstein.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -12,6 +11,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.ItemDbBinding
+import com.lsd.wififrankenstein.util.Log
 
 class DbListAdapter(
     private val onItemMoved: (Int, Int) -> Unit,

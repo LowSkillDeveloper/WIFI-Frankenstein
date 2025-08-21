@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.text.InputFilter
-import com.lsd.wififrankenstein.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,6 +22,7 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentPixiedustBinding
 import com.lsd.wififrankenstein.ui.iwscanner.InterfaceSpinnerAdapter
 import com.lsd.wififrankenstein.ui.iwscanner.IwInterface
+import com.lsd.wififrankenstein.util.Log
 import java.util.regex.Pattern
 
 class PixieDustFragment : Fragment() {

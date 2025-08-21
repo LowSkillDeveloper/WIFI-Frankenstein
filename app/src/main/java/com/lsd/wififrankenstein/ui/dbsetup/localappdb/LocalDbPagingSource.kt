@@ -1,8 +1,8 @@
 package com.lsd.wififrankenstein.ui.dbsetup.localappdb
 
-import com.lsd.wififrankenstein.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import com.lsd.wififrankenstein.util.Log
 
 class LocalDbPagingSource(private val dbHelper: LocalAppDbHelper) : PagingSource<Long, WifiNetwork>() {
 

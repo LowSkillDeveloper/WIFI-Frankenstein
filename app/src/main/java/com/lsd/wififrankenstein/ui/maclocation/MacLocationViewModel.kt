@@ -2,13 +2,13 @@ package com.lsd.wififrankenstein.ui.maclocation
 
 import android.app.Application
 import android.content.Context
-import com.lsd.wififrankenstein.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.models.AppleWLoc
 import com.lsd.wififrankenstein.models.WifiDevice
+import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

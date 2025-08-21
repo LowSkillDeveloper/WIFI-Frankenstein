@@ -16,7 +16,6 @@ import android.net.wifi.WifiNetworkSuggestion
 import android.net.wifi.WpsInfo
 import android.os.Build
 import android.provider.Settings
-import com.lsd.wififrankenstein.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -34,6 +33,7 @@ import com.lsd.wififrankenstein.databinding.ItemCredentialBinding
 import com.lsd.wififrankenstein.databinding.ItemWifiBinding
 import com.lsd.wififrankenstein.databinding.ItemWpaResultBinding
 import com.lsd.wififrankenstein.databinding.ItemWpsResultBinding
+import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.NetworkDetailsExtractor
 import com.lsd.wififrankenstein.util.NetworkProtocol
 import com.lsd.wififrankenstein.util.QrNavigationHelper

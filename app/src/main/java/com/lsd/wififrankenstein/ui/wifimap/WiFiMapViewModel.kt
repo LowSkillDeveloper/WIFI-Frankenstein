@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.Context
 import android.database.sqlite.SQLiteOpenHelper
 import android.graphics.Color
-import com.lsd.wififrankenstein.util.Log
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
@@ -18,22 +17,22 @@ import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
+import com.lsd.wififrankenstein.ui.dbsetup.ThreeWifiDevMapHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
+import com.lsd.wififrankenstein.util.AdvancedCache
+import com.lsd.wififrankenstein.util.Log
+import com.lsd.wififrankenstein.util.PerformanceManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.osmdroid.util.BoundingBox
 import java.util.Collections
-import com.lsd.wififrankenstein.ui.dbsetup.ThreeWifiDevMapHelper
-import com.lsd.wififrankenstein.util.AdvancedCache
-import com.lsd.wififrankenstein.util.PerformanceManager
 
 class WiFiMapViewModel(application: Application) : AndroidViewModel(application) {
     private val TAG = "WiFiMapViewModel"

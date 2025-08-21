@@ -13,14 +13,15 @@ import android.net.wifi.WifiManager
 import android.net.wifi.WpsInfo
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.method.LinkMovementMethod
-import com.lsd.wififrankenstein.util.Log
 import android.util.TypedValue
 import android.view.ContextMenu
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -57,9 +58,12 @@ import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
 import com.lsd.wififrankenstein.ui.wpagenerator.WpaAlgorithmsHelper
 import com.lsd.wififrankenstein.ui.wpsgenerator.WPSPin
+import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.MacAddressUtils
 import com.lsd.wififrankenstein.util.QrNavigationHelper
 import com.lsd.wififrankenstein.util.VendorChecker
+import com.lsd.wififrankenstein.util.WiFiConnectionHelper
+import com.lsd.wififrankenstein.util.WpsMethodSelector
 import com.lsd.wififrankenstein.util.WpsPinGenerator
 import com.lsd.wififrankenstein.util.WpsRootConnectHelper
 import com.lsd.wififrankenstein.util.calculateDistanceString
@@ -67,10 +71,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
-import android.provider.Settings
-import com.lsd.wififrankenstein.util.WiFiConnectionHelper
-import android.view.inputmethod.InputMethodManager
-import com.lsd.wififrankenstein.util.WpsMethodSelector
 
 
 class WiFiScannerFragment : Fragment() {
