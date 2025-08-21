@@ -60,6 +60,25 @@ class PixieDustHelper(
 
     suspend fun getAvailableInterfaces(): List<IwInterface> = withContext(Dispatchers.IO) {
         try {
+            if (!checkBinaryFiles()) {
+                Log.d(TAG, "Binary files not available, copying from assets")
+                callbacks.onProgressUpdate(context.getString(R.string.pixiedust_copying_binaries))
+
+                val binariesCopied = copyBinariesFromAssetsSync()
+                if (!binariesCopied) {
+                    Log.e(TAG, "Failed to copy binary files")
+                    callbacks.onProgressUpdate(context.getString(R.string.pixiedust_binary_copy_failed))
+                    return@withContext listOf(IwInterface("wlan0"))
+                }
+
+                delay(1000)
+
+                if (!checkBinaryFiles()) {
+                    Log.e(TAG, "Binary files still not available after copying")
+                    return@withContext listOf(IwInterface("wlan0"))
+                }
+            }
+
             val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
             val iwBinary = "iw$arch"
             val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./$iwBinary dev"
@@ -93,6 +112,52 @@ class PixieDustHelper(
         } catch (e: Exception) {
             Log.e(TAG, "Error getting interfaces", e)
             listOf(IwInterface("wlan0"))
+        }
+    }
+
+    private suspend fun copyBinariesFromAssetsSync(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
+            val binaries = listOf(
+                "iw$arch"
+            )
+
+            val libraries = if (arch.isEmpty()) {
+                listOf(
+                    "libnl-3.so",
+                    "libnl-genl-3.so",
+                    "libnl-route-3.so"
+                )
+            } else {
+                listOf(
+                    "libnl-3.so-32",
+                    "libnl-genl-3.so-32",
+                    "libnl-route-3.so"
+                )
+            }
+
+            binaries.forEach { fileName ->
+                if (copyAssetToInternalStorage(fileName, fileName)) {
+                    Shell.cmd("chmod 755 $binaryDir/$fileName").exec()
+                } else {
+                    return@withContext false
+                }
+            }
+
+            libraries.forEach { libName ->
+                if (copyAssetToInternalStorage(libName, libName)) {
+                    Shell.cmd("chmod 755 $binaryDir/$libName").exec()
+                }
+            }
+
+            if (arch.isNotEmpty()) {
+                createLibrarySymlinks()
+            }
+
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error copying binaries sync", e)
+            false
         }
     }
 
