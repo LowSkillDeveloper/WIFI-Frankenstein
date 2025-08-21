@@ -23,8 +23,11 @@ import com.lsd.wififrankenstein.ui.wifimap.ExternalIndexManager
 import com.lsd.wififrankenstein.util.DatabaseIndices
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -57,6 +60,12 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
     val smartLinkDatabases = smartLinkDbHelper.databases
 
     val sources = smartLinkDbHelper.sources
+
+    private val _isLoading = MutableLiveData<Boolean>()
+    val isLoading: LiveData<Boolean> = _isLoading
+
+    private var loadJob: Job? = null
+    private val loadMutex = Mutex()
 
     fun fetchSources(url: String) {
         viewModelScope.launch {
@@ -309,31 +318,45 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
     }
 
     suspend fun loadDbList() {
-        withContext(Dispatchers.IO) {
-            try {
-                val jsonString = prefs.getString("db_list", null)
-                Log.d("DbSetupViewModel", "Loaded DB list string: $jsonString")
-                if (jsonString != null) {
-                    val dbList = Json.decodeFromString<List<DbItem>>(jsonString)
-                    withContext(Dispatchers.Main) {
-                        _dbList.value = dbList
-                        migrateOldApiKeys()
-                        updateMainApi()
+        loadMutex.withLock {
+            if (_isLoading.value == true) {
+                loadJob?.join()
+                return
+            }
+
+            loadJob?.cancel()
+            loadJob = viewModelScope.launch {
+                withContext(Dispatchers.IO) {
+                    _isLoading.postValue(true)
+                    try {
+                        val jsonString = prefs.getString("db_list", null)
+                        Log.d("DbSetupViewModel", "Loaded DB list string: $jsonString")
+                        if (jsonString != null) {
+                            val dbList = Json.decodeFromString<List<DbItem>>(jsonString)
+                            withContext(Dispatchers.Main) {
+                                _dbList.value = dbList
+                                migrateOldApiKeys()
+                                updateMainApi()
+                            }
+                            Log.d("DbSetupViewModel", "Loaded DB list: $dbList")
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                _dbList.value = emptyList()
+                            }
+                            Log.d("DbSetupViewModel", "No saved DB list found")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("DbSetupViewModel", "Error loading DB list: ${e.message}")
+                        e.printStackTrace()
+                        withContext(Dispatchers.Main) {
+                            _dbList.value = emptyList()
+                        }
+                    } finally {
+                        _isLoading.postValue(false)
                     }
-                    Log.d("DbSetupViewModel", "Loaded DB list: $dbList")
-                } else {
-                    withContext(Dispatchers.Main) {
-                        _dbList.value = emptyList()
-                    }
-                    Log.d("DbSetupViewModel", "No saved DB list found")
-                }
-            } catch (e: Exception) {
-                Log.e("DbSetupViewModel", "Error loading DB list: ${e.message}")
-                e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    _dbList.value = emptyList()
                 }
             }
+            loadJob?.join()
         }
     }
 

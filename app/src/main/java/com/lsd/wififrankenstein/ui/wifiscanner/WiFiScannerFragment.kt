@@ -122,10 +122,6 @@ class WiFiScannerFragment : Fragment() {
     ): View {
         _binding = FragmentWifiScannerBinding.inflate(inflater, container, false)
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            dbSetupViewModel.loadDbList()
-        }
-
         initUI()
         observeViewModel()
         observeSettingsViewModel()
@@ -159,10 +155,19 @@ class WiFiScannerFragment : Fragment() {
             }
         }
 
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+            withContext(Dispatchers.IO) {
+                dbSetupViewModel.loadDbList()
+            }
+        }
+
         if (shouldScanOnStartup() && !hasScanned) {
             startWifiScan()
         }
-        if (shouldCheckUpdates()) {
+        val prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val checkUpdates = prefs.getBoolean("check_updates_on_open", true)
+
+        if (checkUpdates) {
             setupUpdateBanner()
         }
     }
@@ -681,6 +686,16 @@ class WiFiScannerFragment : Fragment() {
             showThrottleWarningIfNeeded(isEnabled)
         }
 
+        viewModel.searchByMac.observe(viewLifecycleOwner) { searchByMac ->
+            isSearchByMac = searchByMac
+            val currentCheckedId = binding.searchTypeToggle.checkedButtonId
+            val expectedId = if (searchByMac) R.id.button_search_mac else R.id.button_search_ssid
+
+            if (currentCheckedId != expectedId) {
+                binding.searchTypeToggle.check(expectedId)
+            }
+        }
+
         viewModel.wifiEnabled.observe(viewLifecycleOwner) { isEnabled ->
             if (!isEnabled) {
                 showWifiDisabledDialog()
@@ -724,6 +739,14 @@ class WiFiScannerFragment : Fragment() {
 
         viewModel.isChecking.observe(viewLifecycleOwner) { isChecking ->
             if (isChecking) {
+                showProgressBar()
+            } else {
+                hideProgressBar()
+            }
+        }
+
+        dbSetupViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            if (isLoading == true) {
                 showProgressBar()
             } else {
                 hideProgressBar()
@@ -870,74 +893,65 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun setupUpdateBanner() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                Log.d("WiFiScannerFragment", "Starting update check...")
                 val updateChecker = UpdateChecker(requireContext())
                 updateChecker.checkForUpdates().collect { status ->
                     if (!isAdded) return@collect
 
-                    Log.d("WiFiScannerFragment", "Update status received:")
-                    Log.d("WiFiScannerFragment", "- App update: ${status.appUpdate}")
-                    Log.d("WiFiScannerFragment", "- File updates: ${status.fileUpdates.size}")
-                    Log.d("WiFiScannerFragment", "- DB updates: ${status.dbUpdates.size}")
+                    withContext(Dispatchers.Main) {
+                        val hasAppUpdate = status.appUpdate?.let {
+                            it.currentVersion != it.newVersion
+                        } ?: false
+                        val hasSystemUpdates = status.fileUpdates.any { it.needsUpdate }
+                        val hasDbUpdates = status.dbUpdates.any { it.needsUpdate }
 
-                    val hasAppUpdate = status.appUpdate != null &&
-                            status.appUpdate.currentVersion != status.appUpdate.newVersion
-                    val hasSystemUpdates = status.fileUpdates.any { it.needsUpdate }
-                    val hasDbUpdates = status.dbUpdates.any { it.needsUpdate }
-
-                    Log.d("WiFiScannerFragment", "Processed status:")
-                    Log.d("WiFiScannerFragment", "- hasAppUpdate: $hasAppUpdate")
-                    Log.d("WiFiScannerFragment", "- hasSystemUpdates: $hasSystemUpdates")
-                    Log.d("WiFiScannerFragment", "- hasDbUpdates: $hasDbUpdates")
-
-                    if (!hasAppUpdate && !hasSystemUpdates && !hasDbUpdates) {
-                        Log.d("WiFiScannerFragment", "No updates available, hiding banner")
-                        binding.updateBanner.root.visibility = View.GONE
-                        return@collect
-                    }
-
-                    Log.d("WiFiScannerFragment", "Updates available, showing banner")
-                    binding.updateBanner.root.visibility = View.VISIBLE
-
-                    val message = when {
-                        hasAppUpdate && hasSystemUpdates && hasDbUpdates ->
-                            getString(R.string.update_banner_all_updates)
-                        hasAppUpdate && hasSystemUpdates ->
-                            getString(R.string.update_banner_multiple)
-                        hasAppUpdate && hasDbUpdates -> {
-                            val newVersion = status.appUpdate?.newVersion ?: ""
-                            getString(R.string.update_banner_app_and_smartlink, newVersion)
+                        if (!hasAppUpdate && !hasSystemUpdates && !hasDbUpdates) {
+                            binding.updateBanner.root.visibility = View.GONE
+                            return@withContext
                         }
-                        hasSystemUpdates && hasDbUpdates ->
-                            getString(R.string.update_banner_system_and_smartlink)
-                        hasAppUpdate -> {
-                            val newVersion = status.appUpdate?.newVersion ?: ""
-                            getString(R.string.update_banner_app, newVersion)
+
+                        binding.updateBanner.root.visibility = View.VISIBLE
+
+                        val message = when {
+                            hasAppUpdate && hasSystemUpdates && hasDbUpdates ->
+                                getString(R.string.update_banner_all_updates)
+                            hasAppUpdate && hasSystemUpdates ->
+                                getString(R.string.update_banner_multiple)
+                            hasAppUpdate && hasDbUpdates -> {
+                                val newVersion = status.appUpdate?.newVersion ?: ""
+                                getString(R.string.update_banner_app_and_smartlink, newVersion)
+                            }
+                            hasSystemUpdates && hasDbUpdates ->
+                                getString(R.string.update_banner_system_and_smartlink)
+                            hasAppUpdate -> {
+                                val newVersion = status.appUpdate?.newVersion ?: ""
+                                getString(R.string.update_banner_app, newVersion)
+                            }
+                            hasSystemUpdates ->
+                                getString(R.string.update_banner_system)
+                            hasDbUpdates ->
+                                getString(R.string.update_banner_smartlink_db)
+                            else ->
+                                getString(R.string.update_banner_multiple)
                         }
-                        hasSystemUpdates ->
-                            getString(R.string.update_banner_system)
-                        hasDbUpdates ->
-                            getString(R.string.update_banner_smartlink_db)
-                        else ->
-                            getString(R.string.update_banner_multiple)
-                    }
 
-                    Log.d("WiFiScannerFragment", "Banner message: $message")
-                    binding.updateBanner.updateMessage.text = message
+                        binding.updateBanner.updateMessage.text = message
 
-                    binding.updateBanner.buttonUpdate.setOnClickListener {
-                        findNavController().navigate(R.id.nav_updates)
-                    }
+                        binding.updateBanner.buttonUpdate.setOnClickListener {
+                            findNavController().navigate(R.id.nav_updates)
+                        }
 
-                    binding.updateBanner.buttonClose.setOnClickListener {
-                        binding.updateBanner.root.visibility = View.GONE
+                        binding.updateBanner.buttonClose.setOnClickListener {
+                            binding.updateBanner.root.visibility = View.GONE
+                        }
                     }
                 }
             } catch (e: Exception) {
                 Log.e("WiFiScannerFragment", "Error checking for updates", e)
-                binding.updateBanner.root.visibility = View.GONE
+                withContext(Dispatchers.Main) {
+                    binding.updateBanner.root.visibility = View.GONE
+                }
             }
         }
     }
@@ -1028,7 +1042,13 @@ class WiFiScannerFragment : Fragment() {
 
     private fun hideProgressBar() {
         if (_binding == null) return
-        binding.progressBarDatabaseCheck.stopAnimation()
+
+        val isDbLoading = dbSetupViewModel.isLoading.value ?: false
+        val isViewModelChecking = viewModel.isChecking.value ?: false
+
+        if (!isDbLoading && !isViewModelChecking) {
+            binding.progressBarDatabaseCheck.stopAnimation()
+        }
     }
 
     private fun showToastWithDuration(message: String, durationMs: Long) {
@@ -1708,17 +1728,26 @@ class WiFiScannerFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+
+        val isChecking = viewModel.isChecking.value ?: false
+        if (!isChecking) {
+            hideProgressBar()
+        }
+
         viewModel.resetScanningState()
         if (hasScanned) {
-            viewModel.refreshWifiList()
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                viewModel.refreshWifiList()
+            }
         }
 
         viewModel.searchByMac.observe(viewLifecycleOwner) { searchByMac ->
             isSearchByMac = searchByMac
-            if (searchByMac) {
-                binding.searchTypeToggle.check(R.id.button_search_mac)
-            } else {
-                binding.searchTypeToggle.check(R.id.button_search_ssid)
+            val currentCheckedId = binding.searchTypeToggle.checkedButtonId
+            val expectedId = if (searchByMac) R.id.button_search_mac else R.id.button_search_ssid
+
+            if (currentCheckedId != expectedId) {
+                binding.searchTypeToggle.check(expectedId)
             }
         }
     }

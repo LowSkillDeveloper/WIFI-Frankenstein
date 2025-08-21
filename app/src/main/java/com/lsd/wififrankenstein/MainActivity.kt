@@ -25,6 +25,7 @@ import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
 import com.lsd.wififrankenstein.util.Log
 import com.topjohnwu.superuser.Shell
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.osmdroid.library.BuildConfig
@@ -84,7 +85,9 @@ class MainActivity : AppCompatActivity() {
             .getBoolean("check_updates_on_open", true)
 
         if (shouldCheckUpdates) {
-            checkForUpdates()
+            lifecycleScope.launch(Dispatchers.IO) {
+                checkForUpdates()
+            }
         }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
