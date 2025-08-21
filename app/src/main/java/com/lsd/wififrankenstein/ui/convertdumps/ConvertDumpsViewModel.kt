@@ -75,6 +75,13 @@ class ConvertDumpsViewModel : ViewModel() {
     private val _canStartConversion = MutableLiveData(false)
     val canStartConversion: LiveData<Boolean> = _canStartConversion
 
+    private val _optimizationEnabled = MutableLiveData(true)
+    val optimizationEnabled: LiveData<Boolean> = _optimizationEnabled
+
+    fun setOptimizationEnabled(enabled: Boolean) {
+        _optimizationEnabled.value = enabled
+    }
+
     fun setConversionType(type: ConversionType) {
         _conversionType.value = type
         clearAllFiles()

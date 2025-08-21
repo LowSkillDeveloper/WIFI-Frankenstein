@@ -28,6 +28,7 @@ class ConversionEngine(
     private val mode: ConversionMode,
     private val indexing: IndexingOption,
     private val outputLocation: Uri? = null,
+    private val optimizationEnabled: Boolean = true,
     private val progressCallback: (String, Int) -> Unit
 ) {
 
@@ -94,7 +95,13 @@ class ConversionEngine(
                 createIndexes(db)
 
                 Log.d("ConversionEngine", "Optimizing database...")
-                optimizeDatabase(db)
+                if (optimizationEnabled) {
+                    Log.d("ConversionEngine", "Optimizing database...")
+                    optimizeDatabase(db)
+                } else {
+                    progressCallback(context.getString(R.string.skipping_optimization), 92)
+                    yield()
+                }
 
                 progressCallback(context.getString(R.string.completing_conversion), 100)
                 delay(100)
@@ -1058,16 +1065,6 @@ class ConversionEngine(
             progressCallback(context.getString(R.string.optimizing_database_queries), 95)
             yield()
             db.execSQL("PRAGMA optimize")
-
-            if (mode == ConversionMode.PERFORMANCE) {
-                try {
-                    progressCallback(context.getString(R.string.compacting_database), 97)
-                    yield()
-                    db.execSQL("PRAGMA incremental_vacuum(1000)")
-                } catch (e: Exception) {
-                    Log.w("ConversionEngine", "Incremental vacuum failed, skipping: ${e.message}")
-                }
-            }
 
             progressCallback(context.getString(R.string.finalizing_database), 98)
             yield()

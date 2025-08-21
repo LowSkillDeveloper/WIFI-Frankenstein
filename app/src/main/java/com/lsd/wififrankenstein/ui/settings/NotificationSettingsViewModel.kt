@@ -26,6 +26,13 @@ class NotificationSettingsViewModel(application: Application) : AndroidViewModel
     private val _generalNotificationsEnabled = MutableLiveData<Boolean>()
     val generalNotificationsEnabled: LiveData<Boolean> = _generalNotificationsEnabled
 
+    private val _optimizationEnabled = MutableLiveData(true)
+    val optimizationEnabled: LiveData<Boolean> = _optimizationEnabled
+
+    fun setOptimizationEnabled(enabled: Boolean) {
+        _optimizationEnabled.value = enabled
+    }
+
     init {
         _appUpdatesEnabled.value = prefs.getBoolean("app_updates", true)
         _databaseUpdatesEnabled.value = prefs.getBoolean("database_updates", true)

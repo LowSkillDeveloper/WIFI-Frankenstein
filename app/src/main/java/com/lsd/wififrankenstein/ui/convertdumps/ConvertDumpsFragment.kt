@@ -261,6 +261,10 @@ class ConvertDumpsFragment : Fragment() {
             type?.let { viewModel.setConversionType(it) }
         }
 
+        binding.switchOptimization.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setOptimizationEnabled(isChecked)
+        }
+
         binding.buttonSelectTxtFiles.setOnClickListener {
             openMultipleFilePicker()
         }
@@ -304,6 +308,7 @@ class ConvertDumpsFragment : Fragment() {
         binding.buttonSelectOutputLocation.isEnabled = enabled
         binding.radioGroupMode.isEnabled = enabled
         binding.radioGroupIndexing.isEnabled = enabled
+        binding.switchOptimization.isEnabled = enabled
     }
 
     private fun openMultipleFilePicker() {
@@ -399,7 +404,8 @@ class ConvertDumpsFragment : Fragment() {
             files,
             mode,
             indexing,
-            viewModel.outputLocation.value
+            viewModel.outputLocation.value,
+            viewModel.optimizationEnabled.value ?: true
         )
         Log.d("ConvertDumpsFragment", "ConversionService.startConversion called")
     }

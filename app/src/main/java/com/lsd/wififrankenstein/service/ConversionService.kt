@@ -67,6 +67,8 @@ class ConversionService : Service() {
         const val BROADCAST_CONVERSION_STATUS = "conversion_status"
         const val EXTRA_IS_CONVERTING = "is_converting"
 
+        const val EXTRA_OPTIMIZATION = "optimization"
+
         fun checkStatus(context: Context) {
             val intent = Intent(context, ConversionService::class.java).apply {
                 action = ACTION_CHECK_STATUS
@@ -79,7 +81,8 @@ class ConversionService : Service() {
             files: List<SelectedFile>,
             mode: ConversionMode,
             indexing: IndexingOption,
-            outputLocation: Uri? = null
+            outputLocation: Uri? = null,
+            optimizationEnabled: Boolean = true
         ) {
             Log.d(TAG, "startConversion called with ${files.size} files")
 
@@ -94,6 +97,7 @@ class ConversionService : Service() {
                 putExtra(EXTRA_FILES_JSON, filesJson)
                 putExtra(EXTRA_MODE, mode.name)
                 putExtra(EXTRA_INDEXING, indexing.name)
+                putExtra(EXTRA_OPTIMIZATION, optimizationEnabled)
                 if (outputLocation != null) {
                     putExtra(EXTRA_OUTPUT_LOCATION, outputLocation.toString())
                 }
@@ -113,10 +117,6 @@ class ConversionService : Service() {
         Log.d(TAG, "onStartCommand called with action: ${intent?.action}")
 
         when (intent?.action) {
-            ACTION_CHECK_STATUS -> {
-                broadcastStatus()
-            }
-
             ACTION_START_CONVERSION -> {
                 try {
                     val filesJson = intent.getStringExtra(EXTRA_FILES_JSON)
@@ -132,12 +132,13 @@ class ConversionService : Service() {
 
                     val mode = ConversionMode.valueOf(intent.getStringExtra(EXTRA_MODE) ?: ConversionMode.ECONOMY.name)
                     val indexing = IndexingOption.valueOf(intent.getStringExtra(EXTRA_INDEXING) ?: IndexingOption.BASIC.name)
+                    val optimizationEnabled = intent.getBooleanExtra(EXTRA_OPTIMIZATION, true)
 
                     val outputLocationString = intent.getStringExtra(EXTRA_OUTPUT_LOCATION)
                     val outputLocation = if (outputLocationString != null) Uri.parse(outputLocationString) else null
 
-                    Log.d(TAG, "Starting conversion: mode=$mode, indexing=$indexing, outputLocation=$outputLocation")
-                    startConversion(files, mode, indexing, outputLocation)
+                    Log.d(TAG, "Starting conversion: mode=$mode, indexing=$indexing, optimization=$optimizationEnabled, outputLocation=$outputLocation")
+                    startConversion(files, mode, indexing, outputLocation, optimizationEnabled)
 
                 } catch (e: Exception) {
                     Log.e(TAG, "Error starting conversion", e)
@@ -148,6 +149,9 @@ class ConversionService : Service() {
             ACTION_CANCEL_CONVERSION -> {
                 Log.d(TAG, "Cancelling conversion")
                 cancelAllConversions()
+            }
+            ACTION_CHECK_STATUS -> {
+                broadcastStatus()
             }
         }
         return START_STICKY
@@ -160,8 +164,8 @@ class ConversionService : Service() {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
-    private fun startConversion(files: List<SelectedFile>, mode: ConversionMode, indexing: IndexingOption, outputLocation: Uri?) {
-        Log.d(TAG, "Starting conversion with ${files.size} files, mode: $mode, indexing: $indexing")
+    private fun startConversion(files: List<SelectedFile>, mode: ConversionMode, indexing: IndexingOption, outputLocation: Uri?, optimizationEnabled: Boolean) {
+        Log.d(TAG, "Starting conversion with ${files.size} files, mode: $mode, indexing: $indexing, optimization: $optimizationEnabled")
 
         val job = serviceScope.launch {
             try {
@@ -172,7 +176,8 @@ class ConversionService : Service() {
                     context = this@ConversionService,
                     mode = mode,
                     indexing = indexing,
-                    outputLocation = outputLocation
+                    outputLocation = outputLocation,
+                    optimizationEnabled = optimizationEnabled
                 ) { fileName: String, progress: Int ->
                     Log.d(TAG, "Progress update: $fileName - $progress%")
                     broadcastProgress(fileName, progress)

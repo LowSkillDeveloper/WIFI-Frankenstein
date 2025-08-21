@@ -1823,6 +1823,11 @@
     <string name="skipping_index_creation">Skipping index creation…</string>
     <string name="conversion_progress_note">During database optimization and index creation, the percentage may not change frequently, but the conversion continues to run!</string>
 
+    <string name="database_optimization">Database optimization</string>
+    <string name="enable_optimization">Enable database optimization</string>
+    <string name="optimization_warning">If conversion takes too long, try disabling database optimization</string>
+    <string name="skipping_optimization">Skipping database optimization…</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
