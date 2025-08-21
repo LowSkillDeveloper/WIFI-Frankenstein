@@ -46,6 +46,7 @@ class ConversionEngine(
         Log.d("ConversionEngine", "Starting conversion of ${files.size} files")
 
         val databaseType = getDatabaseType(files)
+        progressCallback(context.getString(R.string.detecting_file_types), 2)
         val fileName = "${databaseType}_${System.currentTimeMillis()}.db"
         val tempFile = File(context.cacheDir, fileName)
 
@@ -71,9 +72,12 @@ class ConversionEngine(
                 Log.w("ConversionEngine", "Some PRAGMA commands not supported: ${e.message}")
             }
 
+            progressCallback(context.getString(R.string.configuring_performance), 3)
+
             setupDatabase(db)
 
             Log.d("ConversionEngine", "Processing ${files.size} files...")
+            progressCallback(context.getString(R.string.preparing_file_processing), 5)
 
             if (mode == ConversionMode.PERFORMANCE && files.size > 1) {
                 convertFilesParallel(db, files)
@@ -82,7 +86,9 @@ class ConversionEngine(
             }
 
             if (coroutineContext.isActive) {
+                progressCallback(context.getString(R.string.preparing_database_optimization), 86)
                 Log.d("ConversionEngine", "Creating indexes...")
+                progressCallback(context.getString(R.string.creating_database_indexes), 88)
                 createIndexes(db)
 
                 Log.d("ConversionEngine", "Optimizing database...")
@@ -130,6 +136,7 @@ class ConversionEngine(
     }
 
     private suspend fun convertFilesParallel(db: SQLiteDatabase, files: List<SelectedFile>) {
+        progressCallback(context.getString(R.string.preparing_parallel_processing), 6)
         val progressPerFile = 85 / files.size
         val cpuCount = Runtime.getRuntime().availableProcessors()
         val maxConcurrency = minOf(cpuCount, files.size, 4)
@@ -217,6 +224,7 @@ class ConversionEngine(
     }
 
     private fun copyToSelectedLocation(sourceFile: File, directoryUri: Uri, fileName: String): File {
+        progressCallback(context.getString(R.string.copying_to_destination), 99)
         return try {
             val documentsResolver = context.contentResolver
             val documentFile = DocumentFile.fromTreeUri(context, directoryUri)
@@ -283,6 +291,7 @@ class ConversionEngine(
         }
 
         Log.d("ConversionEngine", "Input stream opened successfully for $fileName")
+        progressCallback(context.getString(R.string.opening_file, fileName), 0)
 
         val bufferSize = if (mode == ConversionMode.PERFORMANCE) BUFFER_SIZE_PERFORMANCE else BUFFER_SIZE_ECONOMY
         val reader = BufferedReader(InputStreamReader(inputStream), bufferSize)
@@ -448,6 +457,7 @@ class ConversionEngine(
 
             if (totalBytes <= 0L) {
                 totalBytes = 1024L * 1024L * 1024L
+                progressCallback(context.getString(R.string.calculating_file_size), 0)
             }
         } catch (e: Exception) {
             totalBytes = 1024L * 1024L * 1024L
@@ -894,6 +904,7 @@ class ConversionEngine(
     }
 
     private fun setupDatabase(db: SQLiteDatabase) {
+        progressCallback(context.getString(R.string.creating_database_tables), 4)
         try {
             db.execSQL("PRAGMA busy_timeout=$DB_TIMEOUT")
             db.execSQL("PRAGMA journal_mode=WAL")
@@ -997,20 +1008,27 @@ class ConversionEngine(
             IndexingOption.NONE -> emptyList()
         }
 
-        if (indexes.isEmpty()) return
+        Log.d("ConversionEngine", "Starting index creation with ${indexes.size} indexes")
 
+        if (indexes.isEmpty()) {
+            Log.d("ConversionEngine", "No indexes to create")
+            return
+        }
+
+        Log.d("ConversionEngine", "Creating ${indexes.size} indexes")
         val progressStep = 5.0 / indexes.size
-        var currentProgress = 90.0
+        var currentProgress = 88.0
 
         for ((index, sql) in indexes.withIndex()) {
             if (!coroutineContext.isActive) break
 
             try {
                 val tableName = extractTableNameFromIndex(sql)
-                progressCallback(context.getString(R.string.creating_index_for_table, index + 1, indexes.size, tableName), (currentProgress + (index * progressStep)).toInt())
+                progressCallback(context.getString(R.string.creating_index_for_table, index + 1, indexes.size, tableName), currentProgress.toInt())
                 yield()
                 db.execSQL(sql)
                 currentProgress += progressStep
+                Log.d("ConversionEngine", "Created index ${index + 1}/${indexes.size} for table $tableName")
             } catch (e: Exception) {
                 Log.w("ConversionEngine", "Failed to create index: $sql", e)
             }

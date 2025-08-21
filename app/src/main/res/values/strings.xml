@@ -1805,6 +1805,19 @@
     <string name="setting_up_database">Setting up database…</string>
     <string name="completing_conversion">Completing conversion…</string>
     <string name="saving_database_file">Saving database file…</string>
+    <string name="detecting_file_types">Detecting file types…</string>
+    <string name="configuring_performance">Configuring performance…</string>
+    <string name="creating_database_tables">Creating database tables…</string>
+    <string name="preparing_file_processing">Preparing file processing…</string>
+    <string name="preparing_parallel_processing">Preparing parallel processing…</string>
+    <string name="opening_file">Opening file %1$s…</string>
+    <string name="calculating_file_size">Calculating file size…</string>
+    <string name="reading_file_content">Reading file content…</string>
+    <string name="parsing_sql_data">Parsing SQL data…</string>
+    <string name="inserting_batch_data">Inserting data (batch %1$d)…</string>
+    <string name="copying_to_destination">Copying to destination…</string>
+
+
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

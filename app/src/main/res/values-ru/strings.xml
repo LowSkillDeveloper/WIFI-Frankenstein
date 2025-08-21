@@ -1638,6 +1638,17 @@
     <string name="setting_up_database">Настройка базы данных…</string>
     <string name="completing_conversion">Завершение конвертации…</string>
     <string name="saving_database_file">Сохранение файла базы данных…</string>
+    <string name="detecting_file_types">Определение типов файлов…</string>
+    <string name="configuring_performance">Настройка производительности…</string>
+    <string name="creating_database_tables">Создание таблиц базы данных…</string>
+    <string name="preparing_file_processing">Подготовка к обработке файлов…</string>
+    <string name="preparing_parallel_processing">Подготовка параллельной обработки…</string>
+    <string name="opening_file">Открытие файла %1$s…</string>
+    <string name="calculating_file_size">Расчет размера файла…</string>
+    <string name="reading_file_content">Чтение содержимого файла…</string>
+    <string name="parsing_sql_data">Парсинг SQL данных…</string>
+    <string name="inserting_batch_data">Вставка данных (батч %1$d)…</string>
+    <string name="copying_to_destination">Копирование в назначенное место…</string>
 
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
