@@ -80,7 +80,7 @@ class WiFiScannerFragment : Fragment() {
 
     private lateinit var notificationService: NotificationService
 
-    private lateinit var wpaAlgorithmsHelper: WpaAlgorithmsHelper
+    private var wpaAlgorithmsHelper: WpaAlgorithmsHelper? = null
     private lateinit var wpsPinGenerator: WpsPinGenerator
 
     private lateinit var wifiAdapter: WifiAdapter
@@ -143,7 +143,16 @@ class WiFiScannerFragment : Fragment() {
         notificationService = NotificationService(requireContext())
         checkForNotifications()
 
-        wpaAlgorithmsHelper = WpaAlgorithmsHelper(requireContext())
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                wpaAlgorithmsHelper = WpaAlgorithmsHelper(requireContext())
+            } catch (e: OutOfMemoryError) {
+                Log.e("WiFiScannerFragment", "OutOfMemoryError initializing WpaAlgorithmsHelper", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), getString(R.string.error_insufficient_memory), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
         wpsPinGenerator = WpsPinGenerator()
 
         binding.searchTypeToggle.apply {
@@ -173,6 +182,11 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun generateWpaAlgorithms() {
+        val helper = wpaAlgorithmsHelper
+        if (helper == null) {
+            Toast.makeText(requireContext(), getString(R.string.error_algorithms_not_loaded), Toast.LENGTH_SHORT).show()
+            return
+        }
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val networks = wifiAdapter.getWifiList()
@@ -181,7 +195,7 @@ class WiFiScannerFragment : Fragment() {
 
                 networks.forEach { network ->
                     val results = withContext(Dispatchers.IO) {
-                        wpaAlgorithmsHelper.generateKeys(network.SSID, network.BSSID)
+                        wpaAlgorithmsHelper?.generateKeys(network.SSID, network.BSSID) ?: emptyList()
                     }
 
                     if (results.isNotEmpty()) {

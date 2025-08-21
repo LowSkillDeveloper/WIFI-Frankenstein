@@ -3,6 +3,7 @@ package com.lsd.wififrankenstein.ui.wpagenerator
 import android.content.Context
 import android.util.Base64
 import com.lsd.wififrankenstein.ui.wpagenerator.WpaResult.Companion.LIKELY_SUPPORTED
+import com.lsd.wififrankenstein.util.Log
 import java.io.File
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -80,6 +81,12 @@ class WpaAlgorithmsHelper(private val context: Context) {
                 ZipInputStream(input).use { zip ->
                     var entry = zip.nextEntry
                     while (entry != null) {
+                        if (entry.size > 10 * 1024 * 1024) {
+                            Log.w("WpaAlgorithmsHelper", "Skipping large magic file: ${entry.name} (${entry.size} bytes)")
+                            entry = zip.nextEntry
+                            continue
+                        }
+
                         val content = zip.readBytes()
                         when (entry.name) {
                             "alice.txt" -> loadedAlice = parseAliceMagicInfo(content)
@@ -95,31 +102,55 @@ class WpaAlgorithmsHelper(private val context: Context) {
             }
 
             val thomsonDict = mutableMapOf<String, List<String>>()
-            context.assets.open("webdic.zip").use { input ->
-                ZipInputStream(input).use { zip ->
-                    var entry = zip.nextEntry
-                    while (entry != null) {
-                        if (entry.name.endsWith(".txt")) {
-                            val content = zip.readBytes()
-                            parseDictionary(content, thomsonDict)
+            try {
+                context.assets.open("webdic.zip").use { input ->
+                    ZipInputStream(input).use { zip ->
+                        var entry = zip.nextEntry
+                        var processedFiles = 0
+                        val maxFiles = 5
+
+                        while (entry != null && processedFiles < maxFiles) {
+                            if (entry.name.endsWith(".txt")) {
+                                if (entry.size > 50 * 1024 * 1024) {
+                                    Log.w("WpaAlgorithmsHelper", "Skipping large dictionary: ${entry.name} (${entry.size} bytes)")
+                                    entry = zip.nextEntry
+                                    continue
+                                }
+
+                                val content = zip.readBytes()
+                                parseDictionary(content, thomsonDict)
+                                processedFiles++
+
+                                if (processedFiles % 2 == 0) {
+                                    System.gc()
+                                }
+                            }
+                            entry = zip.nextEntry
                         }
-                        entry = zip.nextEntry
                     }
                 }
+            } catch (e: OutOfMemoryError) {
+                Log.e("WpaAlgorithmsHelper", "OutOfMemoryError loading webdic", e)
+                System.gc()
             }
 
             try {
                 val routerKeygenFile = File(context.filesDir, "RouterKeygen.dic")
-                if (routerKeygenFile.exists()) {
+                if (routerKeygenFile.exists() && routerKeygenFile.length() < 50 * 1024 * 1024) {
                     parseDictionary(routerKeygenFile.readBytes(), thomsonDict)
                 }
             } catch (e: Exception) {
+                Log.e("WpaAlgorithmsHelper", "Error loading RouterKeygen.dic", e)
             }
 
             if (thomsonDict.isNotEmpty()) {
                 loadedThomson = thomsonDict
             }
+        } catch (e: OutOfMemoryError) {
+            Log.e("WpaAlgorithmsHelper", "OutOfMemoryError in loadResources", e)
+            System.gc()
         } catch (e: Exception) {
+            Log.e("WpaAlgorithmsHelper", "Error in loadResources", e)
         }
     }
 
@@ -196,14 +227,33 @@ class WpaAlgorithmsHelper(private val context: Context) {
     }
 
     private fun parseDictionary(content: ByteArray, dict: MutableMap<String, List<String>>) {
-        content.toString(Charsets.UTF_8).lines().forEach {
-            val parts = it.trim().split(":")
-            if (parts.size == 2) {
-                val keys = parts[1].split(",").filter { key -> key.trim().isNotBlank() }
-                if (keys.isNotEmpty()) {
-                    dict[parts[0].uppercase().trim()] = keys.map { it.trim() }
+        try {
+            if (content.size > 50 * 1024 * 1024) { // 50MB лимит
+                Log.w("WpaAlgorithmsHelper", "Dictionary file too large: ${content.size} bytes, skipping")
+                return
+            }
+
+            content.inputStream().bufferedReader(Charsets.UTF_8).useLines { lines ->
+                lines.forEach { line ->
+                    val trimmedLine = line.trim()
+                    if (trimmedLine.isNotEmpty()) {
+                        val parts = trimmedLine.split(":", limit = 2)
+                        if (parts.size == 2) {
+                            val keys = parts[1].split(",").mapNotNull { key ->
+                                key.trim().takeIf { it.isNotBlank() }
+                            }
+                            if (keys.isNotEmpty()) {
+                                dict[parts[0].uppercase().trim()] = keys
+                            }
+                        }
+                    }
                 }
             }
+        } catch (e: OutOfMemoryError) {
+            Log.e("WpaAlgorithmsHelper", "OutOfMemoryError parsing dictionary", e)
+            System.gc()
+        } catch (e: Exception) {
+            Log.e("WpaAlgorithmsHelper", "Error parsing dictionary", e)
         }
     }
 
