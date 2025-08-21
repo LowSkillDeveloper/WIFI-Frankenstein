@@ -1,3 +1,25 @@
+#1.2
+Added local SQL to SQLite converter
+Added IP range search in local databases
+Added more GeoMAC API options
+Added advanced search mode
+Added 3WiFi login support
+Added RouterScan upload to 3WiFi servers
+Added raw 3WiFi requests display
+Added 3WiFi.dev online map support
+Added throttle warning system
+Added custom mapping in SmartLinkDB
+Improved overall app performance
+Fixed memory leaks
+Fixed WPS connection issues
+Fixed map display problems
+Fixed Pixiedust attack
+Fixed component updates
+Fixed compatibility with old Android
+Updated to latest Kotlin
+Updated all libraries
+Minor bug fixes and improvements
+
 #1.1
 Migrated all WPS algorithms to Kotlin
 Added RouterKeygen generators
