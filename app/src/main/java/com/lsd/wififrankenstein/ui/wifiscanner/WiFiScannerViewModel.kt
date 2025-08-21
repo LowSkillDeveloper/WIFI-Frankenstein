@@ -102,7 +102,10 @@ class WiFiScannerViewModel(
     private var throttleWindowStartTime = 0L
     private val MAX_SCANS_PER_WINDOW = 4
     private val THROTTLE_WINDOW_DURATION = 120000L
-    private val BASIC_THROTTLE_TIME = 10000L
+
+    private val THROTTLE_ENABLED_TIME = 10000L
+    private val THROTTLE_DISABLED_TIME = 2000L
+
     private fun getScanThrottleTime(): Long {
         return if (wifiManagerWrapper.isScanThrottleEnabled()) {
             15000L
@@ -121,12 +124,14 @@ class WiFiScannerViewModel(
     }
 
     private fun getRemainingThrottleTime(currentTime: Long): Long {
+        val throttleTime = if (wifiManagerWrapper.isScanThrottleEnabled()) THROTTLE_ENABLED_TIME else THROTTLE_DISABLED_TIME
+
         if (!wifiManagerWrapper.isScanThrottleEnabled()) {
-            return maxOf(0, BASIC_THROTTLE_TIME - (currentTime - lastScanTime))
+            return maxOf(0, throttleTime - (currentTime - lastScanTime))
         }
 
         if (throttleWindowStartTime == 0L) {
-            return maxOf(0, BASIC_THROTTLE_TIME - (currentTime - lastScanTime))
+            return maxOf(0, throttleTime - (currentTime - lastScanTime))
         }
 
         if (scanCount >= MAX_SCANS_PER_WINDOW) {
@@ -134,23 +139,25 @@ class WiFiScannerViewModel(
             return maxOf(0, timeUntilWindowReset)
         }
 
-        return maxOf(0, BASIC_THROTTLE_TIME - (currentTime - lastScanTime))
+        return maxOf(0, throttleTime - (currentTime - lastScanTime))
     }
 
     private fun canScanNow(currentTime: Long): Boolean {
+        val throttleTime = if (wifiManagerWrapper.isScanThrottleEnabled()) THROTTLE_ENABLED_TIME else THROTTLE_DISABLED_TIME
+
         if (!wifiManagerWrapper.isScanThrottleEnabled()) {
-            return currentTime - lastScanTime >= BASIC_THROTTLE_TIME
+            return currentTime - lastScanTime >= throttleTime
         }
 
         if (throttleWindowStartTime == 0L || currentTime - throttleWindowStartTime > THROTTLE_WINDOW_DURATION) {
-            return currentTime - lastScanTime >= BASIC_THROTTLE_TIME
+            return currentTime - lastScanTime >= throttleTime
         }
 
         if (scanCount >= MAX_SCANS_PER_WINDOW) {
             return false
         }
 
-        return currentTime - lastScanTime >= BASIC_THROTTLE_TIME
+        return currentTime - lastScanTime >= throttleTime
     }
 
     init {
