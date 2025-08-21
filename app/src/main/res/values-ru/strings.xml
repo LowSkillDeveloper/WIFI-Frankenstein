@@ -1660,6 +1660,11 @@
     <string name="optimization_warning">Если конвертация занимает слишком много времени, попробуйте отключить оптимизацию базы данных</string>
     <string name="skipping_optimization">Пропуск оптимизации базы данных…</string>
 
+    <string name="pixiedust_binary_copy_failed">Не удалось скопировать бинарные файлы iw</string>
+    <string name="error_insufficient_memory">Недостаточно памяти для загрузки алгоритмов WPA</string>
+    <string name="error_algorithms_not_loaded">Алгоритмы WPA еще не загружены</string>
+
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
