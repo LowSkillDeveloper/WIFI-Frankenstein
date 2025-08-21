@@ -7,6 +7,7 @@ import android.os.Build
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.iwscanner.IwInterface
 import com.lsd.wififrankenstein.util.Log
+import com.lsd.wififrankenstein.util.WifiInterfaceManager
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,6 +48,8 @@ class PixieDustHelper(
     private var pixieDataProgress = 0
     private val totalPixieDataFields = 6
 
+    private val wifiInterfaceManager = WifiInterfaceManager(context)
+
     private var useAggressiveCleanup = false
 
     interface PixieDustCallbacks {
@@ -60,157 +63,17 @@ class PixieDustHelper(
 
     suspend fun getAvailableInterfaces(): List<IwInterface> = withContext(Dispatchers.IO) {
         try {
-            if (!checkBinaryFiles()) {
-                Log.d(TAG, "Binary files not available, copying from assets")
-                callbacks.onProgressUpdate(context.getString(R.string.pixiedust_copying_binaries))
-
-                val binariesCopied = copyBinariesFromAssetsSync()
-                if (!binariesCopied) {
-                    Log.e(TAG, "Failed to copy binary files")
-                    callbacks.onProgressUpdate(context.getString(R.string.pixiedust_binary_copy_failed))
-                    return@withContext listOf(IwInterface("wlan0"))
-                }
-
-                delay(1000)
-
-                if (!checkBinaryFiles()) {
-                    Log.e(TAG, "Binary files still not available after copying")
-                    return@withContext listOf(IwInterface("wlan0"))
-                }
+            if (!wifiInterfaceManager.copyIwBinariesFromAssets()) {
+                Log.e(TAG, "Failed to copy iw binary files")
+                callbacks.onProgressUpdate(context.getString(R.string.pixiedust_binary_copy_failed))
+                return@withContext listOf(IwInterface("wlan0"))
             }
 
-            val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
-            val iwBinary = "iw$arch"
-            val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./$iwBinary dev"
-
-            Log.d(TAG, "Executing command: $command")
-
-            val result = Shell.cmd(command).exec()
-            Log.d(TAG, "Command exit code: ${result.code}")
-            Log.d(TAG, "Command success: ${result.isSuccess}")
-            Log.d(TAG, "Command output lines: ${result.out.size}")
-
-            result.out.forEachIndexed { index, line ->
-                Log.d(TAG, "OUT[$index]: $line")
-            }
-
-            if (result.err.isNotEmpty()) {
-                Log.w(TAG, "Command stderr lines: ${result.err.size}")
-                result.err.forEachIndexed { index, line ->
-                    Log.w(TAG, "ERR[$index]: $line")
-                }
-            }
-
-            if (result.isSuccess && result.out.isNotEmpty()) {
-                val interfaces = parseInterfacesList(result.out.joinToString("\n"))
-                Log.d(TAG, "Parsed ${interfaces.size} interfaces: ${interfaces.map { it.name }}")
-                interfaces
-            } else {
-                Log.w(TAG, "Command failed or no output, using default wlan0")
-                listOf(IwInterface("wlan0"))
-            }
+            wifiInterfaceManager.getAvailableInterfaces()
         } catch (e: Exception) {
             Log.e(TAG, "Error getting interfaces", e)
             listOf(IwInterface("wlan0"))
         }
-    }
-
-    private suspend fun copyBinariesFromAssetsSync(): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
-            val binaries = listOf(
-                "iw$arch"
-            )
-
-            val libraries = if (arch.isEmpty()) {
-                listOf(
-                    "libnl-3.so",
-                    "libnl-genl-3.so",
-                    "libnl-route-3.so"
-                )
-            } else {
-                listOf(
-                    "libnl-3.so-32",
-                    "libnl-genl-3.so-32",
-                    "libnl-route-3.so"
-                )
-            }
-
-            binaries.forEach { fileName ->
-                if (copyAssetToInternalStorage(fileName, fileName)) {
-                    Shell.cmd("chmod 755 $binaryDir/$fileName").exec()
-                } else {
-                    return@withContext false
-                }
-            }
-
-            libraries.forEach { libName ->
-                if (copyAssetToInternalStorage(libName, libName)) {
-                    Shell.cmd("chmod 755 $binaryDir/$libName").exec()
-                }
-            }
-
-            if (arch.isNotEmpty()) {
-                createLibrarySymlinks()
-            }
-
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error copying binaries sync", e)
-            false
-        }
-    }
-
-    private fun parseInterfacesList(output: String): List<IwInterface> {
-        Log.d(TAG, "Parsing interfaces list, input length: ${output.length} chars")
-
-        val interfaces = mutableListOf<IwInterface>()
-        val lines = output.lines()
-
-        var currentInterface: String? = null
-        var currentType = ""
-        var currentAddr = ""
-
-        lines.forEachIndexed { index, line ->
-            val trimmed = line.trim()
-            Log.v(TAG, "Interface parse line $index: $trimmed")
-
-            when {
-                trimmed.startsWith("Interface ") -> {
-                    currentInterface?.let {
-                        interfaces.add(IwInterface(it, currentType, currentAddr))
-                        Log.d(TAG, "Added interface: name=$it, type=$currentType, addr=$currentAddr")
-                    }
-                    currentInterface = trimmed.substring(10).trim()
-                    currentType = ""
-                    currentAddr = ""
-                    Log.d(TAG, "Started parsing interface: $currentInterface")
-                }
-                trimmed.startsWith("type ") -> {
-                    currentType = trimmed.substring(5).trim()
-                    Log.v(TAG, "Found type: $currentType")
-                }
-                trimmed.startsWith("addr ") -> {
-                    currentAddr = trimmed.substring(5).trim()
-                    Log.v(TAG, "Found addr: $currentAddr")
-                }
-            }
-        }
-
-        currentInterface?.let {
-            interfaces.add(IwInterface(it, currentType, currentAddr))
-            Log.d(TAG, "Added final interface: name=$it, type=$currentType, addr=$currentAddr")
-        }
-
-        val result = if (interfaces.isEmpty()) {
-            Log.w(TAG, "No interfaces found, using default wlan0")
-            listOf(IwInterface("wlan0"))
-        } else {
-            Log.d(TAG, "Successfully parsed ${interfaces.size} interfaces")
-            interfaces
-        }
-
-        return result
     }
 
     fun checkRootAccess(): Boolean {
