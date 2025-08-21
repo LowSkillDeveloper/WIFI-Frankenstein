@@ -100,6 +100,12 @@ class ConvertDumpsFragment : Fragment() {
             Log.d("ConvertDumpsFragment", "Received broadcast: ${intent?.action}")
 
             when (intent?.action) {
+                ConversionService.BROADCAST_CONVERSION_STATUS -> {
+                    val isConverting = intent.getBooleanExtra(ConversionService.EXTRA_IS_CONVERTING, false)
+                    if (!isConverting && viewModel.isConverting.value == true) {
+                        viewModel.conversionComplete("")
+                    }
+                }
                 ConversionService.BROADCAST_CONVERSION_PROGRESS -> {
                     val progress = intent.getIntExtra(ConversionService.EXTRA_PROGRESS, 0)
                     val fileName = intent.getStringExtra(ConversionService.EXTRA_FILE_NAME) ?: ""
@@ -406,7 +412,9 @@ class ConvertDumpsFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
+        ConversionService.checkStatus(requireContext())
         val filter = IntentFilter().apply {
+            addAction(ConversionService.BROADCAST_CONVERSION_STATUS)
             addAction(ConversionService.BROADCAST_CONVERSION_PROGRESS)
             addAction(ConversionService.BROADCAST_CONVERSION_COMPLETE)
             addAction(ConversionService.BROADCAST_CONVERSION_ERROR)

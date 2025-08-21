@@ -1818,6 +1818,10 @@
     <string name="preparing_database_optimization">Preparing database optimization…</string>
 
 
+    <string name="starting_database_optimization">Starting database optimization…</string>
+    <string name="indexes_creation_complete">Database indexes created</string>
+    <string name="skipping_index_creation">Skipping index creation…</string>
+    <string name="conversion_progress_note">During database optimization and index creation, the percentage may not change frequently, but the conversion continues to run!</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

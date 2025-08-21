@@ -87,6 +87,8 @@ class ConversionEngine(
 
             if (coroutineContext.isActive) {
                 progressCallback(context.getString(R.string.preparing_database_optimization), 86)
+                yield()
+                progressCallback(context.getString(R.string.starting_database_optimization), 87)
                 Log.d("ConversionEngine", "Creating indexes...")
                 progressCallback(context.getString(R.string.creating_database_indexes), 88)
                 createIndexes(db)
@@ -1012,11 +1014,12 @@ class ConversionEngine(
 
         if (indexes.isEmpty()) {
             Log.d("ConversionEngine", "No indexes to create")
+            progressCallback(context.getString(R.string.skipping_index_creation), 90)
             return
         }
 
         Log.d("ConversionEngine", "Creating ${indexes.size} indexes")
-        val progressStep = 5.0 / indexes.size
+        val progressStep = 4.0 / indexes.size
         var currentProgress = 88.0
 
         for ((index, sql) in indexes.withIndex()) {
@@ -1033,6 +1036,8 @@ class ConversionEngine(
                 Log.w("ConversionEngine", "Failed to create index: $sql", e)
             }
         }
+
+        progressCallback(context.getString(R.string.indexes_creation_complete), 92)
     }
 
     private fun extractTableNameFromIndex(sql: String): String {
@@ -1046,17 +1051,17 @@ class ConversionEngine(
 
     private suspend fun optimizeDatabase(db: SQLiteDatabase) {
         try {
-            progressCallback(context.getString(R.string.analyzing_database), 92)
+            progressCallback(context.getString(R.string.analyzing_database), 93)
             yield()
             db.execSQL("ANALYZE")
 
-            progressCallback(context.getString(R.string.optimizing_database_queries), 94)
+            progressCallback(context.getString(R.string.optimizing_database_queries), 95)
             yield()
             db.execSQL("PRAGMA optimize")
 
             if (mode == ConversionMode.PERFORMANCE) {
                 try {
-                    progressCallback(context.getString(R.string.compacting_database), 96)
+                    progressCallback(context.getString(R.string.compacting_database), 97)
                     yield()
                     db.execSQL("PRAGMA incremental_vacuum(1000)")
                 } catch (e: Exception) {

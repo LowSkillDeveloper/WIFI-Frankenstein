@@ -63,6 +63,17 @@ class ConversionService : Service() {
         const val BROADCAST_CONVERSION_ERROR = "conversion_error"
         const val BROADCAST_CONVERSION_CANCELLED = "conversion_cancelled"
 
+        const val ACTION_CHECK_STATUS = "check_status"
+        const val BROADCAST_CONVERSION_STATUS = "conversion_status"
+        const val EXTRA_IS_CONVERTING = "is_converting"
+
+        fun checkStatus(context: Context) {
+            val intent = Intent(context, ConversionService::class.java).apply {
+                action = ACTION_CHECK_STATUS
+            }
+            context.startService(intent)
+        }
+
         fun startConversion(
             context: Context,
             files: List<SelectedFile>,
@@ -102,6 +113,10 @@ class ConversionService : Service() {
         Log.d(TAG, "onStartCommand called with action: ${intent?.action}")
 
         when (intent?.action) {
+            ACTION_CHECK_STATUS -> {
+                broadcastStatus()
+            }
+
             ACTION_START_CONVERSION -> {
                 try {
                     val filesJson = intent.getStringExtra(EXTRA_FILES_JSON)
@@ -136,6 +151,13 @@ class ConversionService : Service() {
             }
         }
         return START_STICKY
+    }
+
+    private fun broadcastStatus() {
+        val intent = Intent(BROADCAST_CONVERSION_STATUS).apply {
+            putExtra(EXTRA_IS_CONVERTING, activeConversions.isNotEmpty())
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
     private fun startConversion(files: List<SelectedFile>, mode: ConversionMode, indexing: IndexingOption, outputLocation: Uri?) {
