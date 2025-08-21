@@ -75,7 +75,7 @@ class ConversionEngine(
 
             progressCallback(context.getString(R.string.configuring_performance), 3)
 
-            setupDatabase(db)
+            setupDatabase(db, databaseType)
 
             Log.d("ConversionEngine", "Processing ${files.size} files...")
             progressCallback(context.getString(R.string.preparing_file_processing), 5)
@@ -912,7 +912,7 @@ class ConversionEngine(
         }
     }
 
-    private fun setupDatabase(db: SQLiteDatabase) {
+    private fun setupDatabase(db: SQLiteDatabase, databaseType: String) {
         progressCallback(context.getString(R.string.creating_database_tables), 4)
         try {
             db.execSQL("PRAGMA busy_timeout=$DB_TIMEOUT")
@@ -931,63 +931,68 @@ class ConversionEngine(
         )
     """)
 
-        db.execSQL("""
-        CREATE TABLE IF NOT EXISTS nets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            time TEXT,
-            cmtid INTEGER,
-            IP INTEGER,
-            Port INTEGER,
-            Authorization TEXT,
-            name TEXT,
-            RadioOff INTEGER DEFAULT 0,
-            Hidden INTEGER DEFAULT 0,
-            NoBSSID INTEGER DEFAULT 0,
-            BSSID INTEGER DEFAULT 0,
-            ESSID TEXT,
-            Security INTEGER,
-            NoWiFiKey INTEGER DEFAULT 0,
-            WiFiKey TEXT DEFAULT '',
-            NoWPS INTEGER DEFAULT 0,
-            WPSPIN INTEGER DEFAULT 0,
-            LANIP INTEGER,
-            LANMask INTEGER,
-            WANIP INTEGER,
-            WANMask INTEGER,
-            WANGateway INTEGER,
-            DNS1 INTEGER,
-            DNS2 INTEGER,
-            DNS3 INTEGER
-        )
-    """)
-
-        db.execSQL("""
-        CREATE TABLE IF NOT EXISTS base (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            time TEXT,
-            cmtid INTEGER,
-            IP INTEGER,
-            Port INTEGER,
-            Authorization TEXT,
-            name TEXT,
-            RadioOff INTEGER DEFAULT 0,
-            Hidden INTEGER DEFAULT 0,
-            NoBSSID INTEGER DEFAULT 0,
-            BSSID INTEGER DEFAULT 0,
-            ESSID TEXT,
-            Security INTEGER,
-            WiFiKey TEXT DEFAULT '',
-            WPSPIN INTEGER DEFAULT 0,
-            LANIP INTEGER,
-            LANMask INTEGER,
-            WANIP INTEGER,
-            WANMask INTEGER,
-            WANGateway INTEGER,
-            DNS1 INTEGER,
-            DNS2 INTEGER,
-            DNS3 INTEGER
-        )
-    """)
+        when (databaseType) {
+            "3wifi" -> {
+                db.execSQL("""
+                CREATE TABLE IF NOT EXISTS base (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    time TEXT,
+                    cmtid INTEGER,
+                    IP INTEGER,
+                    Port INTEGER,
+                    Authorization TEXT,
+                    name TEXT,
+                    RadioOff INTEGER DEFAULT 0,
+                    Hidden INTEGER DEFAULT 0,
+                    NoBSSID INTEGER DEFAULT 0,
+                    BSSID INTEGER DEFAULT 0,
+                    ESSID TEXT,
+                    Security INTEGER,
+                    WiFiKey TEXT DEFAULT '',
+                    WPSPIN INTEGER DEFAULT 0,
+                    LANIP INTEGER,
+                    LANMask INTEGER,
+                    WANIP INTEGER,
+                    WANMask INTEGER,
+                    WANGateway INTEGER,
+                    DNS1 INTEGER,
+                    DNS2 INTEGER,
+                    DNS3 INTEGER
+                )
+            """)
+            }
+            "p3wifi", "routerscan" -> {
+                db.execSQL("""
+                CREATE TABLE IF NOT EXISTS nets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    time TEXT,
+                    cmtid INTEGER,
+                    IP INTEGER,
+                    Port INTEGER,
+                    Authorization TEXT,
+                    name TEXT,
+                    RadioOff INTEGER DEFAULT 0,
+                    Hidden INTEGER DEFAULT 0,
+                    NoBSSID INTEGER DEFAULT 0,
+                    BSSID INTEGER DEFAULT 0,
+                    ESSID TEXT,
+                    Security INTEGER,
+                    NoWiFiKey INTEGER DEFAULT 0,
+                    WiFiKey TEXT DEFAULT '',
+                    NoWPS INTEGER DEFAULT 0,
+                    WPSPIN INTEGER DEFAULT 0,
+                    LANIP INTEGER,
+                    LANMask INTEGER,
+                    WANIP INTEGER,
+                    WANMask INTEGER,
+                    WANGateway INTEGER,
+                    DNS1 INTEGER,
+                    DNS2 INTEGER,
+                    DNS3 INTEGER
+                )
+            """)
+            }
+        }
     }
 
     private suspend fun createIndexes(db: SQLiteDatabase) {
