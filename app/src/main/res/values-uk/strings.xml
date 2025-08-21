@@ -1621,6 +1621,15 @@
     <string name="copying_to_destination">Копіювання в призначене місце…</string>
     <string name="preparing_database_optimization">Підготовка до оптимізації бази даних…</string>
 
+    <string name="starting_database_optimization">Запуск оптимізації бази даних…</string>
+    <string name="indexes_creation_complete">Індекси бази даних створені</string>
+    <string name="skipping_index_creation">Пропуск створення індексів…</string>
+    <string name="conversion_progress_note">Під час оптимізації бази даних і створення індексів відсотки можуть змінюватися нечасто, але конвертація продовжує виконуватися!</string>
+
+    <string name="database_optimization">Оптимізація бази даних</string>
+    <string name="enable_optimization">Увімкнути оптимізацію бази даних</string>
+    <string name="optimization_warning">Якщо конвертація триває занадто довго, спробуйте вимкнути оптимізацію бази даних</string>
+    <string name="skipping_optimization">Пропуск оптимізації бази даних…</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
