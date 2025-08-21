@@ -1528,7 +1528,7 @@
     <string name="basic_indexing">Базовое индексирование</string>
     <string name="no_indexing">Без индексирования</string>
     <string name="estimated_time">Примерное время: %s</string>
-    <string name="processing_file">Обработка файла %1$s (%2$d%%)</string>
+    <string name="processing_file">Обработка: %1$s (%2$d%%)</string>
     <string name="conversion_notification_channel">Конвертация дампов</string>
     <string name="conversion_notification_desc">Уведомления о процессе конвертации</string>
 
@@ -1631,6 +1631,13 @@
     <string name="continue_without_permission">Продолжить без разрешения</string>
     <string name="notification_permission_denied">Разрешение на уведомления отклонено. Конвертация может работать некорректно в фоновом режиме.</string>
 
+    <string name="creating_database_indexes">Создание индексов базы данных…</string>
+    <string name="creating_index_for_table">Создание индекса %1$d из %2$d (%3$s)…</string>
+    <string name="optimizing_database_queries">Оптимизация запросов…</string>
+    <string name="finalizing_database">Завершение обработки…</string>
+    <string name="setting_up_database">Настройка базы данных…</string>
+    <string name="completing_conversion">Завершение конвертации…</string>
+    <string name="saving_database_file">Сохранение файла базы данных…</string>
 
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT

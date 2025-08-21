@@ -1496,7 +1496,7 @@
     <string name="basic_indexing">Базове індексування</string>
     <string name="no_indexing">Без індексування</string>
     <string name="estimated_time">Приблизний час: %s</string>
-    <string name="processing_file">Обробка файлу %1$s (%2$d%%)</string>
+    <string name="processing_file">Обробка: %1$s (%2$d%%)</string>
     <string name="conversion_notification_channel">Конвертація дампів</string>
     <string name="conversion_notification_desc">Сповіщення про процес конвертації</string>
 
@@ -1601,6 +1601,14 @@
     <string name="grant_permission">Надати дозвіл</string>
     <string name="continue_without_permission">Продовжити без дозволу</string>
     <string name="notification_permission_denied">Дозвіл на сповіщення відхилено. Конвертація може працювати некоректно у фоновому режимі.</string>
+
+    <string name="creating_database_indexes">Створення індексів бази даних…</string>
+    <string name="creating_index_for_table">Створення індексу %1$d із %2$d (%3$s)…</string>
+    <string name="optimizing_database_queries">Оптимізація запитів…</string>
+    <string name="finalizing_database">Завершення обробки…</string>
+    <string name="setting_up_database">Налаштування бази даних…</string>
+    <string name="completing_conversion">Завершення конвертації…</string>
+    <string name="saving_database_file">Збереження файлу бази даних…</string>
 
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT

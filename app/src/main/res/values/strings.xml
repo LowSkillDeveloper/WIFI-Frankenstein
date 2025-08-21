@@ -1693,7 +1693,7 @@
     <string name="basic_indexing">Basic indexing</string>
     <string name="no_indexing">No indexing</string>
     <string name="estimated_time">Estimated time: %s</string>
-    <string name="processing_file">Processing file %1$s (%2$d%%)</string>
+    <string name="processing_file">Processing: %1$s (%2$d%%)</string>
     <string name="conversion_notification_channel">Dump conversion</string>
     <string name="conversion_notification_desc">Notifications about the conversion process</string>
 
@@ -1797,6 +1797,14 @@
     
     <string name="continue_without_permission">Continue without Permission</string>
     <string name="notification_permission_denied">Notification permission denied. Conversion may not work correctly in the background.</string>
+
+    <string name="creating_database_indexes">Creating database indexes…</string>
+    <string name="creating_index_for_table">Creating index %1$d of %2$d (%3$s)…</string>
+    <string name="optimizing_database_queries">Optimizing queries…</string>
+    <string name="finalizing_database">Finalizing processing…</string>
+    <string name="setting_up_database">Setting up database…</string>
+    <string name="completing_conversion">Completing conversion…</string>
+    <string name="saving_database_file">Saving database file…</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

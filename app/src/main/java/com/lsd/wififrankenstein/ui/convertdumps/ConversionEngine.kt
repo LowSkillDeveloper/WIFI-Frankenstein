@@ -4,6 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -52,6 +53,7 @@ class ConversionEngine(
 
         try {
             Log.d("ConversionEngine", "Creating database...")
+            progressCallback(context.getString(R.string.setting_up_database), 1)
             val db = SQLiteDatabase.openOrCreateDatabase(tempFile, null)
 
             try {
@@ -86,10 +88,12 @@ class ConversionEngine(
                 Log.d("ConversionEngine", "Optimizing database...")
                 optimizeDatabase(db)
 
-                progressCallback("Complete", 100)
+                progressCallback(context.getString(R.string.completing_conversion), 100)
                 delay(100)
 
                 db.close()
+
+                progressCallback(context.getString(R.string.saving_database_file), 99)
 
                 val finalFile = if (outputLocation != null) {
                     copyToSelectedLocation(tempFile, outputLocation, fileName)
@@ -1002,7 +1006,8 @@ class ConversionEngine(
             if (!coroutineContext.isActive) break
 
             try {
-                progressCallback("Creating index ${index + 1}/${indexes.size}...", currentProgress.toInt())
+                val tableName = extractTableNameFromIndex(sql)
+                progressCallback(context.getString(R.string.creating_index_for_table, index + 1, indexes.size, tableName), (currentProgress + (index * progressStep)).toInt())
                 yield()
                 db.execSQL(sql)
                 currentProgress += progressStep
@@ -1012,19 +1017,28 @@ class ConversionEngine(
         }
     }
 
+    private fun extractTableNameFromIndex(sql: String): String {
+        return try {
+            val pattern = "ON\\s+(\\w+)\\s*\\(".toRegex(RegexOption.IGNORE_CASE)
+            pattern.find(sql)?.groupValues?.get(1) ?: "table"
+        } catch (e: Exception) {
+            "table"
+        }
+    }
+
     private suspend fun optimizeDatabase(db: SQLiteDatabase) {
         try {
-            progressCallback("Analyzing database...", 92)
+            progressCallback(context.getString(R.string.analyzing_database), 92)
             yield()
             db.execSQL("ANALYZE")
 
-            progressCallback("Optimizing queries...", 94)
+            progressCallback(context.getString(R.string.optimizing_database_queries), 94)
             yield()
             db.execSQL("PRAGMA optimize")
 
             if (mode == ConversionMode.PERFORMANCE) {
                 try {
-                    progressCallback("Compacting database...", 96)
+                    progressCallback(context.getString(R.string.compacting_database), 96)
                     yield()
                     db.execSQL("PRAGMA incremental_vacuum(1000)")
                 } catch (e: Exception) {
@@ -1032,7 +1046,7 @@ class ConversionEngine(
                 }
             }
 
-            progressCallback("Finalizing...", 98)
+            progressCallback(context.getString(R.string.finalizing_database), 98)
             yield()
 
         } catch (e: Exception) {
