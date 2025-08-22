@@ -1840,6 +1840,14 @@
 
     <string name="wps_started_empty_pin">WPS started with empty PIN</string>
 
+
+    <string name="wps_pin_optional">WPS PIN (leave empty to try empty PIN)</string>
+    <string name="wps_trying_empty_pin">Trying WPS with empty PIN…</string>
+    <string name="wps_trying_pin">Trying WPS with PIN: %1$s</string>
+    <string name="wps_trying_null_pin">Trying WPS with null PIN…</string>
+    <string name="wps_empty_failed_trying_null">Empty PIN failed, trying null PIN…</string>
+    <string name="wps_all_attempts_failed">All WPS attempts failed. Reason: %1$d</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>
