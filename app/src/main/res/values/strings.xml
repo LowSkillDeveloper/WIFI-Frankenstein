@@ -1835,6 +1835,11 @@
     <string name="pixiedust_copy_log">Copy Log</string>
     <string name="pixiedust_log_copied">Attack log copied to clipboard</string>
 
+    <string name="wps_root_starting_empty_pin">Starting WPS with empty PIN for %1$s</string>
+    <string name="wps_use_empty_pin">Use empty PIN</string>
+
+    <string name="wps_started_empty_pin">WPS started with empty PIN</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

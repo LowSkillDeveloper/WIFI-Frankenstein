@@ -144,7 +144,9 @@ class WpsRootConnectHelperMethod3(
         callbacks.onConnectionProgress("Executing WPS command...")
 
         val command = if (!pin.isNullOrEmpty()) {
-            "$wpaCliPath IFNAME=wlan0 wps_reg $bssid $pin"
+            "$wpaCliPath IFNAME=wlan0 wps_pin $bssid $pin"
+        } else if (pin != null && pin.isEmpty()) {
+            "$wpaCliPath IFNAME=wlan0 wps_pin $bssid \"\""
         } else {
             "$wpaCliPath IFNAME=wlan0 wps_pbc $bssid"
         }

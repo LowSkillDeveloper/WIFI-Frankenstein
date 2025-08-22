@@ -172,7 +172,11 @@ class WpsRootConnectHelperMethod2(
                 val (_, targetFileName) = getWpaCliResourceInfo()
                 val wpaCliPath = context.getFileStreamPath(targetFileName).absolutePath
                 val command = if (wpsPin != null) {
-                    "$wpaCliPath IFNAME=wlan0 wps_reg ${network.BSSID} $wpsPin"
+                    if (wpsPin.isEmpty()) {
+                        "$wpaCliPath IFNAME=wlan0 wps_pin ${network.BSSID} \"\""
+                    } else {
+                        "$wpaCliPath IFNAME=wlan0 wps_reg ${network.BSSID} $wpsPin"
+                    }
                 } else {
                     "$wpaCliPath IFNAME=wlan0 wps_pbc ${network.BSSID}"
                 }

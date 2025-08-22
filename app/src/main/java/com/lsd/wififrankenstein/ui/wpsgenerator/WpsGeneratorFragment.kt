@@ -757,7 +757,7 @@ class WpsGeneratorFragment : Fragment() {
 
 
     private fun isValidWpsPin(pin: String): Boolean {
-        return pin.matches("^\\d{8}$".toRegex())
+        return pin.isEmpty() || pin.matches("^\\d{8}$".toRegex())
     }
 
     private fun convertBssidToDecimal(bssid: String): Long {

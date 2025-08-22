@@ -339,7 +339,11 @@ class WpsRootConnectHelper(
                 }
 
                 val command = if (wpsPin != null) {
-                    "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pin ${network.BSSID} $wpsPin"
+                    if (wpsPin.isEmpty()) {
+                        "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pin ${network.BSSID} \"\""
+                    } else {
+                        "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pin ${network.BSSID} $wpsPin"
+                    }
                 } else {
                     "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pbc ${network.BSSID}"
                 }
@@ -588,9 +592,19 @@ class WpsRootConnectHelper(
                 val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
                 val socketPath = "$socketDir/wlan0"
 
-                callbacks.onLogEntry(context.getString(R.string.wps_root_starting_pin, network.BSSID, pin))
+                callbacks.onLogEntry(
+                    if (pin.isEmpty()) {
+                        context.getString(R.string.wps_root_starting_empty_pin, network.BSSID)
+                    } else {
+                        context.getString(R.string.wps_root_starting_pin, network.BSSID, pin)
+                    }
+                )
 
-                val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -g$socketPath wps_pin ${network.BSSID} $pin"
+                val command = if (pin.isEmpty()) {
+                    "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -g$socketPath wps_pin ${network.BSSID} \"\""
+                } else {
+                    "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -g$socketPath wps_pin ${network.BSSID} $pin"
+                }
 
                 val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
                 val exitCode = process.waitFor()

@@ -41,6 +41,7 @@ class WpsMethodSelector(
     ) {
         val options = mutableListOf<String>()
         options.add(context.getString(R.string.wps_mode_pbc))
+        options.add(context.getString(R.string.wps_use_empty_pin))
 
         if (!databasePin.isNullOrBlank() && databasePin != "0") {
             options.add(context.getString(R.string.wps_use_database_pin, databasePin))
@@ -51,12 +52,19 @@ class WpsMethodSelector(
         AlertDialog.Builder(context)
             .setTitle(R.string.wps_mode_selection_title)
             .setItems(options.toTypedArray()) { _, which ->
-                when {
-                    which == 0 -> {
+                when (which) {
+                    0 -> {
                         methodExecutor(network, null)
                     }
-                    which == 1 && !databasePin.isNullOrBlank() && databasePin != "0" -> {
-                        methodExecutor(network, databasePin)
+                    1 -> {
+                        methodExecutor(network, "")
+                    }
+                    2 -> {
+                        if (!databasePin.isNullOrBlank() && databasePin != "0") {
+                            methodExecutor(network, databasePin)
+                        } else {
+                            showPinInputDialog(network, methodExecutor)
+                        }
                     }
                     else -> {
                         showPinInputDialog(network, methodExecutor)
@@ -74,7 +82,7 @@ class WpsMethodSelector(
         val editText = EditText(context).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
             filters = arrayOf(InputFilter.LengthFilter(8))
-            hint = context.getString(R.string.wps_pin_input_hint)
+                hint = context.getString(R.string.wps_pin_input_hint)
         }
 
         AlertDialog.Builder(context)
@@ -82,8 +90,8 @@ class WpsMethodSelector(
             .setView(editText)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val pin = editText.text.toString().trim()
-                if (pin.length == 8 && pin.all { it.isDigit() }) {
-                    methodExecutor(network, pin)
+                if (pin.isEmpty() || (pin.length == 8 && pin.all { it.isDigit() })) {
+                    methodExecutor(network, pin.ifEmpty { "" })
                 } else {
                     Toast.makeText(
                         context,

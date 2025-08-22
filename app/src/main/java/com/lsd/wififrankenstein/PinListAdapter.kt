@@ -170,28 +170,37 @@ class PinListAdapter : ListAdapter<WPSPin, PinListAdapter.PinViewHolder>(PinDiff
 
                 val wpsConfig = WpsInfo().apply {
                     setup = WpsInfo.KEYPAD
-                    this.pin = pin.pin
+                    this.pin = if (pin.pin.isEmpty()) "" else pin.pin
                 }
 
-                wifiManager.startWps(wpsConfig, object : WifiManager.WpsCallback() {
-                    override fun onStarted(pin: String?) {
-                        Toast.makeText(context,
-                            context.getString(R.string.wps_started),
-                            Toast.LENGTH_SHORT).show()
-                    }
+                try {
+                    wifiManager.startWps(wpsConfig, object : WifiManager.WpsCallback() {
+                        override fun onStarted(pin: String?) {
+                            val message = if (pin.isNullOrEmpty()) {
+                                context.getString(R.string.wps_started_empty_pin)
+                            } else {
+                                context.getString(R.string.wps_started)
+                            }
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        }
 
-                    override fun onSucceeded() {
-                        Toast.makeText(context,
-                            context.getString(R.string.wps_succeeded),
-                            Toast.LENGTH_SHORT).show()
-                    }
+                        override fun onSucceeded() {
+                            Toast.makeText(context,
+                                context.getString(R.string.wps_succeeded),
+                                Toast.LENGTH_SHORT).show()
+                        }
 
-                    override fun onFailed(reason: Int) {
-                        Toast.makeText(context,
-                            context.getString(R.string.wps_failed, reason),
-                            Toast.LENGTH_SHORT).show()
-                    }
-                })
+                        override fun onFailed(reason: Int) {
+                            Toast.makeText(context,
+                                context.getString(R.string.wps_failed, reason),
+                                Toast.LENGTH_SHORT).show()
+                        }
+                    })
+                } catch (e: Exception) {
+                    Toast.makeText(context,
+                        context.getString(R.string.wps_connection_error, e.message),
+                        Toast.LENGTH_LONG).show()
+                }
             } else {
                 Toast.makeText(context,
                     context.getString(R.string.change_wifi_state_permission_required),

@@ -1485,16 +1485,8 @@ class WiFiScannerFragment : Fragment() {
             .setTitle(R.string.connect_wps_pin_button)
             .setView(dialogView)
             .setPositiveButton(R.string.connect) { _, _ ->
-                val wpsPin = wpsPinEditText.text.toString()
-                if (wpsPin.isNotBlank()) {
-                    connectUsingWPSPin(scanResult, wpsPin)
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.enter_wps_pin,
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                val wpsPin = wpsPinEditText.text.toString().trim()
+                connectUsingWPSPin(scanResult, wpsPin)
             }
             .setNegativeButton(R.string.cancel, null)
             .create()
@@ -1511,37 +1503,47 @@ class WiFiScannerFragment : Fragment() {
             ) {
                 val wpsConfig = WpsInfo().apply {
                     setup = WpsInfo.KEYPAD
-                    this.pin = pin
+                    this.pin = if (pin.isEmpty()) "" else pin
                     BSSID = scanResult.BSSID
                 }
 
                 val wifiManager =
                     requireContext().applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-                wifiManager.startWps(wpsConfig, object : WifiManager.WpsCallback() {
-                    override fun onStarted(pin: String?) {
-                        Toast.makeText(
-                            requireContext(),
-                            getString(R.string.wps_started),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
 
-                    override fun onSucceeded() {
-                        Toast.makeText(
-                            requireContext(),
-                            getString(R.string.wps_succeeded),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                try {
+                    wifiManager.startWps(wpsConfig, object : WifiManager.WpsCallback() {
+                        override fun onStarted(pin: String?) {
+                            val message = if (pin.isNullOrEmpty()) {
+                                getString(R.string.wps_started_empty_pin)
+                            } else {
+                                getString(R.string.wps_started)
+                            }
+                            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                        }
 
-                    override fun onFailed(reason: Int) {
-                        Toast.makeText(
-                            requireContext(),
-                            getString(R.string.wps_failed, reason),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                })
+                        override fun onSucceeded() {
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.wps_succeeded),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+
+                        override fun onFailed(reason: Int) {
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.wps_failed, reason),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    })
+                } catch (e: Exception) {
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.wps_connection_error, e.message),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             } else {
                 Toast.makeText(
                     requireContext(),
