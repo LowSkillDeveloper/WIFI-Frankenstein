@@ -384,6 +384,12 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun getFullLogText(): String {
+        return _logEntries.value?.reversed()?.joinToString("\n") { logEntry ->
+            logEntry.message
+        } ?: ""
+    }
+
     override fun onAttackCompleted(result: PixieResult) {
         viewModelScope.launch(Dispatchers.Main) {
             _attackState.value = PixieAttackState.Completed(result)

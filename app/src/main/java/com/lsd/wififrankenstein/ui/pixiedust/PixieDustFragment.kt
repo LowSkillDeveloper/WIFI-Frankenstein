@@ -91,6 +91,17 @@ class PixieDustFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
+
+        binding.buttonCopyLog.setOnClickListener {
+            val logText = viewModel.getFullLogText()
+            if (logText.isNotEmpty()) {
+                copyToClipboard(logText)
+                Toast.makeText(requireContext(), R.string.pixiedust_log_copied, Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), R.string.pixiedust_log_empty, Toast.LENGTH_SHORT).show()
+            }
+        }
+
         binding.layoutAdvancedHeader.setOnClickListener {
             toggleAdvancedSettings()
         }
