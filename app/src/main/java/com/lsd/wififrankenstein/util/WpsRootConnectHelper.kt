@@ -6,6 +6,7 @@ import android.net.wifi.WifiManager
 import android.net.wifi.WpsInfo
 import android.os.Build
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.util.WpsMethodSelector.Companion.NULL_PIN_IDENTIFIER
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -339,10 +340,16 @@ class WpsRootConnectHelper(
                 }
 
                 val command = if (wpsPin != null) {
-                    if (wpsPin.isEmpty()) {
-                        "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pin ${network.BSSID} \"\""
-                    } else {
-                        "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pin ${network.BSSID} $wpsPin"
+                    when {
+                        wpsPin == NULL_PIN_IDENTIFIER -> {
+                            "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pin ${network.BSSID}"
+                        }
+                        wpsPin.isEmpty() -> {
+                            "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pin ${network.BSSID} \"\""
+                        }
+                        else -> {
+                            "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pin ${network.BSSID} $wpsPin"
+                        }
                     }
                 } else {
                     "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -p$controlPath wps_pbc ${network.BSSID}"
@@ -600,10 +607,16 @@ class WpsRootConnectHelper(
                     }
                 )
 
-                val command = if (pin.isEmpty()) {
-                    "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -g$socketPath wps_pin ${network.BSSID} \"\""
-                } else {
-                    "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -g$socketPath wps_pin ${network.BSSID} $pin"
+                val command = when {
+                    pin == NULL_PIN_IDENTIFIER -> {
+                        "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -g$socketPath wps_pin ${network.BSSID}"
+                    }
+                    pin.isEmpty() -> {
+                        "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -g$socketPath wps_pin ${network.BSSID} \"\""
+                    }
+                    else -> {
+                        "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && ./wpa_cli$arch -g$socketPath wps_pin ${network.BSSID} $pin"
+                    }
                 }
 
                 val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))

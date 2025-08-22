@@ -7,6 +7,7 @@ import android.net.wifi.WifiManager
 import android.net.wifi.WpsInfo
 import android.os.Build
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.util.WpsMethodSelector.Companion.NULL_PIN_IDENTIFIER
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -171,14 +172,19 @@ class WpsRootConnectHelperMethod2(
 
                 val (_, targetFileName) = getWpaCliResourceInfo()
                 val wpaCliPath = context.getFileStreamPath(targetFileName).absolutePath
-                val command = if (wpsPin != null) {
-                    if (wpsPin.isEmpty()) {
-                        "$wpaCliPath IFNAME=wlan0 wps_pin ${network.BSSID} \"\""
-                    } else {
+                val command = when {
+                    wpsPin == NULL_PIN_IDENTIFIER -> {
+                        "$wpaCliPath IFNAME=wlan0 wps_pin ${network.BSSID}"
+                    }
+                    !wpsPin.isNullOrEmpty() -> {
                         "$wpaCliPath IFNAME=wlan0 wps_reg ${network.BSSID} $wpsPin"
                     }
-                } else {
-                    "$wpaCliPath IFNAME=wlan0 wps_pbc ${network.BSSID}"
+                    wpsPin != null && wpsPin.isEmpty() -> {
+                        "$wpaCliPath IFNAME=wlan0 wps_pin ${network.BSSID} \"\""
+                    }
+                    else -> {
+                        "$wpaCliPath IFNAME=wlan0 wps_pbc ${network.BSSID}"
+                    }
                 }
 
                 callbacks.onLogEntry("Executing: $command")

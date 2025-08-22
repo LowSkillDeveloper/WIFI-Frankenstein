@@ -14,6 +14,10 @@ class WpsMethodSelector(
     private val callbacks: WpsRootConnectHelper.WpsConnectCallbacks
 ) {
 
+    companion object {
+        const val NULL_PIN_IDENTIFIER = "##NULL_PIN##"
+    }
+
     fun showMethodSelection(network: ScanResult, databasePin: String? = null) {
         val methods = arrayOf(
             context.getString(R.string.wps_method_3),
@@ -42,6 +46,7 @@ class WpsMethodSelector(
         val options = mutableListOf<String>()
         options.add(context.getString(R.string.wps_mode_pbc))
         options.add(context.getString(R.string.wps_use_empty_pin))
+        options.add(context.getString(R.string.wps_use_null_pin))
 
         if (!databasePin.isNullOrBlank() && databasePin != "0") {
             options.add(context.getString(R.string.wps_use_database_pin, databasePin))
@@ -60,6 +65,9 @@ class WpsMethodSelector(
                         methodExecutor(network, "")
                     }
                     2 -> {
+                        methodExecutor(network, NULL_PIN_IDENTIFIER)
+                    }
+                    3 -> {
                         if (!databasePin.isNullOrBlank() && databasePin != "0") {
                             methodExecutor(network, databasePin)
                         } else {
