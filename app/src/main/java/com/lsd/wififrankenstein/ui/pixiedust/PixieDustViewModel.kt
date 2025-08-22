@@ -127,19 +127,25 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
             return
         }
 
-        _isCopyingBinaries.value = true
-        pixieHelper.copyBinariesFromAssets()
-
         viewModelScope.launch {
-            delay(1000)
-            while (pixieHelper.isCopyingBinaries()) {
-                delay(500)
-            }
-            _isCopyingBinaries.value = false
+            _isCopyingBinaries.value = true
 
-            delay(1000)
-            val hasBinaries = pixieHelper.checkBinaryFiles()
-            _binariesReady.value = hasBinaries
+            try {
+                pixieHelper.copyBinariesFromAssets()
+
+                delay(1000)
+                while (pixieHelper.isCopyingBinaries()) {
+                    delay(500)
+                }
+
+                delay(1000)
+                val hasBinaries = pixieHelper.checkBinaryFiles()
+                _binariesReady.value = hasBinaries
+            } catch (e: Exception) {
+                Log.e("PixieDustViewModel", "Error copying binaries", e)
+            } finally {
+                _isCopyingBinaries.value = false
+            }
         }
     }
 

