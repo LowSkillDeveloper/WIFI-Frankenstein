@@ -58,11 +58,11 @@ class WpsRootConnectHelperMethod3(
                 if (success) {
                     callbacks.onConnectionSuccess(network.SSID)
                 } else {
-                    callbacks.onConnectionFailed("Method 3 failed")
+                    callbacks.onConnectionFailed("Recommended Method failed")
                 }
 
             } catch (e: Exception) {
-                callbacks.onConnectionFailed("Method 3 error: ${e.message}")
+                callbacks.onConnectionFailed("Recommended Method error: ${e.message}")
             } finally {
                 connectionJob = null
             }
