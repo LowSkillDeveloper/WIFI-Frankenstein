@@ -291,7 +291,7 @@
     <string name="filter_essid">ESSID</string>
     <string name="filter_wifi_password">WiFi Password</string>
     <string name="filter_wps_pin">WPS PIN</string>
-    <string name="password_not_available">Password not available</string>
+    <string name="password_not_available">Password not available or network has no password</string>
     <string name="wps_pin_not_available">WPS PIN not available</string>
 
     <string name="toast_no_data_to_save">No network data to save</string>
