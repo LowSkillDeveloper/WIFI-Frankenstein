@@ -72,11 +72,11 @@ class NetworkRecordsAdapter(
 
         holder.textViewRecordTitle.text = record.essid ?: context.getString(R.string.unknown_ssid)
 
+        holder.textViewPasswordInfo.visibility = View.VISIBLE
         if (!record.password.isNullOrBlank()) {
-            holder.textViewPasswordInfo.visibility = View.VISIBLE
             holder.textViewPasswordInfo.text = context.getString(R.string.password_format, record.password)
         } else {
-            holder.textViewPasswordInfo.visibility = View.GONE
+            holder.textViewPasswordInfo.text = context.getString(R.string.password_not_available)
         }
 
         if (!record.wpsPin.isNullOrBlank()) {
@@ -124,14 +124,17 @@ class NetworkRecordsAdapter(
             copyToClipboard(context.getString(R.string.bssid), bssid)
         }
 
+        holder.layoutDataPassword.visibility = View.VISIBLE
         if (!record.password.isNullOrBlank()) {
-            holder.layoutDataPassword.visibility = View.VISIBLE
             holder.textViewDataPassword.text = record.password
             holder.buttonCopyDataPassword.setOnClickListener {
                 copyToClipboard(context.getString(R.string.password), record.password)
             }
         } else {
-            holder.layoutDataPassword.visibility = View.GONE
+            holder.textViewDataPassword.text = context.getString(R.string.password_not_available)
+            holder.buttonCopyDataPassword.setOnClickListener {
+                Toast.makeText(context, context.getString(R.string.password_not_available), Toast.LENGTH_SHORT).show()
+            }
         }
 
         if (!record.wpsPin.isNullOrBlank()) {
