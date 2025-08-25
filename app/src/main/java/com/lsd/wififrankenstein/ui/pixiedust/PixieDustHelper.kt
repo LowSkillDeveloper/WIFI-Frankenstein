@@ -160,7 +160,7 @@ class PixieDustHelper(
                         criticalMissing = true
                         "NOT_READABLE"
                     }
-                    fileName.contains("wpa_supplicant") && !executable -> {
+                    fileName.contains("wpa_supplicant") && !fileName.endsWith(".conf") && !executable -> {
                         criticalMissing = true
                         "NOT_EXECUTABLE"
                     }
@@ -295,6 +295,28 @@ class PixieDustHelper(
                     "pixiedust$arch"
                 )
 
+                val libraries = if (arch.isEmpty()) {
+                    listOf(
+                        "libssl.so.1.1",
+                        "libssl.so.3",
+                        "libcrypto.so.1.1",
+                        "libcrypto.so.3",
+                        "libnl-3.so",
+                        "libnl-genl-3.so",
+                        "libnl-route-3.so"
+                    )
+                } else {
+                    listOf(
+                        "libssl.so.1.1",
+                        "libssl.so.3",
+                        "libcrypto.so.1.1",
+                        "libcrypto.so.3",
+                        "libnl-3.so-32",
+                        "libnl-genl-3.so-32",
+                        "libnl-route-3.so"
+                    )
+                }
+
                 val assetManager = context.assets
 
                 for (binary in binaries) {
@@ -315,6 +337,45 @@ class PixieDustHelper(
                     }
                 }
 
+                val wpaCliN = "wpa_cli_n$arch"
+                try {
+                    assetManager.open("wpa_cli$arch").use { inputStream ->
+                        val outputFile = File(binaryDir, wpaCliN)
+                        outputFile.outputStream().use { outputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+                        outputFile.setExecutable(true)
+                        outputFile.setReadable(true)
+                        outputFile.setWritable(true)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to copy $wpaCliN: ${e.message}", e)
+                    callbacks.onLogEntry(LogEntry("Failed to copy $wpaCliN: ${e.message}", LogColorType.ERROR))
+                    return@withContext false
+                }
+
+                for (library in libraries) {
+                    try {
+                        assetManager.open(library).use { inputStream ->
+                            val outputFile = File(binaryDir, library)
+                            outputFile.outputStream().use { outputStream ->
+                                inputStream.copyTo(outputStream)
+                            }
+                            outputFile.setReadable(true)
+                            outputFile.setWritable(true)
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Optional library $library not found or failed to copy: ${e.message}")
+                        callbacks.onLogEntry(LogEntry("Optional library $library not available", LogColorType.INFO))
+                    }
+                }
+
+                createDefaultConfig()
+
+                if (arch.isNotEmpty()) {
+                    createLibrarySymlinks()
+                }
+
                 callbacks.onProgressUpdate(context.getString(R.string.pixiedust_binaries_ready))
                 true
             } catch (e: Exception) {
@@ -322,6 +383,25 @@ class PixieDustHelper(
                 callbacks.onLogEntry(LogEntry("Binary copy error: ${e.message}", LogColorType.ERROR))
                 false
             }
+        }
+    }
+
+    private fun createDefaultConfig() {
+        try {
+            val configFile = File(binaryDir, "wpa_supplicant.conf")
+            val defaultConfig = """
+            ctrl_interface=/data/misc/wifi
+            update_config=1
+            
+        """.trimIndent()
+
+            configFile.writeText(defaultConfig)
+            configFile.setReadable(true)
+            configFile.setWritable(true)
+
+            callbacks.onLogEntry(LogEntry("Created default wpa_supplicant.conf", LogColorType.INFO))
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to create default config", e)
         }
     }
 
