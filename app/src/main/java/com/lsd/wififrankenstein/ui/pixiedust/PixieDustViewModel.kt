@@ -332,6 +332,14 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         val selectedInterfaceName = _selectedInterface.value ?: "wlan0"
+
+        if (!pixieHelper.checkInterfaceAvailability(selectedInterfaceName)) {
+            _progressMessage.value = "Interface $selectedInterfaceName not found or not available"
+            addLogEntry(LogEntry("Interface check failed: $selectedInterfaceName", LogColorType.ERROR))
+            return
+        }
+
+        addLogEntry(LogEntry("Starting attack on interface: $selectedInterfaceName", LogColorType.INFO))
         pixieHelper.startPixieAttack(network, selectedInterfaceName, extractionTimeout, computationTimeout)
     }
 
