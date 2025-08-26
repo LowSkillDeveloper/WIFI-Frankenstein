@@ -257,6 +257,26 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun setAlternativeWpaCli(enabled: Boolean) {
+        pixieHelper.setAlternativeWpaCli(enabled)
+
+        if (_binariesReady.value == true) {
+            viewModelScope.launch(Dispatchers.IO) {
+                _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_reconfiguring_binaries))
+
+                pixieHelper.copyBinariesFromAssets()
+                delay(1000)
+
+                val hasBinaries = pixieHelper.checkBinaryFiles()
+                _binariesReady.postValue(hasBinaries)
+
+                if (hasBinaries) {
+                    _progressMessage.postValue(getApplication<Application>().getString(R.string.pixiedust_binaries_ready))
+                }
+            }
+        }
+    }
+
     fun addManualNetwork(ssid: String, bssid: String) {
         val manualNetwork = WpsNetwork(
             ssid = ssid,

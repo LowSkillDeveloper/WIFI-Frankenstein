@@ -119,6 +119,10 @@ class PixieDustFragment : Fragment() {
             viewModel.setAggressiveCleanup(isChecked)
         }
 
+        binding.switchAlternativeWpaCli.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setAlternativeWpaCli(isChecked)
+        }
+
         binding.sliderExtractionTimeout.addOnChangeListener { _, value, _ ->
             binding.textExtractionTimeout.text = value.toInt().toString()
             viewModel.setExtractionTimeout(value.toLong() * 1000)

@@ -1849,6 +1849,12 @@
     <string name="wps_all_attempts_failed">All WPS attempts failed. Reason: %1$d</string>
     <string name="wps_use_null_pin">Use null PIN</string>
 
+    <string name="pixiedust_alternative_wpa_cli">Alternative WPA CLI</string>
+    <string name="pixiedust_alternative_wpa_cli_desc">Use alternative wpa_cli binaries if there are problems with starting.</string>
+    <string name="pixiedust_copying_alternative_binaries">Copying alternative binaries</string>
+    <string name="pixiedust_using_alternative_wpa_cli">Using alternative wpa_cli binary</string>
+    <string name="pixiedust_reconfiguring_binaries">Reconfiguring binaries with alternative wpa_cli…</string>
+
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
 </resources>

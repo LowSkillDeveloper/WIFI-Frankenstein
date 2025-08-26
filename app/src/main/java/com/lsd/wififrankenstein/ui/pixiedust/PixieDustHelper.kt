@@ -32,12 +32,15 @@ class PixieDustHelper(
         private const val TAG = "PixieDustHelper"
         private const val CONFIG_FILE = "wpa_supplicant.conf"
         private const val DEFAULT_PIN = "12345670"
+        private const val PACKAGE_NAME = "wififrankenstein"
     }
 
     private var attackJob: Job? = null
     private var copyingJob: Job? = null
     private var cleanupJob: Job? = null
     private var stoppingJob: Job? = null
+
+    private var useAlternativeWpaCli = false
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val binaryDir = context.filesDir.absolutePath
@@ -337,20 +340,40 @@ class PixieDustHelper(
                     }
                 }
 
-                val wpaCliN = "wpa_cli_n$arch"
+                val wpaCliName = if (useAlternativeWpaCli) {
+                    getAlternativeWpaCliBinaryName()
+                } else {
+                    "wpa_cli$arch"
+                }
+
+                val wpaCliNTarget = "wpa_cli_n$arch"
+
                 try {
-                    assetManager.open("wpa_cli$arch").use { inputStream ->
-                        val outputFile = File(binaryDir, wpaCliN)
-                        outputFile.outputStream().use { outputStream ->
-                            inputStream.copyTo(outputStream)
+                    if (useAlternativeWpaCli) {
+                        context.resources.openRawResource(getAlternativeWpaCliResourceId()).use { inputStream ->
+                            val outputFile = File(binaryDir, wpaCliNTarget)
+                            outputFile.outputStream().use { outputStream ->
+                                inputStream.copyTo(outputStream)
+                            }
+                            outputFile.setExecutable(true)
+                            outputFile.setReadable(true)
+                            outputFile.setWritable(true)
                         }
-                        outputFile.setExecutable(true)
-                        outputFile.setReadable(true)
-                        outputFile.setWritable(true)
+                        callbacks.onLogEntry(LogEntry("Using alternative wpa_cli: $wpaCliName", LogColorType.INFO))
+                    } else {
+                        assetManager.open(wpaCliName).use { inputStream ->
+                            val outputFile = File(binaryDir, wpaCliNTarget)
+                            outputFile.outputStream().use { outputStream ->
+                                inputStream.copyTo(outputStream)
+                            }
+                            outputFile.setExecutable(true)
+                            outputFile.setReadable(true)
+                            outputFile.setWritable(true)
+                        }
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to copy $wpaCliN: ${e.message}", e)
-                    callbacks.onLogEntry(LogEntry("Failed to copy $wpaCliN: ${e.message}", LogColorType.ERROR))
+                    Log.e(TAG, "Failed to copy $wpaCliName: ${e.message}", e)
+                    callbacks.onLogEntry(LogEntry("Failed to copy $wpaCliName: ${e.message}", LogColorType.ERROR))
                     return@withContext false
                 }
 
@@ -867,7 +890,12 @@ class PixieDustHelper(
                     "libcrypto.so.3",
                     "libnl-route-3.so",
                     "temp_isolated_config.txt",
-                    "wpa_supplicant.pid"
+                    "wpa_supplicant.pid",
+                    "wpa_cli_23_method2",
+                    "wpa_cli_19_method2",
+                    "wpa_cli_16_method2",
+                    "wpa_cli_14_method2",
+                    "wpa_cli_method2"
                 )
 
                 if (arch.isEmpty()) {
@@ -1081,6 +1109,28 @@ class PixieDustHelper(
         }
     }
 
+    fun setAlternativeWpaCli(enabled: Boolean) {
+        useAlternativeWpaCli = enabled
+    }
+
+    private fun getAlternativeWpaCliBinaryName(): String {
+        return when {
+            Build.VERSION.SDK_INT >= 23 -> "wpa_cli_23_method2"
+            Build.VERSION.SDK_INT >= 19 -> "wpa_cli_19_method2"
+            Build.VERSION.SDK_INT >= 16 -> "wpa_cli_16_method2"
+            else -> "wpa_cli_14_method2"
+        }
+    }
+
+    private fun getAlternativeWpaCliResourceId(): Int {
+        return when {
+            Build.VERSION.SDK_INT >= 23 -> context.resources.getIdentifier("wpa_cli_23_method2", "raw", context.packageName)
+            Build.VERSION.SDK_INT >= 19 -> context.resources.getIdentifier("wpa_cli_19_method2", "raw", context.packageName)
+            Build.VERSION.SDK_INT >= 16 -> context.resources.getIdentifier("wpa_cli_16_method2", "raw", context.packageName)
+            else -> context.resources.getIdentifier("wpa_cli_14_method2", "raw", context.packageName)
+        }
+    }
+
     private suspend fun restoreWifiState() {
         withContext(Dispatchers.IO) {
             try {
@@ -1208,11 +1258,9 @@ class PixieDustHelper(
     }
 
     private fun getSocketDirectory(): String {
-        val packageName = context.packageName.replace(".", "_")
         return when {
-            Build.VERSION.SDK_INT >= 30 -> "/data/vendor/wifi/wpa/$packageName/"
-            Build.VERSION.SDK_INT >= 28 -> "/data/vendor/wifi/wpa/$packageName/"
-            else -> "/data/misc/wifi/$packageName/"
+            Build.VERSION.SDK_INT >= 28 -> "/data/vendor/wifi/wpa/$PACKAGE_NAME/"
+            else -> "/data/misc/wifi/$PACKAGE_NAME/"
         }
     }
 
@@ -1228,12 +1276,7 @@ class PixieDustHelper(
                 Shell.cmd("mkdir -p $socketDir").exec()
                 Shell.cmd("chmod 777 $socketDir").exec()
 
-                val isolatedConfigDir = "$binaryDir/isolated_config"
-                Shell.cmd("rm -rf $isolatedConfigDir").exec()
-                Shell.cmd("mkdir -p $isolatedConfigDir").exec()
-                Shell.cmd("chmod 755 $isolatedConfigDir").exec()
-
-                val isolatedConfigPath = "$isolatedConfigDir/wpa_supplicant.conf"
+                val isolatedConfigPath = "$binaryDir/wpa_supplicant.conf"
 
                 callbacks.onLogEntry(LogEntry("Creating isolated configuration...", LogColorType.INFO))
                 createCompletelyIsolatedConfig(isolatedConfigPath, socketDir)
@@ -1256,18 +1299,12 @@ class PixieDustHelper(
                     Build.VERSION.SDK_INT >= 28 -> """
                     cd $binaryDir && \
                     export LD_LIBRARY_PATH=$ldLibraryPath && \
-                    export WPA_TRACE_LEVEL=99 && \
-                    unset ANDROID_DATA && \
-                    unset ANDROID_ROOT && \
-                    unset ANDROID_STORAGE && \
-                    export HOME=$isolatedConfigDir && \
-                    export TMPDIR=$isolatedConfigDir && \
-                    ./wpa_supplicant$arch -dd -K -Dnl80211,wext -i $interfaceName -c$isolatedConfigPath -O$socketDir -P$isolatedConfigDir/wpa_supplicant.pid
+                    ( cmdpid=${'$'}BASHPID; (sleep 10; kill ${'$'}cmdpid) & exec ./wpa_supplicant$arch -d -Dnl80211,wext,hostapd,wired -i $interfaceName -c$isolatedConfigPath -K -O$socketDir )
                 """.trimIndent()
                     else -> """
                     cd $binaryDir && \
                     export LD_LIBRARY_PATH=$ldLibraryPath && \
-                    ./wpa_supplicant$arch -dd -K -Dnl80211,wext -i $interfaceName -c$isolatedConfigPath -O$socketDir -P$isolatedConfigDir/wpa_supplicant.pid
+                    ( cmdpid=${'$'}BASHPID; (sleep 10; kill ${'$'}cmdpid) & exec ./wpa_supplicant$arch -d -Dnl80211,wext,hostapd,wired -i $interfaceName -c$isolatedConfigPath -K -O$socketDir )
                 """.trimIndent()
                 }
 
@@ -1721,6 +1758,10 @@ class PixieDustHelper(
                 Log.d(TAG, "Starting WPS registration for BSSID: ${network.bssid}")
                 callbacks.onLogEntry(LogEntry("Starting WPS registration for ${network.bssid}", LogColorType.INFO))
 
+                if (useAlternativeWpaCli) {
+                    callbacks.onLogEntry(LogEntry("Using alternative wpa_cli: ${getAlternativeWpaCliBinaryName()}", LogColorType.INFO))
+                }
+
                 val socketPath = "$socketDir/$interfaceName"
                 Log.d(TAG, "Waiting for control socket: $socketPath")
 
@@ -1740,16 +1781,34 @@ class PixieDustHelper(
 
                 val socketParam = " -g$socketDir/$interfaceName "
 
-                val commands = when {
-                    Build.VERSION.SDK_INT >= 28 -> listOf(
-                        "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch$socketParam IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )",
-                        "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch $socketParam wps_reg ${network.bssid} $DEFAULT_PIN )",
-                        "$binaryDir/wpa_cli_n$arch --bssid ${network.bssid} --pin $DEFAULT_PIN"
+                val commands = if (useAlternativeWpaCli) {
+                    listOf(
+                        "$binaryDir/wpa_cli_n$arch wps_reg ${network.bssid} $DEFAULT_PIN",
+                        "$binaryDir/wpa_cli_n$arch IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN",
+                        "$binaryDir/wpa_cli_n$arch -p$socketDir wps_reg ${network.bssid} $DEFAULT_PIN",
+                        "$binaryDir/wpa_cli_n$arch -g$socketDir/$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN"
                     )
-                    else -> listOf(
-                        "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )",
-                        "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch wps_reg ${network.bssid} $DEFAULT_PIN )"
-                    )
+                } else {
+                    when {
+                        Build.VERSION.SDK_INT >= 30 -> listOf(
+                            "$binaryDir/wpa_cli_n$arch --pin $DEFAULT_PIN --bssid ${network.bssid}",
+                            "$binaryDir/wpa_cli_n$arch -p$socketDir -i$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN",
+                            "$binaryDir/wpa_cli_n$arch -g$socketDir/$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN",
+                            "timeout 10 $binaryDir/wpa_cli_n$arch -p$socketDir wps_reg ${network.bssid} $DEFAULT_PIN",
+                            "( cmdpid=\$\$; (sleep 5; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch -p$socketDir -i$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )"
+                        )
+                        Build.VERSION.SDK_INT >= 28 -> listOf(
+                            "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch$socketParam IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )",
+                            "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch $socketParam wps_reg ${network.bssid} $DEFAULT_PIN )",
+                            "$binaryDir/wpa_cli_n$arch --pin $DEFAULT_PIN --bssid ${network.bssid}",
+                            "$binaryDir/wpa_cli_n$arch -p$socketDir -i$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN",
+                            "$binaryDir/wpa_cli_n$arch -g$socketDir/$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN"
+                        )
+                        else -> listOf(
+                            "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch IFNAME=$interfaceName wps_reg ${network.bssid} $DEFAULT_PIN )",
+                            "( cmdpid=\$\$; (sleep 3; kill \$cmdpid) & exec $binaryDir/wpa_cli_n$arch wps_reg ${network.bssid} $DEFAULT_PIN )"
+                        )
+                    }
                 }
 
                 var success = false
@@ -1836,25 +1895,69 @@ class PixieDustHelper(
 
                     Log.d(TAG, "wpa_cli variant ${index + 1} finished with exit code: $exitCode")
 
-                    if (exitCode == 0 && errorLines.none { it.contains("Usage:") || it.contains("connect error") }) {
+                    val hasUnknownCommand = outputLines.any { it.contains("UNKNOWN COMMAND") }
+                    val hasUsageError = errorLines.any { it.contains("Usage:") }
+                    val hasConnectError = errorLines.any { it.contains("connect error") }
+
+                    if (exitCode == 0 && !hasUnknownCommand && !hasUsageError && !hasConnectError) {
                         success = true
                         callbacks.onLogEntry(LogEntry("WPS registration command succeeded", LogColorType.SUCCESS))
                         break
                     } else {
                         callbacks.onLogEntry(LogEntry("WPS command variant ${index + 1} failed (exit: $exitCode)", LogColorType.ERROR))
 
-                        if (errorLines.any { it.contains("Usage:") }) {
+                        if (hasUnknownCommand) {
+                            callbacks.onLogEntry(LogEntry("Unknown command - trying next variant", LogColorType.INFO))
+                            continue
+                        }
+
+                        if (hasUsageError) {
                             callbacks.onLogEntry(LogEntry("Command syntax error - trying next variant", LogColorType.INFO))
                             continue
                         }
 
-                        if (errorLines.any { it.contains("connect error") }) {
+                        if (hasConnectError) {
                             callbacks.onLogEntry(LogEntry("Socket connection error - trying next variant", LogColorType.INFO))
                             continue
                         }
                     }
 
                     delay(1000)
+                }
+
+                if (!success) {
+                    callbacks.onLogEntry(LogEntry("Trying alternative WPS registration methods for Android ${Build.VERSION.SDK_INT}", LogColorType.INFO))
+
+                    val alternativeCommands = listOf(
+                        "$binaryDir/wpa_cli$arch -p$socketDir wps_reg ${network.bssid} $DEFAULT_PIN",
+                        "echo 'wps_reg ${network.bssid} $DEFAULT_PIN' | $binaryDir/wpa_cli_n$arch -p$socketDir",
+                        "$binaryDir/wpa_cli_n$arch -p$socketDir -a wps_reg ${network.bssid} $DEFAULT_PIN"
+                    )
+
+                    for ((index, altCmd) in alternativeCommands.withIndex()) {
+                        val ldLibraryPath = if (Build.VERSION.SDK_INT >= 28) {
+                            "$binaryDir:/system/lib64:/system/lib"
+                        } else {
+                            binaryDir
+                        }
+
+                        val command = "cd $binaryDir && export LD_LIBRARY_PATH=$ldLibraryPath && timeout 8 $altCmd"
+
+                        Log.d(TAG, "Trying alternative WPS command ${index + 1}/${alternativeCommands.size}: $altCmd")
+                        callbacks.onLogEntry(LogEntry("Trying alternative method ${index + 1}/${alternativeCommands.size}", LogColorType.INFO))
+
+                        val result = Shell.cmd(command).exec()
+
+                        if (result.isSuccess && !result.err.any { it.contains("Usage:") || it.contains("connect error") }) {
+                            success = true
+                            callbacks.onLogEntry(LogEntry("Alternative WPS method succeeded", LogColorType.SUCCESS))
+                            break
+                        } else {
+                            callbacks.onLogEntry(LogEntry("Alternative method ${index + 1} failed", LogColorType.ERROR))
+                        }
+
+                        delay(1000)
+                    }
                 }
 
                 if (success) {
