@@ -647,31 +647,42 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         filters.forEach { field ->
             when (field) {
                 "BSSID" -> {
-                    if (wholeWords) {
-                        val possibleFormats = generateMacFormats(query)
-                        var bssidConditionAdded = false
+                    if (isValidBssidQuery(query)) {
+                        if (wholeWords) {
+                            val possibleFormats = generateMacFormats(query)
+                            var bssidConditionAdded = false
 
-                        possibleFormats.forEach { format ->
-                            val decimalValue = macToDecimalSafe(format)
-                            if (decimalValue != -1L) {
-                                conditions.add("n.BSSID = ?")
-                                args.add(decimalValue.toString())
-                                bssidConditionAdded = true
+                            possibleFormats.forEach { format ->
+                                val decimalValue = macToDecimalSafe(format)
+                                if (decimalValue != -1L) {
+                                    conditions.add("n.BSSID = ?")
+                                    args.add(decimalValue.toString())
+                                    bssidConditionAdded = true
+                                }
+                            }
+
+                            if (!bssidConditionAdded) {
+                                conditions.add("CAST(n.BSSID AS TEXT) = ?")
+                                args.add(query)
+                            }
+                        } else {
+                            when {
+                                query.matches("\\d+".toRegex()) -> {
+                                    conditions.add("CAST(n.BSSID AS TEXT) LIKE ?")
+                                    args.add("%$query%")
+                                }
+                                else -> {
+                                    val cleanQuery = query.replace("[^a-fA-F0-9]".toRegex(), "")
+                                    if (cleanQuery.isNotEmpty()) {
+                                        conditions.add("UPPER(printf('%012X', n.BSSID)) LIKE ? OR UPPER(substr(printf('%02X:%02X:%02X:%02X:%02X:%02X', (n.BSSID >> 40) & 255, (n.BSSID >> 32) & 255, (n.BSSID >> 24) & 255, (n.BSSID >> 16) & 255, (n.BSSID >> 8) & 255, n.BSSID & 255), 1, length(?)*3-2)) LIKE ?")
+                                        val searchPattern = "%${cleanQuery.uppercase()}%"
+                                        args.add(searchPattern)
+                                        args.add(cleanQuery.uppercase())
+                                        args.add(searchPattern)
+                                    }
+                                }
                             }
                         }
-
-                        if (!bssidConditionAdded) {
-                            conditions.add("CAST(n.BSSID AS TEXT) = ?")
-                            args.add(query)
-                        }
-                    } else {
-                        val cleanQuery = query.replace("[^a-fA-F0-9:]".toRegex(), "")
-                        conditions.add("CAST(n.BSSID AS TEXT) LIKE ? OR UPPER(printf('%012X', n.BSSID)) LIKE ? OR UPPER(substr(printf('%02X:%02X:%02X:%02X:%02X:%02X', (n.BSSID >> 40) & 255, (n.BSSID >> 32) & 255, (n.BSSID >> 24) & 255, (n.BSSID >> 16) & 255, (n.BSSID >> 8) & 255, n.BSSID & 255), 1, length(?)*3-2)) LIKE ?")
-                        val searchPattern = "%${cleanQuery.uppercase()}%"
-                        args.add(searchPattern)
-                        args.add(searchPattern)
-                        args.add(cleanQuery.uppercase())
-                        args.add(searchPattern)
                     }
                 }
                 "ESSID" -> {
@@ -709,6 +720,22 @@ class SQLite3WiFiHelper(private val context: Context, private val dbUri: Uri, pr
         return database?.rawQuery(baseQuery, args.toTypedArray())?.use { cursor ->
             cursor.toSearchResultsRaw()
         } ?: emptyList()
+    }
+
+    private fun isValidBssidQuery(query: String): Boolean {
+        return when {
+            // MAC адрес с разделителями (AA:BB:CC:DD:EE:FF или AA-BB-CC-DD-EE-FF)
+            query.matches("([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})".toRegex()) -> true
+            // MAC адрес без разделителей (12 hex символов)
+            query.matches("[0-9A-Fa-f]{12}".toRegex()) -> true
+            // Decimal формат (длинное число)
+            query.matches("\\d+".toRegex()) && query.length >= 6 -> true
+            // Частичный поиск по hex (минимум 2 символа)
+            query.matches("[0-9A-Fa-f]+".toRegex()) && query.length >= 2 -> true
+            // Частичный поиск с разделителями
+            query.matches("[0-9A-Fa-f:.-]+".toRegex()) && query.replace("[:-]".toRegex(), "").length >= 2 -> true
+            else -> false
+        }
     }
 
     private fun macToDecimalSafe(mac: String): Long {
