@@ -1,0 +1,12 @@
+{
+  "libs": {
+    "version": "1.0.0",
+    "url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/refs/heads/service/routerscan_libs.zip",
+    "files": ["rs", "liblibrouter.so"]
+  },
+  "auth": {
+    "version": "1.0.0", 
+    "url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/refs/heads/service/routerscan_auth.zip",
+    "files": ["auth_basic.txt", "auth_digest.txt", "auth_form.txt"]
+  }
+}
