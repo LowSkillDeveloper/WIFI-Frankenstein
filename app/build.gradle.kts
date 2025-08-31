@@ -89,6 +89,8 @@ tasks.withType<KotlinJvmCompile>().configureEach {
 }
 
 dependencies {
+    implementation (libs.ipaddress)
+    implementation (libs.commons.net)
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)
     implementation(libs.libsu.nio)
