@@ -2,11 +2,7 @@
 <resources>
 
     <color name="card_background">#FFFFFF</color>
-    <color name="button_color">#FF6200EE</color>
 
-    <color name="purple_button">#FF6200EE</color>
-    <color name="green_button">#4CAF50</color>
-    <color name="blue_button">#2196F3</color>
 
 
     <color name="purple_200">#FFBB86FC</color>
@@ -28,8 +24,6 @@
     <color name="error_red">#F44336</color>
     <color name="divider">#1F000000</color>
 
-    <color name="detail_row_even">#FFFFFF</color>
-    <color name="detail_row_odd">#F5F5F5</color>
 
 
     <color name="purple_200_dark">#FFBB86FC</color>
