@@ -1515,13 +1515,18 @@
     <string name="geo_mac_title">MAC Geolocation</string>
     <string name="geo_mac_description">Find the approximate location of a WiFi access point by its MAC address</string>
     <string name="invalid_mac_address">Invalid MAC address format</string>
-    <string name="location_found">Location found: %1$s</string>
     <string name="no_location_found">No location found for this MAC address</string>
     <string name="search_failed">Search failed</string>
     <string name="search_error">Search error: %1$s</string>
     <string name="root_required_geomac">Root access is required for MAC geolocation</string>
     <string name="chroot_required_geomac">System environment is not installed</string>
     <string name="failed_mount_chroot">Failed to mount system environment</string>
+
+    <string name="map_locations">Map Locations</string>
+    <string name="location_sources">Found locations from %d sources</string>
+    <string name="location_source_marker">%s\n%f, %f</string>
+    <string name="location_found">Location found: %s</string>
+    <string name="no_coordinates_to_copy">No coordinates to copy</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

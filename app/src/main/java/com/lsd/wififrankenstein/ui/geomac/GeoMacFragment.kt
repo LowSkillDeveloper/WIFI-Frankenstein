@@ -14,12 +14,25 @@ import com.lsd.wififrankenstein.util.Log
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.launch
 import java.util.regex.Pattern
+import android.content.Context
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import com.lsd.wififrankenstein.ui.ipranges.CustomMapView
 
 class GeoMacFragment : Fragment() {
 
     private var _binding: FragmentGeoMacBinding? = null
     private val binding get() = _binding!!
     private lateinit var chrootManager: ChrootManager
+
+    private lateinit var mapView: MapView
+    private val locationMarkers = mutableListOf<Marker>()
+
+    private var currentResults: List<GeoMacResult> = emptyList()
+
 
     companion object {
         private const val TAG = "GeoMacFragment"
@@ -39,6 +52,7 @@ class GeoMacFragment : Fragment() {
 
         Log.d(TAG, "Fragment created")
         chrootManager = ChrootManager(requireContext())
+        setupMap()
         setupViews()
         checkRootAndChroot()
     }
@@ -59,12 +73,44 @@ class GeoMacFragment : Fragment() {
             }
         }
 
+
         binding.buttonClear.setOnClickListener {
             Log.d(TAG, "Clear button clicked")
             binding.editTextMacAddress.text?.clear()
             binding.textViewResult.text = ""
             binding.textViewResult.visibility = View.GONE
+            binding.mapLabel.visibility = View.GONE
+            binding.mapView.visibility = View.GONE
+            binding.buttonCopyCoordinates.visibility = View.GONE
+            clearMapMarkers()
+            currentResults = emptyList()
         }
+
+        binding.buttonCopyCoordinates.setOnClickListener {
+            Log.d(TAG, "Copy coordinates button clicked")
+            if (currentResults.isNotEmpty()) {
+                copyCoordinatesToClipboard(currentResults)
+            } else {
+                Toast.makeText(requireContext(), R.string.no_coordinates_to_copy, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun setupMap() {
+        Log.d(TAG, "Setting up map")
+
+        Configuration.getInstance().load(requireContext(),
+            requireContext().getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
+
+        mapView = binding.mapView
+        mapView.setTileSource(TileSourceFactory.MAPNIK)
+        mapView.setMultiTouchControls(true)
+        mapView.setBuiltInZoomControls(false)
+        mapView.setTilesScaledToDpi(true)
+
+        val controller = mapView.controller
+        controller.setZoom(6.0)
+        controller.setCenter(GeoPoint(55.7558, 37.6176))
     }
 
     private fun checkRootAndChroot() {
@@ -174,18 +220,18 @@ class GeoMacFragment : Fragment() {
                         val outputText = result.out.joinToString("\n")
                         Log.d(TAG, "Full output text: '$outputText'")
 
-                        val coordinates = extractCoordinates(outputText)
-                        Log.d(TAG, "Extracted coordinates: $coordinates")
+                        val geoResults = extractAllCoordinates(outputText)
+                        Log.d(TAG, "Extracted ${geoResults.size} results")
 
-                        if (coordinates != null) {
-                            Log.i(TAG, "Location found successfully: $coordinates")
-                            showResult(coordinates)
+                        if (geoResults.isNotEmpty()) {
+                            Log.i(TAG, "Locations found successfully: ${geoResults.size} results")
+                            showResults(geoResults)
                         } else {
                             Log.w(TAG, "No coordinates found in output")
 
                             if (outputText.isNotEmpty()) {
                                 Log.d(TAG, "Showing raw output as fallback")
-                                showResult("Raw output: $outputText")
+                                showError("Raw output: $outputText")
                             } else {
                                 Log.w(TAG, "No output received from geomac binary")
                                 showError(getString(R.string.no_location_found))
@@ -211,6 +257,46 @@ class GeoMacFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun extractAllCoordinates(output: String): List<GeoMacResult> {
+        Log.d(TAG, "Extracting all coordinates from output: '$output'")
+
+        val results = mutableListOf<GeoMacResult>()
+        val lines = output.split("\n")
+
+        lines.forEachIndexed { index, line ->
+            Log.d(TAG, "Processing line $index: '$line'")
+
+            if (line.contains("|")) {
+                val parts = line.split("|")
+                if (parts.size >= 2) {
+                    val sourcePart = parts[0].trim()
+                    val coordsPart = parts[1].trim()
+
+                    Log.d(TAG, "Source: '$sourcePart', Coords: '$coordsPart'")
+
+                    val coordsPattern = Pattern.compile("([0-9]*\\.?[0-9]+),\\s*([0-9]*\\.?[0-9]+)")
+                    val matcher = coordsPattern.matcher(coordsPart)
+
+                    if (matcher.find()) {
+                        try {
+                            val lat = matcher.group(1).toDouble()
+                            val lon = matcher.group(2).toDouble()
+
+                            val result = GeoMacResult(sourcePart, lat, lon)
+                            results.add(result)
+                            Log.d(TAG, "Added result: $result")
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to parse coordinates: $coordsPart", e)
+                        }
+                    }
+                }
+            }
+        }
+
+        Log.d(TAG, "Extracted ${results.size} coordinate results")
+        return results
     }
 
     private fun extractCoordinates(output: String): String? {
@@ -253,18 +339,111 @@ class GeoMacFragment : Fragment() {
         return null
     }
 
-    private fun showResult(coordinates: String) {
-        Log.i(TAG, "Showing successful result: $coordinates")
-        binding.textViewResult.text = getString(R.string.location_found, coordinates)
+    private fun showResults(results: List<GeoMacResult>) {
+        Log.i(TAG, "Showing ${results.size} results")
+
+        currentResults = results
+
+        val resultText = getString(R.string.location_sources, results.size) + "\n" +
+                results.joinToString("\n") { result ->
+                    "${result.source}: ${result.latitude}, ${result.longitude}"
+                }
+
+        binding.textViewResult.text = resultText
         binding.textViewResult.visibility = View.VISIBLE
-        binding.textViewResult.setTextColor(resources.getColor(R.color.success_green, null))
+        binding.textViewResult.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.success_green))
+
+        binding.buttonCopyCoordinates.visibility = View.VISIBLE
+
+        showMarkersOnMap(results)
     }
+
+    private fun showMarkersOnMap(results: List<GeoMacResult>) {
+        Log.d(TAG, "Adding ${results.size} markers to map")
+
+        clearMapMarkers()
+
+        binding.mapLabel.visibility = View.VISIBLE
+        binding.mapView.visibility = View.VISIBLE
+
+        if (results.isNotEmpty()) {
+            var minLat = results[0].latitude
+            var maxLat = results[0].latitude
+            var minLon = results[0].longitude
+            var maxLon = results[0].longitude
+
+            results.forEach { result ->
+                val geoPoint = GeoPoint(result.latitude, result.longitude)
+
+                val marker = Marker(mapView).apply {
+                    position = geoPoint
+                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    title = result.source
+                    snippet = getString(R.string.location_source_marker,
+                        result.source, result.latitude, result.longitude)
+                }
+
+                locationMarkers.add(marker)
+                mapView.overlays.add(marker)
+
+                minLat = minOf(minLat, result.latitude)
+                maxLat = maxOf(maxLat, result.latitude)
+                minLon = minOf(minLon, result.longitude)
+                maxLon = maxOf(maxLon, result.longitude)
+            }
+
+            val centerLat = (minLat + maxLat) / 2
+            val centerLon = (minLon + maxLon) / 2
+            val center = GeoPoint(centerLat, centerLon)
+
+            mapView.controller.setCenter(center)
+
+            val latSpan = maxLat - minLat
+            val lonSpan = maxLon - minLon
+            val maxSpan = maxOf(latSpan, lonSpan)
+
+            val zoom = when {
+                maxSpan > 10.0 -> 6.0
+                maxSpan > 1.0 -> 10.0
+                maxSpan > 0.1 -> 13.0
+                maxSpan > 0.01 -> 16.0
+                else -> 18.0
+            }
+
+            mapView.controller.setZoom(zoom)
+            mapView.invalidate()
+
+            Log.d(TAG, "Map centered at $center with zoom $zoom")
+        }
+    }
+
+    private fun copyCoordinatesToClipboard(results: List<GeoMacResult>) {
+        val coordinatesText = results.joinToString("\n") { result ->
+            "${result.source}: ${result.latitude}, ${result.longitude}"
+        }
+
+        val clipboard = requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        val clip = android.content.ClipData.newPlainText(getString(R.string.copy_coordinates), coordinatesText)
+        clipboard.setPrimaryClip(clip)
+
+        Toast.makeText(requireContext(), R.string.coordinates_copied, Toast.LENGTH_SHORT).show()
+        Log.d(TAG, "Copied coordinates to clipboard: $coordinatesText")
+    }
+
+    private fun clearMapMarkers() {
+        locationMarkers.forEach { marker ->
+            mapView.overlays.remove(marker)
+        }
+        locationMarkers.clear()
+        mapView.invalidate()
+    }
+
 
     private fun showError(message: String) {
         Log.e(TAG, "Showing error: $message")
         binding.textViewResult.text = message
         binding.textViewResult.visibility = View.VISIBLE
-        binding.textViewResult.setTextColor(resources.getColor(R.color.error_red, null))
+        binding.textViewResult.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.error_red))
     }
 
     private fun isValidMacAddress(mac: String): Boolean {
@@ -272,6 +451,20 @@ class GeoMacFragment : Fragment() {
         val isValid = pattern.matcher(mac).matches()
         Log.d(TAG, "MAC address validation for '$mac': $isValid")
         return isValid
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::mapView.isInitialized) {
+            mapView.onResume()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (::mapView.isInitialized) {
+            mapView.onPause()
+        }
     }
 
     override fun onDestroyView() {
