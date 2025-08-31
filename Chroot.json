@@ -1,0 +1,11 @@
+{
+  "version": "3.22.1",
+  "arm64": {
+    "filename": "WIFIFrankenstein-minirootfs-aarch64.tar.gz",
+    "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v1.0/WIFIFrankenstein-minirootfs-aarch64.tar.gz"
+  },
+  "armhf": {
+    "filename": "WIFIFrankenstein-minirootfs-armhf.tar.gz",
+    "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v1.0/WIFIFrankenstein-minirootfs-armhf.tar.gz"
+  }
+}
