@@ -208,7 +208,7 @@
                 android:orientation="vertical"
                 android:layout_marginBottom="16dp"/>
 
-            <org.osmdroid.views.MapView
+            <com.lsd.wififrankenstein.ui.ipranges.CustomMapView
                 android:id="@+id/map"
                 android:layout_width="match_parent"
                 android:layout_height="300dp"

@@ -20,6 +20,7 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.snackbar.Snackbar
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentMacLocationBinding
+import com.lsd.wififrankenstein.ui.ipranges.CustomMapView
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
