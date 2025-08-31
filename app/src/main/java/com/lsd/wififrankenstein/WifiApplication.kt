@@ -14,7 +14,7 @@ class WifiApplication : Application() {
         Shell.enableVerboseLogging = BuildConfig.DEBUG
         Shell.setDefaultBuilder(Shell.Builder.create()
             .setFlags(Shell.FLAG_MOUNT_MASTER)
-            .setInitializers(ShellInitializer::class.java)
+            .setInitializers(com.lsd.wififrankenstein.shell.ShellInitializer::class.java)
             .setTimeout(15))
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
