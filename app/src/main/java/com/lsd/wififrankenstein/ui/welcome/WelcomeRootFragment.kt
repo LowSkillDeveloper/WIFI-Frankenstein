@@ -81,13 +81,23 @@ class WelcomeRootFragment : Fragment() {
         binding.textViewRootStatus.visibility = View.VISIBLE
 
         lifecycleScope.launch {
-            Shell.getShell { shell ->
+            try {
+                val testResult = Shell.cmd("id").exec()
+                val hasRoot = testResult.isSuccess && testResult.out.any { it.contains("uid=0") }
+
                 activity?.runOnUiThread {
-                    if (shell != null && Shell.isAppGrantedRoot() == true) {
+                    if (hasRoot) {
                         showRootGrantedMessage()
                     } else {
                         showRootDeniedMessage()
                     }
+                    rootCheckCompleted = true
+                    binding.buttonNext.visibility = View.VISIBLE
+                    updateNavigationButtons()
+                }
+            } catch (e: Exception) {
+                activity?.runOnUiThread {
+                    showRootDeniedMessage()
                     rootCheckCompleted = true
                     binding.buttonNext.visibility = View.VISIBLE
                     updateNavigationButtons()

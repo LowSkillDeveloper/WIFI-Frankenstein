@@ -260,7 +260,15 @@ class ChrootManager(private val context: Context) {
     }
 
     fun executeInChroot(command: String): Shell.Result {
-        return Shell.cmd("chroot $CHROOT_PATH $command").exec()
+        Log.d("ChrootManager", "Checking root access before chroot execution")
+        val rootCheck = Shell.cmd("whoami").exec()
+        Log.d("ChrootManager", "Root check result: ${rootCheck.out.joinToString(" ")}")
+
+        if (!rootCheck.isSuccess || !rootCheck.out.any { it.contains("root") }) {
+            Log.w("ChrootManager", "Warning: Not running as root user")
+        }
+
+        return ChrootCommandExecutor.executeWithDetailedLogging(CHROOT_PATH, command)
     }
 
     fun getChrootPath(): String = CHROOT_PATH
