@@ -3,7 +3,6 @@
     <string name="app_name" translatable="false">WIFI Frankenstein</string>
     <string name="nav_header_title_with_version" translatable="false">%1$s %2$s</string>
     <string name="default_upload_comment" translatable="false">WIFI-Frankenstein</string>
-    <string name="unofficial_version_warning">Unofficial modified version</string>
 
     <string name="include_app_identifier">Include App Identifier</string>
     <string name="app_identifier_description">Send app identifier with requests</string>
@@ -64,12 +63,9 @@
     <string name="retry">Retry</string>
     <string name="changelog">Changelog</string>
     <string name="ok">OK</string>
-    <string name="error_checking_updates">Error checking for updates: %s</string>
     <string name="ssid">SSID</string>
     <string name="bssid">BSSID</string>
     <string name="copied_to_clipboard">%s copied to clipboard</string>
-    <string name="api_key">API Key</string>
-    <string name="api_key_hint">If left empty, 000000000000 will be used as the API key</string>
 
 
     <string name="show_database_info">Show Info</string>
@@ -91,8 +87,6 @@
     <string name="no_pins_found">No pins found</string>
     <string name="wps_generator_title">WPS Generator</string>
     <string name="error_accessing_database">Error accessing database</string>
-    <string name="error_updating_file">Error updating file %1$s: %2$s</string>
-    <string name="error_updating_files">Error updating files: %s</string>
     <string name="error_fetching_changelog">Error fetching changelog: %1$s</string>
     <string name="app_update">App Update</string>
     <string name="wps_started">WPS Started.</string>
@@ -353,14 +347,12 @@
 
     <!-- WiFi Map -->
     <string name="select_databases">Select databases to show points from</string>
-    <string name="network_info">Network Information</string>
     <string name="map_legend">Legend</string>
 
     <string name="wifi_map_settings">WiFi Map Settings</string>
 
     <string name="zoom_in_message">Zoom in to see WiFi points</string>
 
-    <string name="database_error">Error loading database: %1$s</string>
     <string name="point_loading_error">Error loading point info</string>
 
     <!-- API 3WiFi -->
@@ -568,7 +560,6 @@
 
     <string name="db_step1_description">Checking for recommended databases…</string>
     <string name="db_step1_no_databases">No recommended databases found</string>
-    <string name="db_step1_found_databases">Found the following recommended databases:</string>
     <string name="db_step1_skip">Skip</string>
     <string name="db_step1_next">Next</string>
 
@@ -588,7 +579,6 @@
 
     <string name="db_step4_description">Enter a link to a 3WiFi API server</string>
     <string name="db_step4_url_hint">3WiFi API link</string>
-    <string name="db_step4_key_hint">API key (optional)</string>
     <string name="db_step4_skip">Skip</string>
     <string name="db_step4_finish">Finish</string>
 
@@ -642,16 +632,9 @@
     <string name="about_app_description">WIFI Frankenstein is an application for pintesting your wifi networks and working with wifi databases, displaying the location of wifi points on the map and much more. This is a Frankenstein application, which contains various functionality for working with wifi.</string>
     <string name="about_app_replacement">The application was created to replace the old 3WiFi Locator application.</string>
     <string name="about_app_author">Author: LowSkillDeveloper (Internet User in Telegram)</string>
-    <string name="about_libraries_title">Libraries used:</string>
     <string name="github_button">Open on GitHub</string>
 
     <!-- Libraries -->
-    <string name="library_androidx">AndroidX - Apache License 2.0</string>
-    <string name="library_material">Material Components - Apache License 2.0</string>
-    <string name="library_opencsv">OpenCSV - Apache License 2.0</string>
-    <string name="library_okhttp">OkHttp - Apache License 2.0</string>
-    <string name="library_osmdroid">osmdroid - Apache License 2.0</string>
-    <string name="library_kotlinx">KotlinX Serialization - Apache License 2.0</string>
 
     <string name="downloading_archive_part">Downloading part %1$d of %2$d</string>
     <string name="extracting_archive">Extracting archive…</string>
@@ -700,9 +683,6 @@
     <string name="clustering_points">Clustering points…</string>
     <string name="rendering_markers">Rendering markers…</string>
     <string name="loading_points_progress">Loading points…</string>
-    <string name="server_url">Server URL</string>
-    <string name="test_results">Test Results</string>
-    <string name="action_settings">Settings</string>
     <string name="create_indexes">Create Indexes</string>
 
 
@@ -945,57 +925,7 @@
     <string name="keys_copied_to_clipboard">Keys copied to clipboard</string>
     <string name="pin_copied_to_clipboard">PIN copied to clipboard</string>
 
-    <string name="pixiedust_title">PixieDust Attack</string>
-    <string name="pixiedust_description">PixieDust is a WPS attack that exploits weak randomness in some WPS implementations to recover the WPS PIN</string>
-    <string name="pixiedust_requires_wps">This attack only works on networks with WPS enabled and vulnerable implementations</string>
-    <string name="pixiedust_system_requirements">System Requirements</string>
-    <string name="pixiedust_checking_root">Checking root access…</string>
-    <string name="pixiedust_checking_binaries">Checking binary files…</string>
-    <string name="pixiedust_network_scanning">Network Scanning</string>
-    <string name="pixiedust_scan_networks">Scan for WPS Networks</string>
-    <string name="pixiedust_wps_networks">WPS Networks</string>
-    <string name="pixiedust_attack_control">Attack Control</string>
-    <string name="pixiedust_no_network_selected">No network selected</string>
-    <string name="pixiedust_start_attack">Start Attack</string>
-    <string name="pixiedust_stop_attack">Stop Attack</string>
-    <string name="pixiedust_attack_result">Attack Result</string>
-    <string name="pixiedust_copy_pin">Copy PIN</string>
-    <string name="pixiedust_save_result">Save Result</string>
-    <string name="pixiedust_wps_enabled">WPS</string>
-    <string name="pixiedust_scanning">Scanning for networks…</string>
-    <string name="pixiedust_preparing">Preparing attack…</string>
-    <string name="pixiedust_extracting_data">Extracting handshake data…</string>
-    <string name="pixiedust_running_attack">Running PixieDust attack…</string>
-    <string name="pixiedust_attack_completed">Attack completed</string>
-    <string name="pixiedust_attack_failed">Attack failed: %s</string>
-    <string name="pixiedust_networks_found">Found %d WPS networks</string>
-    <string name="pixiedust_no_networks">No WPS networks found</string>
-    <string name="pixiedust_select_network">Please select a network</string>
-    <string name="pixiedust_root_required">Root access required</string>
-    <string name="pixiedust_binaries_not_found">Binary files not found</string>
-    <string name="pixiedust_root_not_available">Root access: Not available</string>
-    <string name="pixiedust_pin_found">PIN discovered: %s</string>
-    <string name="pixiedust_pin_not_found">PIN not found</string>
-    <string name="pixiedust_result_saved">Result saved successfully</string>
-    <string name="pixiedust_network_info">%s (%s)</string>
-    <string name="pixiedust_signal_strength">%d dBm</string>
-    <string name="pixiedust_frequency">%d MHz</string>
-    <string name="pixiedust_warning_title">Warning</string>
-    <string name="pixiedust_warning_message">This tool is for educational purposes only. Only use on networks you own or have explicit permission to test. Unauthorized access to wireless networks is illegal.</string>
-    <string name="pixiedust_understand_risks">I Understand</string>
-    <string name="permission_required">Permission Required</string>
-    <string name="pixiedust_root_available">Root access: Available</string>
-    <string name="pixiedust_binary_files_ready">Binary files: Ready</string>
-    <string name="pixiedust_binary_files_not_available">Binary files: Not available</string>
-    <string name="pixiedust_unknown_network">Unknown</string>
     <string name="menu_pixiedust">PixieDust</string>
-    <string name="pixiedust_copying_binaries">Copying binary files…</string>
-    <string name="pixiedust_binaries_ready">Binary files ready</string>
-    <string name="pixiedust_error_copying_binaries">Error copying binary files</string>
-    <string name="pixiedust_preparing_attack">Preparing attack…</string>
-    <string name="pixiedust_extracting_handshake">Extracting handshake data…</string>
-    <string name="pixiedust_computing_pin">Computing PIN…</string>
-    <string name="pixiedust_data_extraction_failed">Failed to extract data for attack</string>
     <string name="support_state_supported">Supported</string>
     <string name="support_state_unlikely">Unlikely</string>
     <string name="support_state_unsupported">Unsupported</string>
@@ -1049,27 +979,6 @@
     <string name="category_utilities">Utilities</string>
     <string name="system_files_updates">System Files Updates</string>
     <string name="local_size">Local size: %1$s</string>
-    <string name="pixiedust_failed_start_supplicant">Failed to start supplicant</string>
-    <string name="pixiedust_attack_error">Attack error: %1$s</string>
-    <string name="pixiedust_manual_network_entry">Manual Network Entry</string>
-    <string name="pixiedust_network_ssid">Network SSID</string>
-    <string name="pixiedust_network_bssid">Network BSSID (MAC Address)</string>
-    <string name="pixiedust_add_network">Add Network</string>
-    <string name="pixiedust_invalid_bssid">Invalid BSSID format</string>
-    <string name="pixiedust_cleaning_up">Cleaning up processes…</string>
-    <string name="pixiedust_attack_log">Attack Log</string>
-    <string name="pixiedust_clear_log">Clear Log</string>
-    <string name="pixiedust_log_empty">No log entries</string>
-    <string name="pixiedust_ssid_required">SSID cannot be empty</string>
-    <string name="pixiedust_advanced_settings">Advanced Settings</string>
-    <string name="pixiedust_extraction_timeout">Data Extraction Timeout</string>
-    <string name="pixiedust_extraction_timeout_desc">Maximum time to wait for extracting handshake data</string>
-    <string name="pixiedust_computation_timeout">Computation Timeout</string>
-    <string name="pixiedust_computation_timeout_desc">Maximum time for PIN computation</string>
-    <string name="pixiedust_seconds">seconds</string>
-    <string name="pixiedust_reset_defaults">Reset to Defaults</string>
-    <string name="pixiedust_aggressive_cleanup">Enable aggressive system process termination (not recommended)</string>
-    <string name="pixiedust_aggressive_cleanup_desc">Uses aggressive method to stop system WiFi services. May cause system instability but increases attack success rate.</string>
     <string name="router_model">Model</string>
     <string name="admin_credentials">Admin Panel:</string>
     <string name="network_status">Network Status:</string>
@@ -1093,14 +1002,6 @@
     <string name="no_map_app_found">No map application found</string>
     <string name="unknown_database">Unknown Database</string>
     <string name="other_actions">Other Actions</string>
-    <string name="pixiedust_cleanup_binaries">Cleanup Binaries</string>
-    <string name="pixiedust_cleanup_binaries_title">Cleanup Binary Files</string>
-    <string name="pixiedust_cleanup_binaries_message">This will remove all binary files, symlinks and temporary directories. The files will be re-extracted on next attack. Continue?</string>
-    <string name="pixiedust_cleanup_confirm">Cleanup</string>
-    <string name="pixiedust_cleaning_binaries">Cleaning binary files…</string>
-    <string name="pixiedust_cleanup_completed">Binary cleanup completed</string>
-    <string name="pixiedust_cleanup_error">Binary cleanup failed</string>
-    <string name="pixiedust_copy_binaries">Copy Binaries</string>
     <string name="root_access_setup">Root Access</string>
     <string name="root_access_description">If you have root permissions, the application can use additional features</string>
     <string name="root_question">Do you have root permissions on the device?</string>
@@ -1115,184 +1016,18 @@
     <string name="api_servers">API Servers</string>
 
     <!-- Association Reject Status Codes -->
-    <string name="assoc_reject_unspecified" translatable="false">Association rejected: Unspecified failure</string>
-    <string name="assoc_reject_prev_auth_invalid" translatable="false">Association rejected: Previous authentication no longer valid</string>
-    <string name="assoc_reject_deauth_leaving" translatable="false">Association rejected: Station is leaving network</string>
-    <string name="assoc_reject_inactivity" translatable="false">Association rejected: Due to inactivity</string>
-    <string name="assoc_reject_ap_overload" translatable="false">Association rejected: AP cannot handle more stations</string>
-    <string name="assoc_reject_class2_frame" translatable="false">Association rejected: Unauthorized frame received</string>
-    <string name="assoc_reject_class3_frame" translatable="false">Association rejected: Unassociated frame received</string>
-    <string name="assoc_reject_leaving_bss" translatable="false">Association rejected: Station leaving BSS</string>
-    <string name="assoc_reject_not_authenticated" translatable="false">Association rejected: Station not authenticated</string>
-    <string name="assoc_reject_power_capability" translatable="false">Association rejected: Power capability unacceptable</string>
-    <string name="assoc_reject_supported_channels" translatable="false">Association rejected: Supported channels unacceptable</string>
-    <string name="assoc_reject_invalid_ie" translatable="false">Association rejected: Invalid information element</string>
-    <string name="assoc_reject_mic_failure" translatable="false">Association rejected: MIC failure</string>
-    <string name="assoc_reject_4way_timeout" translatable="false">Association rejected: 4-Way handshake timeout</string>
-    <string name="assoc_reject_group_timeout" translatable="false">Association rejected: Group key handshake timeout</string>
-    <string name="assoc_reject_ie_different" translatable="false">Association rejected: IE mismatch</string>
-    <string name="assoc_reject_invalid_group_cipher" translatable="false">Association rejected: Invalid group cipher</string>
-    <string name="assoc_reject_invalid_pairwise_cipher" translatable="false">Association rejected: Invalid pairwise cipher</string>
-    <string name="assoc_reject_invalid_akmp" translatable="false">Association rejected: Invalid AKMP</string>
-    <string name="assoc_reject_unsupported_rsn" translatable="false">Association rejected: Unsupported RSN version</string>
-    <string name="assoc_reject_invalid_rsn_capabilities" translatable="false">Association rejected: Invalid RSN capabilities</string>
-    <string name="assoc_reject_8021x_failed" translatable="false">Association rejected: 802.1X authentication failed</string>
-    <string name="assoc_reject_cipher_rejected" translatable="false">Association rejected: Cipher suite rejected</string>
-    <string name="assoc_reject_load_balancing" translatable="false">Association rejected: Load balancing</string>
-    <string name="assoc_reject_unknown" translatable="false">Association rejected: Status code %d</string>
-
-    <string name="pixie_log_waiting_target" translatable="false">[?] Waiting for target</string>
-    <string name="pixie_log_auth_request" translatable="false">[+] Sending authentication request</string>
-    <string name="pixie_log_assoc_request" translatable="false">[+] Sending association request</string>
-    <string name="pixie_log_associated" translatable="false">[+] Associated with %1$s (ESSID: %2$s)</string>
-    <string name="pixie_log_eapol_start" translatable="false">[+] Sending EAPOL START request</string>
-    <string name="pixie_log_identity_request" translatable="false">[+] Received identity request</string>
-    <string name="pixie_log_identity_response" translatable="false">[+] Sending identity response</string>
-    <string name="pixie_log_m1_received" translatable="false">[+] Received M1 message</string>
-    <string name="pixie_log_m2_sending" translatable="false">[+] Sending M2 message</string>
-    <string name="pixie_log_m3_received" translatable="false">[+] Received M3 message</string>
-    <string name="pixie_log_m4_sending" translatable="false">[+] Sending M4 message</string>
-    <string name="pixie_log_m5_received" translatable="false">[+] Received M5 message</string>
-    <string name="pixie_log_m6_sending" translatable="false">[+] Sending M6 message</string>
-    <string name="pixie_log_m7_received" translatable="false">[+] Received M7 message</string>
-    <string name="pixie_log_m8_received" translatable="false">[+] Received M8 message</string>
-    <string name="pixie_log_wsc_nack_received" translatable="false">[-] Received WSC_NACK</string>
-    <string name="pixie_log_wsc_nack_sending" translatable="false">[+] Sending WSC_NACK response</string>
-    <string name="pixie_log_deauth_reason" translatable="false">[!] Deauthenticated reason: %1$s</string>
-    <string name="pixie_log_enrollee_nonce" translatable="false">[+] Enrollee Nonce found</string>
-    <string name="pixie_log_own_public_key" translatable="false">[+] Own Public Key found</string>
-    <string name="pixie_log_peer_public_key" translatable="false">[+] Peer Public Key found</string>
-    <string name="pixie_log_authkey" translatable="false">[+] AuthKey found</string>
-    <string name="pixie_log_e_hash1" translatable="false">[+] E-Hash1 found</string>
-    <string name="pixie_log_e_hash2" translatable="false">[+] E-Hash2 found</string>
-    <string name="pixie_log_psk1" translatable="false">[+] PSK1 found</string>
-    <string name="pixie_log_psk2" translatable="false">[+] PSK2 found</string>
-    <string name="pixie_log_r_s1" translatable="false">[+] R-S1 found</string>
-    <string name="pixie_log_r_s2" translatable="false">[+] R-S2 found</string>
-    <string name="pixie_log_r_hash1" translatable="false">[+] R-Hash1 found</string>
-    <string name="pixie_log_r_hash2" translatable="false">[+] R-Hash2 found</string>
-    <string name="pixie_log_all_data_collected" translatable="false">[+++] All required pixie data collected successfully!</string>
-    <string name="pixie_log_starting_pixiewps" translatable="false">[+] Starting PixieWps computing</string>
-    <string name="pixie_log_pin_not_found" translatable="false">[-] WPS pin not found!</string>
-    <string name="pixie_log_time_taken" translatable="false">[*] Time taken: %1$s</string>
-    <string name="pixie_log_possibly_not_vulnerable" translatable="false">[!] Possible point not vulnerable, locked or has a bad signal</string>
-    <string name="pixie_log_wps_cycle_started" translatable="false">[+] New WPS cycle started</string>
-    <string name="pixie_log_wps_cycle_ended" translatable="false">[+] WPS cycle ended</string>
-    <string name="pixie_log_connection_lost" translatable="false">[-] DISCONNECTED, retrying…</string>
-    <string name="pixie_log_connected_to_ap" translatable="false">[+] Connected to AP</string>
-
-    <string name="wps_config_error_0" translatable="false">No error</string>
-    <string name="wps_config_error_1" translatable="false">OOB Interface Read Error</string>
-    <string name="wps_config_error_2" translatable="false">Decryption CRC Failure</string>
-    <string name="wps_config_error_3" translatable="false">2.4 channel not supported</string>
-    <string name="wps_config_error_4" translatable="false">5.0 channel not supported</string>
-    <string name="wps_config_error_5" translatable="false">Signal too weak</string>
-    <string name="wps_config_error_6" translatable="false">Network auth failure</string>
-    <string name="wps_config_error_7" translatable="false">Network association failure</string>
-    <string name="wps_config_error_8" translatable="false">No DHCP response</string>
-    <string name="wps_config_error_9" translatable="false">Failed DHCP config</string>
-    <string name="wps_config_error_10" translatable="false">IP address conflict</string>
-    <string name="wps_config_error_11" translatable="false">Could not connect to registrar</string>
-    <string name="wps_config_error_12" translatable="false">Multiple PBC sessions detected</string>
-    <string name="wps_config_error_13" translatable="false">Rogue activity suspected</string>
-    <string name="wps_config_error_14" translatable="false">Device busy</string>
-    <string name="wps_config_error_15" translatable="false">Setup locked</string>
-    <string name="wps_config_error_16" translatable="false">Message timeout</string>
-    <string name="wps_config_error_17" translatable="false">Registration session timeout</string>
-    <string name="wps_config_error_18" translatable="false">Device password authentication failure</string>
-    <string name="wps_config_error_default" translatable="false">Unknown error (code %1$d)</string>
 
     <string name="mac_column_required">MAC column is required for indexing</string>
     <string name="indexing_no_geo_warning">Warning: No latitude/longitude columns found. Location-based features will be unavailable.</string>
 
     <string name="resuming_download">Resuming download</string>
     <string name="download_resumed">Download resumed from %1$d%%</string>
-    <string name="clearing_old_download">Clearing old download</string>
     <string name="version_changed_restarting">Version changed, restarting download</string>
     <string name="refreshing_map_data">Refreshing map data…</string>
     <string name="map_data_refreshed">Map data updated</string>
 
 
     <string name="menu_iw_scanner">iw Scanner</string>
-    <string name="iw_hidden_ssid">[Hidden Network]</string>
-    <string name="iw_unknown_signal">Unknown</string>
-    <string name="iw_frequency_format">%s MHz</string>
-    <string name="iw_channel_format">Ch: %s</string>
-    <string name="iw_open_network">Open</string>
-    <string name="iw_connected_network">Connected network</string>
-    <string name="iw_expand_details">Expand details</string>
-
-    <string name="iw_link_info_title">Connection Status</string>
-    <string name="iw_refresh_link_info">Refresh connection info</string>
-    <string name="iw_not_connected">Not connected to any network</string>
-    <string name="iw_connected_to">Connected to: %s</string>
-    <string name="iw_ssid_format">SSID: %s</string>
-    <string name="iw_bssid_format">BSSID: %s</string>
-    <string name="iw_freq_format">Freq: %s</string>
-    <string name="iw_signal_format">Signal: %s</string>
-    <string name="iw_bitrate_format">Rate: %s</string>
-
-    <string name="iw_device_info_title">Device Information</string>
-    <string name="iw_refresh_device_info">Refresh device info</string>
-    <string name="iw_expand_device_info">Expand device info</string>
-    <string name="iw_loading_device_info">Loading device information…</string>
-    <string name="iw_device_info_unavailable">Device information unavailable</string>
-
-    <string name="iw_network_scan_title">Network Scanner</string>
-    <string name="iw_scan_networks">Scan Networks</string>
-    <string name="iw_scanning">Scanning…</string>
-    <string name="iw_ready_to_scan">Ready to scan for networks</string>
-    <string name="iw_no_networks_found">No networks found. Try scanning again.</string>
-
-    <string name="iw_ready">iw Scanner ready</string>
-    <string name="iw_root_required">Root access required for iw Scanner</string>
-    <string name="iw_binary_copy_failed">Failed to copy iw binaries</string>
-    <string name="iw_initial_load_failed">Failed to load initial data</string>
-    <string name="iw_scan_completed">Scan completed. Found %d networks.</string>
-    <string name="iw_scan_failed">Scan failed: %s</string>
-    <string name="iw_link_refresh_failed">Failed to refresh connection info</string>
-    <string name="iw_device_info_failed">Failed to load device information</string>
-
-    <string name="iw_root_required_title">Root Access Required</string>
-    <string name="iw_root_required_message">The iw Scanner requires root access to scan for networks and access device information. Please ensure your device is rooted and grant root permissions to this app.</string>
-
-    <string name="iw_error_title">Scanner Error</string>
-    <string name="iw_error_message">An error occurred: %s</string>
-
-    <string name="iw_interface_selector_title">Network Interface</string>
-    <string name="iw_refresh_interfaces">Refresh interfaces</string>
-    <string name="iw_manual_interface">Manual interface input</string>
-    <string name="iw_selected_interface">Interface:</string>
-    <string name="iw_interface_no_details">No additional details</string>
-    <string name="iw_interface_refresh_failed">Failed to refresh interfaces</string>
-
-    <string name="iw_manual_interface_title">Manual Interface</string>
-    <string name="iw_manual_interface_message">Enter the network interface name manually. This is useful if the interface is not detected automatically.</string>
-    <string name="iw_interface_hint">e.g. wlan0, wlan1, p2p0</string>
-    <string name="iw_set_interface">Set Interface</string>
-
-    <string name="iw_device_wiphy_index">Wiphy Index</string>
-    <string name="iw_device_max_scan_ssids">Max Scan SSIDs</string>
-    <string name="iw_device_max_scan_ies_length">Max Scan IEs Length</string>
-    <string name="iw_device_coverage_class">Coverage Class</string>
-    <string name="iw_device_supports_tdls">Supports T-DLS</string>
-    <string name="iw_device_available_antennas">Available Antennas</string>
-    <string name="iw_device_supported_interface_modes">Supported Interface Modes</string>
-    <string name="iw_device_supported_ciphers">Supported Ciphers</string>
-    <string name="iw_device_capabilities">Capabilities</string>
-    <string name="iw_device_ht_support">HT Support</string>
-    <string name="iw_device_frequencies">Frequencies</string>
-    <string name="iw_device_bitrates">Bitrates</string>
-    <string name="iw_device_and_more">and %d more</string>
-
-    <string name="pixiedust_interface_selector_title">Network Interface</string>
-    <string name="pixiedust_refresh_interfaces">Refresh interfaces</string>
-    <string name="pixiedust_manual_interface">Manual interface</string>
-    <string name="pixiedust_selected_interface">Interface:</string>
-    <string name="pixiedust_interface_hint">wlan0</string>
-    <string name="pixiedust_manual_interface_title">Manual Interface Entry</string>
-    <string name="pixiedust_manual_interface_message">Enter the network interface name to use for the attack</string>
-    <string name="pixiedust_set_interface">Set Interface</string>
 
     <string name="wps_root_copying_binaries">Copying WPS binaries…</string>
     <string name="wps_root_binaries_ready">WPS binaries ready</string>
@@ -1305,7 +1040,6 @@
     <string name="wps_root_connecting">Connecting via WPS…</string>
     <string name="wps_root_connection_failed">WPS connection failed</string>
     <string name="wps_root_connection_error">WPS connection error: %s</string>
-    <string name="wps_root_stopping_system_wifi">Stopping system WiFi…</string>
     <string name="wps_root_restoring_wifi">Restoring WiFi…</string>
     <string name="wps_root_starting_supplicant">Starting WPS supplicant…</string>
     <string name="wps_root_supplicant_started">WPS supplicant started</string>
@@ -1365,9 +1099,6 @@
     <string name="db_disclaimer_title">Notice</string>
     <string name="db_disclaimer_text">All provided databases are user-contributed. The developer is not responsible for the content of these databases.</string>
     <string name="select_database_source">Select database source</string>
-    <string name="loading_sources">Loading sources…</string>
-    <string name="no_sources_found">No sources found</string>
-    <string name="error_loading_sources">Error loading sources</string>
     <string name="back_to_sources">Back to sources</string>
     <string name="databases_from_source">Databases from: %s</string>
     <string name="error_loading">Loading error</string>
@@ -1379,7 +1110,6 @@
     <string name="type_custom_auto">Auto-mapped Custom</string>
     <string name="recommended_community_databases">Recommended Community Databases</string>
     <string name="no_recommendations_available">No recommended databases available</string>
-    <string name="download_started">Download started</string>
     <string name="auto_mapping_applied">Auto-mapping applied successfully</string>
     <string name="auto_mapping_failed">Failed to apply auto-mapping</string>
 
@@ -1399,7 +1129,6 @@
     <string name="turn_on_wifi">Turn on WiFi</string>
     <string name="turn_on_location">Turn on location</string>
     <string name="scanning_completed">Scanning completed</string>
-    <string name="wifi_permission_required">WiFi access permission is required</string>
 
     <string name="throttle_warning_title">WiFi Scan Throttling</string>
     <string name="throttle_warning_message">Android limits WiFi scanning to 4 times every 2 minutes to save battery.\n\nTo disable this limitation:\n\n1. Open Android Settings\n2. Go to "Developer Options"\n3. Find "WiFi scan throttling"\n4. Turn off this option\n\nScanning will then work without limitations.</string>
@@ -1454,9 +1183,7 @@
     <string name="auth_method_login_password">Login and Password</string>
     <string name="auth_method_no_auth">Try without authorization</string>
     <string name="api_read_key">Read API Key</string>
-    <string name="api_write_key">Write API Key</string>
     <string name="login">Login</string>
-    <string name="getting_api_keys">Getting API keys…</string>
     <string name="login_successful">Login successful</string>
     <string name="login_failed">Login failed</string>
     <string name="access_level_banned">Banned</string>
@@ -1480,26 +1207,17 @@
     <string name="notification_icon">Notification icon</string>
 
     <string name="menu_upload_routerscan">Upload RouterScan Data</string>
-    <string name="upload_routerscan_title">Upload RouterScan Data</string>
     <string name="select_routerscan_file">Select RouterScan File</string>
     <string name="select_server">Select Server</string>
     <string name="upload_file">Upload File</string>
     <string name="uploading">Uploading…</string>
     <string name="upload_progress">Upload progress: %d%%</string>
-    <string name="upload_successful">Upload successful</string>
-    <string name="upload_failed">Upload failed: %s</string>
-    <string name="file_format_csv">CSV Format</string>
-    <string name="file_format_txt">TXT Format</string>
     <string name="supported_formats">Supported formats: CSV, TXT</string>
-    <string name="select_file_first">Please select a file first</string>
     <string name="select_server_first">Please select a server first</string>
     <string name="file_size_format">File size: %.2f MB</string>
-    <string name="processing_upload">Processing upload…</string>
-    <string name="upload_settings">Upload Settings</string>
     <string name="check_existing_records">Check for existing records</string>
     <string name="no_wait_mode">No wait mode</string>
     <string name="add_comment">Add comment (optional)</string>
-    <string name="comment_hint">Enter comment for this upload</string>
 
     <string name="anonymous_upload">Anonymous upload</string>
     <string name="authenticated_upload">Authenticated upload</string>
@@ -1509,12 +1227,6 @@
     <string name="upload_options">Upload Options</string>
     <string name="show_advanced_upload_options">Show advanced upload options</string>
     <string name="advanced_upload_warning_title">Advanced Upload Options</string>
-
-    <string name="app_started">Application started</string>
-    <string name="welcome_activity_started">Welcome activity started</string>
-    <string name="logging_started">Logging started</string>
-    <string name="logging_stopped">Logging stopped</string>
-    <string name="log_file_created">Log file created in Downloads folder</string>
 
     <string name="logging_settings">Logging settings</string>
     <string name="logging_info">Logs are saved in Downloads/WiFi_Frankenstein_Logs/</string>
@@ -1529,9 +1241,7 @@
 
     <string name="api_write_key_optional">Write key (optional)</string>
 
-    <string name="location_button">Find Location</string>
     <string name="location_requested">Requesting location…</string>
-    <string name="error_getting_location">Error getting location</string>
     <string name="location_permission_denied">Location permission is required to show your position on the map.</string>
     <string name="location_not_available">Location is currently not available. Please try again later.</string>
     <string name="location_updates_failed">Failed to get location updates. Please check your location settings.</string>
@@ -1594,52 +1304,29 @@
 
     <string name="too_many_databases_selected">Too many databases selected for this device</string>
     <string name="map_loading_error">Error loading map data</string>
-    <string name="low_memory_warning">Low memory detected, some features may be limited</string>
-    <string name="file_access_error">Cannot access database file</string>
 
     <string name="enable_point_limits">Enable point limits</string>
     <string name="enable_point_limits_desc">Limit the number of points loaded from each database</string>
     <string name="point_limits_recommendation">Recommended for weak devices when viewing large areas to improve performance and reduce memory usage</string>
 
     <string name="map_api_supported">Online Map API</string>
-    <string name="checking_map_support">Checking map support…</string>
-    <string name="map_api_check_failed">Map API check failed</string>
 
-    <string name="yandex_search">Yandex Maps GET</string>
-    <string name="microsoft_search">Microsoft Location</string>
-    <string name="search_yandex_starting">Starting Yandex search…</string>
-    <string name="search_microsoft_starting">Starting Microsoft search…</string>
-
-    <string name="altergeo_search">AlterGeo</string>
-    <string name="yandex_locator_search">Yandex Locator</string>
     <string name="yandex_locator_api_hint">Yandex Locator API Key</string>
-    <string name="search_altergeo_starting">Starting AlterGeo search…</string>
-    <string name="search_yandex_locator_starting">Starting Yandex Locator search…</string>
 
-    <string name="mylnikov_paid_search">Mylnikov Paid</string>
     <string name="mylnikov_api_hint">Mylnikov API Key</string>
-    <string name="search_mylnikov_paid_starting">Starting Mylnikov Paid search…</string>
 
     <string name="menu_ip_ranges">IP Ranges</string>
-    <string name="ip_ranges_title">IP Ranges Search</string>
     <string name="radius_km">Radius (km)</string>
     <string name="search_sources">Search Sources</string>
     <string name="search_ip_ranges">Search IP Ranges</string>
     <string name="enter_coordinates">Enter coordinates and radius</string>
     <string name="select_at_least_one_source">Select at least one source</string>
     <string name="invalid_coordinates">Invalid coordinates</string>
-    <string name="invalid_radius">Invalid radius (0.1–25 km)</string>
     <string name="no_ip_ranges_found">No IP ranges found</string>
     <string name="ip_ranges_found">Found %d IP ranges</string>
     <string name="range">Range</string>
-    <string name="netname">Network Name</string>
-    <string name="description">Description</string>
-    <string name="country">Country</string>
-    <string name="api_source">API Source</string>
-    <string name="copy_range">Copy Range</string>
     <string name="searching_ip_ranges">Searching IP ranges…</string>
 
-    <string name="copy_all_ranges">Copy All Ranges</string>
     <string name="copy_selected">Copy Selected</string>
     <string name="select_all">Select All</string>
     <string name="clear_selection">Clear Selection</string>
@@ -1648,7 +1335,6 @@
     <string name="ranges_copied">%d ranges copied to clipboard</string>
 
     <string name="select_location_on_map">Select location on map</string>
-    <string name="tap_map_to_select">Tap on map to select coordinates</string>
     <string name="location_selected">Location selected</string>
 
     <string name="invalid_radius_local">Invalid radius (0.1–40 km)</string>
@@ -1666,7 +1352,6 @@
     <string name="essid_field">ESSID (□ - character, ◯ - set of characters)</string>
     <string name="password_field">Password</string>
     <string name="wps_pin_field">WPS PIN</string>
-    <string name="advanced_search">Advanced search</string>
 
     <string name="simple_mode">Simple</string>
 
@@ -1692,13 +1377,11 @@
     <string name="full_indexing">Full indexing</string>
     <string name="basic_indexing">Basic indexing</string>
     <string name="no_indexing">No indexing</string>
-    <string name="estimated_time">Estimated time: %s</string>
     <string name="processing_file">Processing: %1$s (%2$d%%)</string>
     <string name="conversion_notification_channel">Dump conversion</string>
     <string name="conversion_notification_desc">Notifications about the conversion process</string>
 
     <string name="conversion_type">Conversion type</string>
-    <string name="select_conversion_type">Select conversion type</string>
     <string name="routerscan_desc">Multiple RouterScan TXT files</string>
     <string name="wifi3_desc">base.sql and geo.sql files from 3WiFi</string>
     <string name="p3wifi_desc">One input.sql file from p3WiFi</string>
@@ -1717,47 +1400,24 @@
     <string name="output_location">Output location:</string>
     <string name="output_location_internal">App internal storage</string>
     <string name="output_location_custom">Custom folder</string>
-    <string name="select_save_location">Select where to save the file</string>
-    <string name="no_location_selected">No location selected</string>
-
-    <string name="output_location_selected">Selected folder: %1$s</string>
-    <string name="output_file_name">File name: %1$s</string>
-    <string name="processing_sql_file">Processing %1$s file: %2$s</string>
-    <string name="parsing_sql_statements">Parsing SQL statements…</string>
-    <string name="inserting_data">Inserting data…</string>
-    <string name="processed_inserts">Processed %1$d INSERT blocks</string>
-
-    <string name="sql_constraint_error">Data structure error: %1$s</string>
-    <string name="parsing_sql_data">Processing SQL data…</string>
 
     <string name="category_api_3wifi">API 3WiFi</string>
 
     <string name="selected_file">Selected file: %s</string>
 
     <string name="analyzing_database">Analyzing database…</string>
-    <string name="optimizing_queries">Optimizing queries…</string>
-    <string name="compacting_database">Compacting database…</string>
-    <string name="finalizing">Finalizing...</string>
-    <string name="creating_index">Creating index %1$d/%2$d…</string>
-    <string name="memory_error">Not enough memory to complete conversion. Try using Economy mode.</string>
 
     <string name="connect_with_password">Connect with password</string>
-    <string name="enter_password">Enter password</string>
     <string name="connecting">Connecting...</string>
     <string name="connection_successful">Successfully connected to %s</string>
     <string name="connection_failed">Failed to connect to %s</string>
     <string name="connection_timeout">Connection timeout</string>
     <string name="wifi_password_required">WiFi password required</string>
-    <string name="network_suggestion_added">Network added to suggestions</string>
-    <string name="network_suggestion_failed">Failed to add network to suggestions</string>
-    <string name="connection_in_progress">Connection in progress...</string>
-    <string name="checking_connection">Checking connection...</string>
     <string name="disconnect_network">Disconnect</string>
     <string name="forget_network">Forget network</string>
     <string name="disconnected_successfully">Disconnected successfully</string>
     <string name="network_forgotten">Network forgotten</string>
     <string name="disconnect_failed">Failed to disconnect: %s</string>
-    <string name="connected_via_app">Connected via app</string>
     <string name="network_info_format">Network: %1$s\nBSSID: %2$s</string>
 
     <string name="wps_root_trying_system_wps">Trying system WPS connection…</string>
@@ -1784,7 +1444,6 @@
 
     <string name="wps_mode_selection_title">Select WPS mode</string>
     <string name="wps_mode_pbc">PBC (Push Button Connect)</string>
-    <string name="wps_mode_pin">PIN (enter PIN code)</string>
     <string name="wps_pin_input_title">Enter WPS PIN</string>
     <string name="wps_pin_input_hint">8-digit PIN code</string>
     <string name="wps_pin_invalid">PIN must contain 8 digits</string>
@@ -1793,8 +1452,6 @@
 
     <string name="database_file_not_found_removed">The database has been removed from the list because the file was not found</string>
 
-    <string name="conversion_long">During database optimization and index creation, the percentage does not change, but the conversion continues to run!</string>
-    
     <string name="continue_without_permission">Continue without Permission</string>
     <string name="notification_permission_denied">Notification permission denied. Conversion may not work correctly in the background.</string>
 
@@ -1812,8 +1469,6 @@
     <string name="preparing_parallel_processing">Preparing parallel processing…</string>
     <string name="opening_file">Opening file %1$s…</string>
     <string name="calculating_file_size">Calculating file size…</string>
-    <string name="reading_file_content">Reading file content…</string>
-    <string name="inserting_batch_data">Inserting data (batch %1$d)…</string>
     <string name="copying_to_destination">Copying to destination…</string>
     <string name="preparing_database_optimization">Preparing database optimization…</string>
 
@@ -1828,12 +1483,8 @@
     <string name="optimization_warning">If conversion takes too long, try disabling database optimization</string>
     <string name="skipping_optimization">Skipping database optimization…</string>
 
-    <string name="pixiedust_binary_copy_failed">Failed to copy iw binary files</string>
     <string name="error_insufficient_memory">Not enough memory to load WPA algorithms</string>
     <string name="error_algorithms_not_loaded">WPA algorithms are not loaded yet</string>
-
-    <string name="pixiedust_copy_log">Copy Log</string>
-    <string name="pixiedust_log_copied">Attack log copied to clipboard</string>
 
     <string name="wps_root_starting_empty_pin">Starting WPS with empty PIN for %1$s</string>
     <string name="wps_use_empty_pin">Use empty PIN</string>
@@ -1848,12 +1499,6 @@
     <string name="wps_empty_failed_trying_null">Empty PIN failed, trying null PIN…</string>
     <string name="wps_all_attempts_failed">All WPS attempts failed. Reason: %1$d</string>
     <string name="wps_use_null_pin">Use null PIN</string>
-
-    <string name="pixiedust_alternative_wpa_cli">Alternative WPA CLI</string>
-    <string name="pixiedust_alternative_wpa_cli_desc">Use alternative wpa_cli binaries if there are problems with starting.</string>
-    <string name="pixiedust_copying_alternative_binaries">Copying alternative binaries</string>
-    <string name="pixiedust_using_alternative_wpa_cli">Using alternative wpa_cli binary</string>
-    <string name="pixiedust_reconfiguring_binaries">Reconfiguring binaries with alternative wpa_cli…</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="unofficial_version_warning">Неофіційна модифікована версія</string>
     <string name="include_app_identifier">Включити ідентифікатор додатку</string>
     <string name="app_identifier_description">Надсилати ідентифікатор додатку із запитами</string>
     <string name="nav_header_subtitle">Нове покоління 3Wifi Локатора</string>
@@ -60,12 +59,9 @@
     <string name="retry">Повторити</string>
     <string name="changelog">Список змін</string>
     <string name="ok">OK</string>
-    <string name="error_checking_updates">Помилка перевірки оновлень: %s</string>
     <string name="ssid">SSID</string>
     <string name="bssid">BSSID</string>
     <string name="copied_to_clipboard">%s скопійовано в буфер обміну</string>
-    <string name="api_key">API Ключ</string>
-    <string name="api_key_hint">Якщо залишити порожнім, буде використано ключ 000000000000</string>
 
 
     <string name="show_database_info">Показати інформацію</string>
@@ -87,8 +83,6 @@
     <string name="no_pins_found">Пін-коди не знайдено</string>
     <string name="wps_generator_title">Генератор WPS</string>
     <string name="error_accessing_database">Помилка доступу до бази даних</string>
-    <string name="error_updating_file">Помилка оновлення файлу %1$s: %2$s</string>
-    <string name="error_updating_files">Помилка оновлення файлів: %s</string>
     <string name="error_fetching_changelog">Помилка отримання списку змін: %1$s</string>
     <string name="app_update">Оновлення додатку</string>
     <string name="wps_started">WPS запущено.</string>
@@ -349,7 +343,6 @@
 
     <!-- WiFi Map -->
     <string name="select_databases">Виберіть бази даних для відображення точок</string>
-    <string name="network_info">Інформація про мережу</string>
     <string name="map_legend">Легенда</string>
     <string name="loading_points_progress">Завантаження точок…</string>
 
@@ -358,7 +351,6 @@
 
     <string name="zoom_in_message">Збільшіть масштаб, щоб побачити WiFi точки</string>
 
-    <string name="database_error">Помилка завантаження бази даних: %1$s</string>
     <string name="point_loading_error">Помилка завантаження інформації про точку</string>
 
     <!-- API 3WiFi -->
@@ -566,7 +558,6 @@
 
     <string name="db_step1_description">Перевірка рекомендованих баз даних…</string>
     <string name="db_step1_no_databases">Рекомендовані бази даних не знайдено</string>
-    <string name="db_step1_found_databases">Знайдено наступні рекомендовані бази даних:</string>
     <string name="db_step1_skip">Пропустити</string>
     <string name="db_step1_next">Далі</string>
 
@@ -586,7 +577,6 @@
 
     <string name="db_step4_description">Введіть посилання на сервер 3WiFi API</string>
     <string name="db_step4_url_hint">Посилання на 3WiFi API</string>
-    <string name="db_step4_key_hint">API ключ (необов\'язково)</string>
     <string name="db_step4_skip">Пропустити</string>
     <string name="db_step4_finish">Завершити</string>
 
@@ -641,15 +631,8 @@
     <string name="about_app_replacement">Програма створена для заміни старої програми 3WiFi Locator.</string>
     <string name="about_app_author">Author: LowSkillDeveloper (Internet User у Telegram)</string>
     <string name="github_button">Відкрити на GitHub</string>
-    <string name="about_libraries_title">Використовувані бібліотеки:</string>
 
     <!-- Libraries -->
-    <string name="library_androidx">AndroidX - Apache License 2.0</string>
-    <string name="library_material">Material Components - Apache License 2.0</string>
-    <string name="library_opencsv">OpenCSV - Apache License 2.0</string>
-    <string name="library_okhttp">OkHttp - Apache License 2.0</string>
-    <string name="library_osmdroid">osmdroid - Apache License 2.0</string>
-    <string name="library_kotlinx">KotlinX Serialization - Apache License 2.0</string>
 
     <string name="downloading_archive_part">Завантаження частини %1$d з %2$d</string>
     <string name="extracting_archive">Розпакування архіву…</string>
@@ -690,7 +673,6 @@
     <string name="db_added_without_indexes">Базу даних додано без індексів</string>
     <string name="clustering_points">Кластеризація точок…</string>
     <string name="rendering_markers">Відображення маркерів…</string>
-    <string name="action_settings">Налаштування</string>
     <string name="create_indexes">Створити індекси</string>
 
     <string name="importing_data">Імпорт даних…</string>
@@ -838,60 +820,8 @@
     <string name="wps_algorithm_result">Результат алгоритму WPS</string>
     <string name="keys_copied_to_clipboard">Ключі скопійовано до буфера обміну</string>
     <string name="pin_copied_to_clipboard">ПІН скопійовано до буфера обміну</string>
-    <string name="server_url">URL сервера</string>
-    <string name="test_results">Результати тесту</string>
 
-    <string name="pixiedust_title">Атака PixieDust</string>
-    <string name="pixiedust_description">PixieDust — це атака на WPS, яка використовує слабку випадковість у деяких реалізаціях WPS для відновлення PIN-коду WPS</string>
-    <string name="pixiedust_requires_wps">Ця атака працює лише в мережах із увімкненим WPS та вразливими реалізаціями</string>
-    <string name="pixiedust_system_requirements">Системні вимоги</string>
-    <string name="pixiedust_checking_root">Перевірка root-доступу…</string>
-    <string name="pixiedust_checking_binaries">Перевірка бінарних файлів…</string>
-    <string name="pixiedust_network_scanning">Сканування мережі</string>
-    <string name="pixiedust_scan_networks">Сканувати мережі WPS</string>
-    <string name="pixiedust_wps_networks">Мережі WPS</string>
-    <string name="pixiedust_attack_control">Керування атакою</string>
-    <string name="pixiedust_no_network_selected">Мережу не вибрано</string>
-    <string name="pixiedust_start_attack">Почати атаку</string>
-    <string name="pixiedust_stop_attack">Зупинити атаку</string>
-    <string name="pixiedust_attack_result">Результат атаки</string>
-    <string name="pixiedust_copy_pin">Копіювати PIN</string>
-    <string name="pixiedust_save_result">Зберегти результат</string>
-    <string name="pixiedust_wps_enabled">WPS</string>
-    <string name="pixiedust_scanning">Сканування мереж…</string>
-    <string name="pixiedust_preparing">Підготовка атаки…</string>
-    <string name="pixiedust_extracting_data">Вилучення даних рукостискання…</string>
-    <string name="pixiedust_running_attack">Виконання атаки PixieDust…</string>
-    <string name="pixiedust_attack_completed">Атака завершена</string>
-    <string name="pixiedust_attack_failed">Атака не вдалася: %s</string>
-    <string name="pixiedust_networks_found">Знайдено %d мереж WPS</string>
-    <string name="pixiedust_no_networks">Мережі WPS не знайдено</string>
-    <string name="pixiedust_select_network">Будь ласка, виберіть мережу</string>
-    <string name="pixiedust_root_required">Потрібен root-доступ</string>
-    <string name="pixiedust_binaries_not_found">Бінарні файли не знайдено</string>
-    <string name="pixiedust_root_not_available">Root-доступ: Недоступний</string>
-    <string name="pixiedust_pin_found">PIN-код виявлено: %s</string>
-    <string name="pixiedust_pin_not_found">PIN-код не знайдено</string>
-    <string name="pixiedust_result_saved">Результат успішно збережено</string>
-    <string name="pixiedust_network_info">%s (%s)</string>
-    <string name="pixiedust_signal_strength">%d дБм</string>
-    <string name="pixiedust_frequency">%d МГц</string>
-    <string name="pixiedust_warning_title">Попередження</string>
-    <string name="pixiedust_warning_message">Цей інструмент призначений лише для освітніх цілей. Використовуйте тільки в мережах, які належать вам або для яких у вас є явний дозвіл на тестування. Несанкціонований доступ до бездротових мереж є незаконним.</string>
-    <string name="pixiedust_understand_risks">Я розумію</string>
-    <string name="permission_required">Потрібен дозвіл</string>
-    <string name="pixiedust_root_available">Root-доступ: Доступний</string>
-    <string name="pixiedust_binary_files_ready">Бінарні файли: Готові</string>
-    <string name="pixiedust_binary_files_not_available">Бінарні файли: Недоступні</string>
-    <string name="pixiedust_unknown_network">Невідомо</string>
     <string name="menu_pixiedust">PixieDust</string>
-    <string name="pixiedust_copying_binaries">Копіювання бінарних файлів…</string>
-    <string name="pixiedust_binaries_ready">Бінарні файли готові</string>
-    <string name="pixiedust_error_copying_binaries">Помилка копіювання бінарних файлів</string>
-    <string name="pixiedust_preparing_attack">Підготовка атаки…</string>
-    <string name="pixiedust_extracting_handshake">Вилучення даних рукостискання…</string>
-    <string name="pixiedust_computing_pin">Обчислення PIN-коду…</string>
-    <string name="pixiedust_data_extraction_failed">Не вдалося вилучити дані для атаки</string>
     <string name="support_state_supported">Підтримується</string>
     <string name="support_state_unlikely">Малоймовірно</string>
     <string name="support_state_unsupported">Не підтримується</string>
@@ -945,27 +875,6 @@
     <string name="category_utilities">Утиліти</string>
     <string name="system_files_updates">Оновлення системних файлів</string>
     <string name="local_size">Локальний розмір: %1$s</string>
-    <string name="pixiedust_failed_start_supplicant">Не вдалося запустити supplicant</string>
-    <string name="pixiedust_attack_error">Помилка атаки: %1$s</string>
-    <string name="pixiedust_manual_network_entry">Ручний ввід мережі</string>
-    <string name="pixiedust_network_ssid">SSID мережі</string>
-    <string name="pixiedust_network_bssid">BSSID мережі (MAC-адреса)</string>
-    <string name="pixiedust_add_network">Додати мережу</string>
-    <string name="pixiedust_invalid_bssid">Недійсний формат BSSID</string>
-    <string name="pixiedust_cleaning_up">Очищення процесів…</string>
-    <string name="pixiedust_attack_log">Журнал атаки</string>
-    <string name="pixiedust_clear_log">Очистити журнал</string>
-    <string name="pixiedust_log_empty">Немає записів у журналі</string>
-    <string name="pixiedust_ssid_required">SSID не може бути порожнім</string>
-    <string name="pixiedust_advanced_settings">Розширені налаштування</string>
-    <string name="pixiedust_extraction_timeout">Тайм-аут вилучення даних</string>
-    <string name="pixiedust_extraction_timeout_desc">Максимальний час очікування вилучення даних рукостискання</string>
-    <string name="pixiedust_computation_timeout">Тайм-аут обчислень</string>
-    <string name="pixiedust_computation_timeout_desc">Максимальний час для обчислення PIN-коду</string>
-    <string name="pixiedust_seconds">секунд</string>
-    <string name="pixiedust_reset_defaults">Скинути до стандартних</string>
-    <string name="pixiedust_aggressive_cleanup">Увімкнути агресивне завершення системних процесів (не рекомендується)</string>
-    <string name="pixiedust_aggressive_cleanup_desc">Використовує агресивний метод для зупинки системних служб WiFi. Може викликати нестабільність системи, але підвищує ймовірність успіху атаки.</string>
     <string name="router_model">Модель</string>
     <string name="admin_credentials">Панель адміністратора:</string>
     <string name="network_status">Статус мережі:</string>
@@ -989,14 +898,6 @@
     <string name="no_map_app_found">Додаток для карт не знайдено</string>
     <string name="unknown_database">Невідома база даних</string>
     <string name="other_actions">Інші дії</string>
-    <string name="pixiedust_cleanup_binaries">Очистка бінарних файлів</string>
-    <string name="pixiedust_cleanup_binaries_title">Очистка бінарних файлів</string>
-    <string name="pixiedust_cleanup_binaries_message">Це видалить усі бінарні файли, символічні посилання та тимчасові каталоги. Файли будуть повторно вилучені під час наступної атаки. Продовжити?</string>
-    <string name="pixiedust_cleanup_confirm">Очистити</string>
-    <string name="pixiedust_cleaning_binaries">Очищення бінарних файлів…</string>
-    <string name="pixiedust_cleanup_completed">Очищення бінарних файлів завершено</string>
-    <string name="pixiedust_cleanup_error">Помилка очищення бінарних файлів</string>
-    <string name="pixiedust_copy_binaries">Копіювати бінарні файли</string>
     <string name="root_access_setup">Root-доступ</string>
     <string name="root_access_description">Якщо у вас є root-права, додаток може використовувати додаткові функції</string>
     <string name="root_question">Чи є у вас root-права на пристрої?</string>
@@ -1014,89 +915,10 @@
 
     <string name="resuming_download">Поновлення завантаження</string>
     <string name="download_resumed">Завантаження поновлено з %1$d%%</string>
-    <string name="clearing_old_download">Очищення старого завантаження</string>
     <string name="version_changed_restarting">Версія змінилася, перезапуск завантаження</string>
 
     <string name="menu_iw_scanner">Сканер iw</string>
-    <string name="iw_hidden_ssid">[Прихована мережа]</string>
-    <string name="iw_unknown_signal">Невідомо</string>
-    <string name="iw_frequency_format">%s МГц</string>
-    <string name="iw_channel_format">Канал: %s</string>
-    <string name="iw_open_network">Відкрита</string>
-    <string name="iw_connected_network">Підключена мережа</string>
-    <string name="iw_expand_details">Розгорнути деталі</string>
 
-    <string name="iw_link_info_title">Стан підключення</string>
-    <string name="iw_refresh_link_info">Оновити інформацію про підключення</string>
-    <string name="iw_not_connected">Не підключено до жодної мережі</string>
-    <string name="iw_connected_to">Підключено до: %s</string>
-    <string name="iw_ssid_format">SSID: %s</string>
-    <string name="iw_bssid_format">BSSID: %s</string>
-    <string name="iw_freq_format">Частота: %s</string>
-    <string name="iw_signal_format">Сигнал: %s</string>
-    <string name="iw_bitrate_format">Швидкість: %s</string>
-
-    <string name="iw_device_info_title">Інформація про пристрій</string>
-    <string name="iw_refresh_device_info">Оновити інформацію про пристрій</string>
-    <string name="iw_expand_device_info">Розгорнути інформацію про пристрій</string>
-    <string name="iw_loading_device_info">Завантаження інформації про пристрій…</string>
-    <string name="iw_device_info_unavailable">Інформація про пристрій недоступна</string>
-
-    <string name="iw_network_scan_title">Сканер мереж</string>
-    <string name="iw_scan_networks">Сканувати мережі</string>
-    <string name="iw_scanning">Сканування…</string>
-    <string name="iw_ready_to_scan">Готово до сканування мереж</string>
-    <string name="iw_no_networks_found">Мережі не знайдено. Спробуйте ще раз.</string>
-
-    <string name="iw_ready">Сканер iw готовий</string>
-    <string name="iw_root_required">Для iw Scanner потрібен root-доступ</string>
-    <string name="iw_binary_copy_failed">Не вдалося скопіювати бінарні файли iw</string>
-    <string name="iw_initial_load_failed">Не вдалося завантажити початкові дані</string>
-    <string name="iw_scan_completed">Сканування завершено. Знайдено мереж: %d</string>
-    <string name="iw_scan_failed">Помилка сканування: %s</string>
-    <string name="iw_link_refresh_failed">Не вдалося оновити інформацію про підключення</string>
-    <string name="iw_device_info_failed">Не вдалося завантажити інформацію про пристрій</string>
-
-    <string name="iw_root_required_title">Потрібен Root-доступ</string>
-    <string name="iw_root_required_message">Сканеру iw потрібен root-доступ для сканування мереж та доступу до інформації про пристрій. Переконайтесь, що ваш пристрій має root та надано відповідні дозволи цьому застосунку.</string>
-
-    <string name="iw_error_title">Помилка сканера</string>
-    <string name="iw_error_message">Сталася помилка: %s</string>
-
-    <string name="iw_interface_selector_title">Мережевий інтерфейс</string>
-    <string name="iw_refresh_interfaces">Оновити інтерфейси</string>
-    <string name="iw_manual_interface">Ручне введення інтерфейсу</string>
-    <string name="iw_selected_interface">Інтерфейс:</string>
-    <string name="iw_interface_no_details">Додаткові дані відсутні</string>
-    <string name="iw_interface_refresh_failed">Не вдалося оновити інтерфейси</string>
-
-    <string name="iw_manual_interface_title">Ручний інтерфейс</string>
-    <string name="iw_manual_interface_message">Введіть ім\'я мережевого інтерфейсу вручну. Це корисно, якщо інтерфейс не визначено автоматично.</string>
-    <string name="iw_interface_hint">наприклад: wlan0, wlan1, p2p0</string>
-    <string name="iw_set_interface">Встановити інтерфейс</string>
-
-    <string name="iw_device_wiphy_index">Wiphy індекс</string>
-    <string name="iw_device_max_scan_ssids">Макс. SSID при скануванні</string>
-    <string name="iw_device_max_scan_ies_length">Макс. довжина IEs</string>
-    <string name="iw_device_coverage_class">Клас покриття</string>
-    <string name="iw_device_supports_tdls">Підтримка T-DLS</string>
-    <string name="iw_device_available_antennas">Доступні антени</string>
-    <string name="iw_device_supported_interface_modes">Підтримувані режими інтерфейсу</string>
-    <string name="iw_device_supported_ciphers">Підтримувані шифри</string>
-    <string name="iw_device_capabilities">Можливості</string>
-    <string name="iw_device_ht_support">Підтримка HT</string>
-    <string name="iw_device_frequencies">Частоти</string>
-    <string name="iw_device_bitrates">Швидкості</string>
-    <string name="iw_device_and_more">та ще %d</string>
-
-    <string name="pixiedust_interface_selector_title">Мережевий інтерфейс</string>
-    <string name="pixiedust_refresh_interfaces">Оновити інтерфейси</string>
-    <string name="pixiedust_manual_interface">Ручне введення</string>
-    <string name="pixiedust_selected_interface">Інтерфейс:</string>
-    <string name="pixiedust_interface_hint">wlan0</string>
-    <string name="pixiedust_manual_interface_title">Введення інтерфейсу вручну</string>
-    <string name="pixiedust_manual_interface_message">Введіть ім’я інтерфейсу, який буде використано для атаки</string>
-    <string name="pixiedust_set_interface">Встановити інтерфейс</string>
     <string name="refreshing_map_data">Оновлення даних карти…</string>
     <string name="map_data_refreshed">Дані карти оновлено</string>
     <string name="unknown_vendor">невідомий виробник</string>
@@ -1146,9 +968,6 @@
     <string name="db_disclaimer_title">Увага</string>
     <string name="db_disclaimer_text">Усі надані бази даних створені користувачами. Розробник не несе відповідальності за вміст цих баз даних.</string>
     <string name="select_database_source">Виберіть джерело баз даних</string>
-    <string name="loading_sources">Завантаження джерел…</string>
-    <string name="no_sources_found">Джерела не знайдено</string>
-    <string name="error_loading_sources">Помилка завантаження джерел</string>
     <string name="back_to_sources">Назад до джерел</string>
     <string name="databases_from_source">Бази даних від: %s</string>
     <string name="error_loading">Помилка завантаження</string>
@@ -1160,7 +979,6 @@
     <string name="type_custom_auto">Автоматично зіставлені (Custom)</string>
     <string name="recommended_community_databases">Рекомендовані спільнотні бази даних</string>
     <string name="no_recommendations_available">Рекомендовані бази даних недоступні</string>
-    <string name="download_started">Завантаження розпочато</string>
     <string name="auto_mapping_applied">Автозіставлення успішно застосовано</string>
     <string name="auto_mapping_failed">Не вдалося застосувати автозіставлення</string>
 
@@ -1180,7 +998,6 @@
     <string name="turn_on_wifi">Увімкнути WiFi</string>
     <string name="turn_on_location">Увімкнути геолокацію</string>
     <string name="scanning_completed">Сканування завершено</string>
-    <string name="wifi_permission_required">Потрібен дозвіл на доступ до WiFi</string>
 
     <string name="throttle_warning_title">Обмеження сканування WiFi</string>
     <string name="throttle_warning_message">Android обмежує сканування WiFi до 4 разів протягом 2 хвилин для збереження заряду батареї.\n\nЩоб вимкнути це обмеження:\n\n1. Відкрийте Налаштування Android\n2. Перейдіть до "Для розробників"\n3. Знайдіть "Обмеження сканування WiFi" або "WiFi scan throttling"\n4. Вимкніть цю опцію\n\nПісля цього сканування працюватиме без обмежень.</string>
@@ -1203,7 +1020,6 @@
     <string name="wps_root_connecting">Підключення через WPS…</string>
     <string name="wps_root_connection_failed">Помилка підключення через WPS</string>
     <string name="wps_root_connection_error">Помилка підключення WPS: %s</string>
-    <string name="wps_root_stopping_system_wifi">Зупинка системного WiFi…</string>
     <string name="wps_root_restoring_wifi">Відновлення WiFi…</string>
     <string name="wps_root_starting_supplicant">Запуск WPS supplicant…</string>
     <string name="wps_root_supplicant_started">WPS supplicant запущено</string>
@@ -1256,10 +1072,8 @@
         <string name="auth_method_login_password">Логін і пароль</string>
         <string name="auth_method_no_auth">Спробувати без авторизації</string>
         <string name="api_read_key">API-ключ для читання</string>
-        <string name="api_write_key">API-ключ для запису</string>
-        <string name="login">Вхід</string>
-        <string name="getting_api_keys">Отримання API-ключів…</string>
-        <string name="login_successful">Вхід виконано успішно</string>
+    <string name="login">Вхід</string>
+    <string name="login_successful">Вхід виконано успішно</string>
         <string name="login_failed">Помилка входу</string>
         <string name="access_level_banned">Заблокований</string>
         <string name="access_level_no_logged">Не авторизований</string>
@@ -1282,28 +1096,19 @@
         <string name="notification_icon">Іконка сповіщень</string>
 
         <string name="menu_upload_routerscan">Завантажити дані RouterScan</string>
-        <string name="upload_routerscan_title">Завантаження даних RouterScan</string>
-        <string name="select_routerscan_file">Виберіть файл RouterScan</string>
+    <string name="select_routerscan_file">Виберіть файл RouterScan</string>
         <string name="select_server">Виберіть сервер</string>
         <string name="upload_file">Завантажити файл</string>
         <string name="uploading">Завантаження…</string>
         <string name="upload_progress">Хід завантаження: %d%%</string>
-        <string name="upload_successful">Завантаження виконано успішно</string>
-        <string name="upload_failed">Помилка завантаження: %s</string>
-        <string name="file_format_csv">Формат CSV</string>
-        <string name="file_format_txt">Формат TXT</string>
-        <string name="supported_formats">Підтримувані формати: CSV, TXT</string>
-        <string name="select_file_first">Спочатку виберіть файл</string>
-        <string name="select_server_first">Спочатку виберіть сервер</string>
+    <string name="supported_formats">Підтримувані формати: CSV, TXT</string>
+    <string name="select_server_first">Спочатку виберіть сервер</string>
         <string name="file_size_format">Розмір файлу: %.2f МБ</string>
-        <string name="processing_upload">Обробка завантаження…</string>
-        <string name="upload_settings">Налаштування завантаження</string>
-        <string name="check_existing_records">Перевіряти наявні записи</string>
+    <string name="check_existing_records">Перевіряти наявні записи</string>
         <string name="no_wait_mode">Режим без очікування</string>
         <string name="add_comment">Додати коментар (необов’язково)</string>
-        <string name="comment_hint">Введіть коментар до цього завантаження</string>
 
-        <string name="anonymous_upload">Анонімне завантаження</string>
+    <string name="anonymous_upload">Анонімне завантаження</string>
         <string name="authenticated_upload">Завантаження з авторизацією</string>
         <string name="check_existing_records_desc">Перевіряти, чи існують записи в базі даних перед додаванням (повільніше, але запобігає дублюванню)</string>
         <string name="no_wait_mode_desc">Пропустити пошук координат для нових точок доступу (швидше, але точки не відображатимуться на карті)</string>
@@ -1325,9 +1130,7 @@
     <string name="api_write_key_optional">Ключ запису (необов\'язково)</string>
 
 
-    <string name="location_button">Знайти місцезнаходження</string>
     <string name="location_requested">Запитуємо місцезнаходження…</string>
-    <string name="error_getting_location">Помилка отримання місцезнаходження</string>
     <string name="location_permission_denied">Дозвіл на місцезнаходження потрібен для показу вашої позиції на карті.</string>
     <string name="location_not_available">Місцезнаходження зараз недоступне. Будь ласка, спробуйте пізніше.</string>
     <string name="location_updates_failed">Не вдалося отримати оновлення місцезнаходження. Будь ласка, перевірте налаштування місцезнаходження.</string>
@@ -1396,52 +1199,29 @@
 
     <string name="too_many_databases_selected">Забагато баз даних вибрано для цього пристрою</string>
     <string name="map_loading_error">Помилка завантаження даних карти</string>
-    <string name="low_memory_warning">Виявлено низьку пам\'ять, деякі функції можуть бути обмежені</string>
-    <string name="file_access_error">Не вдається отримати доступ до файлу бази даних</string>
 
     <string name="enable_point_limits">Увімкнути обмеження точок</string>
     <string name="enable_point_limits_desc">Обмежити кількість точок, що завантажуються з кожної бази даних</string>
     <string name="point_limits_recommendation">Рекомендується для слабких пристроїв при перегляді великих областей для покращення продуктивності та зменшення використання пам\'яті</string>
 
     <string name="map_api_supported">Онлайн Map API</string>
-    <string name="checking_map_support">Перевірка підтримки карти…</string>
-    <string name="map_api_check_failed">Перевірка Map API не вдалася</string>
 
-    <string name="yandex_search">Yandex Maps GET</string>
-    <string name="microsoft_search">Microsoft Location</string>
-    <string name="search_yandex_starting">Запуск пошуку Yandex…</string>
-    <string name="search_microsoft_starting">Запуск пошуку Microsoft…</string>
-
-    <string name="altergeo_search">AlterGeo</string>
-    <string name="yandex_locator_search">Yandex Locator</string>
     <string name="yandex_locator_api_hint">Ключ API Yandex Locator</string>
-    <string name="search_altergeo_starting">Запуск пошуку AlterGeo…</string>
-    <string name="search_yandex_locator_starting">Запуск пошуку Yandex Locator…</string>
 
-    <string name="mylnikov_paid_search">Mylnikov Paid</string>
     <string name="mylnikov_api_hint">Ключ API Mylnikov</string>
-    <string name="search_mylnikov_paid_starting">Запуск пошуку Mylnikov Paid…</string>
 
     <string name="menu_ip_ranges">Діапазони IP</string>
-    <string name="ip_ranges_title">Пошук діапазонів IP</string>
     <string name="radius_km">Радіус (км)</string>
     <string name="search_sources">Джерела пошуку</string>
     <string name="search_ip_ranges">Пошук діапазонів IP</string>
     <string name="enter_coordinates">Введіть координати та радіус</string>
     <string name="select_at_least_one_source">Виберіть хоча б одне джерело</string>
     <string name="invalid_coordinates">Неправильні координати</string>
-    <string name="invalid_radius">Неправильний радіус (0.1–25 км)</string>
     <string name="no_ip_ranges_found">Діапазони IP не знайдено</string>
     <string name="ip_ranges_found">Знайдено %d діапазонів IP</string>
     <string name="range">Діапазон</string>
-    <string name="netname">Ім\'я мережі</string>
-    <string name="description">Опис</string>
-    <string name="country">Країна</string>
-    <string name="api_source">Джерело API</string>
-    <string name="copy_range">Копіювати діапазон</string>
     <string name="searching_ip_ranges">Пошук діапазонів IP…</string>
 
-    <string name="copy_all_ranges">Копіювати всі діапазони</string>
     <string name="copy_selected">Копіювати вибрані</string>
     <string name="select_all">Вибрати все</string>
     <string name="clear_selection">Очистити вибір</string>
@@ -1450,7 +1230,6 @@
     <string name="ranges_copied">%d діапазонів скопійовано в буфер обміну</string>
 
     <string name="select_location_on_map">Виберіть місцезнаходження на карті</string>
-    <string name="tap_map_to_select">Торкніться карти, щоб вибрати координати</string>
     <string name="location_selected">Місцезнаходження вибрано</string>
 
     <string name="invalid_radius_local">Неправильний радіус (0.1–40 км)</string>
@@ -1460,17 +1239,10 @@
     <string name="max_radius_25km_api">Максимум 25 км для джерел API</string>
     <string name="online_api_suffix">(Онлайн API)</string>
 
-    <string name="app_started">Програму запущено</string>
-    <string name="welcome_activity_started">Екран привітання запущено</string>
-    <string name="logging_started">Логування запущено</string>
-    <string name="logging_stopped">Логування зупинено</string>
-    <string name="log_file_created">Файл лога створено в папці Downloads</string>
-
     <string name="bssid_field">BSSID (* - будь-який символ)</string>
     <string name="essid_field">ESSID (□ - символ, ◯ - набір символів)</string>
     <string name="password_field">Пароль</string>
     <string name="wps_pin_field">WPS PIN</string>
-    <string name="advanced_search">Розширений пошук</string>
 
     <string name="simple_mode">Простий</string>
 
@@ -1496,13 +1268,11 @@
     <string name="full_indexing">Повне індексування</string>
     <string name="basic_indexing">Базове індексування</string>
     <string name="no_indexing">Без індексування</string>
-    <string name="estimated_time">Приблизний час: %s</string>
     <string name="processing_file">Обробка: %1$s (%2$d%%)</string>
     <string name="conversion_notification_channel">Конвертація дампів</string>
     <string name="conversion_notification_desc">Сповіщення про процес конвертації</string>
 
     <string name="conversion_type">Тип конвертації</string>
-    <string name="select_conversion_type">Виберіть тип конвертації</string>
     <string name="routerscan_desc">Декілька TXT файлів RouterScan</string>
     <string name="wifi3_desc">Файли base.sql і geo.sql від 3WiFi</string>
     <string name="p3wifi_desc">Один файл input.sql від p3WiFi</string>
@@ -1521,47 +1291,24 @@
     <string name="output_location">Місце збереження:</string>
     <string name="output_location_internal">Внутрішня памʼять додатку</string>
     <string name="output_location_custom">Обрана папка</string>
-    <string name="select_save_location">Виберіть де зберегти файл</string>
-    <string name="no_location_selected">Місце збереження не вибрано</string>
-
-    <string name="output_location_selected">Вибрана папка: %1$s</string>
-    <string name="output_file_name">Імʼя файлу: %1$s</string>
-    <string name="processing_sql_file">Обробка %1$s файлу: %2$s</string>
-    <string name="parsing_sql_statements">Розбір SQL інструкцій…</string>
-    <string name="inserting_data">Вставка даних…</string>
-    <string name="processed_inserts">Оброблено %1$d INSERT блоків</string>
-
-    <string name="sql_constraint_error">Помилка структури даних: %1$s</string>
-    <string name="parsing_sql_data">Обробка SQL даних…</string>
 
     <string name="category_api_3wifi">API 3WiFi</string>
 
     <string name="selected_file">Файл вибрано: %s</string>
 
     <string name="analyzing_database">Аналіз бази даних…</string>
-    <string name="optimizing_queries">Оптимізація запитів…</string>
-    <string name="compacting_database">Стискання бази даних…</string>
-    <string name="finalizing">Завершення...</string>
-    <string name="creating_index">Створення індексу %1$d/%2$d…</string>
-    <string name="memory_error">Недостатньо памʼяті для завершення конвертації. Спробуйте Економний режим.</string>
 
     <string name="connect_with_password">Підключитися з паролем</string>
-    <string name="enter_password">Введіть пароль</string>
     <string name="connecting">Підключення...</string>
     <string name="connection_successful">Успішно підключено до %s</string>
     <string name="connection_failed">Не вдалося підключитися до %s</string>
     <string name="connection_timeout">Час очікування підключення вичерпано</string>
     <string name="wifi_password_required">Потрібен пароль WiFi</string>
-    <string name="network_suggestion_added">Мережу додано до пропозицій</string>
-    <string name="network_suggestion_failed">Не вдалося додати мережу до пропозицій</string>
-    <string name="connection_in_progress">Підключення в процесі...</string>
-    <string name="checking_connection">Перевірка підключення...</string>
     <string name="disconnect_network">Відключитися</string>
     <string name="forget_network">Забути мережу</string>
     <string name="disconnected_successfully">Успішно відключено</string>
     <string name="network_forgotten">Мережу забуто</string>
     <string name="disconnect_failed">Не вдалося відключитися: %s</string>
-    <string name="connected_via_app">Підключено через додаток</string>
     <string name="network_info_format">Мережа: %1$s\nBSSID: %2$s</string>
 
     <string name="wps_root_trying_system_wps">Спроба системного WPS підключення…</string>
@@ -1588,14 +1335,12 @@
 
     <string name="wps_mode_selection_title">Виберіть режим WPS</string>
     <string name="wps_mode_pbc">PBC (Push Button Connect)</string>
-    <string name="wps_mode_pin">PIN (введіть PIN-код)</string>
     <string name="wps_pin_input_title">Введіть WPS PIN</string>
     <string name="wps_pin_input_hint">8-значний PIN код</string>
     <string name="wps_pin_invalid">PIN код має містити 8 цифр</string>
     <string name="wps_use_database_pin">Використати PIN з бази: %s</string>
     <string name="wps_enter_custom_pin">Ввести власний PIN</string>
     <string name="database_file_not_found_removed">Базу даних було видалено зі списку, оскільки файл не знайдено</string>
-    <string name="conversion_long">Під час оптимізації БД та створення індексів відсотки не змінюються, але конвертація продовжує працювати!</string>
 
     <string name="notification_permission_title">Дозвіл на сповіщення</string>
     <string name="notification_permission_message">Для коректної роботи конвертації у фоновому режимі рекомендується дозволити надсилання сповіщень. Без цього дозволу прогрес конвертації може бути втрачений під час згортання застосунку.</string>
@@ -1617,8 +1362,6 @@
     <string name="preparing_parallel_processing">Підготовка паралельної обробки…</string>
     <string name="opening_file">Відкриття файлу %1$s…</string>
     <string name="calculating_file_size">Обчислення розміру файлу…</string>
-    <string name="reading_file_content">Читання вмісту файлу…</string>
-    <string name="inserting_batch_data">Вставка даних (пакет %1$d)…</string>
     <string name="copying_to_destination">Копіювання в призначене місце…</string>
     <string name="preparing_database_optimization">Підготовка до оптимізації бази даних…</string>
 
@@ -1632,12 +1375,8 @@
     <string name="optimization_warning">Якщо конвертація триває занадто довго, спробуйте вимкнути оптимізацію бази даних</string>
     <string name="skipping_optimization">Пропуск оптимізації бази даних…</string>
 
-    <string name="pixiedust_binary_copy_failed">Не вдалося скопіювати бінарні файли iw</string>
     <string name="error_insufficient_memory">Недостатньо пам’яті для завантаження алгоритмів WPA</string>
     <string name="error_algorithms_not_loaded">Алгоритми WPA ще не завантажені</string>
-
-    <string name="pixiedust_copy_log">Копіювати лог</string>
-    <string name="pixiedust_log_copied">Лог атаки скопійовано в буфер обміну</string>
 
     # I was too lazy to write so many lines manually, so I just did everything through ChatGPT
 
