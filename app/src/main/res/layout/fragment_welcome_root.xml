@@ -75,7 +75,30 @@
                         android:layout_height="wrap_content"
                         android:checked="true"
                         android:text="@string/no_root_access" />
+                    <RadioButton
+                        android:id="@+id/radioButtonWantToSeeRoot"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/no_root_but_show_functions" />
                 </RadioGroup>
+
+                <TextView
+                    android:id="@+id/textViewRootStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:textAlignment="center"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/buttonNext"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/next"
+                    android:visibility="gone" />
 
                 <TextView
                     android:layout_width="match_parent"

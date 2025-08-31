@@ -30,20 +30,6 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.osmdroid.library.BuildConfig
 
-class ShellInitializer : Shell.Initializer() {
-    override fun onInit(context: Context, shell: Shell): Boolean {
-        return try {
-            shell.newJob()
-                .add("export PATH=\$PATH:/system/bin:/system/xbin")
-                .add("umask 022")
-                .exec()
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
-}
-
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
@@ -58,16 +44,6 @@ class MainActivity : AppCompatActivity() {
         "utilities" to false,
         "api_3wifi" to false
     )
-
-    companion object {
-        init {
-            Shell.enableVerboseLogging = BuildConfig.DEBUG
-            Shell.setDefaultBuilder(Shell.Builder.create()
-                .setFlags(Shell.FLAG_MOUNT_MASTER)
-                .setInitializers(ShellInitializer::class.java)
-                .setTimeout(15))
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
@@ -112,7 +88,6 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_saved_passwords,
                 R.id.nav_wps_generator,
                 R.id.nav_wpa_generator,
-                R.id.nav_pixiedust,
                 R.id.nav_settings,
                 R.id.nav_about
             ), drawerLayout
@@ -127,16 +102,13 @@ class MainActivity : AppCompatActivity() {
 
         settingsViewModel.enableRoot.observe(this) { enableRoot ->
             val categoryRootItem = binding.navView.menu.findItem(R.id.category_root_functions)
-            val pixiedustItem = binding.navView.menu.findItem(R.id.nav_pixiedust)
             val savedPasswordsItem = binding.navView.menu.findItem(R.id.nav_saved_passwords)
 
             categoryRootItem?.isVisible = enableRoot
 
             if (enableRoot && categoryStates["root_functions"] == true) {
-                pixiedustItem?.isVisible = true
                 savedPasswordsItem?.isVisible = true
             } else {
-                pixiedustItem?.isVisible = false
                 savedPasswordsItem?.isVisible = false
             }
         }
@@ -181,9 +153,8 @@ class MainActivity : AppCompatActivity() {
                 R.id.category_root_functions -> {
                     Log.d("MainActivity", "Root functions category clicked")
                     toggleCategory("root_functions", listOf(
-                        R.id.nav_pixiedust,
-                        R.id.nav_iw_scanner,
-                        R.id.nav_saved_passwords
+                        R.id.nav_saved_passwords,
+                        R.id.nav_geo_mac
                     ), menuItem)
                     true
                 }

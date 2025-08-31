@@ -3,11 +3,19 @@ package com.lsd.wififrankenstein
 import android.app.Application
 import com.lsd.wififrankenstein.util.FileLogger
 import com.lsd.wififrankenstein.util.GlobalExceptionHandler
+import com.topjohnwu.superuser.Shell
+import org.osmdroid.library.BuildConfig
 
 class WifiApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        Shell.enableVerboseLogging = BuildConfig.DEBUG
+        Shell.setDefaultBuilder(Shell.Builder.create()
+            .setFlags(Shell.FLAG_MOUNT_MASTER)
+            .setInitializers(ShellInitializer::class.java)
+            .setTimeout(15))
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(defaultHandler))

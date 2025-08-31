@@ -42,14 +42,9 @@
             android:icon="@drawable/ic_expand_more"
             android:title="@string/category_root_functions" />
         <item
-            android:id="@+id/nav_pixiedust"
-            android:icon="@drawable/ic_key"
-            android:title="@string/menu_pixiedust"
-            android:visible="false" />
-        <item
-            android:id="@+id/nav_iw_scanner"
-            android:icon="@drawable/ic_wifi"
-            android:title="@string/menu_iw_scanner"
+            android:id="@+id/nav_geo_mac"
+            android:icon="@drawable/ic_location"
+            android:title="@string/geo_mac_title"
             android:visible="false" />
         <item
             android:id="@+id/nav_saved_passwords"

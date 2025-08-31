@@ -40,12 +40,6 @@
         tools:layout="@layout/fragment_convert_dumps" />
 
     <fragment
-        android:id="@+id/nav_iw_scanner"
-        android:name="com.lsd.wififrankenstein.ui.iwscanner.IwScannerFragment"
-        android:label="@string/menu_iw_scanner"
-        tools:layout="@layout/fragment_iw_scanner" />
-
-    <fragment
         android:id="@+id/nav_qr_generator"
         android:name="com.lsd.wififrankenstein.ui.qrgenerator.QrCodeGeneratorFragment"
         android:label="@string/menu_qr_generator"
@@ -64,10 +58,10 @@
         tools:layout="@layout/fragment_wpa_generator" />
 
     <fragment
-        android:id="@+id/nav_pixiedust"
-        android:name="com.lsd.wififrankenstein.ui.pixiedust.PixieDustFragment"
-        android:label="@string/menu_pixiedust"
-        tools:layout="@layout/fragment_pixiedust" />
+        android:id="@+id/nav_geo_mac"
+        android:name="com.lsd.wififrankenstein.ui.geomac.GeoMacFragment"
+        android:label="@string/geo_mac_title"
+        tools:layout="@layout/fragment_geo_mac" />
 
     <action
         android:id="@+id/action_databaseFinderFragment_to_dbSetupFragment"

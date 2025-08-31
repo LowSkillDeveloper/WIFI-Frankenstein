@@ -24,6 +24,7 @@ import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.lsd.wififrankenstein.ui.welcome.ChrootInstallFragment
 
 class WelcomeActivity : AppCompatActivity() {
 
@@ -37,6 +38,7 @@ class WelcomeActivity : AppCompatActivity() {
         WelcomePermissionsFragment.newInstance(),
         WelcomeDatabasesFragment.newInstance(),
         WelcomeRootFragment.newInstance(),
+        ChrootInstallFragment.newInstance(),
         WelcomeUpdatesFragment.newInstance(),
         WelcomeCompletedFragment.newInstance()
     )
@@ -132,6 +134,13 @@ class WelcomeActivity : AppCompatActivity() {
     private fun updateButtonVisibility(position: Int) {
         binding.buttonPrev.visibility = if (position > 0) View.VISIBLE else View.INVISIBLE
         binding.buttonNext.visibility = if (position < fragments.size - 1) View.VISIBLE else View.GONE
+    }
+
+    fun navigateToChrootInstall() {
+        val currentIndex = viewPager.currentItem
+        if (currentIndex < fragments.size - 1) {
+            viewPager.currentItem = currentIndex + 1
+        }
     }
 
     fun completeOnboarding() {
