@@ -19,6 +19,7 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import javax.net.ssl.HttpsURLConnection
 
 class MacLocationViewModel(application: Application) : AndroidViewModel(application) {
@@ -447,7 +448,10 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                 log("Starting Microsoft search for MAC: $macAddress")
 
                 val cleanMac = macAddress.lowercase().replace("-", ":")
-                val timestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
+
+                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX", Locale.US)
+                sdf.timeZone = TimeZone.getTimeZone("UTC")
+                val timestamp = sdf.format(Date())
 
                 val xmlRequest = """
                 <GetLocationUsingFingerprint xmlns="http://inference.location.live.com">
@@ -474,8 +478,7 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                     requestMethod = "POST"
                     doOutput = true
                     setRequestProperty("Content-Type", "text/xml")
-                    setRequestProperty("Accept", "*/*")
-                    setRequestProperty("User-Agent", "WifiLocation/1.0")
+                    setRequestProperty("User-Agent", "Nim httpclient/1.4.2")
                 }
 
                 connection.outputStream.use {
@@ -484,18 +487,14 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
 
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
 
-                val latMatch = Regex("<Latitude>([^<]+)</Latitude>").find(response)
-                val lonMatch = Regex("<Longitude>([^<]+)</Longitude>").find(response)
-                val uncertaintyMatch = Regex("<RadialUncertainty>([^<]+)</RadialUncertainty>").find(response)
+                val regex = Regex("""<ResolvedPosition\s+Latitude="([^"]+)"\s+Longitude="([^"]+)"""")
+                val match = regex.find(response)
 
-                if (latMatch != null && lonMatch != null && uncertaintyMatch != null) {
-                    val lat = latMatch.groupValues[1].toDoubleOrNull()
-                    val lon = lonMatch.groupValues[1].toDoubleOrNull()
-                    val uncertainty = uncertaintyMatch.groupValues[1].toDoubleOrNull()
+                if (match != null) {
+                    val lat = match.groupValues[1].toDouble()
+                    val lon = match.groupValues[2].toDouble()
 
-                    if (lat != null && lon != null && uncertainty != null &&
-                        uncertainty < 500 && isValidCoordinates(lat, lon)) {
-
+                    if (isValidCoordinates(lat, lon)) {
                         val locationResult = LocationResult(
                             module = "microsoft",
                             bssid = macAddress,
@@ -505,7 +504,7 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                         log("✅ Microsoft search successful. Found location: $lat, $lon")
                         addResult(locationResult)
                     } else {
-                        log("ℹ️ Microsoft search completed but results are unreliable")
+                        log("ℹ️ Microsoft search completed but results are invalid")
                     }
                 } else {
                     log("ℹ️ Microsoft search completed but no results found")
