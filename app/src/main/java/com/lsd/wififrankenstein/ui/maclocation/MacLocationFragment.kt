@@ -261,19 +261,28 @@ class MacLocationFragment : Fragment() {
         results.forEach { result ->
             result.latitude?.let { lat ->
                 result.longitude?.let { lon ->
-                    val point = GeoPoint(lat, lon)
-                    points.add(point)
+                    val latStr = String.format("%.1f", lat)
+                    val lonStr = String.format("%.1f", lon)
+                    val isInvalidCoordinates = (latStr == "-180.0" && lonStr == "0.0") ||
+                            (latStr == "-180.0" && lonStr == "-180.0") ||
+                            (lat == -180.0 && lon == 0.0) ||
+                            (lat == -180.0 && lon == -180.0)
 
-                    val marker = Marker(map).apply {
-                        position = point
-                        title = result.module
-                        snippet = buildString {
-                            append("BSSID: ${result.bssid ?: "N/A"}\n")
-                            append("SSID: ${result.ssid ?: "N/A"}")
+                    if (!isInvalidCoordinates) {
+                        val point = GeoPoint(lat, lon)
+                        points.add(point)
+
+                        val marker = Marker(map).apply {
+                            position = point
+                            title = result.module
+                            snippet = buildString {
+                                append("BSSID: ${result.bssid ?: "N/A"}\n")
+                                append("SSID: ${result.ssid ?: "N/A"}")
+                            }
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         }
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        map.overlays.add(marker)
                     }
-                    map.overlays.add(marker)
                 }
             }
         }
