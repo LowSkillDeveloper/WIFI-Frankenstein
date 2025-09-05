@@ -14,12 +14,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.protobuf.ProtoBuf
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
 import javax.net.ssl.HttpsURLConnection
 
 class MacLocationViewModel(application: Application) : AndroidViewModel(application) {
@@ -127,7 +131,7 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             _isLoading.value = true
             var completedTasks = 0
-            val totalTasks = 11
+            val totalTasks = 12
 
             fun checkCompletion() {
                 completedTasks++
@@ -185,6 +189,11 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                     checkCompletion()
                 }
 
+                launch {
+                    searchGoogleNoKey(mac)
+                    checkCompletion()
+                }
+
                 if (_savedApiKeys.value?.combainApi?.isNotBlank() == true) {
                     launch {
                         searchCombain(mac)
@@ -224,6 +233,161 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                 _isLoading.value = false
             }
         }
+    }
+
+    private suspend fun searchGoogleNoKey(macAddress: String) =
+        withContext(Dispatchers.IO) {
+            try {
+                log("Starting Google (No Key) search for MAC: $macAddress")
+
+                val data1 = byteArrayOf(
+                    0x0A.toByte(), 0x66, 0x0A, 0x04, 0x32, 0x30, 0x32, 0x31, 0x12, 0x57, 0x61, 0x6E, 0x64, 0x72, 0x6F, 0x69,
+                    0x64, 0x2F, 0x4C, 0x45, 0x41, 0x47, 0x4F, 0x4F, 0x2F, 0x66, 0x75, 0x6C, 0x6C, 0x5F, 0x77, 0x66,
+                    0x35, 0x36, 0x32, 0x67, 0x5F, 0x6C, 0x65, 0x61, 0x67, 0x6F, 0x6F, 0x2F, 0x77, 0x66, 0x35, 0x36,
+                    0x32, 0x67, 0x5F, 0x6C, 0x65, 0x61, 0x67, 0x6F, 0x6F, 0x3A, 0x36, 0x2E, 0x30, 0x2F, 0x4D, 0x52,
+                    0x41, 0x35, 0x38, 0x4B, 0x2F, 0x31, 0x35, 0x31, 0x31, 0x31, 0x36, 0x31, 0x37, 0x37, 0x30, 0x3A,
+                    0x75, 0x73, 0x65, 0x72, 0x2F, 0x72, 0x65, 0x6C, 0x65, 0x61, 0x73, 0x65, 0x2D, 0x6B, 0x65, 0x79,
+                    0x73, 0x2A, 0x05, 0x65, 0x6E, 0x5F, 0x55, 0x53, 0x22, 0x22, 0x12, 0x1E, 0x08, 0xA3.toByte(), 0xF7.toByte(), 0x09,
+                    0x12, 0x0A, 0x0A, 0x00, 0x40, 0xEE.toByte(), 0xEE.toByte(), 0xEE.toByte(), 0xEE.toByte(), 0xEE.toByte(), 0xEE.toByte(), 0x6E,
+                    0x12, 0x0A, 0x0A, 0x00, 0x40, 0xE6.toByte(), 0xAA.toByte(), 0x91.toByte(), 0x9A.toByte(), 0xA3.toByte(), 0xA4.toByte(), 0x04,
+                    0x18, 0x02, 0x50, 0x00
+                )
+
+                val data2_1 = byteArrayOf(
+                    0x00, 0x02, 0x00, 0x00, 0x1F, 0x6C, 0x6F, 0x63, 0x61, 0x74, 0x69, 0x6F, 0x6E, 0x2C, 0x32, 0x30,
+                    0x32, 0x31, 0x2C, 0x61, 0x6E, 0x64, 0x72, 0x6F, 0x69, 0x64, 0x2C, 0x67, 0x6D, 0x73, 0x2C, 0x65,
+                    0x6E, 0x5F, 0x55, 0x53, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x67, 0x00,
+                    0x00, 0x00, 0xBB.toByte(), 0x00, 0x01, 0x01, 0x00, 0x01, 0x00, 0x08, 0x67, 0x3A, 0x6C, 0x6F, 0x63, 0x2F,
+                    0x71, 0x6C, 0x00, 0x00, 0x00, 0x04, 0x50, 0x4F, 0x53, 0x54, 0x6D, 0x72, 0x00, 0x00, 0x00, 0x04,
+                    0x52, 0x4F, 0x4F, 0x54, 0x00, 0x00, 0x00, 0x00
+                )
+
+                val macLong = macAddress.replace(":", "").replace("-", "").toLong(16)
+
+                insertMac(data1, 0x75, macLong)
+
+                val compressedData1 = gzipCompress(data1)
+
+                val data2 = constructData2(data2_1, compressedData1)
+
+                val url = URL("https://www.google.com/loc/m/api")
+                val connection = (url.openConnection() as HttpsURLConnection).apply {
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    requestMethod = "POST"
+                    doOutput = true
+                    setRequestProperty("Content-Type", "application/binary")
+                    setRequestProperty("User-Agent", "GoogleMobile/1.0 (M5 MRA58K); gzip")
+                    setRequestProperty("Accept-Encoding", "gzip")
+                }
+
+                connection.outputStream.use { it.write(data2) }
+
+                val response = connection.inputStream.readBytes()
+
+                val location = findLocationInResponse(response)
+                if (location.latitude != 0.0 && location.longitude != 0.0) {
+                    val locationResult = LocationResult(
+                        module = "google_nokey",
+                        bssid = macAddress,
+                        latitude = location.latitude,
+                        longitude = location.longitude
+                    )
+                    log("✅ Google (No Key) search successful. Found location: ${location.latitude}, ${location.longitude}")
+                    addResult(locationResult)
+                } else {
+                    log("ℹ️ Google (No Key) search completed but no results found")
+                }
+
+            } catch (e: Exception) {
+                log("❌ Google (No Key) search error: ${e.message}")
+                Log.e(TAG, "Google (No Key) search error", e)
+            }
+        }
+
+    private fun insertMac(buffer: ByteArray, position: Int, macValue: Long) {
+        var input = macValue
+        var i = 0
+        while (i < 6) {
+            buffer[i + position] = ((input and 0x7F) or 0x80).toByte()
+            input = input ushr 7
+            i++
+        }
+        buffer[i + position] = input.toByte()
+    }
+
+    private fun gzipCompress(data: ByteArray): ByteArray {
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        val gzipOutputStream = GZIPOutputStream(byteArrayOutputStream)
+        gzipOutputStream.write(data)
+        gzipOutputStream.close()
+        return byteArrayOutputStream.toByteArray()
+    }
+
+    private fun gzipDecompress(compressedData: ByteArray): ByteArray {
+        val byteArrayInputStream = ByteArrayInputStream(compressedData)
+        val gzipInputStream = GZIPInputStream(byteArrayInputStream)
+        return gzipInputStream.readBytes()
+    }
+
+    private fun constructData2(data2_1: ByteArray, compressedData: ByteArray): ByteArray {
+        val buffer = ByteArray(1024)
+        System.arraycopy(data2_1, 0, buffer, 0, data2_1.size)
+
+        val len = compressedData.size
+        buffer[88] = (len and 0xFF).toByte()
+        buffer[89] = ((len shr 8) and 0xFF).toByte()
+        buffer[90] = 0x01
+        buffer[91] = 0x67
+
+        System.arraycopy(compressedData, 0, buffer, 92, len)
+        buffer[92 + len] = 0x00
+        buffer[93 + len] = 0x00
+
+        val outLen = data2_1.size + 6 + len
+        return buffer.copyOf(outLen)
+    }
+
+    private data class Location(val latitude: Double = 0.0, val longitude: Double = 0.0)
+
+    private fun findLocationInResponse(response: ByteArray): Location {
+        var posGzip = -1
+        for (i in 0 until response.size - 2) {
+            if (response[i] == 0x1F.toByte() && response[i + 1] == 0x8B.toByte() && response[i + 2] == 0x08.toByte()) {
+                posGzip = i
+                break
+            }
+        }
+
+        if (posGzip != -1) {
+            try {
+                val compressedData = response.copyOfRange(posGzip, response.size)
+                val decompressedData = gzipDecompress(compressedData)
+
+                for (i in 0 until decompressedData.size - 12) {
+                    if (decompressedData[i] == 0x0A.toByte() &&
+                        decompressedData[i + 1] == 0x0A.toByte() &&
+                        decompressedData[i + 12] == 24.toByte()) {
+
+                        val lat = (decompressedData[i + 3].toInt() and 0xFF) or
+                                ((decompressedData[i + 4].toInt() and 0xFF) shl 8) or
+                                ((decompressedData[i + 5].toInt() and 0xFF) shl 16) or
+                                ((decompressedData[i + 6].toInt() and 0xFF) shl 24)
+
+                        val lon = (decompressedData[i + 8].toInt() and 0xFF) or
+                                ((decompressedData[i + 9].toInt() and 0xFF) shl 8) or
+                                ((decompressedData[i + 10].toInt() and 0xFF) shl 16) or
+                                ((decompressedData[i + 11].toInt() and 0xFF) shl 24)
+
+                        return Location(lat / 10000000.0, lon / 10000000.0)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error decompressing response", e)
+            }
+        }
+
+        return Location()
     }
 
     private suspend fun searchMylnikovPaid(macAddress: String) =
