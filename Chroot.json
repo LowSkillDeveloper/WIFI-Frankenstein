@@ -1,5 +1,5 @@
 {
-  "version": "3.22.1",
+  "version": "3.24.0",
   "arm64": {
     "filename": "WIFIFrankenstein-minirootfs-aarch64.tar.gz",
     "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v1.0/alpine-ready-aarch64.tar.gz"
