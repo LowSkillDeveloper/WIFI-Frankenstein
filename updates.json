@@ -11,11 +11,6 @@
       "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/vendor.db"
     },
     {
-      "name": "vendor_data.txt",
-      "version": "1.0",
-      "download_url": "https://raw.githubusercontent.com/LowSkillDeveloper/WIFI-Frankenstein/service/vendor_data.txt"
-    },
-    {
       "name": "wps_pin.db",
       "version": "1.1",
       "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/wps_pin.db"
