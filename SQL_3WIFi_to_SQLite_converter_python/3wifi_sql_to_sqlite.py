@@ -598,4 +598,17 @@ def main(dump_file: str, db_file: str):
     print("\nDone!")
 
 if __name__ == "__main__":
-    main("dump-p3wifi-20260416.sql", "p3wifi.sqlite")
+    input_file = sys.argv[1] if len(sys.argv) > 1 else ""
+    if not input_file:
+        import glob
+        matches = glob.glob("dump-p3wifi-*.sql")
+        if len(matches) == 1:
+            input_file = matches[0]
+        elif len(matches) > 1:
+            print(f"Found multiple dumps, specify one: {matches}")
+            sys.exit(1)
+        else:
+            print("No dump-p3wifi-*.sql found in current directory.")
+            sys.exit(1)
+    output_file = sys.argv[2] if len(sys.argv) > 2 else "p3wifi.sqlite"
+    main(input_file, output_file)
