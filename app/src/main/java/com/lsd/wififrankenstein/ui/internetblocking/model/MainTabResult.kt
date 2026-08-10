@@ -1,0 +1,33 @@
+package com.lsd.wififrankenstein.ui.internetblocking.model
+
+data class MainTabResult(
+    val domain: String,
+    val resolvedIp: String?,
+    val dnsStatus: CheckStatus,
+    val dnsDetails: String?,
+    val udpIps: List<String>,
+    val dohIps: List<String>,
+    val tls13Status: CheckStatus,
+    val tls12Status: CheckStatus,
+    val httpStatus: CheckStatus,
+    val tcpReachable: Boolean,
+    val tcpLatencyMs: Long?,
+    val tcp16Status: CheckStatus,
+    val tcp16Detail: String?,
+    val overallStatus: CheckStatus,
+    val totalDurationMs: Long,
+    val baselineReachable: Boolean = false,
+    val port80Reachable: Boolean = false,
+    val sniBlocked: Boolean = false,
+    val blockStage: String = "—",
+    val blockMechanism: String = "—",
+    val conclusion: String = "",
+    val tls13Detail: String? = null,
+    val tls12Detail: String? = null,
+    val httpDetail: String? = null,
+    val httpStub: Boolean = false,
+    val confidence: String = "—",
+    val tls13Trace: List<StageTrace> = emptyList(),
+    val tls12Trace: List<StageTrace> = emptyList(),
+    val httpTrace: List<StageTrace> = emptyList()
+)

@@ -1,0 +1,528 @@
+package com.lsd.wififrankenstein.service
+
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.IBinder
+import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.util.Log
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import java.util.concurrent.ConcurrentHashMap
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
+
+class DownloadService : Service() {
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val activeDownloads = ConcurrentHashMap<String, Job>()
+    private val notificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
+    private val notificationProgress = ConcurrentHashMap<String, Int>()
+    private val lastNotificationUpdate = ConcurrentHashMap<String, Long>()
+    private val lastBroadcastUpdate = ConcurrentHashMap<String, Long>()
+
+    companion object {
+        private const val TAG = "DownloadService"
+        private const val NOTIFICATION_ID = 1001
+        private const val COMPLETION_NOTIFICATION_BASE_ID = 2000
+        private const val CHANNEL_ID = "download_channel"
+        private const val NOTIFICATION_UPDATE_INTERVAL_MS = 2000L
+        private const val PROGRESS_UPDATE_THRESHOLD = 10
+        private const val BROADCAST_UPDATE_INTERVAL_MS = 250L
+
+        const val ACTION_START_DOWNLOAD = "start_download"
+        const val ACTION_CANCEL_DOWNLOAD = "cancel_download"
+        const val ACTION_CANCEL_ALL_DOWNLOADS = "cancel_all_downloads"
+
+        const val EXTRA_FILE_NAME = "file_name"
+        const val EXTRA_DOWNLOAD_URL = "download_url"
+        const val EXTRA_SERVER_VERSION = "server_version"
+
+        const val BROADCAST_DOWNLOAD_PROGRESS = "download_progress"
+        const val BROADCAST_DOWNLOAD_COMPLETE = "download_complete"
+        const val BROADCAST_DOWNLOAD_ERROR = "download_error"
+        const val BROADCAST_DOWNLOAD_CANCELLED = "download_cancelled"
+
+        const val EXTRA_PROGRESS = "progress"
+        const val EXTRA_ERROR_MESSAGE = "error_message"
+
+        fun startDownload(
+            context: Context,
+            fileName: String,
+            downloadUrl: String,
+            serverVersion: String
+        ) {
+            val intent = Intent(context, DownloadService::class.java).apply {
+                action = ACTION_START_DOWNLOAD
+                putExtra(EXTRA_FILE_NAME, fileName)
+                putExtra(EXTRA_DOWNLOAD_URL, downloadUrl)
+                putExtra(EXTRA_SERVER_VERSION, serverVersion)
+            }
+            context.startService(intent)
+        }
+
+        fun cancelDownload(context: Context, fileName: String) {
+            val intent = Intent(context, DownloadService::class.java).apply {
+                action = ACTION_CANCEL_DOWNLOAD
+                putExtra(EXTRA_FILE_NAME, fileName)
+            }
+            context.startService(intent)
+        }
+
+        fun cancelAllDownloads(context: Context) {
+            val intent = Intent(context, DownloadService::class.java).apply {
+                action = ACTION_CANCEL_ALL_DOWNLOADS
+            }
+            context.startService(intent)
+        }
+
+        fun hasActiveDownloads(context: Context): Boolean {
+            return try {
+                val service = context as? DownloadService
+                service?.activeDownloads?.isNotEmpty() ?: false
+            } catch (e: Exception) {
+                false
+            }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_START_DOWNLOAD -> {
+                val fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: return START_NOT_STICKY
+                val downloadUrl =
+                    intent.getStringExtra(EXTRA_DOWNLOAD_URL) ?: return START_NOT_STICKY
+                val serverVersion =
+                    intent.getStringExtra(EXTRA_SERVER_VERSION) ?: return START_NOT_STICKY
+
+                if (!activeDownloads.containsKey(fileName)) {
+                    startDownload(fileName, downloadUrl, serverVersion)
+                }
+            }
+
+            ACTION_CANCEL_DOWNLOAD -> {
+                val fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: return START_NOT_STICKY
+                cancelDownload(fileName)
+            }
+
+            ACTION_CANCEL_ALL_DOWNLOADS -> {
+                cancelAllDownloads()
+            }
+        }
+
+        return START_STICKY
+    }
+
+    private fun startDownload(fileName: String, downloadUrl: String, serverVersion: String) {
+        val job = serviceScope.launch {
+            try {
+                showInitialNotification(fileName)
+
+                val file = File(filesDir, fileName)
+                var url = URL(downloadUrl)
+                var connection: HttpsURLConnection? = null
+                var fileSize = -1L
+
+                for (i in 0..5) {
+                    connection = url.openConnection() as HttpsURLConnection
+                    val trustAll = arrayOf<TrustManager>(object : X509TrustManager {
+                        override fun checkClientTrusted(
+                            certs: Array<X509Certificate>,
+                            authType: String
+                        ) {
+                        }
+
+                        override fun checkServerTrusted(
+                            certs: Array<X509Certificate>,
+                            authType: String
+                        ) {
+                        }
+
+                        override fun getAcceptedIssuers() = arrayOf<X509Certificate>()
+                    })
+                    val sslContext =
+                        SSLContext.getInstance("TLS").apply { init(null, trustAll, SecureRandom()) }
+                    connection.sslSocketFactory = sslContext.socketFactory
+                    connection.hostnameVerifier = HostnameVerifier { _, _ -> true }
+                    connection.instanceFollowRedirects = false
+
+                    val responseCode = connection.responseCode
+                    if (responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
+                        responseCode == HttpURLConnection.HTTP_SEE_OTHER || responseCode == 307 || responseCode == 308
+                    ) {
+                        val redirectUrl = connection.getHeaderField("Location") ?: break
+                        url = URL(url, redirectUrl)
+                        connection.disconnect()
+                        continue
+                    }
+                    fileSize = connection.contentLength.toLong()
+                    break
+                }
+
+                if (connection == null) {
+                    broadcastError(fileName, getString(R.string.download_error_unknown))
+                    return@launch
+                }
+
+                connection.inputStream.use { input ->
+                    FileOutputStream(file).use { output ->
+                        val buffer = ByteArray(8192)
+                        var bytesRead: Int
+                        var totalBytesRead = 0L
+
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            if (!isActive) break
+
+                            output.write(buffer, 0, bytesRead)
+                            totalBytesRead += bytesRead
+                            val progress = if (fileSize > 0) {
+                                (totalBytesRead * 100 / fileSize).toInt()
+                            } else {
+                                -1
+                            }
+
+                            updateNotificationOptimized(fileName, progress)
+                            broadcastProgressOptimized(fileName, progress)
+                        }
+                    }
+                }
+
+                if (isActive) {
+                    updateFileVersion(fileName, serverVersion)
+                    broadcastComplete(fileName)
+                    cancelNotification(fileName)
+                    showCompletionNotification(fileName)
+                }
+
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Download failed for $fileName", e)
+                broadcastError(fileName, e.message ?: getString(R.string.download_error_unknown))
+                cancelNotification(fileName)
+            } finally {
+                activeDownloads.remove(fileName)
+                notificationProgress.remove(fileName)
+                lastNotificationUpdate.remove(fileName)
+                lastBroadcastUpdate.remove(fileName)
+                if (activeDownloads.isEmpty()) {
+                    stopSelf()
+                }
+            }
+        }
+
+        activeDownloads[fileName] = job
+    }
+
+    private fun cancelDownload(fileName: String) {
+        activeDownloads[fileName]?.cancel()
+        activeDownloads.remove(fileName)
+        notificationProgress.remove(fileName)
+        lastNotificationUpdate.remove(fileName)
+        lastBroadcastUpdate.remove(fileName)
+        broadcastCancelled(fileName)
+        cancelNotification(fileName)
+
+        if (activeDownloads.isEmpty()) {
+            stopSelf()
+        }
+    }
+
+    private fun cancelAllDownloads() {
+        activeDownloads.values.forEach { it.cancel() }
+        activeDownloads.clear()
+        notificationProgress.clear()
+        lastNotificationUpdate.clear()
+        lastBroadcastUpdate.clear()
+        cancelAllNotifications()
+        stopSelf()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                getString(R.string.download_notification_channel),
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = getString(R.string.download_notification_channel_description)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun hasNotificationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    private fun showInitialNotification(fileName: String) {
+        if (!hasNotificationPermission()) {
+            Log.w(TAG, "No notification permission, skipping notification")
+            return
+        }
+
+        notificationProgress[fileName] = 0
+        lastNotificationUpdate[fileName] = System.currentTimeMillis()
+        lastBroadcastUpdate[fileName] = System.currentTimeMillis()
+        showNotification(fileName, 0)
+    }
+
+    private fun updateNotificationOptimized(fileName: String, progress: Int) {
+        if (!hasNotificationPermission()) {
+            return
+        }
+
+        val lastProgress = notificationProgress[fileName] ?: 0
+        val lastUpdateTime = lastNotificationUpdate[fileName] ?: 0
+        val currentTime = System.currentTimeMillis()
+
+        val progressDifference = kotlin.math.abs(progress - lastProgress)
+        val timeDifference = currentTime - lastUpdateTime
+
+        val shouldUpdate = when {
+            progress <= 0 -> true
+            progress == 100 -> true
+            progressDifference >= PROGRESS_UPDATE_THRESHOLD && timeDifference >= NOTIFICATION_UPDATE_INTERVAL_MS -> true
+            timeDifference >= (NOTIFICATION_UPDATE_INTERVAL_MS * 2) -> true
+            else -> false
+        }
+
+        if (shouldUpdate) {
+            notificationProgress[fileName] = progress
+            lastNotificationUpdate[fileName] = currentTime
+            updateNotification(fileName, progress)
+        }
+    }
+
+    private fun showNotification(fileName: String, progress: Int) {
+        if (!hasNotificationPermission()) {
+            return
+        }
+
+        val notificationId = getNotificationId(fileName)
+        val cancelIntent = Intent(this, DownloadService::class.java).apply {
+            action = ACTION_CANCEL_DOWNLOAD
+            putExtra(EXTRA_FILE_NAME, fileName)
+        }
+        val cancelPendingIntent = PendingIntent.getService(
+            this,
+            notificationId,
+            cancelIntent,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+        )
+
+        val isIndeterminate = progress <= 0
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_file_download)
+            .setContentTitle(getString(R.string.downloading_file))
+            .setContentText(fileName)
+            .setProgress(
+                if (isIndeterminate) 0 else 100,
+                if (isIndeterminate) 0 else progress,
+                isIndeterminate
+            )
+            .setOngoing(true)
+            .addAction(R.drawable.ic_close, getString(R.string.cancel), cancelPendingIntent)
+            .build()
+
+        try {
+            if (activeDownloads.size == 1) {
+                startForeground(notificationId, notification)
+            } else {
+                notificationManager.notify(notificationId, notification)
+            }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Failed to show notification due to missing permission", e)
+        }
+    }
+
+    private fun updateNotification(fileName: String, progress: Int) {
+        if (!hasNotificationPermission()) {
+            return
+        }
+
+        val notificationId = getNotificationId(fileName)
+        val cancelIntent = Intent(this, DownloadService::class.java).apply {
+            action = ACTION_CANCEL_DOWNLOAD
+            putExtra(EXTRA_FILE_NAME, fileName)
+        }
+        val cancelPendingIntent = PendingIntent.getService(
+            this,
+            notificationId,
+            cancelIntent,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+        )
+
+        val isIndeterminate = progress <= 0
+        val progressText = if (isIndeterminate && progress < 0) {
+            getString(R.string.downloading_file)
+        } else {
+            getString(R.string.downloading_file_progress, fileName, progress.coerceAtLeast(0))
+        }
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_file_download)
+            .setContentTitle(getString(R.string.downloading_file))
+            .setContentText(progressText)
+            .setProgress(
+                if (isIndeterminate) 0 else 100,
+                if (isIndeterminate) 0 else progress,
+                isIndeterminate
+            )
+            .setOngoing(true)
+            .addAction(R.drawable.ic_close, getString(R.string.cancel), cancelPendingIntent)
+            .build()
+
+        try {
+            notificationManager.notify(notificationId, notification)
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Failed to update notification due to missing permission", e)
+        }
+    }
+
+    private fun showCompletionNotification(fileName: String) {
+        if (!hasNotificationPermission()) {
+            return
+        }
+
+        val completionId = getCompletionNotificationId(fileName)
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_check)
+            .setContentTitle(getString(R.string.download_complete))
+            .setContentText(getString(R.string.file_downloaded_successfully, fileName))
+            .setAutoCancel(true)
+            .setOngoing(false)
+            .build()
+
+        try {
+            notificationManager.notify(completionId, notification)
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Failed to show completion notification due to missing permission", e)
+        }
+    }
+
+    private fun cancelNotification(fileName: String) {
+        val notificationId = getNotificationId(fileName)
+        notificationManager.cancel(notificationId)
+    }
+
+    private fun cancelAllNotifications() {
+        activeDownloads.keys.forEach { fileName ->
+            cancelNotification(fileName)
+        }
+        notificationManager.cancelAll()
+        stopForeground(true)
+    }
+
+    private fun broadcastProgress(fileName: String, progress: Int) {
+        val intent = Intent(BROADCAST_DOWNLOAD_PROGRESS).apply {
+            putExtra(EXTRA_FILE_NAME, fileName)
+            putExtra(EXTRA_PROGRESS, progress)
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+
+    private fun broadcastProgressOptimized(fileName: String, progress: Int) {
+        val lastBroadcastTime = lastBroadcastUpdate[fileName] ?: 0
+        val currentTime = System.currentTimeMillis()
+        val timeDifference = currentTime - lastBroadcastTime
+
+        val shouldBroadcast = when {
+            progress <= 0 || progress == 100 -> true
+            timeDifference >= BROADCAST_UPDATE_INTERVAL_MS -> true
+            else -> false
+        }
+
+        if (shouldBroadcast) {
+            lastBroadcastUpdate[fileName] = currentTime
+            broadcastProgress(fileName, progress)
+        }
+    }
+
+    private fun broadcastComplete(fileName: String) {
+        val intent = Intent(BROADCAST_DOWNLOAD_COMPLETE).apply {
+            putExtra(EXTRA_FILE_NAME, fileName)
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+
+    private fun broadcastError(fileName: String, errorMessage: String) {
+        val intent = Intent(BROADCAST_DOWNLOAD_ERROR).apply {
+            putExtra(EXTRA_FILE_NAME, fileName)
+            putExtra(EXTRA_ERROR_MESSAGE, errorMessage)
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+
+    private fun broadcastCancelled(fileName: String) {
+        val intent = Intent(BROADCAST_DOWNLOAD_CANCELLED).apply {
+            putExtra(EXTRA_FILE_NAME, fileName)
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+
+    private fun updateFileVersion(fileName: String, newVersion: String) {
+        val versionFileName = "${fileName.substringBeforeLast(".")}_version.json"
+        val versionJson = JSONObject().put("version", newVersion)
+        openFileOutput(versionFileName, MODE_PRIVATE).use { output ->
+            output.write(versionJson.toString().toByteArray())
+        }
+    }
+
+    fun hasActiveDownloads(): Boolean = activeDownloads.isNotEmpty()
+
+    private fun getNotificationId(fileName: String): Int {
+        return NOTIFICATION_ID + fileName.hashCode() % 1000
+    }
+
+    private fun getCompletionNotificationId(fileName: String): Int {
+        return COMPLETION_NOTIFICATION_BASE_ID + fileName.hashCode() % 1000
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceScope.cancel()
+        cancelAllNotifications()
+        notificationProgress.clear()
+        lastNotificationUpdate.clear()
+        lastBroadcastUpdate.clear()
+    }
+}

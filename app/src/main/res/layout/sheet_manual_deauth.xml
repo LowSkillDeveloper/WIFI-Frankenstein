@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="16dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="12dp"
+        android:background="@color/divider_color" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:text="@string/airodump_manual_deauth"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonDeauthBroadcast"
+        style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="start|center_vertical"
+        android:padding="16dp"
+        android:text="@string/airodump_deauth_broadcast"
+        android:textAllCaps="false"
+        app:icon="@drawable/ic_close" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonDeauthAllClients"
+        style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="start|center_vertical"
+        android:padding="16dp"
+        android:text="@string/airodump_deauth_all_clients"
+        android:textAllCaps="false"
+        app:icon="@drawable/ic_airodump" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonDeauthCancel"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="start|center_vertical"
+        android:padding="16dp"
+        android:text="@string/close"
+        android:textAllCaps="false" />
+</LinearLayout>
+

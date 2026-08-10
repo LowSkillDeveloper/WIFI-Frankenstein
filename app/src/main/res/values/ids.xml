@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="action_copy_wifi_key" type="id" />
+    <item name="action_copy_wps_pin" type="id" />
+    <item name="action_connect_wps" type="id" />
+    <item name="action_connect_wps_root" type="id" />
+    <item name="action_connect_wps_chroot" type="id" />
+    <item name="action_generate_qr" type="id" />
+    <item name="action_save_profile" type="id" />
+    <item name="action_copy_ssid" type="id" />
+    <item name="action_copy_bssid" type="id" />
+    <item name="action_copy_password" type="id" />
+    <item name="action_copy_wps" type="id" />
+    <item name="action_save_wifi" type="id" />
+    <item name="action_open_generator" type="id" />
+    <item name="action_copy_admin_panel" type="id" />
+    <item name="action_show_location" type="id" />
+    <item name="action_generate_wps" type="id" />
+    <item name="action_edit" type="id" />
+    <item name="action_delete" type="id" />
+    <item name="action_upload_wpasec" type="id" />
+    <item name="action_upload_ohc" type="id" />
+    <item name="action_check_wpasec" type="id" />
+    <item name="action_export_hccapx" type="id" />
+    <item name="action_export_22000" type="id" />
+    <item name="action_copy_hash_22000" type="id" />
+    <item name="action_copy_hash_pmkid" type="id" />
+    <item name="action_copy_hash_16800" type="id" />
+    <item name="action_copy_pin" type="id" />
+    <item name="action_upload_3wifi" type="id" />
+    <item name="action_psk_backend_native" type="id" />
+    <item name="action_psk_backend_chroot" type="id" />
+</resources>
+

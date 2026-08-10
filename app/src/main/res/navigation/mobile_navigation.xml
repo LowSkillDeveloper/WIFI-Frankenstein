@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_wifi_scanner">
+    <fragment
+        android:id="@+id/nav_rss_news"
+        android:name="com.lsd.wififrankenstein.ui.rssnews.RssNewsFragment"
+        android:label="@string/menu_rss_news"
+        app:route="nav_rss_news"
+        tools:layout="@layout/fragment_rss_news" />
+    <fragment
+        android:id="@+id/nav_iw_wifi_scanner"
+        android:name="com.lsd.wififrankenstein.ui.iwwifi.IwWifiFragment"
+        android:label="@string/menu_iw_wifi_scanner"
+        app:route="nav_iw_wifi_scanner"
+        tools:layout="@layout/fragment_iw_wifi" />
+    <fragment
+        android:id="@+id/notificationSettingsFragment"
+        android:name="com.lsd.wififrankenstein.ui.settings.NotificationSettingsFragment"
+        android:label="@string/notification_settings"
+        app:route="notificationSettingsFragment"
+        tools:layout="@layout/fragment_notification_settings" />
+    <action
+        android:id="@+id/action_nav_settings_to_notificationSettingsFragment"
+        app:destination="@id/notificationSettingsFragment" />
+    <fragment
+        android:id="@+id/nav_upload_routerscan"
+        android:name="com.lsd.wififrankenstein.ui.uploadrouterscan.UploadRouterScanFragment"
+        android:label="@string/menu_upload_routerscan"
+        app:route="nav_upload_routerscan"
+        tools:layout="@layout/fragment_upload_routerscan" />
+    <fragment
+        android:id="@+id/nav_qr_generator"
+        android:name="com.lsd.wififrankenstein.ui.qrgenerator.QrCodeGeneratorFragment"
+        android:label="@string/menu_qr_generator"
+        app:route="nav_qr_generator"
+        tools:layout="@layout/fragment_qr_generator" />
+    <fragment
+        android:id="@+id/nav_saved_passwords"
+        android:name="com.lsd.wififrankenstein.ui.savedpasswords.SavedPasswordsFragment"
+        android:label="@string/menu_saved_passwords"
+        app:route="nav_saved_passwords"
+        tools:layout="@layout/fragment_saved_passwords" />
+    <fragment
+        android:id="@+id/nav_wpa_generator"
+        android:name="com.lsd.wififrankenstein.ui.wpagenerator.WpaGeneratorFragment"
+        android:label="@string/wpa_generator_title"
+        app:route="nav_wpa_generator"
+        tools:layout="@layout/fragment_wpa_generator" />
+    <action
+        android:id="@+id/action_databaseFinderFragment_to_dbSetupFragment"
+        app:destination="@id/dbSetupFragment" />
+    <fragment
+        android:id="@+id/nav_wifi_scanner"
+        android:name="com.lsd.wififrankenstein.ui.wifiscanner.WiFiScannerFragment"
+        android:label="@string/menu_wifi_scanner"
+        app:route="nav_wifi_scanner"
+        tools:layout="@layout/fragment_wifi_scanner" />
+    <fragment
+        android:id="@+id/nav_wps_generator"
+        android:name="com.lsd.wififrankenstein.ui.wpsgenerator.WpsGeneratorFragment"
+        android:label="@string/menu_wps_generator"
+        app:route="nav_wps_generator"
+        tools:layout="@layout/fragment_wps_generator" />
+    <fragment
+        android:id="@+id/nav_api_query"
+        android:name="com.lsd.wififrankenstein.ui.api3wifi.API3WiFiFragment"
+        android:label="@string/menu_api_query"
+        app:route="nav_api_query"
+        tools:layout="@layout/fragment_api3wifi" />
+    <fragment
+        android:id="@+id/nav_database_finder"
+        android:name="com.lsd.wififrankenstein.ui.databasefinder.DatabaseFinderFragment"
+        android:label="@string/menu_database_finder"
+        app:route="nav_database_finder"
+        tools:layout="@layout/fragment_database_finder" />
+    <fragment
+        android:id="@+id/nav_wifi_analysis"
+        android:name="com.lsd.wififrankenstein.ui.wifianalysis.WiFiAnalysisFragment"
+        android:label="@string/menu_wifi_analysis"
+        app:route="nav_wifi_analysis"
+        tools:layout="@layout/fragment_wifi_analysis" />
+    <fragment
+        android:id="@+id/nav_in_app_database"
+        android:name="com.lsd.wififrankenstein.ui.inappdatabase.InAppDatabaseFragment"
+        android:label="@string/menu_in_app_database"
+        app:route="nav_in_app_database"
+        tools:layout="@layout/fragment_in_app_database" />
+    <fragment
+        android:id="@+id/nav_wifi_map"
+        android:name="com.lsd.wififrankenstein.ui.wifimap.WiFiMapFragment"
+        android:label="@string/menu_wifi_map"
+        app:route="nav_wifi_map"
+        tools:layout="@layout/fragment_wifi_map">
+        <argument
+            android:name="latitude"
+            android:defaultValue="0.0"
+            app:argType="float" />
+        <argument
+            android:name="longitude"
+            android:defaultValue="0.0"
+            app:argType="float" />
+    </fragment>
+    <fragment
+        android:id="@+id/nav_mac_location"
+        android:name="com.lsd.wififrankenstein.ui.maclocation.MacLocationFragment"
+        android:label="@string/menu_mac_location"
+        app:route="nav_mac_location"
+        tools:layout="@layout/fragment_mac_location" />
+    <fragment
+        android:id="@+id/nav_updates"
+        android:name="com.lsd.wififrankenstein.ui.updates.UpdatesFragment"
+        android:label="@string/menu_settings"
+        app:route="nav_updates"
+        tools:layout="@layout/fragment_settings" />
+    <fragment
+        android:id="@+id/nav_settings"
+        android:name="com.lsd.wififrankenstein.ui.settings.SettingsFragment"
+        android:label="@string/menu_settings"
+        app:route="nav_settings"
+        tools:layout="@layout/fragment_settings">
+        <action
+            android:id="@+id/action_nav_settings_to_dbSetupFragment"
+            app:destination="@id/dbSetupFragment" />
+        <action
+            android:id="@+id/action_nav_settings_to_inAppDatabaseFragment"
+            app:destination="@id/nav_in_app_database" />
+    </fragment>
+    <fragment
+        android:id="@+id/dbSetupFragment"
+        android:name="com.lsd.wififrankenstein.ui.dbsetup.DbSetupFragment"
+        android:label="Database Setup"
+        app:route="dbSetupFragment"
+        tools:layout="@layout/fragment_db_setup">
+        <action
+            android:id="@+id/action_nav_db_setup_to_inAppDatabaseFragment"
+            app:destination="@id/nav_in_app_database" />
+    </fragment>
+    <fragment
+        android:id="@+id/nav_about"
+        android:name="com.lsd.wififrankenstein.ui.about.AboutFragment"
+        android:label="@string/menu_about"
+        app:route="nav_about"
+        tools:layout="@layout/fragment_about" />
+    <fragment
+        android:id="@+id/nav_pixie_dust"
+        android:name="com.lsd.wififrankenstein.ui.pixiedust.PixieDustFragment"
+        android:label="@string/menu_pixiedust"
+        app:route="nav_pixie_dust"
+        tools:layout="@layout/fragment_pixie_dust" />
+    <fragment
+        android:id="@+id/nav_bruteforce"
+        android:name="com.lsd.wififrankenstein.ui.bruteforce.BruteForceFragment"
+        android:label="@string/menu_bruteforce"
+        app:route="nav_bruteforce"
+        tools:layout="@layout/fragment_bruteforce" />
+    <fragment
+        android:id="@+id/nav_wpa_cracker"
+        android:name="com.lsd.wififrankenstein.ui.wpacracker.WpaCrackerFragment"
+        android:label="@string/menu_wpa_cracker"
+        app:route="nav_wpa_cracker"
+        tools:layout="@layout/fragment_wpa_cracker">
+        <argument
+            android:name="hash22000"
+            android:defaultValue=""
+            app:argType="string" />
+        <argument
+            android:name="fileName"
+            android:defaultValue=""
+            app:argType="string" />
+        <argument
+            android:name="wordlistType"
+            android:defaultValue="-1"
+            app:argType="integer" />
+        <argument
+            android:name="wordlistValue"
+            android:defaultValue=""
+            app:argType="string" />
+    </fragment>
+    <fragment
+        android:id="@+id/nav_airodump"
+        android:name="com.lsd.wififrankenstein.ui.airodump.AirodumpFragment"
+        android:label="@string/menu_airodump"
+        app:route="nav_airodump"
+        tools:layout="@layout/fragment_airodump">
+        <action
+            android:id="@+id/action_airodump_to_storage"
+            app:destination="@id/nav_handshake_storage" />
+    </fragment>
+    <fragment
+        android:id="@+id/nav_handshake_storage"
+        android:name="com.lsd.wififrankenstein.ui.handshakecapture.HandshakeStorageFragment"
+        android:label="@string/handshake_storage_title"
+        app:route="nav_handshake_storage"
+        tools:layout="@layout/fragment_handshake_storage">
+        <argument
+            android:name="filePath"
+            android:defaultValue=""
+            app:argType="string" />
+        <action
+            android:id="@+id/action_handshake_storage_to_airodump"
+            app:destination="@id/nav_airodump"
+            app:popUpTo="@id/nav_airodump"
+            app:popUpToInclusive="false" />
+        <action
+            android:id="@+id/action_handshake_storage_to_wpa_cracker"
+            app:destination="@id/nav_wpa_cracker"
+            app:popUpTo="@id/nav_handshake_storage"
+            app:popUpToInclusive="false" />
+    </fragment>
+    <fragment
+        android:id="@+id/nav_local_network"
+        android:name="com.lsd.wififrankenstein.ui.localnetwork.LocalNetworkFragment"
+        android:label="@string/menu_local_network"
+        app:route="nav_local_network"
+        tools:layout="@layout/fragment_local_network" />
+    <fragment
+        android:id="@+id/nav_router_scan"
+        android:name="com.lsd.wififrankenstein.ui.routerscan.RouterScanFragment"
+        android:label="@string/menu_router_scan"
+        app:route="nav_router_scan"
+        tools:layout="@layout/fragment_router_scan">
+        <argument
+            android:name="target_ip"
+            android:defaultValue=""
+            app:argType="string" />
+    </fragment>
+    <fragment
+        android:id="@+id/nav_internet_blocking"
+        android:name="com.lsd.wififrankenstein.ui.internetblocking.InternetBlockingFragment"
+        android:label="@string/menu_internet_blocking"
+        app:route="nav_internet_blocking"
+        tools:layout="@layout/fragment_internet_blocking" />
+    <fragment
+        android:id="@+id/nav_all_features"
+        android:name="com.lsd.wififrankenstein.ui.allfeatures.AllFeaturesFragment"
+        android:label="@string/all_features_title"
+        app:route="nav_all_features"
+        tools:layout="@layout/fragment_all_features" />
+    <fragment
+        android:id="@+id/nav_handshake_capture_selector"
+        android:name="com.lsd.wififrankenstein.ui.handshakecapture.HandshakeCaptureSelectorFragment"
+        android:label="@string/menu_handshake_capture_selector"
+        app:route="nav_handshake_capture_selector"
+        tools:layout="@layout/fragment_handshake_capture_selector" />
+    <fragment
+        android:id="@+id/nav_bettercap"
+        android:name="com.lsd.wififrankenstein.ui.bettercap.BettercapMainFragment"
+        android:label="@string/menu_bettercap"
+        app:route="nav_bettercap"
+        tools:layout="@layout/fragment_bettercap_main">
+        <action
+            android:id="@+id/action_bettercap_main_to_detail"
+            app:destination="@id/nav_bettercap_detail" />
+    </fragment>
+    <fragment
+        android:id="@+id/nav_bettercap_detail"
+        android:name="com.lsd.wififrankenstein.ui.bettercap.detail.BettercapAPDetailFragment"
+        android:label="@string/bettercap_detail_title"
+        app:route="nav_bettercap_detail"
+        tools:layout="@layout/fragment_bettercap_ap_detail">
+        <action
+            android:id="@+id/action_bettercap_detail_to_storage"
+            app:destination="@id/nav_handshake_storage" />
+    </fragment>
+    <fragment
+        android:id="@+id/nav_handshake_converter"
+        android:name="com.lsd.wififrankenstein.ui.handshakeconverter.HandshakeConverterFragment"
+        android:label="@string/handshake_converter_title"
+        app:route="nav_handshake_converter"
+        tools:layout="@layout/fragment_handshake_converter" />
+</navigation>
+
