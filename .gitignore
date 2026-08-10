@@ -1,0 +1,13 @@
+*.iml
+.gradle
+/.idea
+local.properties
+/.kotlin
+/build
+/captures
+.externalNativeBuild
+.cxx
+.DS_Store
+*.pyc
+gha-creds-*.json
+gradle/gradle-daemon-jvm.properties

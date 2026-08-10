@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/txt_bulk_share_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="@string/handshake_bulk_share_title"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_bulk_share_original"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="start|center_vertical"
+            android:text="@string/handshake_bulk_share_original"
+            app:icon="@drawable/ic_share"
+            app:iconSize="20dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_bulk_share_original_zip"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="start|center_vertical"
+            android:text="@string/handshake_bulk_share_original_zip"
+            app:icon="@drawable/ic_file_download"
+            app:iconSize="20dp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="8dp"
+            android:background="@color/divider_color" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_bulk_share_22000"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="start|center_vertical"
+            android:text="@string/handshake_bulk_share_22000"
+            app:icon="@drawable/ic_key"
+            app:iconSize="20dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_bulk_share_hccapx"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="start|center_vertical"
+            android:text="@string/handshake_bulk_share_hccapx"
+            app:icon="@drawable/ic_key"
+            app:iconSize="20dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_bulk_share_pmkid"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="start|center_vertical"
+            android:text="@string/handshake_bulk_share_pmkid"
+            app:icon="@drawable/ic_key"
+            app:iconSize="20dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_bulk_share_hccap"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="start|center_vertical"
+            android:text="@string/handshake_bulk_share_hccap"
+            app:icon="@drawable/ic_key"
+            app:iconSize="20dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_bulk_share_16800"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="start|center_vertical"
+            android:text="@string/handshake_bulk_share_16800"
+            app:icon="@drawable/ic_key"
+            app:iconSize="20dp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="8dp"
+            android:background="@color/divider_color" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_bulk_share_cap_chroot"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="4dp"
+            android:alpha="0.4"
+            android:enabled="false"
+            android:gravity="start|center_vertical"
+            android:text="@string/handshake_share_cap_chroot"
+            app:icon="@drawable/ic_file_upload"
+            app:iconSize="20dp" />
+    </LinearLayout>
+</ScrollView>

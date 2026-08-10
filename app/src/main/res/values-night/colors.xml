@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="text_primary">#DEFFFFFF</color>
+    <color name="text_secondary">#B3FFFFFF</color>
+    <color name="grid_color">#42FFFFFF</color>
+    <color name="code_block_background">#2A2A2A</color>
+    <color name="code_block_text">#E0E0E0</color>
+    <color name="text_hint">#99FFFFFF</color>
+    <color name="signal_bar_inactive">#33FFFFFF</color>
+    <color name="chip_badge_background">#1AFFFFFF</color>
+    <color name="divider_color">#1FFFFFFF</color>
+</resources>
+

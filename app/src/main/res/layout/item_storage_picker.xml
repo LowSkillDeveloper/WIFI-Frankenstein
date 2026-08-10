@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginLeft="12dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginRight="12dp"
+    android:layout_marginBottom="4dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="1dp"
+    app:strokeColor="@color/divider_color"
+    app:strokeWidth="1dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <ImageView
+            android:id="@+id/pickerIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="handshake"
+            android:src="@drawable/grid_3x3_24px"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="?attr/colorPrimary" />
+
+        <LinearLayout
+            android:id="@+id/pickerInfo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/pickerBadges"
+            app:layout_constraintStart_toEndOf="@id/pickerIcon"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/pickerEssid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2"
+                tools:text="MyNetwork" />
+
+            <TextView
+                android:id="@+id/pickerBssid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11sp"
+                android:typeface="monospace"
+                tools:text="AA:BB:CC:DD:EE:FF" />
+
+            <TextView
+                android:id="@+id/pickerFileInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11sp"
+                tools:text="capture.cap · 2.5 KB · 3 handshakes" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/pickerBadges"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/pickerIconPmkid"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:contentDescription="PMKID"
+                android:src="@drawable/ic_key"
+                android:visibility="gone"
+                app:tint="@color/success_green"
+                tools:visibility="visible" />
+
+            <ImageView
+                android:id="@+id/pickerIconCracked"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="cracked"
+                android:src="@drawable/ic_check_circle"
+                android:visibility="gone"
+                app:tint="@color/success_green"
+                tools:visibility="visible" />
+
+            <ImageView
+                android:id="@+id/pickerChevron"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="select"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="?attr/colorControlNormal" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/pickerError"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="File not found"
+            android:textColor="@color/error_red"
+            android:textSize="11sp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/pickerInfo"
+            tools:visibility="visible" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>
+

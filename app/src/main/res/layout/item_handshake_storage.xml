@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_hs_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginLeft="12dp"
+    android:layout_marginTop="6dp"
+    android:layout_marginRight="12dp"
+    android:layout_marginBottom="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="1dp"
+    app:strokeColor="@color/divider_color"
+    app:strokeWidth="1dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <CheckBox
+            android:id="@+id/check_hs_select"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/icon_handshake_item"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/icon_handshake_item"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="handshake"
+            android:src="@drawable/grid_3x3_24px"
+            app:layout_constraintStart_toEndOf="@id/check_hs_select"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="?attr/colorPrimary" />
+
+        <LinearLayout
+            android:id="@+id/layout_hs_info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toStartOf="@id/icon_hs_pmkid"
+            app:layout_constraintStart_toEndOf="@id/icon_handshake_item"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/text_hs_display_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2"
+                tools:text="MyNetwork (AA:BB:CC:DD:EE:FF)" />
+
+            <TextView
+                android:id="@+id/text_hs_file_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="12sp"
+                tools:text="2024-01-15 14:30 - 1.2 KB" />
+
+            <TextView
+                android:id="@+id/text_hs_file_not_found"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/handshake_file_not_found"
+                android:textColor="@color/error_red"
+                android:textSize="11sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/icon_hs_pmkid"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="4dp"
+            android:contentDescription="PMKID"
+            android:src="@drawable/ic_key"
+            android:visibility="gone"
+            app:layout_constraintEnd_toStartOf="@id/icon_hs_cracked"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/success_green"
+            tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/icon_hs_cracked"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="cracked"
+            android:src="@drawable/ic_check_circle"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/success_green"
+            tools:visibility="visible" />
+
+        <LinearLayout
+            android:id="@+id/layout_hs_cracked_password"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/layout_hs_info"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/text_hs_cracked_password"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/success_green"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                tools:text="KEY: password123" />
+
+            <ImageView
+                android:id="@+id/icon_hs_copy_password"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                android:clickable="true"
+                android:contentDescription="@string/handshake_copy_password"
+                android:focusable="true"
+                android:src="@drawable/ic_content_copy"
+                app:tint="?attr/colorPrimary" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/text_hs_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/layout_hs_cracked_password"
+            tools:text="Valid handshake" />
+
+        <LinearLayout
+            android:id="@+id/layout_hs_hash_22000"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_hs_status"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/text_hs_hash_22000_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:text="@string/handshake_hash_22000"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/text_hs_hash_22000"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="10sp"
+                android:typeface="monospace" />
+
+            <ImageView
+                android:id="@+id/icon_hs_copy_22000"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:clickable="true"
+                android:contentDescription="@string/handshake_copy_hash"
+                android:focusable="true"
+                android:src="@drawable/ic_content_copy"
+                app:tint="?attr/colorPrimary" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_hs_hash_pmkid"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/layout_hs_hash_22000"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/text_hs_hash_pmkid_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:text="@string/handshake_hash_pmkid_label"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/text_hs_hash_pmkid"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="10sp"
+                android:typeface="monospace" />
+
+            <ImageView
+                android:id="@+id/icon_hs_copy_pmkid"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:clickable="true"
+                android:contentDescription="@string/handshake_copy_hash"
+                android:focusable="true"
+                android:src="@drawable/ic_content_copy"
+                app:tint="?attr/colorPrimary" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/text_hs_wpasec_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="11sp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/layout_hs_hash_pmkid"
+            tools:text="Uploaded to wpa-sec"
+            tools:visibility="visible" />
+
+        <LinearLayout
+            android:id="@+id/layout_hs_actions"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="end"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_hs_wpasec_status">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_hs_verify"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:contentDescription="@string/handshake_verify"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:tooltipText="@string/handshake_verify"
+                app:icon="@drawable/ic_check"
+                app:iconSize="20dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_hs_crack"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="@string/handshake_crack"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:tooltipText="@string/handshake_crack"
+                app:icon="@drawable/ic_key"
+                app:iconSize="20dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_hs_share"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="@string/handshake_share"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:tooltipText="@string/handshake_share"
+                app:icon="@drawable/ic_share"
+                app:iconSize="20dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_hs_delete"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="@string/delete"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:tooltipText="@string/delete"
+                app:icon="@drawable/delete_forever_24px"
+                app:iconSize="20dp"
+                app:iconTint="@color/error_red" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_hs_more"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="@string/handshake_more"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:tooltipText="@string/handshake_more"
+                app:icon="@drawable/ic_more_vert"
+                app:iconSize="20dp" />
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>
+

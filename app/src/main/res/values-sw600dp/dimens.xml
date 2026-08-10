@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="page_padding">32dp</dimen>
+    <dimen name="card_corner_radius">12dp</dimen>
+    <dimen name="scroll_area_max_height">350dp</dimen>
+    <dimen name="result_card_label_width">140dp</dimen>
+</resources>
+

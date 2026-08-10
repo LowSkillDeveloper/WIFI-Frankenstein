@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="@string/handshake_import_title"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_import_file"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginBottom="4dp"
+        android:gravity="start|center_vertical"
+        android:text="@string/handshake_import_from_device"
+        app:icon="@drawable/ic_file_upload"
+        app:iconSize="20dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_import_url"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginBottom="4dp"
+        android:gravity="start|center_vertical"
+        android:text="@string/handshake_import_from_url"
+        app:icon="@drawable/ic_cloud_upload"
+        app:iconSize="20dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_import_text"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="start|center_vertical"
+        android:text="@string/handshake_import_from_text"
+        app:icon="@drawable/ic_content_copy"
+        app:iconSize="20dp" />
+</LinearLayout>
+

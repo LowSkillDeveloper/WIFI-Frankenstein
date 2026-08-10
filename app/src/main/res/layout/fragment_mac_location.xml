@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipChildren="false">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:orientation="vertical">
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/search_type_group"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="12dp"
+                    app:checkedButton="@id/search_mac"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/search_mac"
+                        style="@style/SegmentButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="MAC (BSSID)"
+                        app:icon="@drawable/ic_location"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/search_ssid"
+                        style="@style/SegmentButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ESSID"
+                        app:icon="@drawable/ic_wifi"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/input_layout"
+                    style="@style/RoundedOutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    app:startIconDrawable="@drawable/ic_search">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input_query"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/mac_address_hint"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:singleLine="true" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/search_button"
+                style="@style/OutlinedRoundedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="@string/search_button"
+                app:icon="@drawable/ic_search"
+                app:iconGravity="textStart" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/api_settings_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="@dimen/card_corner_radius"
+                app:cardElevation="2dp"
+                app:strokeColor="?attr/colorPrimaryContainer"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/settings_header"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:orientation="horizontal"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/api_settings_title"
+                            android:textAppearance="?attr/textAppearanceSubtitle1"
+                            android:textColor="?attr/colorPrimary"
+                            android:textStyle="bold" />
+
+                        <ImageView
+                            android:id="@+id/expand_icon"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_expand_more"
+                            app:tint="?attr/colorPrimary" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/settings_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:visibility="gone">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/RoundedOutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            app:startIconDrawable="@drawable/ic_key">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/wigle_api_input"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="@string/wigle_api_hint"
+                                android:inputType="textVisiblePassword" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/RoundedOutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            app:startIconDrawable="@drawable/ic_key">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/google_api_input"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="@string/google_api_hint"
+                                android:inputType="textVisiblePassword" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/RoundedOutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            app:startIconDrawable="@drawable/ic_key">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/combain_api_input"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="@string/combain_api_hint"
+                                android:inputType="textVisiblePassword" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/RoundedOutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            app:startIconDrawable="@drawable/ic_key">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/yandex_locator_api_input"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="@string/yandex_locator_api_hint"
+                                android:inputType="textVisiblePassword" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/RoundedOutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            app:startIconDrawable="@drawable/ic_key">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/mylnikov_api_input"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="@string/mylnikov_api_hint"
+                                android:inputType="textVisiblePassword" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/save_api_button"
+                            style="@style/OutlinedRoundedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/save_settings"
+                            app:icon="@drawable/ic_save"
+                            app:iconGravity="textStart" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
+                android:id="@+id/resultsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:orientation="vertical" />
+
+            <com.lsd.wififrankenstein.ui.ipranges.CustomMapView
+                android:id="@+id/map"
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:layout_marginBottom="16dp" />
+
+            <LinearLayout
+                android:id="@+id/console_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="0dp"
+                android:background="?attr/selectableItemBackground"
+                android:orientation="horizontal"
+                android:padding="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/console_title"
+                    android:textAppearance="?attr/textAppearanceSubtitle1"
+                    android:textColor="?attr/colorPrimary"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:id="@+id/console_expand_icon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_expand_more"
+                    app:tint="?attr/colorPrimary" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/log_text_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_console"
+                android:fontFamily="monospace"
+                android:minHeight="100dp"
+                android:padding="12dp"
+                android:textColor="@color/text_color_dark"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <com.lsd.wififrankenstein.util.AnimatedLoadingBar
+        android:id="@+id/progressIndicator"
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:layout_gravity="top"
+        android:visibility="gone" />
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

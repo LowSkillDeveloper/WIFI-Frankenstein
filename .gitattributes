@@ -1,0 +1,12 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Binary assets
+*.db binary
+*.so binary
+*.so-32 binary
+*.zip binary
+*.png binary
+*.webp binary
+*.jar binary
+app/src/main/assets/* binary

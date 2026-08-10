@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="12dp"
+            android:layout_marginBottom="4dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="1dp"
+            app:contentPadding="16dp"
+            app:strokeColor="@color/divider_color"
+            app:strokeWidth="1dp">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <ImageView
+                    android:id="@+id/iconStorageHeader"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="storage"
+                    android:src="@drawable/grid_3x3_24px"
+                    app:layout_constraintBottom_toBottomOf="@id/textStorageCount"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:tint="?attr/colorPrimary" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical"
+                    app:layout_constraintBottom_toBottomOf="@id/textStorageCount"
+                    app:layout_constraintEnd_toStartOf="@id/buttonRefreshStorage"
+                    app:layout_constraintStart_toEndOf="@id/iconStorageHeader"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/handshake_storage_title"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+
+                    <TextView
+                        android:id="@+id/textStorageCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="12sp"
+                        tools:text="25 handshakes" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonRefreshStorage"
+                    style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:insetLeft="0dp"
+                    android:insetTop="0dp"
+                    android:insetRight="0dp"
+                    android:insetBottom="0dp"
+                    android:tooltipText="@string/handshake_refresh_title"
+                    app:icon="@drawable/baseline_refresh_24"
+                    app:iconSize="20dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="12dp"
+            android:layout_marginRight="12dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonSelectMode"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/handshake_select"
+                android:textSize="12sp"
+                app:icon="@drawable/ic_check"
+                app:iconSize="16dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonImportHandshake"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/button_import_handshake"
+                android:textSize="11sp"
+                android:tooltipText="@string/button_import_handshake"
+                app:icon="@drawable/ic_add"
+                app:iconSize="16dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonSelectAll"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/handshake_select_all"
+                android:textSize="11sp"
+                android:tooltipText="@string/handshake_select_all"
+                android:visibility="gone"
+                app:icon="@drawable/ic_check"
+                app:iconSize="16dp" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="12dp"
+            android:layout_marginRight="12dp"
+            android:layout_marginBottom="4dp"
+            android:padding="4dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/divider_color"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="search"
+                    android:src="@drawable/ic_search"
+                    app:tint="?android:attr/textColorSecondary" />
+
+                <EditText
+                    android:id="@+id/editSearch"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="8dp"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="@string/handshake_search_hint"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingVertical="8dp"
+                    android:textSize="14sp" />
+
+                <ImageView
+                    android:id="@+id/iconClearSearch"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:clickable="true"
+                    android:contentDescription="clear"
+                    android:focusable="true"
+                    android:src="@drawable/ic_close"
+                    android:visibility="gone"
+                    app:tint="?android:attr/textColorSecondary" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="24dp"
+                    android:layout_marginHorizontal="8dp"
+                    android:background="@color/divider_color" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipSortDate"
+                    style="@style/Widget.MaterialComponents.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="true"
+                    android:text="@string/handshake_sort_date"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipSortName"
+                    style="@style/Widget.MaterialComponents.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:checkable="true"
+                    android:text="@string/handshake_sort_name"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <FrameLayout
+            android:id="@+id/loadingContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:visibility="gone">
+
+            <ProgressBar
+                android:id="@+id/progressLoading"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/layoutEmptyState"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:alpha="0.3"
+                    android:contentDescription="empty"
+                    android:src="@drawable/grid_3x3_24px" />
+
+                <TextView
+                    android:id="@+id/textStorageEmpty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/handshake_storage_empty"
+                    android:textAlignment="center"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                    android:textColor="?android:attr/textColorSecondary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonStartCapture"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/airodump_start_capture" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonImportHandshakeEmpty"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/button_import_handshake" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewStorage"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingBottom="72dp" />
+
+        <LinearLayout
+            android:id="@+id/layoutBulkActions"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="?attr/colorSurface"
+            android:elevation="8dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="4dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/textBulkCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="12sp"
+                tools:text="3 selected" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBulkShare"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:contentDescription="@string/handshake_bulk_share"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:tooltipText="@string/handshake_bulk_share"
+                app:icon="@drawable/ic_share"
+                app:iconSize="20dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBulkCopy22000"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:contentDescription="@string/handshake_copy_hash_22000"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:tooltipText="@string/handshake_copy_hash_22000"
+                app:icon="@drawable/ic_content_copy"
+                app:iconSize="20dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBulkUpload"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:contentDescription="@string/handshake_bulk_upload"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:tooltipText="@string/handshake_bulk_upload"
+                app:icon="@drawable/ic_cloud_upload"
+                app:iconSize="20dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBulkDelete"
+                style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:contentDescription="@string/handshake_bulk_delete"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:tooltipText="@string/handshake_bulk_delete"
+                app:icon="@drawable/delete_forever_24px"
+                app:iconSize="20dp"
+                app:iconTint="@color/error_red" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>
+

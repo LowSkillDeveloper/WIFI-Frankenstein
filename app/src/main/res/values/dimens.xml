@@ -1,0 +1,13 @@
+<resources>
+    <dimen name="fab_margin">2dp</dimen>
+    <dimen name="fab_margin_bottom">89dp</dimen>
+    <dimen name="dp_65">65dp</dimen>
+    <dimen name="stroke_pixiedust">2dp</dimen>
+    <dimen name="stroke_default">2dp</dimen>
+
+    <dimen name="page_padding">16dp</dimen>
+    <dimen name="card_corner_radius">12dp</dimen>
+    <dimen name="scroll_area_max_height">200dp</dimen>
+    <dimen name="result_card_label_width">100dp</dimen>
+</resources>
+
