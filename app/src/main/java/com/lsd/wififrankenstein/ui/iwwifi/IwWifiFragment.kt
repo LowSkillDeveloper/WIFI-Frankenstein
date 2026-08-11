@@ -12,9 +12,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentIwWifiBinding
 import com.lsd.wififrankenstein.ui.iwwifi.models.IwInterface
@@ -26,7 +24,6 @@ import com.lsd.wififrankenstein.util.ChrootType
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.NativeWifiHelper
 import com.topjohnwu.superuser.Shell
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class IwWifiFragment : Fragment() {
@@ -164,132 +161,27 @@ class IwWifiFragment : Fragment() {
     }
 
     private fun checkChrootAndSetup() {
-        if (isNativeEnabled()) {
-            if (!Shell.getShell().isRoot) {
-                showChrootPlaceholder(withInstall = false)
-                return
-            }
-            showScanInterface()
-            if (!setupComplete) {
-                setupViews()
-                registerPrefsListener()
-                setupComplete = true
-            }
-            updateModeToggleAvailability()
+        showScanInterface()
+        if (!setupComplete) {
+            setupViews()
+            registerPrefsListener()
+            setupComplete = true
+        }
+        updateModeToggleAvailability()
+
+        if (isNativeEnabled() || chrootManager.getChrootType() !is ChrootType.Root) {
             lifecycleScope.launch {
                 nativeWifiHelper.ensureReady()
                 loadInterfaces()
             }
-            return
-        }
-
-        val chrootType = chrootManager.getChrootType()
-        when (chrootType) {
-            ChrootType.None, is ChrootType.Rootless -> {
-                showChrootPlaceholder(withInstall = false)
-            }
-
-            is ChrootType.RootMissing, is ChrootType.RootWithoutChroot -> {
-                showChrootPlaceholder(withInstall = true)
-            }
-
-            is ChrootType.Root -> {
-                showScanInterface()
-                if (!setupComplete) {
-                    setupViews()
-                    registerPrefsListener()
-                    setupComplete = true
-                }
-                wlanInterfaceViewModel.startPolling()
-                updateModeToggleAvailability()
-                lifecycleScope.launch { checkRootAndMount() }
-            }
-        }
-    }
-
-    private fun showChrootPlaceholder(withInstall: Boolean) {
-        binding.scrollContent.visibility = View.GONE
-        binding.placeholderChroot.visibility = View.VISIBLE
-
-        binding.textViewChrootTitle.text = getString(R.string.menu_iw_wifi_scanner)
-
-        if (withInstall) {
-            binding.textViewChrootMessage.text = getString(R.string.chroot_not_installed)
-            binding.buttonInstallChroot.text = getString(R.string.install_chroot)
-            binding.buttonInstallChroot.setOnClickListener { startChrootInstallation() }
-            binding.buttonNativeMode.visibility = View.VISIBLE
-            binding.buttonNativeMode.setOnClickListener {
-                binding.toggleModeGroup.check(R.id.modeRoot)
-            }
         } else {
-            binding.textViewChrootMessage.text = getString(R.string.iw_wifi_root_required)
-            binding.buttonInstallChroot.text = getString(R.string.go_back)
-            binding.buttonInstallChroot.setOnClickListener {
-                findNavController().navigateUp()
-            }
-            binding.buttonNativeMode.visibility = View.GONE
+            wlanInterfaceViewModel.startPolling()
+            lifecycleScope.launch { checkRootAndMount() }
         }
     }
 
     private fun showScanInterface() {
-        binding.placeholderChroot.visibility = View.GONE
         binding.scrollContent.visibility = View.VISIBLE
-    }
-
-    private fun startChrootInstallation() {
-        if (!chrootManager.isArmArchitecture()) {
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Unsupported Architecture")
-                .setMessage(
-                    getString(
-                        R.string.chroot_arch_warning,
-                        chrootManager.getArchitecture().label
-                    )
-                )
-                .setPositiveButton(R.string.continue_text) { _, _ -> internalStartChrootInstallation() }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-            return
-        }
-        internalStartChrootInstallation()
-    }
-
-    private fun internalStartChrootInstallation() {
-        binding.progressBarChrootInstall.visibility = View.VISIBLE
-        binding.textViewChrootStatus.visibility = View.VISIBLE
-        binding.buttonInstallChroot.isEnabled = false
-
-        lifecycleScope.launch {
-            val success = try {
-                val result = chrootManager.downloadAndInstall(
-                    onProgress = { progress ->
-                        lifecycleScope.launch(Dispatchers.Main) {
-                            binding.textViewChrootStatus.text =
-                                "${getString(R.string.chroot_installing)} $progress%"
-                        }
-                    },
-                    onStatusUpdate = { status ->
-                        lifecycleScope.launch(Dispatchers.Main) {
-                            binding.textViewChrootStatus.text = status
-                        }
-                    }
-                )
-                result
-            } catch (e: Exception) {
-                false
-            }
-
-            if (_binding == null) return@launch
-            binding.progressBarChrootInstall.visibility = View.GONE
-            binding.buttonInstallChroot.isEnabled = true
-
-            if (success) {
-                binding.textViewChrootStatus.text = getString(R.string.chroot_installed_success)
-                checkChrootAndSetup()
-            } else {
-
-            }
-        }
     }
 
     private suspend fun checkRootAndMount() {

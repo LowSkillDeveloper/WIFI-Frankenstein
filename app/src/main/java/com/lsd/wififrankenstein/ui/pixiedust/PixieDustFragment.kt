@@ -23,7 +23,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -154,8 +153,6 @@ class PixieDustFragment : Fragment() {
         chrootManager = ChrootManager.get(requireContext())
         nativeWifiHelper = NativeWifiHelper(requireContext())
 
-        binding.buttonNativePixie.setOnClickListener { enableNativeMode() }
-
         currentStepIndex = savedInstanceState?.getInt(STATE_STEP_INDEX, 0) ?: 0
 
         if (savedInstanceState != null) {
@@ -220,25 +217,7 @@ class PixieDustFragment : Fragment() {
     }
 
     private fun checkChrootAndSetup() {
-        val chrootType = chrootManager.getChrootType()
-        val hasRoot = chrootType is ChrootType.Root ||
-                chrootType is ChrootType.RootMissing ||
-                chrootType is ChrootType.RootWithoutChroot
-
-        if (isNativeEnabled() && hasRoot) {
-            performSetup()
-            return
-        }
-
-        if (chrootType is ChrootType.None || chrootType is ChrootType.Rootless) {
-            setupComplete = false
-            showChrootPlaceholder(withInstall = false)
-        } else if (chrootType is ChrootType.RootMissing || chrootType is ChrootType.RootWithoutChroot) {
-            setupComplete = false
-            showChrootPlaceholder(withInstall = true)
-        } else if (!setupComplete) {
-            performSetup()
-        }
+        performSetup()
     }
 
     private fun performSetup() {
@@ -273,87 +252,8 @@ class PixieDustFragment : Fragment() {
             .getBoolean(KEY_USE_NATIVE, false)
     }
 
-    private fun enableNativeMode() {
-        requireContext().getSharedPreferences(PIXIE_PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_USE_NATIVE, true).apply()
-        checkChrootAndSetup()
-    }
-
     private fun showSteps() {
-        _binding?.placeholderChroot?.visibility = View.GONE
         _binding?.viewFlipperSteps?.visibility = View.VISIBLE
-    }
-
-    private fun showChrootPlaceholder(withInstall: Boolean) {
-        val b = _binding ?: return
-        b.placeholderChroot.visibility = View.VISIBLE
-        b.viewFlipperSteps.visibility = View.GONE
-        b.progressBar.visibility = View.GONE
-
-        b.textViewChrootTitle.text = getString(R.string.menu_pixiedust)
-
-        if (withInstall) {
-            b.textViewChrootMessage.text = getString(R.string.chroot_not_installed)
-            b.buttonInstallChroot.text = getString(R.string.install_chroot)
-            b.buttonInstallChroot.setOnClickListener { startChrootInstallation() }
-            b.buttonNativePixie.visibility = View.VISIBLE
-        } else {
-            b.textViewChrootMessage.text = getString(R.string.pixiedust_root_required)
-            b.buttonInstallChroot.text = getString(R.string.go_back)
-            b.buttonInstallChroot.setOnClickListener { findNavController().navigateUp() }
-            b.buttonNativePixie.visibility = View.GONE
-        }
-    }
-
-    private fun startChrootInstallation() {
-        if (!chrootManager.isArmArchitecture()) {
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Unsupported Architecture")
-                .setMessage(
-                    getString(
-                        R.string.chroot_arch_warning,
-                        chrootManager.getArchitecture().label
-                    )
-                )
-                .setPositiveButton(R.string.continue_text) { _, _ -> internalStartChrootInstallation() }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-            return
-        }
-        internalStartChrootInstallation()
-    }
-
-    private fun internalStartChrootInstallation() {
-        binding.progressBarChrootInstall.visibility = View.VISIBLE
-        binding.textViewChrootStatus.visibility = View.VISIBLE
-        binding.buttonInstallChroot.isEnabled = false
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            val success = try {
-                chrootManager.downloadAndInstall(
-                    onProgress = { progress ->
-                        _binding?.textViewChrootStatus?.text =
-                            "${getString(R.string.chroot_installing)} $progress%"
-                    },
-                    onStatusUpdate = { status ->
-                        _binding?.textViewChrootStatus?.text = status
-                    }
-                )
-            } catch (e: Exception) {
-                Log.e(TAG, "downloadAndInstall failed", e)
-                false
-            }
-
-            if (_binding == null) return@launch
-
-            _binding?.progressBarChrootInstall?.visibility = View.GONE
-            _binding?.buttonInstallChroot?.isEnabled = true
-
-            if (success) {
-                _binding?.textViewChrootStatus?.text = getString(R.string.chroot_installed_success)
-                checkChrootAndSetup()
-            }
-        }
     }
 
     private fun setupAttackSettings() {
