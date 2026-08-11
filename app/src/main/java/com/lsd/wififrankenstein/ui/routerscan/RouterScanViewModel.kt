@@ -49,7 +49,7 @@ data class RouterScanSettings(
     val maxThreads: Int = 10,
     val timeout: Long = 1000,
     val rsTimeout: Long = 30_000,
-    val pingBeforeScan: Boolean = true,
+    val pingBeforeScan: Boolean = false,
     val saveToLocalDb: Boolean = true
 )
 
@@ -238,7 +238,7 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
         maxThreads = prefs.getInt("max_threads", 10),
         timeout = prefs.getLong("timeout", 1000),
         rsTimeout = prefs.getLong("rs_timeout", 30_000),
-        pingBeforeScan = if (isRootlessProot) false else prefs.getBoolean("ping_before_scan", true),
+        pingBeforeScan = if (isRootlessProot) false else prefs.getBoolean("ping_before_scan", false),
         saveToLocalDb = prefs.getBoolean("save_to_local_db", true)
     )
 

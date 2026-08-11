@@ -126,7 +126,7 @@ class ChrootAttackService : Service() {
             ports: ArrayList<String>,
             maxThreads: Int = 10,
             rsTimeout: Long = 120_000,
-            pingBeforeScan: Boolean = true
+            pingBeforeScan: Boolean = false
         ) {
             val intent = Intent(context, ChrootAttackService::class.java).apply {
                 action = ACTION_START
@@ -267,7 +267,7 @@ class ChrootAttackService : Service() {
         val ports = intent.getStringArrayListExtra(EXTRA_PORTS) ?: return
         val maxThreads = intent.getIntExtra(EXTRA_MAX_THREADS, 10)
         val rsTimeout = intent.getLongExtra(EXTRA_RS_TIMEOUT, 120_000L)
-        val pingBeforeScan = intent.getBooleanExtra(EXTRA_PING_BEFORE_SCAN, true)
+        val pingBeforeScan = intent.getBooleanExtra(EXTRA_PING_BEFORE_SCAN, false)
 
         val config = RouterScanConfig(
             maxThreads = maxThreads,

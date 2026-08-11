@@ -13,7 +13,7 @@ data class RouterScanConfig(
     val maxThreads: Int = 10,
     val timeout: Long = 1000,
     val rsTimeout: Long = 120_000,
-    val pingBeforeScan: Boolean = true
+    val pingBeforeScan: Boolean = false
 )
 
 class RouterScanRunner(private val context: Context) {

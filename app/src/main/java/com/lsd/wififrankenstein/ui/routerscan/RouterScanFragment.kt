@@ -409,7 +409,6 @@ class RouterScanFragment : Fragment() {
         timeoutInput.editText?.setText(settings.timeout.toString())
         rsTimeoutInput.editText?.setText((settings.rsTimeout / 1000).toString())
         pingBeforeScanSwitch.isChecked = settings.pingBeforeScan
-        pingBeforeScanSwitch.isEnabled = settings.pingBeforeScan
         saveToDbSwitch.isChecked = settings.saveToLocalDb
 
         MaterialAlertDialogBuilder(requireContext())
