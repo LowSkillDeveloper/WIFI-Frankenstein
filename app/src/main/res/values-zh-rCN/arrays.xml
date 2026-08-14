@@ -1,0 +1,6 @@
+<resources>
+    <string-array name="scan_modes">
+        <item>原生</item>
+        <item>Chroot</item>
+    </string-array>
+</resources>

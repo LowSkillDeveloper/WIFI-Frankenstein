@@ -49,8 +49,9 @@ class WpsResultAdapter : RecyclerView.Adapter<WpsResultAdapter.WpsResultViewHold
             val sourceText = when {
                 source == "neighbor_search" && distance != null ->
                     itemView.context.getString(
-                        R.string.source_format,
-                        "${wpsPin.name} (${distance} MAC distance)"
+                        R.string.ws_mac_distance,
+                        wpsPin.name,
+                        distance
                     )
 
                 source != null ->

@@ -73,7 +73,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="MAC:"
+                android:text="@string/mac_label"
                 android:textColor="?android:attr/textColorTertiary"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -106,7 +106,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Ports:"
+                android:text="@string/ports_label"
                 android:textColor="?android:attr/textColorTertiary"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -141,7 +141,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="OS:"
+                android:text="@string/os_label"
                 android:textColor="?android:attr/textColorTertiary"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -176,7 +176,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Latency:"
+                android:text="@string/latency_label"
                 android:textColor="?android:attr/textColorTertiary"
                 android:textSize="11sp"
                 android:textStyle="bold" />

@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.util
 
 import android.content.Context
+import com.lsd.wififrankenstein.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
@@ -75,7 +76,7 @@ class WpsBruteForceRunner(private val context: Context) {
 
                     onProgress?.invoke(
                         WpsBruteForceProgress(
-                            "Starting ${mode.name}...",
+                            context.getString(R.string.brute_starting, mode.name),
                             null,
                             null,
                             null

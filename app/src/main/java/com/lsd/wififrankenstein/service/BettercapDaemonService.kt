@@ -11,6 +11,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.lsd.wififrankenstein.MainActivity
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.network.bettercap.BettercapClient
 import com.lsd.wififrankenstein.util.BettercapManager
 import com.lsd.wififrankenstein.util.Log
@@ -78,7 +79,10 @@ class BettercapDaemonService : Service() {
             ACTION_START -> {
                 val iface = intent.getStringExtra(EXTRA_IFACE) ?: "wlan0"
                 val channelMode = intent.getStringExtra(EXTRA_CHANNEL_MODE) ?: "auto"
-                val notification = buildNotification("Starting", "Interface: $iface").build()
+                val notification = buildNotification(
+                    getString(R.string.svc_bettercap_starting),
+                    getString(R.string.svc_interface_format, iface)
+                ).build()
                 startForeground(NOTIFICATION_ID, notification)
                 startDaemon(iface, channelMode)
             }
@@ -96,7 +100,10 @@ class BettercapDaemonService : Service() {
             try {
                 Log.d(TAG, "startDaemon: step 1 — broadcasting STARTING status")
                 broadcastStatus("starting")
-                updateNotification("Starting...", "Mounting chroot on $iface")
+                updateNotification(
+                    getString(R.string.svc_starting),
+                    getString(R.string.svc_mounting_chroot, iface)
+                )
 
                 Log.d(TAG, "startDaemon: step 2 — calling bettercapManager.startDaemon()")
                 val monitorIface = bettercapManager.startDaemon(iface, channelMode)
@@ -105,7 +112,10 @@ class BettercapDaemonService : Service() {
                 if (monitorIface == null) {
                     Log.e(TAG, "startDaemon: bettercapManager.startDaemon returned false")
                     broadcastStatus("error")
-                    updateNotification("Failed", "Could not start bettercap")
+                    updateNotification(
+                        getString(R.string.svc_failed_short),
+                        getString(R.string.svc_could_not_start_bettercap)
+                    )
                     stopForegroundCompat()
                     stopSelf()
                     return@launch
@@ -114,8 +124,8 @@ class BettercapDaemonService : Service() {
                 Log.d(TAG, "startDaemon: step 3 — waiting for REST API (30s timeout)")
                 broadcastStatus("starting")
                 updateNotification(
-                    "Starting...",
-                    "Waiting for REST API at http://127.0.0.1:8081..."
+                    getString(R.string.svc_starting),
+                    getString(R.string.svc_waiting_rest_api)
                 )
 
                 val ready = withContext(Dispatchers.IO) {
@@ -126,7 +136,10 @@ class BettercapDaemonService : Service() {
                 if (!ready || !isRunning()) {
                     Log.e(TAG, "startDaemon: waitForReady failed — REST API not available")
                     broadcastStatus("error")
-                    updateNotification("Failed", "REST API not ready within 30s")
+                    updateNotification(
+                        getString(R.string.svc_failed_short),
+                        getString(R.string.svc_rest_api_not_ready, 30)
+                    )
                     Log.d(TAG, "startDaemon: stopping daemon and service")
                     bettercapManager.stopDaemon()
                     stopForegroundCompat()
@@ -136,7 +149,10 @@ class BettercapDaemonService : Service() {
 
                 Log.d(TAG, "startDaemon: step 4 — broadcasting RUNNING status")
                 broadcastStatus("running", monitorIface)
-                updateNotification("Running", "Interface: $monitorIface")
+                updateNotification(
+                    getString(R.string.svc_bettercap_running),
+                    getString(R.string.svc_interface_format, monitorIface)
+                )
                 Log.d(TAG, "Bettercap daemon started successfully on $monitorIface")
 
                 healthcheckLoop()
@@ -146,7 +162,10 @@ class BettercapDaemonService : Service() {
             } catch (e: Exception) {
                 Log.e(TAG, "startDaemon: exception", e)
                 broadcastStatus("error")
-                updateNotification("Error", e.message ?: "Unknown error")
+                updateNotification(
+                    getString(R.string.ws_error),
+                    e.message ?: getString(R.string.svc_unknown_error)
+                )
                 try {
                     bettercapManager.stopDaemon()
                 } catch (_: Exception) {
@@ -171,7 +190,10 @@ class BettercapDaemonService : Service() {
                     if (failCount >= 3) {
                         Log.e(TAG, "Bettercap not responding — reporting error")
                         broadcastStatus("error")
-                        updateNotification("Error", "Healthcheck failed")
+                        updateNotification(
+                    getString(R.string.ws_error),
+                    getString(R.string.svc_healthcheck_failed)
+                )
                         bettercapManager.stopDaemon()
                         stopForegroundCompat()
                         stopSelf()
@@ -184,7 +206,10 @@ class BettercapDaemonService : Service() {
                 if (failCount >= 3) {
                     Log.e(TAG, "Bettercap not responding — reporting error")
                     broadcastStatus("error")
-                    updateNotification("Error", "Healthcheck failed")
+                    updateNotification(
+                    getString(R.string.ws_error),
+                    getString(R.string.svc_healthcheck_failed)
+                )
                     bettercapManager.stopDaemon()
                     stopForegroundCompat()
                     stopSelf()
@@ -232,7 +257,7 @@ class BettercapDaemonService : Service() {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID, "Bettercap Daemon",
+                CHANNEL_ID, getString(R.string.svc_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply { setShowBadge(false) }
             notificationManager.createNotificationChannel(channel)
@@ -248,7 +273,7 @@ class BettercapDaemonService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Bettercap: $title")
+            .setContentTitle(getString(R.string.svc_bettercap_content_title, title))
             .setContentText(content)
             .setSmallIcon(android.R.drawable.ic_menu_manage)
             .setContentIntent(pendingIntent)

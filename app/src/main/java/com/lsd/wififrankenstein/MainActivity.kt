@@ -246,11 +246,11 @@ class MainActivity : AppCompatActivity() {
                 )
             fab1.setOnClickListener { view ->
                 Snackbar.make(view, getString(R.string.secondary_action_1), Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
+                    .setAction(getString(R.string.main_snackbar_action), null).show()
             }
             fab2.setOnClickListener { view ->
                 Snackbar.make(view, getString(R.string.secondary_action_2), Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
+                    .setAction(getString(R.string.main_snackbar_action), null).show()
             }
         }
 

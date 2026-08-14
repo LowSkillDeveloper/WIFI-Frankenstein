@@ -11,6 +11,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.data.RouterScanResult
 import com.lsd.wififrankenstein.service.ChrootAttackService
 import com.lsd.wififrankenstein.service.ChrootAttackType
@@ -144,6 +145,15 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
                         title = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_TITLE) ?: "",
                         serverType = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_SERVER_TYPE)
                             ?: "",
+                        lanIp = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_LAN_IP) ?: "",
+                        lanMask = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_LAN_MASK)
+                            ?: "",
+                        wanIp = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_WAN_IP) ?: "",
+                        wanMask = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_WAN_MASK)
+                            ?: "",
+                        wanGate = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_WAN_GATE)
+                            ?: "",
+                        dns = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_DNS) ?: "",
                         success = intent.getBooleanExtra(
                             ChrootAttackService.EXTRA_RESULT_SUCCESS,
                             false
@@ -194,14 +204,22 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
                         )
                     )
                     _progress.postValue(100)
-                    addConsoleLine("[+] Scan complete: $currentSuccessCount/$totalToScan successful")
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.rs_scan_complete_line,
+                            currentSuccessCount,
+                            totalToScan
+                        )
+                    )
                     _scanComplete.postValue(true)
                 }
 
                 ChrootAttackService.BROADCAST_ERROR -> {
                     val errorMsg = intent.getStringExtra(ChrootAttackService.EXTRA_ERROR_MESSAGE)
-                        ?: "Unknown error"
-                    addConsoleLine("[-] Error: $errorMsg")
+                        ?: getApplication<Application>().getString(R.string.rs_unknown_error)
+                    addConsoleLine(
+                        getApplication<Application>().getString(R.string.rs_error_line, errorMsg)
+                    )
                     _state.postValue(
                         _state.value?.copy(
                             isScanning = false,
@@ -258,7 +276,9 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
         }
 
         if (!currentRsBinaryAvailable) {
-            _state.value = _state.value?.copy(error = "rs binary not found in chroot")
+            _state.value = _state.value?.copy(
+                error = getApplication<Application>().getString(R.string.rs_binary_not_found)
+            )
             return
         }
 
@@ -284,7 +304,14 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
         )
         _progress.value = 0
         _scanComplete.value = false
-        addConsoleLine("[*] Scanning $totalToScan targets (${getCurrentSettings().maxThreads} threads, ${ports.size} ports)")
+        addConsoleLine(
+            getApplication<Application>().getString(
+                R.string.rs_scanning_targets,
+                totalToScan,
+                getCurrentSettings().maxThreads,
+                ports.size
+            )
+        )
 
         val settings = getCurrentSettings()
         ChrootAttackService.startRouterScan(
@@ -300,7 +327,7 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
     fun cancelScan() {
         ChrootAttackService.cancelAttack(getApplication())
         _state.value = _state.value?.copy(isScanning = false)
-        addConsoleLine("[-] Scan cancelled")
+        addConsoleLine(getApplication<Application>().getString(R.string.rs_scan_cancelled_line))
     }
 
     private fun saveSingleResultToLocalDb(result: RouterScanResult) {
@@ -420,7 +447,9 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
 
     fun uploadTo3WiFi(results: List<RouterScanResult>, server: DbItem, comment: String) {
         if (results.isEmpty()) {
-            _uploadResult.postValue(UploadResult(false, "No results to upload"))
+            _uploadResult.postValue(
+                UploadResult(false, getApplication<Application>().getString(R.string.rs_no_results_upload))
+            )
             return
         }
         viewModelScope.launch {
@@ -432,7 +461,10 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
                 }
                 _uploadResult.value = result
             } catch (e: Exception) {
-                _uploadResult.value = UploadResult(false, e.message ?: "Upload failed")
+                _uploadResult.value = UploadResult(
+                    false,
+                    e.message ?: getApplication<Application>().getString(R.string.rs_upload_failed)
+                )
             } finally {
                 _isUploading.value = false
             }
@@ -477,24 +509,42 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
                 if (json.optBoolean("result", false)) {
                     val upload = json.optJSONObject("upload")
                     if (upload != null && upload.optBoolean("state", false)) {
-                        return UploadResult(true, "Uploaded ${results.size} results")
+                        return UploadResult(
+                            true,
+                            getApplication<Application>().getString(R.string.rs_uploaded, results.size)
+                        )
                     } else {
                         val errors = upload?.optJSONArray("error")
                         val errorMsg = if (errors != null && errors.length() > 0) {
-                            "Server error code: ${errors.getInt(0)}"
+                            getApplication<Application>().getString(
+                                R.string.rs_server_error_code,
+                                errors.getInt(0)
+                            )
                         } else {
-                            "Upload rejected by server"
+                            getApplication<Application>().getString(R.string.rs_upload_rejected)
                         }
                         return UploadResult(false, errorMsg)
                     }
                 } else {
-                    return UploadResult(false, json.optString("error", "Unknown server error"))
+                    return UploadResult(
+                        false,
+                        json.optString(
+                            "error",
+                            getApplication<Application>().getString(R.string.rs_unknown_server_error)
+                        )
+                    )
                 }
             } else {
-                return UploadResult(false, "HTTP $responseCode")
+                return UploadResult(
+                    false,
+                    getApplication<Application>().getString(R.string.rs_http_error, responseCode)
+                )
             }
         } catch (e: Exception) {
-            return UploadResult(false, e.message ?: "Connection failed")
+            return UploadResult(
+                false,
+                e.message ?: getApplication<Application>().getString(R.string.rs_connection_failed)
+            )
         } finally {
             connection.disconnect()
         }
@@ -520,9 +570,13 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
                         )
                     };${escCsv(r.ssid)};${escCsv(r.sec)};${escCsv(r.psk)};${escCsv(r.wps)};${
                         escCsv(
-                            r.ip
+                            r.lanIp
                         )
-                    };;;;;"
+                    };${escCsv(r.lanMask)};${escCsv(r.wanIp)};${escCsv(r.wanMask)};${
+                        escCsv(
+                            r.wanGate
+                        )
+                    };${escCsv(r.dns)}"
                 )
             }
         }

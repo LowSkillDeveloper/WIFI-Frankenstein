@@ -22,5 +22,6 @@ data class IpRangeResult(
     val country: String,
     val sourceName: String,
     val databaseId: String = "",
-    val databaseColor: Int = 0
+    val databaseColor: Int = 0,
+    val pointCount: Int = 0
 )

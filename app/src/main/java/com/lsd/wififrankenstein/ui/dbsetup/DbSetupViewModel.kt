@@ -90,7 +90,8 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
             smartLinkDbHelper.fetchSources(url)
             smartLinkDbHelper.sources.value
         } catch (e: Exception) {
-            _errorEvent.value = e.message ?: "Failed to fetch sources"
+            _errorEvent.value =
+                e.message ?: getApplication<Application>().getString(R.string.ds_failed_fetch_sources)
             null
         }
     }
@@ -509,7 +510,8 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
             smartLinkDbHelper.fetchDatabases(url)
             smartLinkDbHelper.databases.value
         } catch (e: Exception) {
-            _errorEvent.value = e.message ?: "Failed to fetch SmartLink databases"
+            _errorEvent.value = e.message
+                ?: getApplication<Application>().getString(R.string.ds_failed_fetch_smartlink)
             null
         }
     }

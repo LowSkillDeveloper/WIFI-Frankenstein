@@ -10,6 +10,7 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import com.lsd.wififrankenstein.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -85,7 +86,7 @@ class NativePskBruteForceRunner(private val context: Context) {
                             currentPassword = password,
                             attemptNumber = attempts,
                             totalPasswords = totalLines,
-                            statusMessage = "Trying: $password"
+                            statusMessage = context.getString(R.string.brute_trying, password)
                         )
                     )
 
@@ -97,7 +98,7 @@ class NativePskBruteForceRunner(private val context: Context) {
                                     currentPassword = password,
                                     attemptNumber = attempts,
                                     totalPasswords = totalLines,
-                                    statusMessage = "FOUND: $password"
+                                    statusMessage = context.getString(R.string.brute_found, password)
                                 )
                             )
                             return@withContext PskBruteForceResult(password, true, attempts)

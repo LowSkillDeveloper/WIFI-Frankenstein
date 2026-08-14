@@ -81,7 +81,11 @@ class MapDatabaseAdapter(
                 else -> formatSourcePath(database.path)
             }
             text = if (database.dbType == DbType.WIFI_API && database.supportsMapApi) {
-                "$baseName (${context.getString(R.string.map_api_supported)})"
+                context.getString(
+                    R.string.wm_db_api_suffix,
+                    baseName,
+                    context.getString(R.string.map_api_supported)
+                )
             } else {
                 baseName
             }

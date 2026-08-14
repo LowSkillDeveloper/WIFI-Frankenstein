@@ -273,7 +273,7 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
     private fun startChrootInstallation() {
         if (!chrootManager.isArmArchitecture()) {
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Unsupported Architecture")
+                .setTitle(R.string.rs_unsupported_arch)
                 .setMessage(
                     getString(
                         R.string.chroot_arch_warning,
@@ -360,7 +360,7 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
             )
             return
         }
-        binding.textViewChrootStatus.text = "Starting rootless setup..."
+        binding.textViewChrootStatus.text = getString(R.string.rootless_setup_starting)
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val chrootInfo = chrootManager.getChrootInfo()
             val archive = chrootInfo?.let {
@@ -368,14 +368,15 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
             }
             if (archive == null) {
                 withContext(Dispatchers.Main) {
-                    binding.textViewChrootStatus.text = "Failed to get rootfs URL"
+                    binding.textViewChrootStatus.text = getString(R.string.rootless_failed_rootfs_url)
                 }
                 return@launch
             }
             val success = rootlessManager.setupRootfs(
                 onProgress = { progress ->
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-                        binding.textViewChrootStatus.text = "Downloading: $progress%"
+                        binding.textViewChrootStatus.text =
+                            getString(R.string.rootless_downloading, progress)
                     }
                 },
                 onStatusUpdate = { status ->
@@ -386,13 +387,14 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
                 downloadUrl = archive.download_url,
                 onDiagnosticUpdate = { name, icon, result ->
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-                        binding.textViewChrootStatus.text = "$icon $name: $result"
+                        binding.textViewChrootStatus.text =
+                            getString(R.string.rootless_diagnostic_line, icon, name, result)
                     }
                 }
             )
             withContext(Dispatchers.Main) {
                 if (success) {
-                    binding.textViewChrootStatus.text = "Rootless setup completed"
+                    binding.textViewChrootStatus.text = getString(R.string.rootless_setup_completed)
                 }
                 setupChrootManagement()
             }
@@ -416,10 +418,10 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
 
     private fun showMobileWarningForRootless() {
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Warning")
-            .setMessage("You are on mobile data. Downloading ~140 MB over mobile connection may use significant data.")
-            .setPositiveButton("Continue") { _, _ -> startRootlessInstall() }
-            .setNegativeButton("Cancel", null)
+            .setTitle(R.string.warning)
+            .setMessage(getString(R.string.rootless_mobile_warning_message))
+            .setPositiveButton(R.string.continue_text) { _, _ -> startRootlessInstall() }
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 

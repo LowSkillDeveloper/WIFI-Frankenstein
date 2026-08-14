@@ -157,7 +157,7 @@ class WiFiMapFragment : Fragment() {
                 position = point
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_marker_default)
-                title = "📍 $latitude, $longitude"
+                title = getString(R.string.wm_marker_title, latitude, longitude)
             }
             binding.map.overlays.add(marker)
             binding.map.invalidate()
@@ -1032,6 +1032,11 @@ class WiFiMapFragment : Fragment() {
             viewModel.enableRdapEnrichment = isChecked
         }
 
+        binding.switchIpRangeCounts.isChecked = viewModel.enableIpRangeCounts
+        binding.switchIpRangeCounts.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.enableIpRangeCounts = isChecked
+        }
+
         binding.switchShowRadius.setOnCheckedChangeListener { _, isChecked ->
             isRadiusVisible = isChecked
             viewModel.showRadiusCircle = isChecked
@@ -1216,7 +1221,11 @@ class WiFiMapFragment : Fragment() {
                 ).show()
                 updateOfflineZones()
             }.onFailure { error ->
-                Snackbar.make(binding.root, error.message ?: "Error", Snackbar.LENGTH_LONG).show()
+                Snackbar.make(
+                    binding.root,
+                    error.message ?: getString(R.string.wm_error),
+                    Snackbar.LENGTH_LONG
+                ).show()
                 binding.buttonDownloadOffline.isEnabled = true
             }
 
@@ -1240,7 +1249,7 @@ class WiFiMapFragment : Fragment() {
         val center = binding.map.mapCenter as? GeoPoint ?: return
         val lat = String.format(java.util.Locale.US, "%.4f", center.latitude)
         val lon = String.format(java.util.Locale.US, "%.4f", center.longitude)
-        binding.centerText.text = "Center: $lat, $lon"
+        binding.centerText.text = getString(R.string.wm_center, lat, lon)
     }
 
     private fun updateRadiusCircle() {
@@ -1320,7 +1329,8 @@ class WiFiMapFragment : Fragment() {
                 center.latitude,
                 center.longitude,
                 finalRadius,
-                viewModel.enableRdapEnrichment
+                viewModel.enableRdapEnrichment,
+                viewModel.enableIpRangeCounts
             )
         } catch (e: Exception) {
             Log.e(TAG, "searchIpRanges error", e)
@@ -1845,6 +1855,7 @@ class WiFiMapFragment : Fragment() {
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val rangeText: TextView = view.findViewById(R.id.rangeText)
             val sourceText: TextView = view.findViewById(R.id.sourceText)
+            val countText: TextView = view.findViewById(R.id.countText)
             val descriptionText: TextView = view.findViewById(R.id.descriptionText)
             val netnameText: TextView = view.findViewById(R.id.netnameText)
             val countryText: TextView = view.findViewById(R.id.countryText)
@@ -1888,6 +1899,14 @@ class WiFiMapFragment : Fragment() {
             val range = ranges[position]
             holder.rangeText.text = range.range
             holder.sourceText.text = range.sourceName
+
+            if (range.pointCount > 0) {
+                holder.countText.text =
+                    context.getString(R.string.ip_range_points, range.pointCount)
+                holder.countText.visibility = View.VISIBLE
+            } else {
+                holder.countText.visibility = View.GONE
+            }
 
             val isSelected = selectedPositions.contains(position)
             holder.selectionCheckbox.isChecked = isSelected
@@ -1951,7 +1970,7 @@ class WiFiMapFragment : Fragment() {
                 zone.sizeBytes < 1024 * 1024 -> "${zone.sizeBytes / 1024} KB"
                 else -> "%.1f MB".format(java.util.Locale.US, zone.sizeBytes / (1024.0 * 1024.0))
             }
-            holder.infoText.text = "${zone.tileCount} tiles, $sizeStr"
+            holder.infoText.text = ctx.getString(R.string.wm_tiles_info, zone.tileCount, sizeStr)
             holder.deleteButton.setOnClickListener { onDelete(zone) }
         }
 

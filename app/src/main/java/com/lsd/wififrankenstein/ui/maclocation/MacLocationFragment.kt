@@ -305,10 +305,11 @@ class MacLocationFragment : Fragment() {
                         val marker = Marker(map).apply {
                             position = point
                             title = result.module
-                            snippet = buildString {
-                                append("BSSID: ${result.bssid ?: "N/A"}\n")
-                                append("SSID: ${result.ssid ?: "N/A"}")
-                            }
+                            snippet = getString(
+                                R.string.mac_marker_format,
+                                result.bssid ?: getString(R.string.not_available),
+                                result.ssid ?: getString(R.string.not_available)
+                            )
                             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         }
                         map.overlays.add(marker)

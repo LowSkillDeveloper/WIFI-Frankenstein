@@ -894,7 +894,7 @@ class DbSetupFragment : Fragment() {
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            showSnackbar("Failed to enable indexing: ${e.message}")
+                            showSnackbar(getString(R.string.ds_failed_enable_indexing, e.message))
                         }
                     }
                 }
@@ -904,7 +904,7 @@ class DbSetupFragment : Fragment() {
                         helper.disableIndexing()
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            showSnackbar("Failed to disable indexing: ${e.message}")
+                            showSnackbar(getString(R.string.ds_failed_disable_indexing, e.message))
                         }
                     }
                 }
@@ -1023,7 +1023,10 @@ class DbSetupFragment : Fragment() {
     }
 
     private fun showExportDialog() {
-        val formats = arrayOf("JSON", "CSV")
+        val formats = arrayOf(
+            getString(R.string.ds_format_json),
+            getString(R.string.ds_format_csv)
+        )
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.export_format)
             .setItems(formats) { _, which ->
@@ -1041,7 +1044,11 @@ class DbSetupFragment : Fragment() {
     }
 
     private fun showImportDialog() {
-        val formats = arrayOf("JSON", "CSV", "TXT (RouterScan)")
+        val formats = arrayOf(
+            getString(R.string.ds_format_json),
+            getString(R.string.ds_format_csv),
+            getString(R.string.ds_format_txt_router_scan)
+        )
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.import_format)
             .setItems(formats) { _, which ->
@@ -1250,7 +1257,7 @@ class DbSetupFragment : Fragment() {
                 var totalLines = 0
 
                 withContext(Dispatchers.Main) {
-                    progressText?.text = "Анализ файла..."
+                    progressText?.text = getString(R.string.ds_analyzing_file)
                     progressBar?.progress = 2
                 }
 
@@ -1259,7 +1266,7 @@ class DbSetupFragment : Fragment() {
                 }
 
                 withContext(Dispatchers.Main) {
-                    progressText?.text = "Парсинг $totalLines строк..."
+                    progressText?.text = getString(R.string.ds_parsing_lines, totalLines)
                     progressBar?.progress = 5
                 }
 
@@ -1274,7 +1281,7 @@ class DbSetupFragment : Fragment() {
 
                 withContext(Dispatchers.Main) {
                     progressBar?.progress = 15
-                    progressText?.text = "Найдено ${networksToAdd.size} записей для импорта"
+                    progressText?.text = getString(R.string.ds_found_records_for_import, networksToAdd.size)
                 }
 
                 val helper3 = LocalAppDbHelper(requireContext().applicationContext)
@@ -1296,8 +1303,8 @@ class DbSetupFragment : Fragment() {
                                 stats.totalProcessed, stats.inserted, stats.duplicates
                             )
 
-                            "replace" -> "База заменена\nИмпортировано: ${stats.inserted} записей"
-                            else -> "Импорт завершён\nДобавлено: ${stats.inserted} записей"
+                            "replace" -> getString(R.string.database_replaced_imported, stats.inserted)
+                            else -> getString(R.string.import_completed_added, stats.inserted)
                         }
                         showSnackbar(message)
                     }
@@ -1308,7 +1315,7 @@ class DbSetupFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     if (isAdded && _binding != null) {
                         progressDialog.dismiss()
-                        showSnackbar("Ошибка импорта: ${e.message}")
+                        showSnackbar(getString(R.string.import_error, e.message))
                     }
                 }
             }
@@ -1472,10 +1479,14 @@ class DbSetupFragment : Fragment() {
                     inputStream.copyTo(outputStream)
                 }
             }
-            Toast.makeText(context, "Database exported successfully", Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            Toast.makeText(context, "Failed to export database: ${e.message}", Toast.LENGTH_LONG)
+            Toast.makeText(context, getString(R.string.ds_exported_successfully), Toast.LENGTH_LONG)
                 .show()
+        } catch (e: Exception) {
+            Toast.makeText(
+                context,
+                getString(R.string.ds_failed_export_db, e.message),
+                Toast.LENGTH_LONG
+            ).show()
             Log.e("DbSetupFragment", "Failed to export database", e)
         }
     }
@@ -1559,14 +1570,19 @@ class DbSetupFragment : Fragment() {
 
     private fun showDatabaseDetailsDialog(dbItem: DbItem) {
         val details = StringBuilder().apply {
-            append("Type: ${dbItem.type}\n")
-            append("Path: ${dbItem.path}\n")
-            append("Direct: ${dbItem.directPath ?: "N/A"}\n")
-            append("Original: ${dbItem.originalSizeInMB} MB\n")
-            append("Cached: ${dbItem.cachedSizeInMB} MB\n")
-            append("Index level: ${dbItem.indexLevel}\n")
+            append(getString(R.string.ds_detail_type, dbItem.type) + "\n")
+            append(getString(R.string.ds_detail_path, dbItem.path) + "\n")
+            append(
+                getString(
+                    R.string.ds_detail_direct,
+                    dbItem.directPath ?: getString(R.string.not_available)
+                ) + "\n"
+            )
+            append(getString(R.string.ds_detail_original, dbItem.originalSizeInMB) + "\n")
+            append(getString(R.string.ds_detail_cached, dbItem.cachedSizeInMB) + "\n")
+            append(getString(R.string.ds_detail_index_level, dbItem.indexLevel) + "\n")
             if (!dbItem.tableName.isNullOrBlank()) {
-                append("Table: ${dbItem.tableName}\n")
+                append(getString(R.string.ds_detail_table, dbItem.tableName) + "\n")
             }
         }.toString()
 

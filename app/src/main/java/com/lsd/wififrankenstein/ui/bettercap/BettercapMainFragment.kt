@@ -147,8 +147,12 @@ class BettercapMainFragment : Fragment() {
         })
     }
 
-    private val CHANNEL_OPTIONS =
-        arrayOf("All (Hop)", "Single Channel", "Multi Channel", "Custom Channels")
+    private fun channelOptions(): Array<String> = arrayOf(
+        getString(R.string.bc_channel_all_hop),
+        getString(R.string.bc_channel_single),
+        getString(R.string.bc_channel_multi),
+        getString(R.string.bc_channel_custom)
+    )
     private val ALL_CHANNELS = listOf(
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
         36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116,
@@ -160,7 +164,7 @@ class BettercapMainFragment : Fragment() {
         val adapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_dropdown_item,
-            CHANNEL_OPTIONS
+            channelOptions()
         )
         binding.spinnerChannel.adapter = adapter
         binding.spinnerChannel.setSelection(0)
@@ -197,19 +201,19 @@ class BettercapMainFragment : Fragment() {
             c <= 144 -> 5500 + (c - 100) * 5
             else -> 5745 + (c - 149) * 5
         }
-        return "Ch $c ($freq MHz)"
+        return getString(R.string.bc_channel_label, c, freq)
     }
 
     private fun showSingleChannelDialog() {
         val names = ALL_CHANNELS.map { channelLabel(it) }.toTypedArray()
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Select Channel (Single)")
+            .setTitle(R.string.bc_select_channel_single)
             .setSingleChoiceItems(names, -1) { dialog, which ->
                 val ch = ALL_CHANNELS[which]
                 viewModel.setChannelsAndMode(listOf(ch))
                 dialog.dismiss()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -217,11 +221,11 @@ class BettercapMainFragment : Fragment() {
         val names = ALL_CHANNELS.map { channelLabel(it) }.toTypedArray()
         val checked = BooleanArray(ALL_CHANNELS.size)
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Select Channels (Multi)")
+            .setTitle(R.string.bc_select_channels_multi)
             .setMultiChoiceItems(names, checked) { _, which, isChecked ->
                 checked[which] = isChecked
             }
-            .setPositiveButton("Apply") { dialog, _ ->
+            .setPositiveButton(R.string.bc_apply) { dialog, _ ->
                 val selected = mutableListOf<Int>()
                 for (i in checked.indices) {
                     if (checked[i]) selected.add(ALL_CHANNELS[i])
@@ -231,25 +235,22 @@ class BettercapMainFragment : Fragment() {
                 }
                 dialog.dismiss()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
     private fun showCustomChannelDialog() {
         val input = android.widget.EditText(requireContext()).apply {
-            hint = "e.g. 1 6 11 36 40 44 or 1,6,11,36,40"
+            hint = getString(R.string.bc_custom_channels_hint)
             setLines(2)
             textSize = 14f
         }
-        val msg = "Enter channel numbers separated by spaces or commas.\n" +
-                "2.4 GHz: 1-14\n" +
-                "5 GHz: 36-165\n" +
-                "6 GHz: 1-233 (odd)"
+        val msg = getString(R.string.bc_custom_channels_message)
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Custom Channels")
+            .setTitle(R.string.bc_channel_custom)
             .setMessage(msg)
             .setView(input)
-            .setPositiveButton("Apply") { dialog, _ ->
+            .setPositiveButton(R.string.bc_apply) { dialog, _ ->
                 val text = input.text.toString()
                 val channels = text.split(Regex("[,\\s]+")).mapNotNull { it.toIntOrNull() }
                     .filter { it in 1..233 }
@@ -258,7 +259,7 @@ class BettercapMainFragment : Fragment() {
                 }
                 dialog.dismiss()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -299,7 +300,7 @@ class BettercapMainFragment : Fragment() {
     }
 
     private fun setupSortDropdown() {
-        val sortModes = SortMode.entries.map { it.label }.toTypedArray()
+        val sortModes = SortMode.entries.map { getString(it.labelRes) }.toTypedArray()
         val adapter =
             ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, sortModes)
         binding.spinnerSort.adapter = adapter
@@ -352,11 +353,11 @@ class BettercapMainFragment : Fragment() {
         }
         binding.buttonDeauthAll.setOnClickListener {
             viewModel.deauthAll()
-            Toast.makeText(requireContext(), "Deauth all APs", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.bc_deauth_all_aps, Toast.LENGTH_SHORT).show()
         }
         binding.buttonAssocAll.setOnClickListener {
             viewModel.assocAll()
-            Toast.makeText(requireContext(), "Assoc all APs", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.bc_assoc_all_aps, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -364,7 +365,7 @@ class BettercapMainFragment : Fragment() {
         binding.seekBarHopPeriod.setOnSeekBarChangeListener(object :
             SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                binding.textHopPeriodValue.text = "${(progress + 1) * 50} ms"
+                binding.textHopPeriodValue.text = getString(R.string.bc_hop_period_value, (progress + 1) * 50)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -377,7 +378,8 @@ class BettercapMainFragment : Fragment() {
         })
         binding.seekBarMinRssi.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                binding.textMinRssiValue.text = "${-(progress + 1) * 5 - 25} dBm"
+                binding.textMinRssiValue.text =
+                    getString(R.string.bc_min_rssi_value, -(progress + 1) * 5 - 25)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -431,9 +433,9 @@ class BettercapMainFragment : Fragment() {
         }
         viewModel.daemonStatus.observe(viewLifecycleOwner) { status ->
             binding.buttonToggleScan.text = when (status) {
-                DaemonStatus.RUNNING -> "Stop"
+                DaemonStatus.RUNNING -> getString(R.string.bc_stop)
                 DaemonStatus.STARTING, DaemonStatus.RESTARTING -> "..."
-                else -> "Start"
+                else -> getString(R.string.bc_start)
             }
             val isRunning = status == DaemonStatus.RUNNING || status == DaemonStatus.STARTING
 
@@ -453,11 +455,11 @@ class BettercapMainFragment : Fragment() {
 
         viewModel.apCount.observe(viewLifecycleOwner) { count ->
             val hs = viewModel.handshakeCount.value ?: 0
-            binding.textStats.text = "APs: $count | Handshakes: $hs"
+            binding.textStats.text = getString(R.string.bc_stats, count, hs)
         }
         viewModel.handshakeCount.observe(viewLifecycleOwner) { hs ->
             val count = viewModel.apCount.value ?: 0
-            binding.textStats.text = "APs: $count | Handshakes: $hs"
+            binding.textStats.text = getString(R.string.bc_stats, count, hs)
         }
         viewModel.eventLog.observe(viewLifecycleOwner) { events ->
             eventAdapter.updateData(events)
@@ -568,8 +570,8 @@ class BettercapMainFragment : Fragment() {
         )
         val icon = if (isValid) "\u2713 " else "\u2717 "
         val hostname = r.ap.hostname.ifEmpty { r.ap.mac }
-        val info = if (isValid) "${r.eapolCount} EAPOL / ${r.pmkidCount} PMKID"
-        else (r.error ?: "no data")
+        val info = if (isValid) getString(R.string.bc_eapol_pmkid, r.eapolCount, r.pmkidCount)
+        else (r.error ?: getString(R.string.bc_no_data))
 
         val spannable = SpannableStringBuilder()
         spannable.append(icon)
@@ -579,7 +581,7 @@ class BettercapMainFragment : Fragment() {
             StyleSpan(Typeface.BOLD), start, spannable.length,
             Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
         )
-        spannable.append("  ${r.ap.mac}\n    $info")
+        spannable.append(getString(R.string.bc_result_row_info, r.ap.mac, info))
         tv.text = spannable
         tv.setTextColor(color)
         return tv

@@ -77,7 +77,10 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
                 loadServers()
                 onResult(true, getApplication<Application>().getString(R.string.server_added))
             } catch (e: Exception) {
-                onResult(false, e.message ?: "Failed to add server")
+                onResult(
+                    false,
+                    e.message ?: getApplication<Application>().getString(R.string.upl_failed_add_server)
+                )
             }
         }
     }
@@ -116,7 +119,7 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
                 )
                 val csv = ThreeWiFiUploader.convertToCsv(rows)
                 _uploadProgress.value = 50
-                val result = ThreeWiFiUploader.uploadCsv(server, csv, comment)
+                val result = ThreeWiFiUploader.uploadCsv(getApplication<Application>(), server, csv, comment)
                 _uploadProgress.value = 100
                 _uploadResult.value = UploadResult(
                     success = result.success,
@@ -125,7 +128,7 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
             } catch (e: Exception) {
                 _uploadResult.value = UploadResult(
                     success = false,
-                    message = e.message ?: "Upload failed"
+                    message = e.message ?: getApplication<Application>().getString(R.string.upl_upload_failed)
                 )
             } finally {
                 _isUploading.value = false
@@ -198,7 +201,7 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
             } catch (e: Exception) {
                 _uploadResult.value = UploadResult(
                     success = false,
-                    message = e.message ?: "Upload failed"
+                    message = e.message ?: getApplication<Application>().getString(R.string.upl_upload_failed)
                 )
             } finally {
                 _isUploading.value = false
@@ -216,7 +219,7 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
 
         val contentResolver = getApplication<Application>().contentResolver
         val inputStream = contentResolver.openInputStream(file.uri)
-            ?: throw Exception("Cannot open file")
+            ?: throw Exception(getApplication<Application>().getString(R.string.upl_cannot_open_file))
 
         val fileContent = inputStream.bufferedReader().use { it.readText() }
 
@@ -291,24 +294,36 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
                         val taskId = uploadInfo.optString("tid", null)
                         UploadResult(
                             success = true,
-                            message = "Upload successful",
+                            message = getApplication<Application>().getString(R.string.upl_upload_success),
                             taskId = taskId
                         )
                     } else {
                         val errors = uploadInfo.optJSONArray("error")
                         val errorMessage = if (errors != null && errors.length() > 0) {
-                            "Upload failed with error code: ${errors.getInt(0)}"
+                            getApplication<Application>().getString(
+                                R.string.upl_upload_failed_code,
+                                errors.getInt(0)
+                            )
                         } else {
-                            "Upload failed"
+                            getApplication<Application>().getString(R.string.upl_upload_failed)
                         }
                         UploadResult(success = false, message = errorMessage)
                     }
                 } else {
-                    val error = jsonResponse.optString("error", "Unknown error")
-                    UploadResult(success = false, message = "Server error: $error")
+                    val error = jsonResponse.optString(
+                        "error",
+                        getApplication<Application>().getString(R.string.upl_unknown_error)
+                    )
+                    UploadResult(
+                        success = false,
+                        message = getApplication<Application>().getString(R.string.upl_server_error, error)
+                    )
                 }
             } else {
-                UploadResult(success = false, message = "HTTP error: $responseCode")
+                UploadResult(
+                    success = false,
+                    message = getApplication<Application>().getString(R.string.upl_http_error, responseCode)
+                )
             }
         } finally {
             connection.disconnect()

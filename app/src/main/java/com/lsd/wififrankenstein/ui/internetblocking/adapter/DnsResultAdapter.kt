@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.ItemDnsResultBinding
 import com.lsd.wififrankenstein.ui.internetblocking.model.CheckStatus
 import com.lsd.wififrankenstein.ui.internetblocking.model.DnsCheckResult
@@ -23,7 +24,7 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
 
         fun bind(result: DnsCheckResult) {
             binding.domain.text = result.domain
-            binding.status.text = result.status.label()
+            binding.status.text = result.status.label(binding.root.context)
 
             val colorRes = result.status.colorRes()
             binding.status.setTextColor(
@@ -42,7 +43,7 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
             }
 
 
-            binding.udpStatus.text = result.udpStatus?.let { "Статус: $it" }
+            binding.udpStatus.text = result.udpStatus?.let { binding.root.context.getString(R.string.ib_dns_status_prefix, it) }
 
 
             binding.jsonIpsContainer.removeAllViews()
@@ -56,7 +57,7 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
             }
 
 
-            binding.jsonStatus.text = result.jsonStatus?.let { "Статус: $it" }
+            binding.jsonStatus.text = result.jsonStatus?.let { binding.root.context.getString(R.string.ib_dns_status_prefix, it) }
 
 
             binding.wireIpsContainer.removeAllViews()
@@ -70,25 +71,25 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
             }
 
 
-            binding.wireStatus.text = result.wireStatus?.let { "Статус: $it" }
+            binding.wireStatus.text = result.wireStatus?.let { binding.root.context.getString(R.string.ib_dns_status_prefix, it) }
 
 
             val analysis = when (result.status) {
-                CheckStatus.Ok -> "✓ IP совпадают — DNS работает корректно"
-                CheckStatus.DnsSpoof -> "✗ IP не совпадают — обнаружена подмена DNS"
-                CheckStatus.FakeIp -> "⚠ Фейковый IP (198.18.0.0/15) — вероятно VPN"
-                CheckStatus.DnsIntercept -> "✗ UDP заблокирован, DoH работает — DNS перехват"
-                CheckStatus.FakeNxdomain -> "✗ Сервер вернул NXDOMAIN для существующего домена"
-                CheckStatus.FakeEmpty -> "✗ Сервер вернул пустой ответ вместо IP"
-                CheckStatus.DohBlocked -> "✗ DoH заблокирован, UDP работает — блокировка DoH"
-                else -> "⚠ Статус: ${result.status.label()}"
+                CheckStatus.Ok -> binding.root.context.getString(R.string.ib_dns_analysis_ok)
+                CheckStatus.DnsSpoof -> binding.root.context.getString(R.string.ib_dns_analysis_spoof)
+                CheckStatus.FakeIp -> binding.root.context.getString(R.string.ib_dns_analysis_fake_ip)
+                CheckStatus.DnsIntercept -> binding.root.context.getString(R.string.ib_dns_analysis_intercept)
+                CheckStatus.FakeNxdomain -> binding.root.context.getString(R.string.ib_dns_analysis_nxdomain)
+                CheckStatus.FakeEmpty -> binding.root.context.getString(R.string.ib_dns_analysis_empty)
+                CheckStatus.DohBlocked -> binding.root.context.getString(R.string.ib_dns_analysis_doh_blocked)
+                else -> binding.root.context.getString(R.string.ib_dns_analysis_else, result.status.label(binding.root.context))
             }
             binding.analysisText.text = analysis
 
 
             if (result.totalUniqueIps > 0) {
                 binding.extraInfo.visibility = android.view.View.VISIBLE
-                binding.extraInfo.text = "Уник. IP: ${result.totalUniqueIps}"
+                binding.extraInfo.text = binding.root.context.getString(R.string.ib_dns_unique_ips, result.totalUniqueIps)
             } else {
                 binding.extraInfo.visibility = android.view.View.GONE
             }
@@ -110,9 +111,9 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
                     }
                     textView.text = formattedJson
                     MaterialAlertDialogBuilder(binding.root.context)
-                        .setTitle("DoH JSON ответ")
+                        .setTitle(binding.root.context.getString(R.string.ib_dns_json_dialog_title))
                         .setView(dialogView)
-                        .setPositiveButton("Закрыть", null)
+                        .setPositiveButton(binding.root.context.getString(R.string.close), null)
                         .create()
                         .show()
                 }

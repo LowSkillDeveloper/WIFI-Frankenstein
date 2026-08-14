@@ -270,7 +270,7 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                         Log.e(TAG, "Save error", e)
                         Toast.makeText(
                             requireContext(),
-                            "Save failed: ${e.message}",
+                            getString(R.string.iw_save_failed, e.message),
                             Toast.LENGTH_LONG
                         ).show()
                     }
@@ -300,7 +300,7 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 associated = args.getBoolean("associated", false),
                 probeResponse = args.getBoolean("probeResponse", false),
                 rawData = args.getString("rawData", ""),
-                securityType = args.getString("securityType", "Unknown"),
+                securityType = args.getString("securityType", getString(R.string.unknown)),
                 band = args.getString("band", ""),
                 groupCipher = args.getString("groupCipher", ""),
                 pairwiseCipher = args.getString("pairwiseCipher", ""),
@@ -650,12 +650,12 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             setRowText(
                 binding.rowAssociated,
                 R.string.iw_wifi_associated,
-                if (network.associated) "Yes" else ""
+                if (network.associated) getString(R.string.yes) else ""
             )
             setRowText(
                 binding.rowProbeResponse,
                 R.string.iw_wifi_probe_response,
-                if (network.probeResponse) "Probe Response" else ""
+                if (network.probeResponse) getString(R.string.iw_probe_response) else ""
             )
 
 
@@ -710,7 +710,7 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             setRowText(
                 binding.rowWmmInfo,
                 R.string.iw_wifi_wmm,
-                if (network.wmmPresent) "WMM (QoS enabled)" else ""
+                if (network.wmmPresent) getString(R.string.iw_wmm_enabled) else ""
             )
             setRowText(
                 binding.rowExtCaps,
@@ -750,15 +750,15 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 network.rmNonOpChannelMaxDur
             )
 
-            binding.textRmLink.text = if (network.rmLinkMeasurement) "Yes" else "No"
+            binding.textRmLink.text = if (network.rmLinkMeasurement) getString(R.string.yes) else getString(R.string.no)
             binding.rowRmLink.visibility =
                 if (network.rmLinkMeasurement) View.VISIBLE else View.GONE
 
-            binding.textRmNeighbor.text = if (network.rmNeighborReport) "Yes" else "No"
+            binding.textRmNeighbor.text = if (network.rmNeighborReport) getString(R.string.yes) else getString(R.string.no)
             binding.rowRmNeighbor.visibility =
                 if (network.rmNeighborReport) View.VISIBLE else View.GONE
 
-            binding.textRmFtm.text = if (network.ftmRangeReport) "Yes" else "No"
+            binding.textRmFtm.text = if (network.ftmRangeReport) getString(R.string.yes) else getString(R.string.no)
             binding.rowRmFtm.visibility = if (network.ftmRangeReport) View.VISIBLE else View.GONE
 
             binding.cardRm.visibility =
@@ -774,7 +774,7 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             setRowText(
                 binding.rowAnqp,
                 R.string.iw_wifi_anqp,
-                if (network.anqpAvailable) "Available" else ""
+                if (network.anqpAvailable) getString(R.string.iw_available) else ""
             )
             setRowText(
                 binding.rowQueryResponse,
@@ -897,12 +897,12 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             setRowText(
                 binding.rowHeOpCoHosted,
                 R.string.iw_wifi_he_op_co_hosted,
-                if (network.heOpCoHostedBss) "Yes" else ""
+                if (network.heOpCoHostedBss) getString(R.string.yes) else ""
             )
             setRowText(
                 binding.rowHeOpErSuDisable,
                 R.string.iw_wifi_he_op_er_su_disable,
-                if (network.heOpErSuDisable) "Yes" else ""
+                if (network.heOpErSuDisable) getString(R.string.yes) else ""
             )
             setRowText(
                 binding.rowHeOpBssColor,
@@ -923,7 +923,7 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 binding.rowHeOpVhtInfo,
                 R.string.iw_wifi_he_op_vht_info,
                 if (network.heOpVhtInfoPresent) {
-                    network.heOpVhtInfo.ifEmpty { "Present" }
+                    network.heOpVhtInfo.ifEmpty { getString(R.string.iw_present) }
                 } else {
                     network.heOpVhtInfo
                 }

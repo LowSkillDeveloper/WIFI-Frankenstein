@@ -27,7 +27,7 @@
                 android:layout_height="24dp"
                 android:contentDescription="@string/handshake_converter_title"
                 android:src="@drawable/grid_3x3_24px"
-                app:layout_constraintBottom_toBottomOf="@id/textConverterCount"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:tint="?attr/colorPrimary" />
@@ -37,7 +37,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
                 android:orientation="vertical"
-                app:layout_constraintBottom_toBottomOf="@id/textConverterCount"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/buttonSelectFiles"
                 app:layout_constraintStart_toEndOf="@id/iconConverterHeader"
                 app:layout_constraintTop_toTopOf="parent">
@@ -115,7 +115,7 @@
                 android:layout_width="80dp"
                 android:layout_height="80dp"
                 android:alpha="0.3"
-                android:contentDescription="empty"
+                android:contentDescription="@string/cd_empty"
                 android:src="@drawable/grid_3x3_24px" />
 
             <TextView

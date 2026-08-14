@@ -99,7 +99,7 @@ class BruteForceFragment : Fragment() {
 
                 ForegroundAttackService.BROADCAST_ATTACK_ERROR -> {
                     val msg = intent.getStringExtra(ForegroundAttackService.EXTRA_ERROR_MESSAGE)
-                        ?: "Error"
+                        ?: getString(R.string.brute_error_generic)
                     showBackgroundResult(getString(R.string.psk_attack_error_toast, msg))
                 }
             }
@@ -574,7 +574,7 @@ class BruteForceFragment : Fragment() {
 
     private fun proceedToAttack() {
         if (attackMode == null) {
-            Toast.makeText(requireContext(), "Select attack type first", Toast.LENGTH_SHORT)
+            Toast.makeText(requireContext(), getString(R.string.brute_select_attack_type_first), Toast.LENGTH_SHORT)
                 .show(); return
         }
         if (isAttackRunning) return
@@ -584,7 +584,7 @@ class BruteForceFragment : Fragment() {
             if (!validateBssid(bssid)) return
 
             showConsole()
-            consoleAdapter?.addLine("[*] Starting WPS Brute Force on $bssid")
+            consoleAdapter?.addLine(getString(R.string.brute_starting_wps, bssid))
             isAttackRunning = true
             goToStep(Step.ATTACK)
 
@@ -595,8 +595,8 @@ class BruteForceFragment : Fragment() {
                     val result =
                         currentRunner!!.runBruteForce(bssid, attackIface, onProgress = { p ->
                             val text = when {
-                                p.percentComplete != null -> "${p.percentComplete}% - PIN: ${p.currentPin ?: "..."}"
-                                p.currentPin != null -> "Trying PIN ${p.currentPin}"
+                                p.percentComplete != null -> getString(R.string.brute_pin_progress, p.percentComplete, p.currentPin ?: "...")
+                                p.currentPin != null -> getString(R.string.brute_trying_pin, p.currentPin)
                                 else -> p.line
                             }
                             requireActivity().runOnUiThread { consoleAdapter?.addLine(text) }
@@ -608,7 +608,7 @@ class BruteForceFragment : Fragment() {
                         )
                     }
                 } catch (e: Exception) {
-                    requireActivity().runOnUiThread { consoleAdapter?.addLine("[-] Error: ${e.message}") }
+                    requireActivity().runOnUiThread { consoleAdapter?.addLine(getString(R.string.brute_error, e.message)) }
                 } finally {
                     isAttackRunning = false
                     currentRunner = null
@@ -625,8 +625,8 @@ class BruteForceFragment : Fragment() {
                 return
             }
             showConsole()
-            consoleAdapter?.addLine("[*] Starting PSK Brute Force on $ssid ($bssid)")
-            selectedWordlistLabel?.let { consoleAdapter?.addLine("[*] Wordlist: $it") }
+            consoleAdapter?.addLine(getString(R.string.brute_starting_psk, ssid, bssid))
+            selectedWordlistLabel?.let { consoleAdapter?.addLine(getString(R.string.brute_wordlist, it)) }
             isAttackRunning = true
             binding.buttonRunBackground.visibility = View.GONE
             goToStep(Step.ATTACK)
@@ -646,7 +646,7 @@ class BruteForceFragment : Fragment() {
                         abortPskAttack()
                         return
                     }
-                    consoleAdapter?.addLine("[*] Engine: Native (WifiManager)")
+                    consoleAdapter?.addLine(getString(R.string.brute_engine_native))
                     startNativePskBruteForce(ssid, bssid)
                 }
 
@@ -660,8 +660,8 @@ class BruteForceFragment : Fragment() {
                         abortPskAttack()
                         return
                     }
-                    consoleAdapter?.addLine("[*] Engine: Chroot / root")
-                    consoleAdapter?.addLine("[*] PSK Brute Force started in background")
+                    consoleAdapter?.addLine(getString(R.string.brute_engine_chroot))
+                    consoleAdapter?.addLine(getString(R.string.brute_psk_started_background))
                     ForegroundAttackService.startPskBruteForce(
                         requireContext(),
                         ssid,
@@ -738,7 +738,7 @@ class BruteForceFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e(TAG, "Native PSK brute force failed", e)
                 requireActivity().runOnUiThread {
-                    consoleAdapter?.addLine("[-] Error: ${e.message}")
+                    consoleAdapter?.addLine(getString(R.string.brute_error, e.message))
                     finishPskAttack()
                 }
             } finally {
@@ -750,19 +750,18 @@ class BruteForceFragment : Fragment() {
     private fun handlePskResult(result: PskBruteForceResult) {
         if (_binding == null) return
         if (result.success) {
-            consoleAdapter?.addLine("[+] WPA PSK: ${result.foundPassword}")
+            consoleAdapter?.addLine(getString(R.string.brute_wpa_psk, result.foundPassword))
             binding.iconResult.setImageResource(R.drawable.ic_check_circle)
             binding.textResultStatus.text = getString(R.string.bruteforce_success)
             binding.textResultData.text =
-                "PSK: ${result.foundPassword}\n${
-                    getString(
-                        R.string.psk_attempts_made,
-                        result.attemptsMade
-                    )
-                }"
+                getString(R.string.brute_psk_result, result.foundPassword) + "\n" +
+                    getString(R.string.psk_attempts_made, result.attemptsMade)
         } else {
             consoleAdapter?.addLine(
-                "[-] PSK not found (${getString(R.string.psk_attempts_made, result.attemptsMade)})"
+                getString(
+                    R.string.brute_psk_not_found,
+                    getString(R.string.psk_attempts_made, result.attemptsMade)
+                )
             )
             binding.iconResult.setImageResource(R.drawable.ic_error)
             binding.textResultStatus.text = getString(R.string.bruteforce_failed)
@@ -816,7 +815,7 @@ class BruteForceFragment : Fragment() {
             if (ssid.isEmpty()) {
                 Toast.makeText(
                     requireContext(),
-                    "No SSID for selected network, enter manually",
+                    getString(R.string.brute_no_ssid_manual),
                     Toast.LENGTH_SHORT
                 ).show()
                 return null
@@ -870,14 +869,16 @@ class BruteForceFragment : Fragment() {
         binding.buttonRunBackground.visibility = View.GONE
 
         if (pin != null) {
-            consoleAdapter?.addLine("[+] WPS PIN: $pin")
-            if (psk != null) consoleAdapter?.addLine("[+] WPA PSK: $psk")
+            consoleAdapter?.addLine(getString(R.string.brute_wps_pin, pin))
+            if (psk != null) consoleAdapter?.addLine(getString(R.string.brute_wpa_psk, psk))
             binding.iconResult.setImageResource(R.drawable.ic_check_circle)
             binding.textResultStatus.text = getString(R.string.bruteforce_success)
-            binding.textResultData.text = "PIN: $pin${if (psk != null) "\nPSK: $psk" else ""}"
+            binding.textResultData.text =
+                getString(R.string.brute_pin_result, pin) +
+                    if (psk != null) "\n" + getString(R.string.brute_psk_result, psk) else ""
             goToStep(Step.RESULTS)
         } else {
-            consoleAdapter?.addLine("[-] WPS PIN not found")
+            consoleAdapter?.addLine(getString(R.string.brute_wps_pin_not_found))
             binding.iconResult.setImageResource(R.drawable.ic_error)
             binding.textResultStatus.text = getString(R.string.bruteforce_failed)
             binding.textResultData.text = ""
@@ -889,7 +890,7 @@ class BruteForceFragment : Fragment() {
         if (!isAttackRunning) return
         isAttackRunning = false
         binding.buttonCancelAttack.isEnabled = false
-        consoleAdapter?.addLine("[-] Attack cancelled")
+        consoleAdapter?.addLine(getString(R.string.brute_attack_cancelled))
         nativeAttackJob?.cancel()
         nativeAttackJob = null
         lifecycleScope.launch {

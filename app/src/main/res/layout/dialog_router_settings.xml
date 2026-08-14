@@ -3,14 +3,15 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="20dp">
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/maxThreadsInput"
+        style="@style/RoundedOutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:hint="Max Threads (1-200)">
+        android:layout_marginBottom="16dp"
+        android:hint="@string/max_threads_hint">
 
         <com.google.android.material.textfield.TextInputEditText
             android:layout_width="match_parent"
@@ -21,10 +22,11 @@
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/timeoutInput"
+        style="@style/RoundedOutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:hint="Timeout (300-3000ms)">
+        android:layout_marginBottom="16dp"
+        android:hint="@string/timeout_hint">
 
         <com.google.android.material.textfield.TextInputEditText
             android:layout_width="match_parent"
@@ -35,10 +37,11 @@
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/rsTimeoutInput"
+        style="@style/RoundedOutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:hint="RS Timeout (1000-120000ms)">
+        android:layout_marginBottom="16dp"
+        android:hint="@string/rs_timeout_hint">
 
         <com.google.android.material.textfield.TextInputEditText
             android:layout_width="match_parent"
@@ -58,10 +61,10 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Ping Before Scan"
+            android:text="@string/ping_before_scan"
             android:textSize="16sp" />
 
-        <android.widget.Switch
+        <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/pingBeforeScanSwitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -71,7 +74,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="4dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -79,14 +82,13 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Save to local DB"
+            android:text="@string/btn_save_to_local_db"
             android:textSize="16sp" />
 
-        <android.widget.Switch
+        <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/saveToDbSwitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:checked="true" />
     </LinearLayout>
 </LinearLayout>
-

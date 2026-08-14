@@ -155,7 +155,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Запись добавлена в локальную базу приложения"
+            android:text="@string/record_added_to_local_db"
             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
             android:textColor="@color/success_green" />
 

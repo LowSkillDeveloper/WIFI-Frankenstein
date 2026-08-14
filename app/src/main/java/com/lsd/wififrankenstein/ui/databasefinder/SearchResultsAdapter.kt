@@ -748,7 +748,14 @@ class SearchResultsAdapter(
                     val clipboard =
                         context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboard.setPrimaryClip(ClipData.newPlainText("WPS Result", copyText))
-                    Toast.makeText(context, "WPS Result copied", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(
+                            R.string.df_copied,
+                            context.getString(R.string.wps_result_title)
+                        ),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
                 .setNegativeButton(android.R.string.ok, null)
                 .show()
@@ -767,7 +774,8 @@ class SearchResultsAdapter(
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText(label, text)
             clipboard.setPrimaryClip(clip)
-            Toast.makeText(context, "$label copied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.df_copied, label), Toast.LENGTH_SHORT)
+                .show()
         }
     }
 

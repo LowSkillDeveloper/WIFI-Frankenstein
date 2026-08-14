@@ -243,7 +243,9 @@ class WiFiAnalysisFragment : Fragment() {
         if (channelData.networks.isEmpty()) return
 
         val networkNames =
-            channelData.networks.map { "${it.scanResult.SSID} (${it.scanResult.BSSID})" }
+            channelData.networks.map {
+                getString(R.string.wa_network_bssid, it.scanResult.SSID, it.scanResult.BSSID)
+            }
         val excludedBssids = viewModel.excludedBssids.value ?: emptySet()
         val checkedItems = channelData.networks.map { excludedBssids.contains(it.scanResult.BSSID) }
             .toBooleanArray()

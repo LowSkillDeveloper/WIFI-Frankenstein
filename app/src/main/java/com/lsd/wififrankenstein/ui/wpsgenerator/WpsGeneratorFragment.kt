@@ -324,7 +324,9 @@ class WpsGeneratorFragment : Fragment() {
     }
 
     private fun showNetworkSelectionDialog() {
-        val networkNames = scannedNetworks.map { "${it.SSID} (${it.BSSID})" }.toTypedArray()
+        val networkNames = scannedNetworks
+            .map { getString(R.string.wp_network_bssid, it.SSID, it.BSSID) }
+            .toTypedArray()
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.select_network))

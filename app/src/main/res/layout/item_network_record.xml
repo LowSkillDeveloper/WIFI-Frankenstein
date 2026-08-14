@@ -112,7 +112,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Type"
+                        android:text="@string/type"
                         android:textAppearance="?android:attr/textAppearanceSmall" />
 
                     <TextView
@@ -399,7 +399,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="6dp"
-                    android:text="Network Config"
+                    android:text="@string/network_config"
                     android:textAppearance="?android:attr/textAppearanceSmall"
                     android:textStyle="bold" />
 
@@ -853,7 +853,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Time (Long)"
+                    android:text="@string/time_long"
                     android:textAppearance="?android:attr/textAppearanceSmall" />
 
                 <TextView
@@ -880,7 +880,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Raw Data"
+                    android:text="@string/raw_data"
                     android:textAppearance="?android:attr/textAppearanceSmall"
                     android:textStyle="bold" />
             </LinearLayout>

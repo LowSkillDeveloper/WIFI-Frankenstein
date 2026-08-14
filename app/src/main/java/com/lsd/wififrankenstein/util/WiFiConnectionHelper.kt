@@ -19,6 +19,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import com.lsd.wififrankenstein.R
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -164,7 +165,7 @@ class WiFiConnectionHelper(private val context: Context) {
         val hasPerms = hasRequiredPermissions()
         Log.d(TAG, "[connectToNetwork] hasRequiredPermissions=$hasPerms $dev")
         if (!hasPerms) {
-            completeWithFailure(callback, continuation, "Missing required permissions")
+            completeWithFailure(callback, continuation, context.getString(R.string.wifi_missing_permissions))
             return@suspendCancellableCoroutine
         }
 
@@ -175,7 +176,7 @@ class WiFiConnectionHelper(private val context: Context) {
             completeWithFailure(
                 callback,
                 continuation,
-                "Location services must be enabled to connect"
+                context.getString(R.string.wifi_location_required)
             )
             return@suspendCancellableCoroutine
         }
@@ -224,7 +225,7 @@ class WiFiConnectionHelper(private val context: Context) {
                 completeWithFailure(
                     callback,
                     continuation,
-                    "Password must be between 8 and 63 characters"
+                    context.getString(R.string.wifi_password_length)
                 )
                 return
             }
@@ -268,7 +269,7 @@ class WiFiConnectionHelper(private val context: Context) {
                     completeWithFailure(
                         callback,
                         continuation,
-                        "WEP networks are not supported on Android 12+"
+                        context.getString(R.string.wifi_wep_not_supported)
                     )
                     return
                 }
@@ -278,7 +279,7 @@ class WiFiConnectionHelper(private val context: Context) {
                     completeWithFailure(
                         callback,
                         continuation,
-                        "Open networks don't require password"
+                        context.getString(R.string.wifi_open_no_password)
                     )
                     return
                 }
@@ -297,7 +298,7 @@ class WiFiConnectionHelper(private val context: Context) {
                 completeWithFailure(
                     callback,
                     continuation,
-                    "Failed to add network suggestion (code $status)"
+                    context.getString(R.string.wifi_suggestion_add_failed, status)
                 )
                 return
             }
@@ -310,9 +311,9 @@ class WiFiConnectionHelper(private val context: Context) {
 
         } catch (e: Throwable) {
             val msg = if (e is NoSuchMethodError || e is NoClassDefFoundError) {
-                "Wi-Fi suggestion API is not available on this device/Android version"
+                context.getString(R.string.wifi_suggestion_api_unavailable)
             } else {
-                "Error: ${e.message}"
+                context.getString(R.string.wifi_connection_error, e.message)
             }
             Log.e(TAG, "[connectWithNetworkSuggestion] EXCEPTION: ${e.message} $dev", e)
             completeWithFailure(callback, continuation, msg)
@@ -435,7 +436,7 @@ class WiFiConnectionHelper(private val context: Context) {
                 completeWithFailure(
                     callback,
                     continuation,
-                    "Password must be between 8 and 63 characters"
+                    context.getString(R.string.wifi_password_length)
                 )
                 return
             }
@@ -536,7 +537,7 @@ class WiFiConnectionHelper(private val context: Context) {
 
         } catch (e: Exception) {
             Log.e(TAG, "[connectWithWifiConfiguration] EXCEPTION: ${e.message} $dev", e)
-            completeWithFailure(callback, continuation, "Error: ${e.message}")
+            completeWithFailure(callback, continuation, context.getString(R.string.wifi_connection_error, e.message))
         }
     }
 
@@ -646,7 +647,7 @@ class WiFiConnectionHelper(private val context: Context) {
                             if (networkId != -1) {
                                 wifiManager.removeNetwork(networkId)
                             }
-                            completeWithFailure(callback, continuation, "Authentication failed")
+                            completeWithFailure(callback, continuation, this@WiFiConnectionHelper.context.getString(R.string.wifi_auth_failed))
                         }
                     }
                 }
@@ -826,7 +827,7 @@ class WiFiConnectionHelper(private val context: Context) {
                     callback.onNetworkForgotten()
                     callback.onDisconnectionSuccess()
                 } else {
-                    callback.onDisconnectionFailed("Failed to remove network suggestions")
+                    callback.onDisconnectionFailed(context.getString(R.string.wifi_remove_suggestions_failed))
                 }
                 true
             } else {
@@ -834,7 +835,7 @@ class WiFiConnectionHelper(private val context: Context) {
             }
         } catch (e: Throwable) {
             Log.w(TAG, "[disconnectAndForgetSuggestion] EXCEPTION: ${e.message} $dev", e)
-            callback.onDisconnectionFailed("Error: ${e.message}")
+            callback.onDisconnectionFailed(context.getString(R.string.wifi_connection_error, e.message))
             true
         }
     }
@@ -862,14 +863,14 @@ class WiFiConnectionHelper(private val context: Context) {
                     callback.onNetworkForgotten()
                     callback.onDisconnectionSuccess()
                 } else {
-                    callback.onDisconnectionFailed("Failed to remove network configuration")
+                    callback.onDisconnectionFailed(context.getString(R.string.wifi_remove_config_failed))
                 }
             } else {
-                callback.onDisconnectionFailed("Network configuration not found")
+                callback.onDisconnectionFailed(context.getString(R.string.wifi_config_not_found))
             }
         } catch (e: Throwable) {
             Log.w(TAG, "[disconnectAndForgetConfiguration] EXCEPTION: ${e.message} $dev", e)
-            callback.onDisconnectionFailed("Error: ${e.message}")
+            callback.onDisconnectionFailed(context.getString(R.string.wifi_connection_error, e.message))
         }
     }
 }

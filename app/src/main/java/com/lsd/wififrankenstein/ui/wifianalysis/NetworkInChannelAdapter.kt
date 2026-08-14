@@ -53,7 +53,8 @@ class NetworkInChannelAdapter :
                 val subChannelInfo = generateSubChannelInfo(networkInfo)
                 textViewSubChannel.text = subChannelInfo
 
-                val signalText = "${networkInfo.scanResult.level} dBm"
+                val signalText =
+                    itemView.context.getString(R.string.wa_signal_dbm, networkInfo.scanResult.level)
                 textViewSignalLevel.text = signalText
 
                 val signalColor = when {
@@ -78,7 +79,8 @@ class NetworkInChannelAdapter :
                             R.color.gray_200
                         )
                     )
-                    textViewSubChannel.text = "${networkInfo.channel} (interferes)"
+                    textViewSubChannel.text =
+                        itemView.context.getString(R.string.wa_interferes, networkInfo.channel)
                 } else {
                     root.setBackgroundColor(ContextCompat.getColor(itemView.context, R.color.white))
                 }
@@ -88,27 +90,36 @@ class NetworkInChannelAdapter :
         private fun generateSubChannelInfo(networkInfo: NetworkChannelInfo): String {
             val bandwidth = networkInfo.channelWidth
             val channel = networkInfo.channel
+            val context = itemView.context
 
             return when (networkInfo.band) {
                 FrequencyBand.GHZ_2_4 -> {
                     when (bandwidth) {
                         ChannelBandwidth.WIDTH_40 -> {
                             val isUpper = channel in 5..11
-                            if (isUpper) "Ch $channel+" else "Ch $channel-"
+                            if (isUpper) {
+                                context.getString(R.string.wa_channel_upper, channel)
+                            } else {
+                                context.getString(R.string.wa_channel_lower, channel)
+                            }
                         }
 
-                        else -> "Ch $channel"
+                        else -> context.getString(R.string.wa_channel, channel)
                     }
                 }
 
                 FrequencyBand.GHZ_5, FrequencyBand.GHZ_6 -> {
                     when (bandwidth) {
-                        ChannelBandwidth.WIDTH_40 -> "Ch $channel+1"
-                        ChannelBandwidth.WIDTH_80 -> "Ch $channel+3"
-                        ChannelBandwidth.WIDTH_80_PLUS_80 -> "Ch $channel+3 (80+80)"
-                        ChannelBandwidth.WIDTH_160 -> "Ch $channel+7"
-                        ChannelBandwidth.WIDTH_320 -> "Ch $channel+15"
-                        else -> "Ch $channel"
+                        ChannelBandwidth.WIDTH_40 -> context.getString(R.string.wa_channel_plus, channel)
+                        ChannelBandwidth.WIDTH_80 -> context.getString(R.string.wa_channel_plus3, channel)
+                        ChannelBandwidth.WIDTH_80_PLUS_80 -> context.getString(
+                            R.string.wa_channel_plus3_80,
+                            channel
+                        )
+
+                        ChannelBandwidth.WIDTH_160 -> context.getString(R.string.wa_channel_plus7, channel)
+                        ChannelBandwidth.WIDTH_320 -> context.getString(R.string.wa_channel_plus15, channel)
+                        else -> context.getString(R.string.wa_channel, channel)
                     }
                 }
             }

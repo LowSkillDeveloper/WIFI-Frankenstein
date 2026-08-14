@@ -29,14 +29,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="Domain Accessibility"
+                    android:text="@string/domain_accessibility"
                     android:textAppearance="?attr/textAppearanceHeadline6" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:text="Tests domain accessibility via TLS 1.3, TLS 1.2, and plain HTTP to detect blocking methods"
+                    android:text="@string/ib_domain_desc"
                     android:textAppearance="?attr/textAppearanceBody2"
                     android:textColor="?android:attr/textColorSecondary" />
 
@@ -44,7 +44,7 @@
                     android:id="@+id/buttonCheckDomains"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Run Domain Check"
+                    android:text="@string/run_domain_check"
                     app:icon="@drawable/ic_scan" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -66,7 +66,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="Results"
+                    android:text="@string/airodump_results"
                     android:textAppearance="?attr/textAppearanceHeadline6" />
 
                 <ProgressBar

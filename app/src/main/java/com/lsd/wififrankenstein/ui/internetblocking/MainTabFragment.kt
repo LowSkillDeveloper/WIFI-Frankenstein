@@ -28,26 +28,6 @@ class MainTabFragment : Fragment() {
     private var consoleAdapter: ConsoleAdapter? = null
     private var consoleExpanded = false
 
-    private companion object {
-
-        val LEGEND_TEXT = """
-            SYN DROP — SYN не доходит: пакеты роняются (blackhole)
-            TLS RST — активный сброс TLS (TCP RST на handshake)
-            TLS DROP — TLS-хендшейк зависает (пакеты роняются)
-            TLS ALERT — TLS alert от DPI (SNI-блок / handshake failure)
-            TLS MITM — подмена сертификата (MITM)
-            TLS SPOOF — подмена TLS-ответа (wrong version / garbage)
-            DNS ПОДМЕНА — DNS отвечает заглушками (UDP ≠ DoH)
-            DNS ПЕРЕХВАТ — DNS UDP не отвечает, DoH отвечает
-            FAKE-IP — DNS вернул 198.18.x.x (VPN fakeip)
-            ISP PAGE — DNS вернул IP-заглушку провайдера
-            TCP16-20 — обрыв после ~16-20KB (DPI-троттлинг)
-            HTTP 451 — недоступно по юридическим причинам
-            BLOCKED — HTTP 451 / cross-domain redirect / заглушка-страница
-            REFUSED — соединение активно отклонено (RST)
-        """.trimIndent()
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -63,7 +43,7 @@ class MainTabFragment : Fragment() {
         binding.buttonCheck.setOnClickListener {
             val domain = binding.editTextDomain.text?.toString()?.trim() ?: ""
             if (domain.isBlank()) {
-                Toast.makeText(requireContext(), "Enter a domain", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.ib_enter_domain), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             viewModel.checkMainDomain(domain)
@@ -72,7 +52,7 @@ class MainTabFragment : Fragment() {
         viewModel.isChecking.observe(viewLifecycleOwner) { checking ->
             binding.buttonCheck.isEnabled = !checking
             binding.progressBar.visibility = if (checking) View.VISIBLE else View.GONE
-            binding.buttonCheck.text = if (checking) "Checking..." else "Check Domain"
+            binding.buttonCheck.text = if (checking) getString(R.string.ib_checking) else getString(R.string.ib_check_domain)
         }
 
         viewModel.progressText.observe(viewLifecycleOwner) { text ->
@@ -109,7 +89,7 @@ class MainTabFragment : Fragment() {
             )
         }
 
-        binding.legendText.text = LEGEND_TEXT
+        binding.legendText.text = getString(R.string.ib_legend_text)
         var legendExpanded = false
         binding.layoutLegendHeader.setOnClickListener {
             legendExpanded = !legendExpanded
@@ -144,14 +124,14 @@ class MainTabFragment : Fragment() {
             else -> R.drawable.ic_error
         }
         binding.statusIcon.setImageResource(iconRes)
-        binding.statusLabel.text = r.overallStatus.label()
+        binding.statusLabel.text = r.overallStatus.label(ctx)
 
         val sec = r.totalDurationMs / 1000f
-        binding.durationText.text = "${String.format("%.1f", sec)}s"
+        binding.durationText.text = getString(R.string.ib_duration_sec, sec)
 
 
-        binding.domainText.text = "Domain: ${r.domain}"
-        binding.resolvedIpText.text = "Resolved IP: ${r.resolvedIp ?: "unresolvable"}"
+        binding.domainText.text = getString(R.string.ib_domain_label, r.domain)
+        binding.resolvedIpText.text = getString(R.string.ib_resolved_ip, r.resolvedIp ?: getString(R.string.ib_unresolvable))
 
 
         binding.conclusionText.text = r.conclusion.ifBlank { "—" }
@@ -162,8 +142,8 @@ class MainTabFragment : Fragment() {
             else if (isBlocked) R.color.error_red
             else R.color.success_green
         val stageText = buildString {
-            append("Этап блока: ${r.blockStage} · ${r.blockMechanism}")
-            if (r.confidence.isNotBlank() && r.confidence != "—") append(" (${r.confidence})")
+            append(getString(R.string.ib_stage_block, r.blockStage, r.blockMechanism))
+            if (r.confidence.isNotBlank() && r.confidence != "—") append(getString(R.string.ib_confidence_suffix, r.confidence))
         }.trimEnd(' ', '·', '—')
         binding.blockStageText.text = stageText
         binding.blockStageText.setTextColor(ContextCompat.getColor(ctx, stageColor))
@@ -172,7 +152,7 @@ class MainTabFragment : Fragment() {
         val dnsOk =
             r.dnsStatus == CheckStatus.Ok || r.dnsStatus == CheckStatus.NotBlocked || r.dnsStatus == CheckStatus.Redirect
         setDotColor(binding.dnsDot, if (dnsOk) R.color.success_green else R.color.error_red)
-        binding.dnsStatusText.text = r.dnsStatus.label()
+        binding.dnsStatusText.text = r.dnsStatus.label(ctx)
         binding.dnsStatusText.setTextColor(
             ContextCompat.getColor(
                 ctx,
@@ -205,18 +185,19 @@ class MainTabFragment : Fragment() {
             val gd = binding.tcpDot.background as GradientDrawable
             gd.setColor(ContextCompat.getColor(ctx, R.color.success_green))
             val latency = r.tcpLatencyMs?.let { "${it}ms" } ?: ""
-            binding.tcpText.text = "Reachable $latency"
+            binding.tcpText.text = getString(R.string.ib_reachable) + (if (latency.isEmpty()) "" else " $latency")
             binding.tcpText.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
         } else {
             val gd = binding.tcpDot.background as GradientDrawable
             gd.setColor(ContextCompat.getColor(ctx, R.color.error_red))
-            binding.tcpText.text = "Unreachable"
+            binding.tcpText.text = getString(R.string.ib_unreachable)
             binding.tcpText.setTextColor(ContextCompat.getColor(ctx, R.color.error_red))
         }
         val portLine = buildString {
-            append("Порты: 80 ${if (r.port80Reachable) "открыт" else "заблокирован"}")
-            append(" · baseline ${if (r.baselineReachable) "ok" else "down"}")
-            if (r.sniBlocked) append(" · SNI: blocked")
+            append(getString(R.string.ib_ports_line,
+                if (r.port80Reachable) getString(R.string.ib_port_open) else getString(R.string.ib_port_blocked),
+                if (r.baselineReachable) getString(R.string.ib_baseline_ok) else getString(R.string.ib_baseline_down)))
+            if (r.sniBlocked) append(getString(R.string.ib_sni_blocked_suffix))
         }
         binding.tcpText.append("  ·  " + portLine)
 
@@ -227,7 +208,7 @@ class MainTabFragment : Fragment() {
             binding.tcp16Dot,
             if (tcp16Ok) R.color.success_green else if (tcp16Timeout) R.color.warning_orange else R.color.error_red
         )
-        binding.tcp16Text.text = r.tcp16Status.label()
+        binding.tcp16Text.text = r.tcp16Status.label(ctx)
         binding.tcp16Text.setTextColor(
             ContextCompat.getColor(
                 ctx,
@@ -276,7 +257,7 @@ class MainTabFragment : Fragment() {
             dot,
             if (ok) R.color.success_green else if (isReadTimeout) R.color.warning_orange else R.color.error_red
         )
-        text.text = status.label()
+        text.text = status.label(requireContext())
         text.setTextColor(
             ContextCompat.getColor(
                 ctx,

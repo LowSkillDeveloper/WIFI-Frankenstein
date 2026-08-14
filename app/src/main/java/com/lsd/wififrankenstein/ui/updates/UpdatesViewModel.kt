@@ -151,7 +151,7 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
                     currentVersion = context.packageManager.getPackageInfo(
                         context.packageName,
                         0
-                    )?.versionName ?: "Unknown",
+                    )?.versionName ?: context.getString(R.string.unknown),
                     newVersion = json.getJSONObject("app").getString("version"),
                     changelogUrl = json.getJSONObject("app").getString("changelog_url"),
                     downloadUrl = json.getJSONObject("app").getString("download_url")
@@ -271,7 +271,9 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
                 _isLoading.value = false
             } catch (e: Exception) {
                 Log.e("UpdatesViewModel", "Error checking SmartLink DB updates", e)
-                _errorMessage.value = e.message ?: "Failed to check SmartLink DB updates"
+                _errorMessage.value = e.message ?: getApplication<Application>().getString(
+                    R.string.upd_failed_check_smartlink
+                )
                 _isLoading.value = false
             }
         }
@@ -408,7 +410,10 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
                 _changelog.value = networkClient.get(changelogUrl)
             } catch (e: Exception) {
                 _errorMessage.value =
-                    context.getString(R.string.error_fetching_changelog, "Network error")
+                    context.getString(
+                        R.string.error_fetching_changelog,
+                        context.getString(R.string.upd_network_error)
+                    )
             }
         }
     }
@@ -599,10 +604,21 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun formatFileSize(size: Long): String {
-        if (size <= 0) return "0 B"
-        val units = arrayOf("B", "KB", "MB", "GB", "TB")
+        val context = getApplication<Application>().applicationContext
+        if (size <= 0) return context.getString(R.string.upd_file_size_zero)
+        val units = arrayOf(
+            context.getString(R.string.upd_file_size_unit_b),
+            context.getString(R.string.upd_file_size_unit_kb),
+            context.getString(R.string.upd_file_size_unit_mb),
+            context.getString(R.string.upd_file_size_unit_gb),
+            context.getString(R.string.upd_file_size_unit_tb)
+        )
         val digitGroups = (log10(size.toDouble()) / log10(1024.0)).toInt()
-        return "%.2f %s".format(size / 1024.0.pow(digitGroups.toDouble()), units[digitGroups])
+        return context.getString(
+            R.string.upd_file_size_format,
+            size / 1024.0.pow(digitGroups.toDouble()),
+            units[digitGroups]
+        )
     }
 
     override fun onCleared() {

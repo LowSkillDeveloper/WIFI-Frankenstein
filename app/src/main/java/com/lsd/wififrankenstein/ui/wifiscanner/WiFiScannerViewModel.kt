@@ -914,7 +914,9 @@ class WiFiScannerViewModel(
             }
         } catch (e: Exception) {
             Log.e("WiFiScannerViewModel", "Error accessing database by ESSID: ${db.path}", e)
-            _error.postValue("Error: \"database\". ${e.message}")
+            _error.postValue(
+                getApplication<Application>().getString(R.string.ws_db_error, "database", e.message)
+            )
         } finally {
             sqlite3WiFiHelper?.close()
         }
@@ -976,7 +978,13 @@ class WiFiScannerViewModel(
             }
         } catch (e: Exception) {
             Log.e("WiFiScannerViewModel", "Error accessing custom database by ESSID: ${db.path}", e)
-            _error.postValue("Error: \"custom_database\". ${e.message}")
+            _error.postValue(
+                getApplication<Application>().getString(
+                    R.string.ws_db_error,
+                    "custom_database",
+                    e.message
+                )
+            )
         } finally {
             sqliteCustomHelper?.close()
         }
@@ -1098,7 +1106,13 @@ class WiFiScannerViewModel(
             }
         } catch (e: Exception) {
             Log.e("WiFiScannerViewModel", "Error accessing custom database: ${db.path}", e)
-            _error.postValue("Error: \"custom_database\". ${e.message}")
+            _error.postValue(
+                getApplication<Application>().getString(
+                    R.string.ws_db_error,
+                    "custom_database",
+                    e.message
+                )
+            )
         } finally {
             sqliteCustomHelper?.close()
         }
@@ -1251,10 +1265,22 @@ class WiFiScannerViewModel(
                 }
             } catch (e: API3WiFiHelper.API3WiFiException) {
                 Log.e("WiFiScannerViewModel", "API error: ${e.errorCode}", e)
-                _error.postValue("Error: \"${e.errorCode}\". ${e.message}")
+                _error.postValue(
+                    getApplication<Application>().getString(
+                        R.string.ws_db_error,
+                        e.errorCode,
+                        e.message
+                    )
+                )
             } catch (e: Exception) {
                 Log.e("WiFiScannerViewModel", "Error accessing API: ${db.path}", e)
-                _error.postValue("Error: \"unknown\". ${e.message}")
+                _error.postValue(
+                    getApplication<Application>().getString(
+                        R.string.ws_db_error,
+                        "unknown",
+                        e.message
+                    )
+                )
             }
         }
     }

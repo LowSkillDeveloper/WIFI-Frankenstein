@@ -347,7 +347,7 @@ class SmartLinkDbHelper(private val context: Context) {
 
                 _databases.postValue(databases)
             } else {
-                throw Exception("Failed to fetch database info")
+                throw Exception(context.getString(R.string.ds_failed_fetch_db_info))
             }
         }
     }
@@ -367,7 +367,7 @@ class SmartLinkDbHelper(private val context: Context) {
                     _sources.postValue(emptyList())
                 }
             } else {
-                throw Exception("Failed to fetch sources info")
+                throw Exception(context.getString(R.string.ds_failed_fetch_sources_info))
             }
         }
     }

@@ -15,19 +15,20 @@ class DomainResultAdapter :
     class ViewHolder(private val binding: ItemDomainResultBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(result: DomainCheckResult) {
+            val ctx = binding.root.context
             binding.domain.text = result.domain
-            binding.tls13Status.text = result.tls13Status.label()
-            binding.tls12Status.text = result.tls12Status.label()
-            binding.httpStatus.text = result.httpStatus.label()
+            binding.tls13Status.text = result.tls13Status.label(ctx)
+            binding.tls12Status.text = result.tls12Status.label(ctx)
+            binding.httpStatus.text = result.httpStatus.label(ctx)
 
             binding.tls13Status.setTextColor(
-                ContextCompat.getColor(binding.root.context, result.tls13Status.colorRes())
+                ContextCompat.getColor(ctx, result.tls13Status.colorRes())
             )
             binding.tls12Status.setTextColor(
-                ContextCompat.getColor(binding.root.context, result.tls12Status.colorRes())
+                ContextCompat.getColor(ctx, result.tls12Status.colorRes())
             )
             binding.httpStatus.setTextColor(
-                ContextCompat.getColor(binding.root.context, result.httpStatus.colorRes())
+                ContextCompat.getColor(ctx, result.httpStatus.colorRes())
             )
 
             result.details?.let {

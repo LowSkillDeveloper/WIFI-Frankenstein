@@ -29,14 +29,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="SNI List for Bypass Sweep"
+                    android:text="@string/sni_list_bypass_sweep"
                     android:textAppearance="?attr/textAppearanceHeadline6" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:text="Select which SNI whitelist to use when sweeping for bypasses. Run a TCP 16-20KB check first to find blocked targets."
+                    android:text="@string/sni_whitelist_hint"
                     android:textAppearance="?attr/textAppearanceBody2"
                     android:textColor="?android:attr/textColorSecondary" />
 
@@ -58,35 +58,35 @@
                             style="?attr/materialButtonOutlinedStyle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Base" />
+                            android:text="@string/sni_base" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/sniButtonRussia"
                             style="?attr/materialButtonOutlinedStyle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Russia" />
+                            android:text="@string/sni_russia" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/sniButtonUkraine"
                             style="?attr/materialButtonOutlinedStyle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Ukraine" />
+                            android:text="@string/sni_ukraine" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/sniButtonChina"
                             style="?attr/materialButtonOutlinedStyle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="China" />
+                            android:text="@string/sni_china" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/sniButtonBelarus"
                             style="?attr/materialButtonOutlinedStyle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Belarus" />
+                            android:text="@string/sni_belarus" />
                     </com.google.android.material.button.MaterialButtonToggleGroup>
                 </HorizontalScrollView>
 
@@ -94,7 +94,7 @@
                     android:id="@+id/buttonSniSweep"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Run SNI Sweep"
+                    android:text="@string/run_sni_sweep"
                     app:icon="@drawable/ic_scan" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -116,7 +116,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="Results"
+                    android:text="@string/airodump_results"
                     android:textAppearance="?attr/textAppearanceHeadline6" />
 
                 <ProgressBar

@@ -63,7 +63,7 @@ class WpsRootConnectHelperMethod2(
 
                 if (!ensureWpaCliBinaries()) {
                     Log.e(TAG, "connectToNetworkWps: failed to prepare WPA CLI binaries, aborting")
-                    callbacks.onConnectionFailed("Failed to prepare WPA CLI binaries")
+                    callbacks.onConnectionFailed(context.getString(R.string.wps_connect_failed_prepare))
                     return@launch
                 }
 

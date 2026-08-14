@@ -34,7 +34,8 @@ class RouterScanAdapter(
         fun bind(result: RouterScanResult) {
             binding.root.setOnClickListener { onItemClick(result) }
 
-            binding.textIp.text = "${result.ip}:${result.port}"
+            binding.textIp.text =
+                binding.root.context.getString(R.string.rs_ip_port, result.ip, result.port)
             binding.textStatus.text = result.status
 
             val context = binding.root.context
@@ -46,7 +47,7 @@ class RouterScanAdapter(
             }
 
             binding.statusIndicator.setBackgroundColor(accentColor)
-            binding.statusDot.backgroundTintList = ColorStateList.valueOf(accentColor)
+            binding.textStatus.backgroundTintList = ColorStateList.valueOf(accentColor)
 
 
             if (result.ssid.isNotEmpty()) {

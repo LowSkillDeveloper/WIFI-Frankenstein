@@ -77,7 +77,8 @@ class BettercapClientAdapter(
 
         fun bind(client: BettercapClientStation, isChecked: Boolean, onToggle: (Boolean) -> Unit) {
             textClientMac.text = client.mac
-            textClientInfo.text = "RSSI: ${client.rssi} | ${client.vendor}"
+            textClientInfo.text =
+                itemView.context.getString(R.string.bc_client_info, client.rssi, client.vendor)
             checkClient.setOnCheckedChangeListener(null)
             checkClient.isChecked = isChecked
             checkClient.setOnCheckedChangeListener { _, checked -> onToggle(checked) }

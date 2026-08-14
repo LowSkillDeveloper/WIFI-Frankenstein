@@ -59,6 +59,7 @@ object ThreeWiFiUploader {
     }
 
     suspend fun uploadCsv(
+        context: Context,
         server: DbItem,
         csvData: String,
         comment: String = "WiFi-Frankenstein"
@@ -101,24 +102,24 @@ object ThreeWiFiUploader {
                 if (json.optBoolean("result", false)) {
                     val upload = json.optJSONObject("upload")
                     if (upload != null && upload.optBoolean("state", false)) {
-                        UploadResult(true, "Uploaded ${rowsCount(csvData)} results")
+                        UploadResult(true, context.getString(R.string.upl_uploaded, rowsCount(csvData)))
                     } else {
                         val errors = upload?.optJSONArray("error")
                         val errorMsg = if (errors != null && errors.length() > 0) {
-                            "Server error code: ${errors.getInt(0)}"
+                            context.getString(R.string.upl_server_error_code, errors.getInt(0))
                         } else {
-                            "Upload rejected by server"
+                            context.getString(R.string.upl_upload_rejected)
                         }
                         UploadResult(false, errorMsg)
                     }
                 } else {
-                    UploadResult(false, json.optString("error", "Unknown server error"))
+                    UploadResult(false, json.optString("error", context.getString(R.string.upl_unknown_server_error)))
                 }
             } else {
-                UploadResult(false, "HTTP $responseCode")
+                UploadResult(false, context.getString(R.string.upl_http_code, responseCode))
             }
         } catch (e: Exception) {
-            UploadResult(false, e.message ?: "Connection failed")
+            UploadResult(false, e.message ?: context.getString(R.string.upl_connection_failed))
         } finally {
             connection.disconnect()
         }

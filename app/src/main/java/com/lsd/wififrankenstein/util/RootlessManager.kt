@@ -2,6 +2,7 @@ package com.lsd.wififrankenstein.util
 
 import android.content.Context
 import android.os.Build
+import com.lsd.wififrankenstein.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -690,17 +691,17 @@ class RootlessManager(private val context: Context) {
             Log.d(TAG, "Force full probe — skipping pre-probe")
             candidates = getAllProbeApproaches().map { it.type }.distinct()
         } else {
-            onStatusUpdate("Testing device compatibility...")
+            onStatusUpdate(context.getString(R.string.rootless_testing_compat))
             candidates = preProbeRuntime(onDiagnosticUpdate)
             if (candidates.isEmpty()) {
                 val allApproaches = getAllProbeApproaches()
                 if (allApproaches.isEmpty()) {
-                    onStatusUpdate("No runtime binaries available")
+                    onStatusUpdate(context.getString(R.string.rootless_no_binaries))
                     Log.e(TAG, "=== Pre-probe: no runtime binaries, aborting ===")
                     return@withContext false
                 }
                 Log.d(TAG, "Pre-probe failed but binaries exist, proceeding to full probe")
-                onStatusUpdate("Pre-probe inconclusive, downloading rootfs...")
+                onStatusUpdate(context.getString(R.string.rootless_preprobe_inconclusive))
                 candidates = allApproaches.map { it.type }.distinct()
             } else {
                 Log.d(TAG, "Pre-probe passed: $candidates")
@@ -708,7 +709,7 @@ class RootlessManager(private val context: Context) {
         }
 
 
-        onStatusUpdate("Downloading rootfs...")
+        onStatusUpdate(context.getString(R.string.rootless_downloading_rootfs))
         onProgress(10)
 
         val cacheFile = File(context.cacheDir, "alpine-ready-rootfs.tar.gz")
@@ -717,7 +718,7 @@ class RootlessManager(private val context: Context) {
             val response = httpClient.newCall(request).execute()
 
             if (!response.isSuccessful) {
-                onStatusUpdate("Download failed: HTTP ${response.code}")
+                onStatusUpdate(context.getString(R.string.rootless_download_failed_http, response.code))
                 Log.e(TAG, "Download failed: HTTP ${response.code}")
                 return@withContext false
             }
@@ -744,13 +745,13 @@ class RootlessManager(private val context: Context) {
             }
 
             if (cacheFile.length() == 0L) {
-                onStatusUpdate("Downloaded file is empty")
+                onStatusUpdate(context.getString(R.string.rootless_downloaded_empty))
                 Log.e(TAG, "Downloaded file is empty")
                 return@withContext false
             }
             Log.d(TAG, "Cache file size: ${cacheFile.length()} bytes")
 
-            onStatusUpdate("Extracting rootfs...")
+            onStatusUpdate(context.getString(R.string.rootless_extracting_rootfs))
             onProgress(85)
 
             if (rootfsDir.exists()) {
@@ -834,7 +835,7 @@ class RootlessManager(private val context: Context) {
             val allExist =
                 rsFile.exists() && libFile.exists() && nmapFile.exists() && libcryptoFile.exists()
             if (!allExist) {
-                onStatusUpdate("Rootfs verification failed - missing binaries")
+                onStatusUpdate(context.getString(R.string.rootless_verification_failed))
                 Log.e(
                     TAG,
                     "VERIFICATION FAILED: rs=${rsFile.exists()}, liblibrouter=${libFile.exists()}, nmap=${nmapFile.exists()}, libcrypto=${libcryptoFile.exists()}"
@@ -889,9 +890,9 @@ class RootlessManager(private val context: Context) {
 
             if (config == null) {
                 val msg = if (probeReason.isNotBlank()) {
-                    "Rootless не поддерживается на этом устройстве.\nПричины:\n$probeReason"
+                    context.getString(R.string.rootless_not_supported, probeReason)
                 } else {
-                    "No compatible runtime found after rootfs setup"
+                    context.getString(R.string.rootless_no_compatible_runtime)
                 }
                 onStatusUpdate(msg)
                 Log.e(TAG, "All runtime approaches failed after rootfs setup, cleaning up rootfs")
@@ -915,7 +916,7 @@ class RootlessManager(private val context: Context) {
                 .putBoolean(PREF_SETUP_DONE, true)
                 .apply()
             onProgress(100)
-            onStatusUpdate("Rootfs ready")
+            onStatusUpdate(context.getString(R.string.rootless_rootfs_ready))
             Log.d(
                 TAG,
                 "=== setupRootfs SUCCESS (${System.currentTimeMillis() - startTime}ms, config=$config) ==="
@@ -927,7 +928,7 @@ class RootlessManager(private val context: Context) {
                 rootfsDir.deleteRecursively()
                 Log.d(TAG, "Rootfs deleted due to exception")
             }
-            onStatusUpdate("Setup failed: ${e.message}")
+            onStatusUpdate(context.getString(R.string.rootless_setup_failed, e.message))
             false
         } finally {
             cacheFile.delete()

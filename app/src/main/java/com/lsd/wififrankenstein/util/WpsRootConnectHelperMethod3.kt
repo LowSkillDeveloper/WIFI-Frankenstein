@@ -62,13 +62,13 @@ class WpsRootConnectHelperMethod3(
 
                 if (!ensureWpaCliBinaries()) {
                     Log.e(TAG, "connectToNetworkWps: failed to prepare WPA CLI binaries, aborting")
-                    callbacks.onConnectionFailed("Failed to prepare WPA CLI binaries")
+                    callbacks.onConnectionFailed(context.getString(R.string.wps_connect_failed_prepare))
                     return@launch
                 }
 
                 if (!wifiManager.isWifiEnabled) {
                     Log.d(TAG, "connectToNetworkWps: WiFi disabled, enabling")
-                    callbacks.onConnectionProgress("Enabling WiFi...")
+                    callbacks.onConnectionProgress(context.getString(R.string.wps_connect_enabling_wifi))
                     wifiManager.isWifiEnabled = true
                     delay(2000)
                 }
@@ -100,12 +100,12 @@ class WpsRootConnectHelperMethod3(
                 if (connected) {
                     callbacks.onConnectionSuccess(network.SSID)
                 } else {
-                    callbacks.onConnectionFailed("Recommended Method failed")
+                    callbacks.onConnectionFailed(context.getString(R.string.wps_connect_recommended_failed))
                 }
 
             } catch (e: Exception) {
                 Log.e(TAG, "connectToNetworkWps: error", e)
-                callbacks.onConnectionFailed("Recommended Method error: ${e.message}")
+                callbacks.onConnectionFailed(context.getString(R.string.wps_connect_recommended_error, e.message))
             } finally {
                 connectionJob = null
             }
@@ -202,7 +202,7 @@ class WpsRootConnectHelperMethod3(
                 return@withContext false
             }
 
-            callbacks.onConnectionProgress("Executing WPS command...")
+            callbacks.onConnectionProgress(context.getString(R.string.wps_connect_executing))
 
             val ctrlDir = WpsSocketUtils.ctrlDirForWpaCli()
             Log.d(TAG, "connectWithWpsRoot: wpaCliPath='$wpaCliPath' ctrlDir='$ctrlDir'")
@@ -238,7 +238,7 @@ class WpsRootConnectHelperMethod3(
 
                 if (result.isSuccess) {
                     callbacks.onLogEntry("WPS command executed successfully")
-                    callbacks.onConnectionProgress("Waiting for connection...")
+                    callbacks.onConnectionProgress(context.getString(R.string.wps_connect_waiting))
 
                     Log.d(
                         TAG,

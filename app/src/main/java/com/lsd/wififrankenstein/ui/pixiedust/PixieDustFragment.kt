@@ -128,11 +128,14 @@ class PixieDustFragment : Fragment() {
                 requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
                     outputStream.write(content.toByteArray())
                 }
-                Toast.makeText(requireContext(), "Console saved", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.pixie_console_saved), Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to save console", e)
-                Toast.makeText(requireContext(), "Save failed: ${e.message}", Toast.LENGTH_LONG)
-                    .show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.pixie_save_failed, e.message),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
@@ -468,13 +471,13 @@ class PixieDustFragment : Fragment() {
     private fun showTargetConfirmDialog(network: IwWifiNetwork) {
         val ssid = network.ssid.ifEmpty { getString(R.string.pixiedust_hidden_network) }
         val message = buildString {
-            appendLine("SSID: $ssid")
-            appendLine("BSSID: ${network.bssid}")
+            appendLine(getString(R.string.pixie_ssid, ssid))
+            appendLine(getString(R.string.pixie_bssid, network.bssid))
             if (network.signal.isNotEmpty()) {
-                appendLine("Signal: ${network.signal}")
+                appendLine(getString(R.string.pixie_signal, network.signal))
             }
             if (network.channel.isNotEmpty()) {
-                appendLine("Channel: ${network.channel}")
+                appendLine(getString(R.string.pixie_channel, network.channel))
             }
             appendLine()
             append(getString(R.string.pixiedust_start_attack))
@@ -492,7 +495,7 @@ class PixieDustFragment : Fragment() {
     private fun startAttack(network: IwWifiNetwork?) {
         binding.cardFailureResult.visibility = View.GONE
         val net = network ?: selectedNetwork ?: run {
-            Toast.makeText(requireContext(), "No network selected", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.pixie_no_network_selected), Toast.LENGTH_SHORT).show()
             return
         }
         val bssid = net.bssid.uppercase()
@@ -657,8 +660,13 @@ class PixieDustFragment : Fragment() {
             val pin = result.wpsPin
             val psk = result.wpaPsk ?: getString(R.string.no_psk_found)
             binding.cardResults.visibility = View.VISIBLE
-            binding.textResultsData.text =
-                "ESSID: ${essid.ifEmpty { getString(R.string.pixiedust_hidden_network) }}\nBSSID: $bssid\nPIN: $pin\nPSK: $psk"
+            binding.textResultsData.text = getString(
+                R.string.pixie_results_data,
+                essid.ifEmpty { getString(R.string.pixiedust_hidden_network) },
+                bssid,
+                pin,
+                psk
+            )
 
             showResultDialog(
                 success = true,
@@ -739,7 +747,7 @@ class PixieDustFragment : Fragment() {
             textDialogTitle.text = getString(R.string.pixiedust_attack_failed)
             layoutSuccessFields.visibility = View.GONE
             textFailureMessage.visibility = View.VISIBLE
-            textFailureMessage.text = failureMessage ?: "WPS pin not found!"
+            textFailureMessage.text = failureMessage ?: getString(R.string.pixie_wps_pin_not_found)
         }
 
         val buttonUpload3wifi =
@@ -784,7 +792,7 @@ class PixieDustFragment : Fragment() {
             if (trimmed.contains("Timeout", ignoreCase = true) ||
                 trimmed.contains("timeout", ignoreCase = true)
             ) {
-                return "Timeout, maybe WPS lock or WPS function disabled."
+                return getString(R.string.pixie_timeout_maybe_lock)
             }
             if (trimmed.startsWith("[-] Reason:")) {
                 return trimmed.removePrefix("[-] Reason:").trim()
@@ -944,8 +952,8 @@ class PixieDustFragment : Fragment() {
         switchBtn: MaterialButton
     ) {
         val label = when (mode) {
-            IwWifiManager.MODE_MANAGED -> "MANAGED"
-            IwWifiManager.MODE_MONITOR -> "MONITOR"
+            IwWifiManager.MODE_MANAGED -> getString(R.string.pixie_mode_managed)
+            IwWifiManager.MODE_MONITOR -> getString(R.string.pixie_mode_monitor)
             else -> mode
         }
         val color = when (mode) {
@@ -985,7 +993,7 @@ class PixieDustFragment : Fragment() {
                 )
                 val csv = ThreeWiFiUploader.convertToCsv(listOf(row))
                 viewLifecycleOwner.lifecycleScope.launch {
-                    val result = ThreeWiFiUploader.uploadCsv(server, csv)
+                    val result = ThreeWiFiUploader.uploadCsv(requireContext(), server, csv)
                     val msg = if (result.success) getString(R.string.upload_success_text)
                     else "${getString(R.string.upload_failed_text)}: ${result.message}"
                     Toast.makeText(

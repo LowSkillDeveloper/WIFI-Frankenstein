@@ -145,8 +145,8 @@ class WpaCrackerFragment : Fragment() {
             for (engine in engines) {
                 val radio = RadioButton(requireContext()).apply {
                     text = when (engine) {
-                        CrackEngine.NATIVE -> "Native — PBKDF2 in-app"
-                        CrackEngine.CHROOT_AIRCRACK -> "Chroot aircrack-ng"
+                        CrackEngine.NATIVE -> getString(R.string.wpa_engine_native)
+                        CrackEngine.CHROOT_AIRCRACK -> getString(R.string.wpa_engine_chroot)
                     }
                     id = View.generateViewId()
                     isChecked = engine == viewModel.selectedEngine.value
@@ -157,7 +157,7 @@ class WpaCrackerFragment : Fragment() {
                         ) {
                             Snackbar.make(
                                 binding.root,
-                                "Chroot is not installed. Install it in Settings → Chroot or Welcome wizard.",
+                                getString(R.string.wpa_chroot_not_installed),
                                 Snackbar.LENGTH_LONG
                             ).show()
                             return@setOnClickListener
@@ -173,8 +173,8 @@ class WpaCrackerFragment : Fragment() {
             for (i in 0 until binding.radioGroupEngines.childCount) {
                 val radio = binding.radioGroupEngines.getChildAt(i) as? RadioButton ?: continue
                 val tag = when (engine) {
-                    CrackEngine.NATIVE -> "Native"
-                    CrackEngine.CHROOT_AIRCRACK -> "Chroot"
+                    CrackEngine.NATIVE -> getString(R.string.wpa_engine_native)
+                    CrackEngine.CHROOT_AIRCRACK -> getString(R.string.wpa_engine_chroot)
                 }
                 radio.isChecked = radio.text.toString().contains(tag, ignoreCase = true)
             }
@@ -244,7 +244,7 @@ class WpaCrackerFragment : Fragment() {
                 val clipboard =
                     requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("WPA Password", password))
-                Toast.makeText(requireContext(), "Password copied", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.wpa_password_copied), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -342,12 +342,12 @@ class WpaCrackerFragment : Fragment() {
 
     private fun showHandshakeSourceDialog() {
         val options = listOf(
-            SourceOption(R.drawable.ic_folder_open, "From File (.cap, .22000, etc.)"),
-            SourceOption(R.drawable.ic_file_download, "From URL (direct / MEGA)"),
-            SourceOption(R.drawable.ic_content_copy, "Paste Hash(es)"),
-            SourceOption(R.drawable.ic_database, "From Handshake Storage")
+            SourceOption(R.drawable.ic_folder_open, getString(R.string.wpa_source_file_cap)),
+            SourceOption(R.drawable.ic_file_download, getString(R.string.wpa_source_url_direct)),
+            SourceOption(R.drawable.ic_content_copy, getString(R.string.wpa_source_paste_hashes)),
+            SourceOption(R.drawable.ic_database, getString(R.string.wpa_source_handshake_storage))
         )
-        showSourcePickerBottomSheet("Select handshake source", options) { which ->
+        showSourcePickerBottomSheet(getString(R.string.wpa_select_handshake_source), options) { which ->
             when (which) {
                 0 -> handshakeFilePicker.launch(arrayOf("*/*"))
                 1 -> showHandshakeUrlDialog()
@@ -359,11 +359,11 @@ class WpaCrackerFragment : Fragment() {
 
     private fun showHandshakeUrlDialog() {
         val input = android.widget.EditText(requireContext()).apply {
-            hint = "https://example.com/capture.cap"
+            hint = getString(R.string.handshake_import_url_hint)
             setPadding(48, 32, 48, 32)
         }
         val megaCheck = android.widget.CheckBox(requireContext()).apply {
-            text = "MEGA link"
+            text = getString(R.string.brute_mega_link)
             setPadding(48, 8, 48, 16)
         }
         val layout = android.widget.LinearLayout(requireContext()).apply {
@@ -372,9 +372,9 @@ class WpaCrackerFragment : Fragment() {
             addView(megaCheck)
         }
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Download handshake from URL")
+            .setTitle(getString(R.string.wpa_download_handshake_title))
             .setView(layout)
-            .setPositiveButton("Download") { _, _ ->
+            .setPositiveButton(R.string.download) { _, _ ->
                 val url = input.text.toString().trim()
                 if (url.isBlank()) return@setPositiveButton
                 viewModel.loadHandshakeFromUrl(url, megaCheck.isChecked)
@@ -385,16 +385,16 @@ class WpaCrackerFragment : Fragment() {
 
     private fun showHandshakePasteDialog() {
         val input = android.widget.EditText(requireContext()).apply {
-            hint = "WPA*01*pmkid*apmac*stamac*essid***\nWPA*02*mic*..."
+            hint = getString(R.string.handshake_paste_hint)
             setPadding(48, 32, 48, 32)
             minLines = 5
             gravity = android.view.Gravity.TOP
         }
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Paste hash(es)")
-            .setMessage("Paste one or more 22000-format hashes")
+            .setTitle(getString(R.string.wpa_paste_hashes_title))
+            .setMessage(getString(R.string.wpa_paste_hashes_message))
             .setView(input)
-            .setPositiveButton("Load") { _, _ ->
+            .setPositiveButton(R.string.wpa_load) { _, _ ->
                 val text = input.text.toString().trim()
                 if (text.isBlank()) return@setPositiveButton
                 viewModel.loadHandshakeFromText(text)
@@ -405,13 +405,13 @@ class WpaCrackerFragment : Fragment() {
 
     private fun showWordlistSourceDialog() {
         val options = listOf(
-            SourceOption(R.drawable.ic_folder_open, "From File (.txt)"),
-            SourceOption(R.drawable.ic_file_download, "From URL (direct / MEGA / archive)"),
-            SourceOption(R.drawable.ic_content_copy, "Paste Password List"),
-            SourceOption(R.drawable.cloud_download_24px, "wpa-sec Dictionary (auto-update)"),
-            SourceOption(R.drawable.ic_key, "Single Password Test")
+            SourceOption(R.drawable.ic_folder_open, getString(R.string.wpa_source_file_txt)),
+            SourceOption(R.drawable.ic_file_download, getString(R.string.wpa_source_url_archive)),
+            SourceOption(R.drawable.ic_content_copy, getString(R.string.wpa_source_paste_wordlist)),
+            SourceOption(R.drawable.cloud_download_24px, getString(R.string.wpa_source_wpasec_dict)),
+            SourceOption(R.drawable.ic_key, getString(R.string.wpa_source_single_password))
         )
-        showSourcePickerBottomSheet("Select wordlist source", options) { which ->
+        showSourcePickerBottomSheet(getString(R.string.wpa_select_wordlist_source), options) { which ->
             when (which) {
                 0 -> wordlistFilePicker.launch(
                     arrayOf(
@@ -431,11 +431,11 @@ class WpaCrackerFragment : Fragment() {
 
     private fun showWordlistUrlDialog() {
         val input = android.widget.EditText(requireContext()).apply {
-            hint = "https://example.com/wordlist.txt"
+            hint = getString(R.string.wordlist_url_hint)
             setPadding(48, 32, 48, 32)
         }
         val megaCheck = android.widget.CheckBox(requireContext()).apply {
-            text = "MEGA link"
+            text = getString(R.string.brute_mega_link)
             setPadding(48, 8, 48, 16)
         }
         val layout = android.widget.LinearLayout(requireContext()).apply {
@@ -444,9 +444,9 @@ class WpaCrackerFragment : Fragment() {
             addView(megaCheck)
         }
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Download wordlist from URL")
+            .setTitle(getString(R.string.wpa_download_wordlist_title))
             .setView(layout)
-            .setPositiveButton("Download") { _, _ ->
+            .setPositiveButton(R.string.download) { _, _ ->
                 val url = input.text.toString().trim()
                 if (url.isBlank()) return@setPositiveButton
                 viewModel.loadWordlistFromUrl(url, megaCheck.isChecked)
@@ -457,26 +457,27 @@ class WpaCrackerFragment : Fragment() {
 
     private fun showWordlistPasteDialog() {
         val input = android.widget.EditText(requireContext()).apply {
-            hint = "password1\npassword2\n..."
+            hint = getString(R.string.brute_paste_hint)
             setPadding(48, 32, 48, 32)
             minLines = 8
             gravity = android.view.Gravity.TOP
         }
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Paste password list")
-            .setMessage("One password per line")
+            .setTitle(getString(R.string.wpa_paste_wordlist_title))
+            .setMessage(getString(R.string.wpa_one_password_per_line))
             .setView(input)
-            .setPositiveButton("Load") { _, _ ->
+            .setPositiveButton(R.string.wpa_load) { _, _ ->
                 val text = input.text.toString().trim()
                 if (text.isBlank()) return@setPositiveButton
                 val passwords = text.lines().map { it.trim() }.filter { it.isNotBlank() }
                 if (passwords.isEmpty()) {
-                    Toast.makeText(requireContext(), "No passwords found", Toast.LENGTH_SHORT)
+                    Toast.makeText(requireContext(), getString(R.string.wpa_no_passwords_found), Toast.LENGTH_SHORT)
                         .show()
                     return@setPositiveButton
                 }
                 viewModel.setWordlistFromPaste(passwords)
-                binding.textWordlistInfo.text = "Pasted: ${passwords.size} passwords"
+                binding.textWordlistInfo.text =
+                    getString(R.string.wpa_pasted_passwords, passwords.size)
                 updateStartButton()
             }
             .setNegativeButton(R.string.close, null)
@@ -485,14 +486,14 @@ class WpaCrackerFragment : Fragment() {
 
     private fun showSinglePasswordDialog() {
         val input = android.widget.EditText(requireContext()).apply {
-            hint = "Enter a single WPA password to test"
+            hint = getString(R.string.brute_single_hint)
             setPadding(48, 32, 48, 32)
         }
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Single Password Test")
-            .setMessage("Enter one password to verify against the loaded handshake")
+            .setTitle(getString(R.string.wpa_source_single_password))
+            .setMessage(getString(R.string.wpa_single_password_message))
             .setView(input)
-            .setPositiveButton("Test") { _, _ ->
+            .setPositiveButton(R.string.wpa_test) { _, _ ->
                 val password = input.text.toString().trim()
                 if (password.isBlank()) return@setPositiveButton
                 viewModel.trySinglePassword(password)
@@ -568,7 +569,7 @@ class WpaCrackerFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     Snackbar.make(
                         binding.root,
-                        "No valid hashes found in ${item.fileName}",
+                        getString(R.string.wpa_no_valid_hashes_found, item.fileName),
                         Snackbar.LENGTH_LONG
                     ).show()
                 }
@@ -616,9 +617,13 @@ class WpaCrackerFragment : Fragment() {
         hashes.indices.forEach { i ->
             val h = hashes[i]
             val typeStr = when (h.type) {
-                HandshakeType.PMKID -> "PMKID"
-                HandshakeType.EAPOL -> "EAPOL (key ver ${h.keyver ?: 2})"
-                HandshakeType.PMKID_EAPOL -> "PMKID+EAPOL"
+                HandshakeType.PMKID -> getString(R.string.wpa_hash_type_pmkid)
+                HandshakeType.EAPOL -> getString(
+                    R.string.wpa_hash_type_eapol,
+                    h.keyver?.toString() ?: "2"
+                )
+
+                HandshakeType.PMKID_EAPOL -> getString(R.string.wpa_hash_type_pmkid_eapol)
             }
             val essid = if (h.essid.isNotBlank()) h.essid else "?"
             val extra = if (h.type == HandshakeType.PMKID) h.pmkidOrMic.take(20)
@@ -627,7 +632,7 @@ class WpaCrackerFragment : Fragment() {
                 id = i
                 isChecked = i == 0
                 setLines(3)
-                text = "$essid\n${h.macAp}  $typeStr\n$extra"
+                text = getString(R.string.wpa_hash_item, essid, h.macAp, typeStr, extra)
                 textSize = 14f
             }
             radioGroup.addView(radio)
@@ -635,10 +640,10 @@ class WpaCrackerFragment : Fragment() {
         layout.addView(radioGroup)
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Select handshake")
-            .setMessage("${item.displayName} — ${hashes.size} hashes found")
+            .setTitle(getString(R.string.wpa_select_handshake))
+            .setMessage(getString(R.string.wpa_hashes_found_count, item.displayName, hashes.size))
             .setView(layout)
-            .setPositiveButton("Load") { _, _ ->
+            .setPositiveButton(R.string.wpa_load) { _, _ ->
                 val selected = radioGroup.checkedRadioButtonId
                 if (selected >= 0 && selected < hashes.size) {
                     viewModel.loadHandshakeFromStorage(hashes, selected, item.fileName)
@@ -651,35 +656,40 @@ class WpaCrackerFragment : Fragment() {
     private fun showResumeSessionDialog(session: CrackSessionData) {
         val timeAgo = formatTimeAgo(session.timestamp)
         val progress = if (session.totalLines > 0) {
-            "${session.offset}/${session.totalLines} (${(session.offset.toDouble() / session.totalLines * 100).toInt()}%)"
+            getString(
+                R.string.wpa_progress_fraction,
+                session.offset,
+                session.totalLines,
+                (session.offset.toDouble() / session.totalLines * 100).toInt()
+            )
         } else {
-            "${session.offset} passwords tried"
+            getString(R.string.wpa_passwords_tried, session.offset)
         }
         val wordlistName = if (session.wordlistUri.isNotBlank()) {
             session.wordlistUri.split("/").lastOrNull() ?: session.wordlistUri
         } else {
-            "unknown"
+            getString(R.string.wpa_unknown_wordlist)
         }
         val msg = buildString {
-            appendLine("A previous cracking session matches your handshake and wordlist.")
+            appendLine(getString(R.string.wpa_resume_msg_intro))
             appendLine()
-            appendLine("Progress: $progress")
-            appendLine("Wordlist: $wordlistName")
-            appendLine("Engine: ${session.engineName}")
-            appendLine("Last active: $timeAgo")
+            appendLine(getString(R.string.wpa_progress_line, progress))
+            appendLine(getString(R.string.wpa_wordlist_line, wordlistName))
+            appendLine(getString(R.string.wpa_engine_line, session.engineName))
+            appendLine(getString(R.string.wpa_last_active, timeAgo))
             appendLine()
-            append("Resume from where you left off, or discard to start fresh?")
+            append(getString(R.string.wpa_resume_msg_discard))
         }
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Resume Previous Session?")
+            .setTitle(getString(R.string.wpa_resume_previous_title))
             .setMessage(msg)
-            .setPositiveButton("Resume") { _, _ ->
+            .setPositiveButton(R.string.wpa_crack_action_resume) { _, _ ->
                 viewModel.restoreSession(session)
             }
-            .setNegativeButton("Discard") { _, _ ->
+            .setNegativeButton(getString(R.string.wpa_discard)) { _, _ ->
                 viewModel.dismissSavedSession()
             }
-            .setNeutralButton("Not now", null)
+            .setNeutralButton(getString(R.string.wpa_not_now), null)
             .show()
     }
 
@@ -689,17 +699,17 @@ class WpaCrackerFragment : Fragment() {
         val hours = minutes / 60
         val days = hours / 24
         return when {
-            days > 0 -> "$days days ago"
-            hours > 0 -> "$hours hours ago"
-            minutes > 0 -> "$minutes minutes ago"
-            else -> "just now"
+            days > 0 -> getString(R.string.wpa_days_ago, days)
+            hours > 0 -> getString(R.string.wpa_hours_ago, hours)
+            minutes > 0 -> getString(R.string.wpa_minutes_ago, minutes)
+            else -> getString(R.string.wpa_just_now)
         }
     }
 
     private fun runBenchmark() {
         binding.layoutBenchmarkResults.isVisible = false
         binding.textBenchmarkDevice.isVisible = true
-        binding.textBenchmarkDevice.text = "Starting benchmark..."
+        binding.textBenchmarkDevice.text = getString(R.string.wpa_starting_benchmark)
         binding.progressBenchmark.isVisible = true
         binding.buttonRunBenchmark.isEnabled = false
         binding.textBenchmarkDaily.text = ""
@@ -759,7 +769,11 @@ class WpaCrackerFragment : Fragment() {
             }
         }
         viewModel.isPaused.observe(viewLifecycleOwner) { paused ->
-            binding.buttonPauseResume.text = if (paused) "Resume" else "Pause"
+            binding.buttonPauseResume.text = if (paused) {
+                getString(R.string.wpa_crack_action_resume)
+            } else {
+                getString(R.string.wpa_crack_action_pause)
+            }
         }
         viewModel.isRunningInBackground.observe(viewLifecycleOwner) { bg ->
             binding.textBackgroundIndicator.isVisible = bg
@@ -793,7 +807,7 @@ class WpaCrackerFragment : Fragment() {
                 binding.cardChrootProgress.isVisible = false
                 binding.cardResult.isVisible = false
                 binding.buttonCancel.isVisible = false
-                binding.buttonStartCrack.text = "Start Cracking"
+                binding.buttonStartCrack.text = getString(R.string.wpa_start_cracking)
                 binding.buttonStartCrack.visibility = View.VISIBLE
                 binding.buttonStartCrack.isEnabled = false
                 binding.layoutHandshakeDetails.isVisible = false
@@ -804,7 +818,7 @@ class WpaCrackerFragment : Fragment() {
             }
 
             is WpaCrackerState.LoadingHandshake -> {
-                binding.textHandshakeInfo.text = "Loading..."
+                binding.textHandshakeInfo.text = getString(R.string.wpa_loading)
             }
 
             is WpaCrackerState.LoadingWordlist -> {}
@@ -818,7 +832,7 @@ class WpaCrackerFragment : Fragment() {
                 showNativeProgress(state.progress)
                 binding.buttonStartCrack.visibility = View.GONE
                 binding.buttonPauseResume.isVisible = true
-                binding.buttonPauseResume.text = "Pause"
+                binding.buttonPauseResume.text = getString(R.string.wpa_crack_action_pause)
                 binding.buttonStopCrack.isVisible = true
                 binding.buttonCancel.isVisible = false
             }
@@ -828,7 +842,7 @@ class WpaCrackerFragment : Fragment() {
                     showNativeProgress(state.progress)
                 }
                 binding.buttonPauseResume.isVisible = true
-                binding.buttonPauseResume.text = "Resume"
+                binding.buttonPauseResume.text = getString(R.string.wpa_crack_action_resume)
                 binding.buttonStopCrack.isVisible = true
                 binding.buttonStartCrack.visibility = View.GONE
                 binding.buttonCancel.isVisible = false
@@ -836,7 +850,7 @@ class WpaCrackerFragment : Fragment() {
 
             is WpaCrackerState.ChrootCracking -> {
                 binding.cardChrootConsole.isVisible = true
-                binding.buttonStartCrack.text = "Stop"
+                binding.buttonStartCrack.text = getString(R.string.wpa_crack_action_stop)
                 binding.buttonStartCrack.isEnabled = true
                 binding.buttonStartCrack.visibility = View.VISIBLE
                 binding.buttonCancel.isVisible = false
@@ -851,7 +865,7 @@ class WpaCrackerFragment : Fragment() {
                 binding.buttonPauseResume.isVisible = false
                 binding.buttonStopCrack.isVisible = false
                 binding.textBackgroundIndicator.isVisible = false
-                binding.buttonStartCrack.text = "Start Cracking"
+                binding.buttonStartCrack.text = getString(R.string.wpa_start_cracking)
                 binding.buttonStartCrack.visibility = View.VISIBLE
                 binding.buttonStartCrack.isEnabled = true
                 val found = state.result.foundPassword
@@ -871,7 +885,7 @@ class WpaCrackerFragment : Fragment() {
                 binding.buttonPauseResume.isVisible = false
                 binding.buttonStopCrack.isVisible = false
                 binding.textBackgroundIndicator.isVisible = false
-                binding.buttonStartCrack.text = "Start Cracking"
+                binding.buttonStartCrack.text = getString(R.string.wpa_start_cracking)
                 binding.buttonStartCrack.visibility = View.VISIBLE
             }
         }
@@ -880,20 +894,25 @@ class WpaCrackerFragment : Fragment() {
     private fun showNativeProgress(progress: OfflineProgress) {
         binding.cardNativeProgress.isVisible = true
         if (progress.attempts == 0L && progress.currentPassword.isBlank()) {
-            binding.textProgressPassword.text = "Starting crack engine..."
-            binding.textProgressStats.text =
-                "Counting wordlist and preparing chunks, please wait..."
+            binding.textProgressPassword.text = getString(R.string.wpa_starting_crack_engine)
+            binding.textProgressStats.text = getString(R.string.wpa_counting_wordlist)
             binding.progressBar.isIndeterminate = true
             return
         }
-        binding.textProgressPassword.text = "Trying: ${progress.currentPassword}"
+        binding.textProgressPassword.text = getString(R.string.wpa_trying, progress.currentPassword)
         val speed = "%.0f".format(progress.speed)
         val elapsed = formatTime(progress.elapsedMs)
         val eta = if (progress.etaMs > 0 && progress.etaMs < Long.MAX_VALUE) {
-            " | ETA: ${formatTime(progress.etaMs)}"
+            getString(R.string.wpa_eta_suffix, formatTime(progress.etaMs))
         } else ""
-        binding.textProgressStats.text =
-            "Attempts: ${progress.attempts}/${progress.totalPasswords} | Speed: $speed pw/s | Elapsed: $elapsed$eta"
+        binding.textProgressStats.text = getString(
+            R.string.wpa_attempts_speed_elapsed,
+            progress.attempts,
+            progress.totalPasswords,
+            speed,
+            elapsed,
+            eta
+        )
         if (progress.totalPasswords > 0) {
             val pct = (progress.attempts.toFloat() / progress.totalPasswords * 100).toInt()
             binding.progressBar.isIndeterminate = false
@@ -912,22 +931,22 @@ class WpaCrackerFragment : Fragment() {
             binding.chrootProgressBar.isIndeterminate = true
         }
         binding.chrootTextPassword.text = if (progress.currentPassword.isNotBlank()) {
-            "Trying: ${progress.currentPassword}"
+            getString(R.string.wpa_trying, progress.currentPassword)
         } else {
-            "Starting..."
+            getString(R.string.wpa_starting)
         }
         binding.chrootTextAttempts.text = if (progress.total > 0) {
-            "Attempts: ${progress.attempts}/${progress.total}"
+            getString(R.string.wpa_attempts_fraction, progress.attempts, progress.total)
         } else {
             ""
         }
         binding.chrootTextSpeed.text = if (progress.speed.isNotBlank()) {
-            "Speed: ${progress.speed}"
+            getString(R.string.wpa_speed, progress.speed)
         } else {
             ""
         }
         binding.chrootTextEta.text = if (progress.eta.isNotBlank()) {
-            "ETA: ${progress.eta}"
+            getString(R.string.wpa_eta, progress.eta)
         } else {
             ""
         }
@@ -935,79 +954,85 @@ class WpaCrackerFragment : Fragment() {
 
     private fun updateHandshakeInfo(hash: HandshakeHash, fileName: String) {
         binding.layoutHandshakeDetails.isVisible = true
-        binding.textEssid.text = "ESSID: ${hash.essid}"
-        binding.textBssid.text = "BSSID: ${hash.macAp}"
+        binding.textEssid.text = getString(R.string.wpa_essid, hash.essid)
+        binding.textBssid.text = getString(R.string.wpa_bssid, hash.macAp)
         val typeStr = when (hash.type) {
-            HandshakeType.PMKID -> "PMKID"
-            HandshakeType.EAPOL -> "EAPOL (keyver ${hash.keyver ?: "?"})"
-            HandshakeType.PMKID_EAPOL -> "PMKID+EAPOL"
+            HandshakeType.PMKID -> getString(R.string.wpa_hash_type_pmkid)
+            HandshakeType.EAPOL -> getString(
+                R.string.wpa_hash_type_eapol_keyver,
+                hash.keyver?.toString() ?: "?"
+            )
+
+            HandshakeType.PMKID_EAPOL -> getString(R.string.wpa_hash_type_pmkid_eapol)
         }
-        binding.textHashType.text = "Type: $typeStr"
+        binding.textHashType.text = getString(R.string.wpa_type, typeStr)
     }
 
     private fun updateStartButton() {
         val hasHandshake = viewModel.state.value is WpaCrackerState.Loaded
-        val hasWordlist = binding.textWordlistInfo.text != "Tap to select wordlist source"
+        val hasWordlist = binding.textWordlistInfo.text != getString(R.string.wpa_tap_select_wordlist)
         val isPreparing = viewModel.isPreparingWordlist.value ?: false
         binding.buttonStartCrack.isEnabled = hasHandshake && hasWordlist && !isPreparing
     }
 
     private fun showPasswordFound(password: String) {
         binding.cardResult.isVisible = true
-        binding.textResultTitle.text = "FOUND!"
+        binding.textResultTitle.text = getString(R.string.wpa_found)
         binding.textResultTitle.setTextColor(
             ResourcesCompat.getColor(resources, R.color.success_green, null)
         )
         binding.textResultPassword.text = password
-        binding.textResultStats.text = "Password saved to local database and handshake storage"
+        binding.textResultStats.text = getString(R.string.wpa_password_saved)
         binding.buttonCopyPassword.isVisible = true
     }
 
     private fun showCrackFailed(result: OfflineResult) {
         binding.cardResult.isVisible = true
-        binding.textResultTitle.text = "Not Found"
+        binding.textResultTitle.text = getString(R.string.wpa_not_found)
         binding.textResultTitle.setTextColor(
             ResourcesCompat.getColor(resources, R.color.error_red, null)
         )
-        binding.textResultPassword.text = "Password not found in wordlist"
-        binding.textResultStats.text =
-            "Attempts: ${result.attempts} | Time: ${formatTime(result.elapsedMs)} | Avg speed: ${
-                "%.1f".format(result.averageSpeed)
-            } pw/s"
+        binding.textResultPassword.text = getString(R.string.wpa_password_not_found)
+        binding.textResultStats.text = getString(
+            R.string.wpa_crack_stats,
+            result.attempts,
+            formatTime(result.elapsedMs),
+            "%.1f".format(result.averageSpeed)
+        )
         binding.buttonCopyPassword.isVisible = false
     }
 
     private fun showResult(result: WpaCracker.CrackerResult) {
         binding.cardResult.isVisible = true
-        binding.textResultTitle.text = "FOUND!"
+        binding.textResultTitle.text = getString(R.string.wpa_found)
         binding.textResultTitle.setTextColor(
             ResourcesCompat.getColor(resources, R.color.success_green, null)
         )
-        binding.textResultPassword.text = result.password ?: "unknown"
+        binding.textResultPassword.text = result.password ?: getString(R.string.unknown)
         binding.textResultStats.text = listOfNotNull(
-            result.pmk?.let { "PMK: ${it.take(16)}..." },
-            result.ptk?.let { "PTK: ${it.take(16)}..." },
-            result.mic?.let { "MIC: ${it.take(16)}..." },
-            "Keyver: ${result.keyver}"
+            result.pmk?.let { getString(R.string.wpa_pmk, it.take(16)) },
+            result.ptk?.let { getString(R.string.wpa_ptk, it.take(16)) },
+            result.mic?.let { getString(R.string.wpa_mic, it.take(16)) },
+            getString(R.string.wpa_keyver, result.keyver)
         ).joinToString("\n")
         binding.buttonCopyPassword.isVisible = true
     }
 
     private fun showBenchmarkReport(report: WpaBenchmark.Report) {
-        binding.textBenchmarkDevice.text = "Device: ${report.deviceName}"
+        binding.textBenchmarkDevice.text = getString(R.string.wpa_device, report.deviceName)
         binding.textBenchmarkDevice.isVisible = true
         binding.layoutBenchmarkResults.isVisible = true
 
         val multiResults = mutableListOf<String>()
         for (r in report.results) {
-            val text = "%s: %s (%s)".format(r.name, r.speedFormatted, r.elapsedFormatted)
+            val text = getString(R.string.wpa_benchmark_line, r.name, r.speedFormatted, r.elapsedFormatted)
             when {
                 r.name == "PMKID (PBKDF2+HMAC) native" -> binding.textBenchmarkPbkdf2.text = text
                 r.name == "PMKID (Kotlin fallback)" -> binding.textBenchmarkPmkid.text = text
                 r.name == "EAPOL keyver 1 (HMAC-MD5)" -> binding.textBenchmarkEapol1.text = text
                 r.name == "EAPOL keyver 2 (HMAC-SHA1)" -> binding.textBenchmarkEapol2.text = text
                 r.name == "EAPOL keyver 3 (AES-CMAC)" -> binding.textBenchmarkEapol3.text = text
-                r.name.startsWith("Multi-Thread") -> multiResults.add(text)
+                r.name.startsWith(getString(R.string.benchmark_multi_thread_prefix)) -> multiResults.add(text)
                 r.name.startsWith("Chroot") -> {
                     binding.textBenchmarkChroot.text = text
                     if (r.speed <= 0) {
@@ -1027,18 +1052,18 @@ class WpaCrackerFragment : Fragment() {
         binding.textBenchmarkMulti4.text =
             multiResults.getOrElse(2) { "" } + "\n" + multiResults.getOrElse(3) { "" }
 
-        binding.textBenchmarkDaily.text = "Estimated: ${report.estimatedDaily}"
+        binding.textBenchmarkDaily.text = getString(R.string.wpa_estimated, report.estimatedDaily)
     }
 
     private fun formatTime(ms: Long): String {
-        if (ms < 1000) return "${ms}ms"
+        if (ms < 1000) return getString(R.string.wpa_ms, ms)
         val totalSec = ms / 1000
         val hours = totalSec / 3600
         val mins = (totalSec % 3600) / 60
         val secs = totalSec % 60
-        return if (hours > 0) "%dh %02dm %02ds".format(hours, mins, secs)
-        else if (mins > 0) "%dm %02ds".format(mins, secs)
-        else "%ds".format(secs)
+        return if (hours > 0) getString(R.string.wpa_hms, hours, mins, secs)
+        else if (mins > 0) getString(R.string.wpa_mins_secs, mins, secs)
+        else getString(R.string.wpa_secs, secs)
     }
 
     override fun onDestroyView() {

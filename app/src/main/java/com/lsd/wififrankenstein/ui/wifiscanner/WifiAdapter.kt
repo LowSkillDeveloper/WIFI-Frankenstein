@@ -289,7 +289,8 @@ class WifiAdapter(
                     )
                 )
                 bssidTextView.text = scanResult.BSSID
-                levelTextView.text = "${scanResult.level} dBm"
+                levelTextView.text =
+                    itemView.context.getString(R.string.ws_signal_dbm, scanResult.level)
 
                 val distance = calculateDistanceString(scanResult.frequency, scanResult.level, 1.0)
                 distanceTextView.text = distance
@@ -344,7 +345,7 @@ class WifiAdapter(
 
                 if (networkDetails.security.hasWps) {
                     wpsInfo.visibility = View.VISIBLE
-                    wpsInfo.text = "WPS"
+                    wpsInfo.text = itemView.context.getString(R.string.ws_badge_wps)
                     wpsInfo.setTextColor(ContextCompat.getColor(itemView.context, R.color.blue_500))
                     wpsIcon.visibility = View.VISIBLE
                 } else {
@@ -354,7 +355,7 @@ class WifiAdapter(
 
                 if (networkDetails.security.isAdHoc) {
                     adhocInfo.visibility = View.VISIBLE
-                    adhocInfo.text = "Ad-hoc"
+                    adhocInfo.text = itemView.context.getString(R.string.ws_badge_adhoc)
                 } else {
                     adhocInfo.visibility = View.GONE
                 }

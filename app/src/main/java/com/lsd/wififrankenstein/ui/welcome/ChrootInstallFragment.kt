@@ -528,16 +528,16 @@ class ChrootInstallFragment : Fragment() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             Log.d("ChrootInstall", "=== Rootless setup START ===")
-            updateStatus("Setting up rootless environment...")
+            updateStatus(getString(R.string.rootless_setup_environment))
 
-            updateStatus("Fetching rootfs download URL...")
+            updateStatus(getString(R.string.rootless_fetching_rootfs_url))
             val chrootInfo = chrootManager.getChrootInfo()
             val archive = chrootInfo?.let {
                 if (chrootManager.isAarch64()) it.aarch64 else it.armhf
             }
             if (archive == null) {
                 withContext(Dispatchers.Main) {
-                    binding.textViewStatus.text = "Failed to get rootfs URL"
+                    binding.textViewStatus.text = getString(R.string.rootless_failed_rootfs_url)
                     showRetryButtons()
                 }
                 return@launch
@@ -616,7 +616,7 @@ class ChrootInstallFragment : Fragment() {
             binding.linearLayoutActionButtons.visibility = GONE
             binding.progressBar.progress = 0
             binding.textViewProgress.text = getString(R.string.progress_percent, 0)
-            binding.textViewStatus.text = "Rootless setup skipped"
+            binding.textViewStatus.text = getString(R.string.rootless_setup_skipped)
             showNextButton()
             (activity as? WelcomeActivity)?.navigateToNextFragment()
         }

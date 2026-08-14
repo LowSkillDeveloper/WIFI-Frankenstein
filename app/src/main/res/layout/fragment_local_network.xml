@@ -46,7 +46,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="2dp"
-                            android:text="I:"
+                            android:text="@string/col_i"
                             android:textAppearance="?attr/textAppearanceBody2"
                             android:textColor="?android:attr/textColorSecondary" />
 
@@ -62,7 +62,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginHorizontal="4dp"
-                            android:text="M:"
+                            android:text="@string/col_m"
                             android:textAppearance="?attr/textAppearanceBody2"
                             android:textColor="?android:attr/textColorSecondary" />
 
@@ -88,7 +88,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="4dp"
                             android:layout_weight="1"
-                            android:text="Quick Scan"
+                            android:text="@string/ln_quick_scan"
                             app:icon="@drawable/ic_scan"
                             app:iconPadding="4dp"
                             app:iconSize="18dp" />
@@ -99,7 +99,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
                             android:layout_weight="1"
-                            android:text="Detailed"
+                            android:text="@string/detailed"
                             app:icon="@drawable/ic_scan"
                             app:iconPadding="4dp"
                             app:iconSize="18dp" />
@@ -127,7 +127,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="4dp"
-                        android:text="Network Info"
+                        android:text="@string/network_info"
                         android:textAppearance="?attr/textAppearanceSubtitle2" />
 
                     <TextView
@@ -167,7 +167,7 @@
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
                         android:paddingVertical="12dp"
-                        android:text="Console"
+                        android:text="@string/airodump_console"
                         app:icon="@drawable/ic_terminal"
                         app:iconGravity="textStart" />
 
@@ -197,7 +197,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="end"
-                            android:text="Clear"
+                            android:text="@string/clear"
                             android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -224,7 +224,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Discovered Devices"
+                            android:text="@string/discovered_devices"
                             android:textAppearance="?attr/textAppearanceHeadline6" />
 
                         <Space
@@ -249,7 +249,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:paddingVertical="32dp"
-                        android:text="Press 'Start Scan' to discover devices on your local network"
+                        android:text="@string/ln_press_start_scan"
                         android:textAlignment="center"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="14sp"
@@ -294,7 +294,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="20dp"
-                    android:text="Local Network Scanner"
+                    android:text="@string/local_network_scanner"
                     android:textAppearance="?attr/textAppearanceHeadline6" />
 
                 <TextView
@@ -370,7 +370,7 @@
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Starting..."
+                    android:text="@string/svc_starting"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="11sp" />
 
@@ -378,7 +378,7 @@
                     android:id="@+id/textDeviceCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0 devices"
+                    android:text="@string/ln_zero_devices"
                     android:textColor="@color/success_green"
                     android:textSize="11sp"
                     android:textStyle="bold" />

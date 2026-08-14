@@ -131,7 +131,7 @@
     <fragment
         android:id="@+id/dbSetupFragment"
         android:name="com.lsd.wififrankenstein.ui.dbsetup.DbSetupFragment"
-        android:label="Database Setup"
+        android:label="@string/nav_database_setup"
         app:route="dbSetupFragment"
         tools:layout="@layout/fragment_db_setup">
         <action

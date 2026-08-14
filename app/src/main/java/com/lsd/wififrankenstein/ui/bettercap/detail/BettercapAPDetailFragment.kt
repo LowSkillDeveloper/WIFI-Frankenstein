@@ -83,14 +83,14 @@ class BettercapAPDetailFragment : Fragment() {
                 viewModel.deauthAp(ap.mac)
                 Toast.makeText(
                     requireContext(),
-                    "Deauth all clients of ${ap.hostname}",
+                    getString(R.string.bc_deauth_all_clients_of, ap.hostname),
                     Toast.LENGTH_SHORT
                 ).show()
             } else {
                 viewModel.deauthSelectedClients(ap.mac, checked)
                 Toast.makeText(
                     requireContext(),
-                    "Deauth ${checked.size} client(s)",
+                    getString(R.string.bc_deauth_clients_count, checked.size),
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -99,20 +99,20 @@ class BettercapAPDetailFragment : Fragment() {
         binding.buttonDeauthAll.setOnClickListener {
             val ap = viewModel.selectedAp.value ?: return@setOnClickListener
             viewModel.deauthAp(ap.mac)
-            Toast.makeText(requireContext(), "Deauth all: ${ap.hostname}", Toast.LENGTH_SHORT)
+            Toast.makeText(requireContext(), getString(R.string.bc_deauth_all, ap.hostname), Toast.LENGTH_SHORT)
                 .show()
         }
 
         binding.buttonAssoc.setOnClickListener {
             val ap = viewModel.selectedAp.value ?: return@setOnClickListener
             viewModel.assoc(ap.mac)
-            Toast.makeText(requireContext(), "Assoc: ${ap.hostname}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.bc_assoc, ap.hostname), Toast.LENGTH_SHORT).show()
         }
 
         binding.buttonDownloadHandshake.setOnClickListener {
             val ap = viewModel.selectedAp.value ?: return@setOnClickListener
             viewModel.saveHandshakeToStorage(ap)
-            Toast.makeText(requireContext(), "Saving handshake...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.bc_saving_handshake, Toast.LENGTH_SHORT).show()
         }
 
         binding.buttonViewInStorage.setOnClickListener {
@@ -158,37 +158,37 @@ class BettercapAPDetailFragment : Fragment() {
     }
 
     private fun bindDetailRows(ap: BettercapAP) {
-        val enc = ap.encryption.ifEmpty { "OPEN" }
-        bindDetailRow(binding.rowEncryption.root, "Encryption", enc)
-        bindDetailRow(binding.rowCipher.root, "Cipher", ap.cipher.ifEmpty { "-" })
-        bindDetailRow(binding.rowAuth.root, "Auth", ap.authentication.ifEmpty { "-" })
-        bindDetailRow(binding.rowFrequency.root, "Frequency", "${ap.frequency} MHz")
-        bindDetailRow(binding.rowFirstSeen.root, "First Seen", ap.first_seen)
-        bindDetailRow(binding.rowLastSeen.root, "Last Seen", ap.last_seen)
-        bindDetailRow(binding.rowWpsVersion.root, "WPS Version", ap.wps["Version"] ?: "-")
-        bindDetailRow(binding.rowWpsState.root, "WPS State", ap.wps["State"] ?: "-")
+        val enc = ap.encryption.ifEmpty { getString(R.string.bc_open) }
+        bindDetailRow(binding.rowEncryption.root, getString(R.string.bc_detail_encryption), enc)
+        bindDetailRow(binding.rowCipher.root, getString(R.string.bc_detail_cipher), ap.cipher.ifEmpty { "-" })
+        bindDetailRow(binding.rowAuth.root, getString(R.string.bc_detail_auth), ap.authentication.ifEmpty { "-" })
+        bindDetailRow(binding.rowFrequency.root, getString(R.string.bc_detail_frequency), getString(R.string.bc_frequency_value, ap.frequency))
+        bindDetailRow(binding.rowFirstSeen.root, getString(R.string.bc_detail_first_seen), ap.first_seen)
+        bindDetailRow(binding.rowLastSeen.root, getString(R.string.bc_detail_last_seen), ap.last_seen)
+        bindDetailRow(binding.rowWpsVersion.root, getString(R.string.bc_detail_wps_version), ap.wps["Version"] ?: "-")
+        bindDetailRow(binding.rowWpsState.root, getString(R.string.bc_detail_wps_state), ap.wps["State"] ?: "-")
         val sent = if (ap.sent > 0) formatBytes(ap.sent) else "-"
         val recv = if (ap.received > 0) formatBytes(ap.received) else "-"
-        bindDetailRow(binding.rowSent.root, "Sent", sent)
-        bindDetailRow(binding.rowReceived.root, "Received", recv)
+        bindDetailRow(binding.rowSent.root, getString(R.string.bc_detail_sent), sent)
+        bindDetailRow(binding.rowReceived.root, getString(R.string.bc_detail_received), recv)
     }
 
     private fun formatBytes(bytes: Long): String {
         return when {
-            bytes >= 1_000_000 -> "${bytes / 1_000_000} MB"
-            bytes >= 1_000 -> "${bytes / 1_000} KB"
-            else -> "$bytes B"
+            bytes >= 1_000_000 -> getString(R.string.bc_bytes_mb, bytes / 1_000_000)
+            bytes >= 1_000 -> getString(R.string.bc_bytes_kb, bytes / 1_000)
+            else -> getString(R.string.bc_bytes_b, bytes)
         }
     }
 
     private fun bindApData(ap: BettercapAP) {
-        binding.textDetailSsid.text = ap.hostname.ifEmpty { "<hidden>" }
+        binding.textDetailSsid.text = ap.hostname.ifEmpty { getString(R.string.bc_hidden_ssid) }
         binding.textDetailBssid.text = ap.mac
-        binding.textDetailChannel.text = "Ch: ${ap.channel}"
-        binding.textDetailRssi.text = "RSSI: ${ap.rssi}"
-        binding.textDetailEncryption.text = ap.encryption.ifEmpty { "OPEN" }
+        binding.textDetailChannel.text = getString(R.string.bc_ch, ap.channel)
+        binding.textDetailRssi.text = getString(R.string.bc_rssi, ap.rssi)
+        binding.textDetailEncryption.text = ap.encryption.ifEmpty { getString(R.string.bc_open) }
 
-        binding.textDetailVendor.text = "Vendor: ${ap.vendor}"
+        binding.textDetailVendor.text = getString(R.string.bc_vendor, ap.vendor)
         bindDetailRows(ap)
 
         clientAdapter.updateData(ap.clients)
@@ -196,9 +196,9 @@ class BettercapAPDetailFragment : Fragment() {
 
         val hasHandshake = ap.handshake
         binding.textHandshakeStatus.text = if (hasHandshake) {
-            "Handshake: captured"
+            getString(R.string.bc_handshake_captured)
         } else {
-            "Handshake: not captured"
+            getString(R.string.bc_handshake_not_captured)
         }
         binding.textHandshakeStatus.setTextColor(
             if (hasHandshake) android.graphics.Color.rgb(76, 175, 80)

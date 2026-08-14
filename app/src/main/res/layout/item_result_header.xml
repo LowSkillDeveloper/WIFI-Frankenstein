@@ -63,7 +63,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginHorizontal="6dp"
-                        android:text="•"
+                        android:text="@string/bullet"
                         android:textColor="?attr/colorOnPrimary" />
 
                     <TextView

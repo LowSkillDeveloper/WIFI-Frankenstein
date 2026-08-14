@@ -102,9 +102,9 @@ class API3WiFiFragment : Fragment() {
             if (text.isNotEmpty()) {
                 val clipboard =
                     requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                val clip = android.content.ClipData.newPlainText("API Response", text)
+                val clip = android.content.ClipData.newPlainText(getString(R.string.api3_clip_response), text)
                 clipboard.setPrimaryClip(clip)
-                showError(getString(R.string.copied_to_clipboard))
+                showError(getString(R.string.copied_to_clipboard, getString(R.string.api3_clip_response)))
             }
         }
 
@@ -113,9 +113,9 @@ class API3WiFiFragment : Fragment() {
             if (text.isNotEmpty()) {
                 val clipboard =
                     requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                val clip = android.content.ClipData.newPlainText("API Request", text)
+                val clip = android.content.ClipData.newPlainText(getString(R.string.api3_clip_request), text)
                 clipboard.setPrimaryClip(clip)
-                showError(getString(R.string.copied_to_clipboard))
+                showError(getString(R.string.copied_to_clipboard, getString(R.string.api3_clip_request)))
             }
         }
 
@@ -1054,7 +1054,7 @@ class API3WiFiFragment : Fragment() {
             requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
         val clip = android.content.ClipData.newPlainText(label, text)
         clipboard.setPrimaryClip(clip)
-        showError(getString(R.string.copied_to_clipboard))
+        showError(getString(R.string.copied_to_clipboard, label))
     }
 
     private fun openMapWithCoordinates(name: String, lat: Double, lon: Double) {

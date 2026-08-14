@@ -2,6 +2,7 @@ package com.lsd.wififrankenstein.ui.handshakecapture
 
 import android.content.Context
 import android.net.Uri
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.ArchiveExtractor
 import com.lsd.wififrankenstein.util.ChrootCapabilities
 import com.lsd.wififrankenstein.util.ChrootManager
@@ -36,7 +37,7 @@ class HandshakeImportManager(private val context: Context) {
             val tempFile = File(tempDir, fileName)
             context.contentResolver.openInputStream(uri)?.use { input ->
                 tempFile.outputStream().use { input.copyTo(it) }
-            } ?: return@withContext ImportResult(0, 0, emptyList(), listOf("Cannot open file"))
+            } ?: return@withContext ImportResult(0, 0, emptyList(), listOf(context.getString(R.string.imp_cannot_open_file)))
             processFile(tempFile)
         } finally {
             tempDir.deleteRecursively()
@@ -58,7 +59,7 @@ class HandshakeImportManager(private val context: Context) {
                 val tempFile = File(tempDir, fileName)
 
                 if (isMega) {
-                    onProgress("[*] Downloading from MEGA...")
+                    onProgress(context.getString(R.string.imp_downloading_mega))
                     val megaClient = okhttp3.OkHttpClient.Builder()
                         .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
                         .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
@@ -73,7 +74,7 @@ class HandshakeImportManager(private val context: Context) {
                         onProgress = { downloaded, total ->
                             if (total != null && total > 0) {
                                 val pct = (downloaded * 100 / total).toInt()
-                                onProgress("[*] MEGA download: $pct%")
+                                onProgress(context.getString(R.string.imp_mega_progress, pct))
                             }
                         })
                     result.getOrNull()?.let { processFile(it) }
@@ -81,10 +82,10 @@ class HandshakeImportManager(private val context: Context) {
                             0,
                             0,
                             emptyList(),
-                            listOf("MEGA download failed: ${result.exceptionOrNull()?.message}")
+                            listOf(context.getString(R.string.imp_mega_failed, result.exceptionOrNull()?.message))
                         )
                 } else {
-                    onProgress("[*] Downloading...")
+                    onProgress(context.getString(R.string.imp_downloading))
                     val client = okhttp3.OkHttpClient.Builder()
                         .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
                         .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
@@ -96,7 +97,7 @@ class HandshakeImportManager(private val context: Context) {
                         0,
                         0,
                         emptyList(),
-                        listOf("HTTP ${response.code}")
+                        listOf(context.getString(R.string.imp_http_error, response.code))
                     )
                     response.body?.bytes()?.let { tempFile.writeBytes(it) }
                     processFile(tempFile)
@@ -134,7 +135,7 @@ class HandshakeImportManager(private val context: Context) {
                 0,
                 0,
                 emptyList(),
-                listOf("No valid hash lines found")
+                listOf(context.getString(R.string.imp_no_valid_hash_lines))
             )
 
             val hashLines = parsedHashes.map { it.to22000Line() }.distinct()
@@ -149,26 +150,30 @@ class HandshakeImportManager(private val context: Context) {
             val warnings = mutableListOf<String>()
 
             if (hasChroot) {
-                chrootManager.executeInChroot("mkdir -p /sdcard/WIFI-Frankenstein/temp")
-                val conv = chrootManager.executeInChroot(
-                    "hcxhash2cap -o '$chrootOutput' '${
-                        chrootPath(hashFile)
-                    }' 2>&1"
-                )
-                if (conv.isSuccess && chrootManager.executeInChroot("test -s '$chrootOutput'").isSuccess) {
-                    Shell.cmd("cp '$chrootOutput' '${capFile.absolutePath}'").exec()
-                    if (capFile.exists()) {
-                        warnings.add("Converted hashes to .cap via hcxhash2cap")
-                        val result = processFile(capFile)
-                        return@withContext result.copy(warnings = result.warnings + warnings)
+                try {
+                    chrootManager.executeInChroot("mkdir -p /sdcard/WIFI-Frankenstein/temp")
+                    val conv = chrootManager.executeInChroot(
+                        "hcxhash2cap -o '$chrootOutput' '${
+                            chrootPath(hashFile)
+                        }' 2>&1"
+                    )
+                    if (conv.isSuccess && chrootManager.executeInChroot("test -s '$chrootOutput'").isSuccess) {
+                        Shell.cmd("cp '$chrootOutput' '${capFile.absolutePath}'").exec()
+                        if (capFile.exists()) {
+                            warnings.add(context.getString(R.string.imp_converted_via_hcx))
+                            val result = processFile(capFile)
+                            return@withContext result.copy(warnings = result.warnings + warnings)
+                        }
                     }
+                } catch (e: Exception) {
+                    Log.w(tag, "importFromText: hcxhash2cap unavailable, falling back: ${e.message}")
                 }
-                warnings.add("hcxhash2cap conversion failed. ")
+                warnings.add(context.getString(R.string.imp_hcx_failed))
             } else {
-                warnings.add("Chroot not available. ")
+                warnings.add(context.getString(R.string.imp_chroot_unavailable))
             }
 
-            warnings.add("Saved as hash reference only. Use hashcat on desktop.")
+            warnings.add(context.getString(R.string.imp_hash_reference_only))
             val saved = copyToChrootStorage(hashFile, "Pasted")
             if (saved != null) {
                 val first = parsedHashes.first()
@@ -189,7 +194,7 @@ class HandshakeImportManager(private val context: Context) {
                 )
                 ImportResult(1, 0, emptyList(), warnings)
             } else {
-                ImportResult(0, 0, emptyList(), warnings + listOf("Failed to save hash file"))
+                ImportResult(0, 0, emptyList(), warnings + listOf(context.getString(R.string.imp_failed_save_hash)))
             }
         } finally {
             tempDir.deleteRecursively()
@@ -217,7 +222,7 @@ class HandshakeImportManager(private val context: Context) {
                     } else failed++
                 }
             } catch (e: Exception) {
-                warnings.add("Archive error: ${e.message}")
+                warnings.add(context.getString(R.string.imp_archive_error, e.message))
             } finally {
                 tempDir.deleteRecursively()
             }
@@ -282,16 +287,20 @@ class HandshakeImportManager(private val context: Context) {
                     "pcapng"
                 ) && ChrootCapabilities.isAvailable(context)
             ) {
-                val chrootOut = "/sdcard/WIFI-Frankenstein/temp/${file.nameWithoutExtension}.cap"
-                chrootManager.executeInChroot("mkdir -p /sdcard/WIFI-Frankenstein/temp")
-                val conv = chrootManager.executeInChroot(
-                    "hcxhash2cap -o '$chrootOut' '${chrootPath(file)}' 2>&1"
-                )
-                if (conv.isSuccess && chrootManager.executeInChroot("test -s '$chrootOut'").isSuccess) {
-                    capFile =
-                        File(context.cacheDir, "import_converted/${file.nameWithoutExtension}.cap")
-                    capFile.parentFile?.mkdirs()
-                    Shell.cmd("cp '$chrootOut' '${capFile.absolutePath}'").exec()
+                try {
+                    val chrootOut = "/sdcard/WIFI-Frankenstein/temp/${file.nameWithoutExtension}.cap"
+                    chrootManager.executeInChroot("mkdir -p /sdcard/WIFI-Frankenstein/temp")
+                    val conv = chrootManager.executeInChroot(
+                        "hcxhash2cap -o '$chrootOut' '${chrootPath(file)}' 2>&1"
+                    )
+                    if (conv.isSuccess && chrootManager.executeInChroot("test -s '$chrootOut'").isSuccess) {
+                        capFile =
+                            File(context.cacheDir, "import_converted/${file.nameWithoutExtension}.cap")
+                        capFile.parentFile?.mkdirs()
+                        Shell.cmd("cp '$chrootOut' '${capFile.absolutePath}'").exec()
+                    }
+                } catch (e: Exception) {
+                    Log.w(tag, "processSingleFile: hcxhash2cap unavailable for ${file.name}: ${e.message}")
                 }
             }
 
@@ -422,19 +431,35 @@ class HandshakeImportManager(private val context: Context) {
         bssid: String? = null
     ): String? {
         return try {
-            val chrootSource = chrootPath(file)
             val safeEssid = essid.replace(Regex("[^a-zA-Z0-9._-]"), "_").take(32)
             val bssidPart = bssid?.replace(":", "") ?: System.currentTimeMillis().toString()
             val destName = "${safeEssid}_${bssidPart}.${file.extension}"
             val chrootDest = "${HandshakeStorageManager.STORAGE_DIR}/$destName"
             storageManager.ensureStorageDir()
-            val cp =
-                chrootManager.executeInChroot("cp '$chrootSource' '$chrootDest' 2>&1 && echo CP_OK")
-            if (cp.isSuccess && cp.out.firstOrNull()?.trim() == "CP_OK") {
-                Log.d(tag, "copyToChrootStorage: OK -> $chrootDest")
+
+            val chrootSource = try {
+                chrootPath(file)
+            } catch (e: Exception) {
+                Log.w(tag, "copyToChrootStorage: chrootPath failed: ${e.message}")
+                null
+            }
+
+            if (chrootSource != null) {
+                val cp =
+                    chrootManager.executeInChroot("cp '$chrootSource' '$chrootDest' 2>&1 && echo CP_OK")
+                if (cp.isSuccess && cp.out.firstOrNull()?.trim() == "CP_OK") {
+                    Log.d(tag, "copyToChrootStorage: OK -> $chrootDest")
+                    return chrootDest
+                }
+                Log.w(tag, "copyToChrootStorage: chroot cp failed: ${cp.out}")
+            }
+
+            val jvmSaved = storageManager.copyViaJvm(file, destName)
+            if (jvmSaved != null) {
+                Log.d(tag, "copyToChrootStorage: JVM OK -> $jvmSaved")
                 chrootDest
             } else {
-                Log.e(tag, "copyToChrootStorage failed: ${cp.out}")
+                Log.e(tag, "copyToChrootStorage failed (chroot + JVM)")
                 null
             }
         } catch (e: Exception) {

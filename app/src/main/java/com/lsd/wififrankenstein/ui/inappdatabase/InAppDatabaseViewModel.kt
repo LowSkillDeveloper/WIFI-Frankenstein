@@ -323,7 +323,10 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
 
         try {
             if (importType == "replace") {
-                progressCallback("Clearing database…", 5)
+                progressCallback(
+                    getApplication<Application>().getString(R.string.ia_clearing_database),
+                    5
+                )
                 localDbHelper.clearDatabase()
             }
 
@@ -331,14 +334,17 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
             var processedLines = 0
             var totalLines = 0
 
-            progressCallback("Analyzing file…", 2)
+            progressCallback(getApplication<Application>().getString(R.string.ia_analyzing_file), 2)
 
             getApplication<Application>().contentResolver.openInputStream(uri)?.bufferedReader()
                 ?.use { reader ->
                     reader.lineSequence().forEach { _ -> totalLines++ }
                 }
 
-            progressCallback("Parsing $totalLines lines…", 5)
+            progressCallback(
+                getApplication<Application>().getString(R.string.ia_parsing_lines, totalLines),
+                5
+            )
 
             val parseJobs = mutableListOf<kotlinx.coroutines.Deferred<List<WifiNetwork>>>()
             val chunkSize = 10000
@@ -359,7 +365,14 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
 
                             processedLines += linesChunk.size
                             val progress = 5 + (processedLines * 10) / totalLines
-                            progressCallback("Parsing: $processedLines/$totalLines", progress)
+                            progressCallback(
+                                getApplication<Application>().getString(
+                                    R.string.ia_parsing_progress,
+                                    processedLines,
+                                    totalLines
+                                ),
+                                progress
+                            )
 
                             chunkNetworks
                         }
@@ -371,7 +384,10 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
                 networksToAdd.addAll(chunk)
             }
 
-            progressCallback("Found ${networksToAdd.size} records for import", 15)
+            progressCallback(
+                getApplication<Application>().getString(R.string.ia_found_records, networksToAdd.size),
+                15
+            )
 
             val stats = importRecordsWithStatsLocal(
                 networksToAdd,
@@ -402,19 +418,19 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
             val shouldOptimize = records.size > 5000
 
             if (shouldOptimize) {
-                progressCallback("Optimizing database…", 20)
+                progressCallback(getApplication<Application>().getString(R.string.ia_optimizing_db), 20)
                 localDbHelper.temporaryDropIndexes()
             }
 
             val result = if (checkDuplicates && records.size > 1000) {
                 processLargeImportWithDuplicateCheckLocal(records, progressCallback, localDbHelper)
             } else {
-                progressCallback("Importing records…", 50)
+                progressCallback(getApplication<Application>().getString(R.string.ia_importing_records), 50)
                 localDbHelper.bulkInsertOptimized(records, checkDuplicates)
             }
 
             if (shouldOptimize) {
-                progressCallback("Restoring indexes…", 90)
+                progressCallback(getApplication<Application>().getString(R.string.ia_restoring_indexes), 90)
                 localDbHelper.recreateIndexes()
             }
 
@@ -456,10 +472,13 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
         localDbHelper: LocalAppDbHelper
     ): Pair<Int, Int> = withContext(Dispatchers.IO) {
 
-        progressCallback("Loading existing records…", 25)
+        progressCallback(getApplication<Application>().getString(R.string.ia_loading_existing), 25)
         val existingKeys = Collections.synchronizedSet(localDbHelper.getAllExistingKeys())
 
-        progressCallback("Processing ${records.size} records…", 30)
+        progressCallback(
+            getApplication<Application>().getString(R.string.ia_processing_records, records.size),
+            30
+        )
 
         val chunkSize = 5000
         val chunks = records.chunked(chunkSize)
@@ -471,7 +490,14 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
                 if (!isActive) return@async
 
                 val progress = 30 + (index * 50) / chunks.size
-                progressCallback("Processing chunk ${index + 1}/${chunks.size}…", progress)
+                progressCallback(
+                    getApplication<Application>().getString(
+                        R.string.ia_processing_chunk,
+                        index + 1,
+                        chunks.size
+                    ),
+                    progress
+                )
 
                 val uniqueNetworks = chunk.filter { network ->
                     val key = "${network.wifiName}|${network.macAddress}"
@@ -662,7 +688,12 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
                 updateStats()
             } catch (e: Exception) {
                 Log.e("InAppDatabaseViewModel", "wpa-sec import error", e)
-                withContext(Dispatchers.Main) { onError(e.message ?: "Unknown error") }
+                withContext(Dispatchers.Main) {
+                    onError(
+                        e.message
+                            ?: getApplication<Application>().getString(R.string.unknown_error)
+                    )
+                }
             } finally {
                 withContext(Dispatchers.Main) { onProgress(false) }
             }

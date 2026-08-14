@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
@@ -15,14 +16,14 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.network.bettercap.BettercapAP
 
-enum class SortMode(val label: String) {
-    NAME_ASC("Name (A-Z)"),
-    NAME_DESC("Name (Z-A)"),
-    CHANNEL("Channel"),
-    CLIENTS_DESC("Clients (most)"),
-    CLIENTS_ASC("Clients (least)"),
-    RSSI_DESC("RSSI (strongest)"),
-    RSSI_ASC("RSSI (weakest)")
+enum class SortMode(@StringRes val labelRes: Int) {
+    NAME_ASC(R.string.bc_sort_name_asc),
+    NAME_DESC(R.string.bc_sort_name_desc),
+    CHANNEL(R.string.bc_sort_channel),
+    CLIENTS_DESC(R.string.bc_sort_clients_desc),
+    CLIENTS_ASC(R.string.bc_sort_clients_asc),
+    RSSI_DESC(R.string.bc_sort_rssi_desc),
+    RSSI_ASC(R.string.bc_sort_rssi_asc)
 }
 
 class BettercapDashboardAdapter(
@@ -110,7 +111,7 @@ class BettercapDashboardAdapter(
             )
 
             textBssid.text = ap.mac
-            textSsid.text = ap.hostname.ifEmpty { "<hidden>" }
+            textSsid.text = ap.hostname.ifEmpty { ctx.getString(R.string.bc_hidden_ssid) }
 
             val encText = buildString {
                 append(ap.encryption)
@@ -118,7 +119,7 @@ class BettercapDashboardAdapter(
                     append(" (${ap.cipher}, ${ap.authentication})")
                 }
             }
-            textEncryption.text = encText.ifEmpty { "OPEN" }
+            textEncryption.text = encText.ifEmpty { ctx.getString(R.string.bc_open) }
 
             textChannel.text = ap.channel.toString()
             textClients.text = ap.clients.size.toString()
@@ -160,7 +161,13 @@ class BettercapDashboardAdapter(
             onDeauthAll: (BettercapAP) -> Unit,
             onAssoc: (BettercapAP) -> Unit
         ) {
-            val items = arrayOf("Copy BSSID", "Copy SSID", "Open Details", "Deauth All", "Assoc")
+            val items = arrayOf(
+                ctx.getString(R.string.copy_bssid),
+                ctx.getString(R.string.copy_ssid),
+                ctx.getString(R.string.bc_menu_open_details),
+                ctx.getString(R.string.bc_menu_deauth_all),
+                ctx.getString(R.string.bc_menu_assoc)
+            )
             MaterialAlertDialogBuilder(ctx)
                 .setTitle(ap.hostname.ifEmpty { ap.mac })
                 .setItems(items) { _, which ->
@@ -180,7 +187,7 @@ class BettercapDashboardAdapter(
             (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(
                 clip
             )
-            Toast.makeText(ctx, "Copied $label", Toast.LENGTH_SHORT).show()
+            Toast.makeText(ctx, ctx.getString(R.string.bc_copied, label), Toast.LENGTH_SHORT).show()
         }
     }
 }

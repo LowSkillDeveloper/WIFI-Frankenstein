@@ -29,14 +29,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="TCP 16-20KB Block Detection"
+                    android:text="@string/tcp_16_20_block_detection"
                     android:textAppearance="?attr/textAppearanceHeadline6" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:text="Detects FAT-header blocking by sending incremental data chunks and detecting connection drops at specific thresholds"
+                    android:text="@string/ib_tcp_desc"
                     android:textAppearance="?attr/textAppearanceBody2"
                     android:textColor="?android:attr/textColorSecondary" />
 
@@ -44,7 +44,7 @@
                     android:id="@+id/buttonCheckTcp16"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Run TCP 16-20KB Check"
+                    android:text="@string/run_tcp_check"
                     app:icon="@drawable/ic_scan" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -66,7 +66,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="Results"
+                    android:text="@string/airodump_results"
                     android:textAppearance="?attr/textAppearanceHeadline6" />
 
                 <ProgressBar

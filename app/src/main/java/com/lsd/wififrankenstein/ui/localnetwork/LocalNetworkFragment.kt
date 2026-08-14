@@ -131,7 +131,11 @@ class LocalNetworkFragment : Fragment() {
         binding.buttonToggleConsole.setOnClickListener {
             consoleVisible = !consoleVisible
             binding.consoleContent.visibility = if (consoleVisible) View.VISIBLE else View.GONE
-            binding.buttonToggleConsole.text = if (consoleVisible) "Console ▲" else "Console ▼"
+            binding.buttonToggleConsole.text = if (consoleVisible) {
+                getString(R.string.router_scan_console_close)
+            } else {
+                getString(R.string.router_scan_console_open)
+            }
         }
     }
 
@@ -186,20 +190,20 @@ class LocalNetworkFragment : Fragment() {
                 }
         }
 
-        binding.buttonScan.text = if (isScanning) "Cancel" else "Quick Scan"
+        binding.buttonScan.text = if (isScanning) getString(R.string.cancel) else getString(R.string.ln_quick_scan)
         binding.buttonDetailedScan.isEnabled = !isScanning
 
         if (state.subnet.isNotEmpty()) {
             binding.subnetInfoCard.visibility = View.VISIBLE
-            binding.textSubnet.text = "Subnet: ${state.subnet}"
+            binding.textSubnet.text = getString(R.string.ln_subnet, state.subnet)
             currentGateway = state.gateway
-            binding.textGateway.text = "Gateway: ${state.gateway}"
+            binding.textGateway.text = getString(R.string.ln_gateway, state.gateway)
         }
 
         if (isScanning) {
             binding.animatedProgressBar.startAnimation()
             binding.progressCard.visibility = View.VISIBLE
-            binding.textDeviceCount.text = "$deviceCount devices"
+            binding.textDeviceCount.text = getString(R.string.ln_devices, deviceCount)
 
             if (state.totalFound > 0) {
                 binding.progressScan.isIndeterminate = false
@@ -208,15 +212,15 @@ class LocalNetworkFragment : Fragment() {
                 binding.progressScan.max = max
                 binding.progressScan.progress = progress
                 binding.textProgressStatus.text = when (state.phase) {
-                    "port_scan" -> "Port scanning... $progress/$max devices"
-                    else -> "Scanning... $progress/$max hosts"
+                    "port_scan" -> getString(R.string.ln_port_scan_progress, progress, max)
+                    else -> getString(R.string.ln_scan_progress_hosts, progress, max)
                 }
             } else {
                 binding.progressScan.isIndeterminate = true
                 binding.textProgressStatus.text = when (state.phase) {
-                    "port_scan" -> "Port scanning devices..."
-                    "detect_subnet" -> "Detecting subnet..."
-                    else -> "Scanning..."
+                    "port_scan" -> getString(R.string.ln_port_scanning)
+                    "detect_subnet" -> getString(R.string.ln_detecting_subnet)
+                    else -> getString(R.string.ln_scanning)
                 }
             }
         } else {
@@ -228,7 +232,7 @@ class LocalNetworkFragment : Fragment() {
         if (deviceCount > 0) {
             binding.textEmptyState.visibility = View.GONE
             binding.recyclerViewDevices.visibility = View.VISIBLE
-            binding.textDeviceCount.text = "$deviceCount devices"
+            binding.textDeviceCount.text = getString(R.string.ln_devices, deviceCount)
         } else if (!isScanning) {
             binding.textEmptyState.visibility = View.VISIBLE
             binding.recyclerViewDevices.visibility = View.GONE
@@ -239,7 +243,7 @@ class LocalNetworkFragment : Fragment() {
         state.error?.let { error ->
             if (!isScanning) {
                 Snackbar.make(binding.root, error, Snackbar.LENGTH_LONG)
-                    .setAction("Retry") { viewModel.quickScan("wlan0") }
+                    .setAction(getString(R.string.retry)) { viewModel.quickScan("wlan0") }
                     .show()
             }
         }
@@ -263,11 +267,12 @@ class LocalNetworkFragment : Fragment() {
         )
 
         dialogBinding.detailIp.text = device.ip
-        dialogBinding.detailMac.text = device.mac.ifEmpty { "N/A" }
-        dialogBinding.detailVendor.text = device.vendor.ifEmpty { "Unknown" }
-        dialogBinding.detailHostname.text = device.hostname.ifEmpty { "Unknown" }
-        dialogBinding.detailNetbios.text = device.netbiosName.ifEmpty { "N/A" }
-        dialogBinding.detailStatus.text = if (device.isAlive) "Online" else "Offline"
+        dialogBinding.detailMac.text = device.mac.ifEmpty { getString(R.string.not_available) }
+        dialogBinding.detailVendor.text = device.vendor.ifEmpty { getString(R.string.unknown) }
+        dialogBinding.detailHostname.text = device.hostname.ifEmpty { getString(R.string.unknown) }
+        dialogBinding.detailNetbios.text = device.netbiosName.ifEmpty { getString(R.string.not_available) }
+        dialogBinding.detailStatus.text =
+            if (device.isAlive) getString(R.string.ln_online) else getString(R.string.ln_offline)
         dialogBinding.detailStatus.setTextColor(
             ContextCompat.getColor(
                 requireContext(),
@@ -275,7 +280,7 @@ class LocalNetworkFragment : Fragment() {
             )
         )
         dialogBinding.detailLatency.text =
-            if (device.responseTimeMs > 0) "${device.responseTimeMs}ms" else "N/A"
+            if (device.responseTimeMs > 0) "${device.responseTimeMs}ms" else getString(R.string.not_available)
 
         populateOsPorts(dialogBinding, device)
 
@@ -292,7 +297,7 @@ class LocalNetworkFragment : Fragment() {
         dialogBinding.actionScanDevice.visibility = if (hasScanData) View.GONE else View.VISIBLE
         dialogBinding.actionScanDevice.setOnClickListener {
             dialogBinding.actionScanDevice.isEnabled = false
-            dialogBinding.actionScanDevice.text = "Scanning..."
+            dialogBinding.actionScanDevice.text = getString(R.string.ln_scanning)
             lifecycleScope.launch {
                 val updated = viewModel.scanDevice(device.ip)
                 if (updated != null && isAdded) {
@@ -310,7 +315,7 @@ class LocalNetworkFragment : Fragment() {
                     }
                     dialogBinding.actionScanDevice.visibility = View.GONE
                 } else if (isAdded) {
-                    dialogBinding.actionScanDevice.text = "Scan Device"
+                    dialogBinding.actionScanDevice.text = getString(R.string.ln_scan_device)
                     dialogBinding.actionScanDevice.isEnabled = true
                 }
             }
@@ -338,16 +343,16 @@ class LocalNetworkFragment : Fragment() {
             if (device.mac.isNotEmpty()) View.VISIBLE else View.GONE
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Device: ${device.ip}")
+            .setTitle(getString(R.string.ln_device_title, device.ip))
             .setView(dialogBinding.root)
-            .setPositiveButton("Close", null)
+            .setPositiveButton(getString(R.string.close), null)
             .show()
     }
 
     private fun populateOsPorts(binding: DialogDeviceDetailsBinding, device: LocalDevice) {
         if (device.os.isNotEmpty() || device.osFamily.isNotEmpty() || device.deviceType.isNotEmpty()) {
             binding.osCard.visibility = View.VISIBLE
-            binding.detailOs.text = device.os.ifEmpty { "N/A" }
+            binding.detailOs.text = device.os.ifEmpty { getString(R.string.not_available) }
 
             if (device.osFamily.isNotEmpty()) {
                 binding.osFamilyRow.visibility = View.VISIBLE
@@ -383,7 +388,11 @@ class LocalNetworkFragment : Fragment() {
             binding.portsCard.visibility = View.VISIBLE
             binding.detailPorts.text = device.openPorts.joinToString("\n") { port ->
                 val service = getCommonServiceName(port)
-                if (service.isNotEmpty()) "$port/tcp ($service)" else "$port/tcp"
+                if (service.isNotEmpty()) {
+                    getString(R.string.ln_port_tcp_service, port, service)
+                } else {
+                    getString(R.string.ln_port_tcp, port)
+                }
             }
         } else {
             binding.portsCard.visibility = View.GONE
@@ -427,10 +436,10 @@ class LocalNetworkFragment : Fragment() {
         inputLayout.addView(switchManual)
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Disconnect Internet")
-            .setMessage("Target: ${device.ip}\nGateway: $currentGateway")
+            .setTitle(getString(R.string.ln_disconnect_internet))
+            .setMessage(getString(R.string.ln_cut_target, device.ip, currentGateway))
             .setView(inputLayout)
-            .setPositiveButton("Cut") { _, _ ->
+            .setPositiveButton(getString(R.string.ln_cut)) { _, _ ->
                 if (switchManual.isChecked) {
                     viewModel.cutInternet(device, currentGateway)
                 } else {
@@ -438,10 +447,10 @@ class LocalNetworkFragment : Fragment() {
                     viewModel.cutInternet(device, currentGateway, secs)
                 }
             }
-            .setNeutralButton("Restore") { _, _ ->
+            .setNeutralButton(getString(R.string.ln_restore)) { _, _ ->
                 viewModel.restoreInternet(device, currentGateway)
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
@@ -453,7 +462,7 @@ class LocalNetworkFragment : Fragment() {
             startActivity(intent)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to open browser for $ip:$port", e)
-            Snackbar.make(binding.root, "Cannot open browser", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root, getString(R.string.ln_cannot_open_browser), Snackbar.LENGTH_SHORT).show()
         }
     }
 
@@ -465,7 +474,11 @@ class LocalNetworkFragment : Fragment() {
             findNavController().navigate(R.id.nav_router_scan, bundle)
         } catch (e: Exception) {
             Log.e(TAG, "Navigation to router scan failed", e)
-            Snackbar.make(binding.root, "Router Scan unavailable", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(
+                binding.root,
+                getString(R.string.ln_router_scan_unavailable),
+                Snackbar.LENGTH_SHORT
+            ).show()
         }
     }
 
