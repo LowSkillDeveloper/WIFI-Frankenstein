@@ -225,7 +225,9 @@ class DatabaseFinderFragment : Fragment() {
         val dbItem = viewModel.dbSetupViewModel.dbList.value?.find { it.id == source }
         if (dbItem != null) {
             val base = formatSourcePath(dbItem.path)
-            return if (!dbItem.tableName.isNullOrBlank()) "$base · ${dbItem.tableName}" else base
+            return if (!dbItem.tableName.isNullOrBlank()) {
+                base + getString(R.string.ds_table_name_suffix, dbItem.tableName)
+            } else base
         }
         return formatSourcePath(source)
     }

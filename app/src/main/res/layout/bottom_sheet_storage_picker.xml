@@ -19,7 +19,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Select Handshake from Storage"
+            android:text="@string/select_handshake_from_storage"
             android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
         <com.google.android.material.button.MaterialButton
@@ -57,7 +57,7 @@
             <ImageView
                 android:layout_width="20dp"
                 android:layout_height="20dp"
-                android:contentDescription="search"
+                android:contentDescription="@string/cd_search"
                 android:src="@drawable/ic_search"
                 app:tint="?attr/colorControlNormal" />
 
@@ -68,7 +68,7 @@
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:background="@null"
-                android:hint="Search ESSID or BSSID..."
+                android:hint="@string/search_essid_bssid_hint"
                 android:imeOptions="actionSearch"
                 android:inputType="text"
                 android:maxLines="1"
@@ -93,7 +93,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="No handshakes found"
+            android:text="@string/no_handshakes_found"
             android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:visibility="gone" />

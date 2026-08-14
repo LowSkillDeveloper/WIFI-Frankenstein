@@ -200,7 +200,7 @@ class WpaCrackService : Service() {
 
         val notification = buildNotification(
             getString(R.string.wpa_crack_notif_title),
-            if (offset > 0) "Resuming crack from offset $offset..." else "Starting...",
+            if (offset > 0) getString(R.string.svc_resuming_crack, offset) else getString(R.string.svc_starting),
             isPaused = false,
             currentPassword = "",
             attempts = 0,
@@ -228,10 +228,10 @@ class WpaCrackService : Service() {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Crack failed", e)
-                broadcastError(e.message ?: "Unknown error")
+                broadcastError(e.message ?: getString(R.string.svc_unknown_error))
                 updateNotificationSimple(
                     getString(R.string.wpa_crack_notif_title),
-                    "Failed: ${e.message}"
+                    getString(R.string.svc_failed, e.message)
                 )
             } finally {
                 if (sessionHandshakeLine.isNotBlank() && sessionWordlistUri.isNotBlank()) {
@@ -245,13 +245,13 @@ class WpaCrackService : Service() {
 
     private fun handleResult(result: OfflineResult, hash: HandshakeHash) {
         if (result.foundPassword != null) {
-            val text = "FOUND: ${result.foundPassword}"
+            val text = getString(R.string.svc_found, result.foundPassword)
             updateNotificationSimple(getString(R.string.wpa_crack_notif_title), text)
             broadcastFound(result.foundPassword, hash)
         } else if (result.cancelled) {
             broadcastStopped()
         } else {
-            broadcastError("Password not found in wordlist")
+            broadcastError(getString(R.string.svc_password_not_found))
         }
     }
 
@@ -293,7 +293,7 @@ class WpaCrackService : Service() {
 
     private fun handleStartChrootCrack(intent: Intent) {
         if (crackJob?.isActive == true || chrootCrackJob?.isActive == true) {
-            broadcastError("A crack is already running")
+            broadcastError(getString(R.string.svc_crack_running))
             return
         }
         val handshakeLine = intent.getStringExtra(EXTRA_HANDSHAKE_LINE) ?: return
@@ -301,7 +301,7 @@ class WpaCrackService : Service() {
 
         val notification = NotificationCompat.Builder(this, CHROOT_CHANNEL_ID)
             .setContentTitle(getString(R.string.wpa_crack_notif_title))
-            .setContentText("Starting chroot crack...")
+            .setContentText(getString(R.string.svc_starting_chroot_crack))
             .setSmallIcon(android.R.drawable.ic_menu_manage)
             .setOngoing(true)
             .setSilent(true)
@@ -315,7 +315,7 @@ class WpaCrackService : Service() {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Chroot crack failed", e)
-                broadcastError(e.message ?: "Chroot crack error")
+                broadcastError(e.message ?: getString(R.string.svc_chroot_crack_error))
             } finally {
                 chrootCrackJob = null
                 stopForegroundCompat()
@@ -344,16 +344,16 @@ class WpaCrackService : Service() {
         val wordlistUri = android.net.Uri.parse(wordlistUriStr)
         val wPath = copyWordlistToChroot(wordlistUri)
         if (wPath == null) {
-            broadcastError("Failed to copy wordlist to chroot")
+            broadcastError(getString(R.string.svc_copy_wordlist_failed))
             return
         }
         val capPath = generateCapForChroot(handshakeLine, cm)
         if (capPath == null) {
-            broadcastError("Failed to generate .cap file in chroot")
+            broadcastError(getString(R.string.svc_generate_cap_failed))
             return
         }
 
-        updateChrootNotification("Cracking...")
+        updateChrootNotification(getString(R.string.svc_cracking))
 
         val found = crackWithWordlistStreaming(capPath, wPath, cm) { line ->
             val clean = line
@@ -369,10 +369,10 @@ class WpaCrackService : Service() {
 
         if (found != null) {
             broadcastFound(found)
-            updateChrootNotification("FOUND: $found")
+            updateChrootNotification(getString(R.string.svc_found, found))
         } else {
-            broadcastError("Password not found in wordlist")
-            updateChrootNotification("Not found")
+            broadcastError(getString(R.string.svc_password_not_found))
+            updateChrootNotification(getString(R.string.svc_not_found))
         }
     }
 
@@ -610,16 +610,16 @@ class WpaCrackService : Service() {
 
         val infoStr = buildString {
             if (currentPassword.isNotBlank()) {
-                append("Trying: $currentPassword")
+                append(getString(R.string.svc_trying, currentPassword))
             }
             if (attempts > 0) {
                 if (isNotEmpty()) append("\n")
-                append("Attempts: $attempts")
+                append(getString(R.string.svc_attempts, attempts))
                 if (totalLines > 0) append("/$totalLines")
             }
             if (speed > 0) {
                 if (isNotEmpty()) append(" | ")
-                append("Speed: ${"%.0f".format(speed)} pw/s")
+                append(getString(R.string.svc_speed, "%.0f".format(speed)))
             }
         }
         if (infoStr.isNotEmpty()) {
@@ -660,7 +660,7 @@ class WpaCrackService : Service() {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
         updateNotificationSimple(
             getString(R.string.wpa_crack_paused),
-            "Paused"
+            getString(R.string.svc_paused)
         )
     }
 

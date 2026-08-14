@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.QrCodeHelper
 import com.lsd.wififrankenstein.util.QrCodeHelper.SecurityType
 import com.lsd.wififrankenstein.util.QrCodeHelper.WiFiNetwork
@@ -31,7 +32,8 @@ class QrCodeGeneratorViewModel(application: Application) : AndroidViewModel(appl
 
     fun generateQrCode(ssid: String, password: String, security: SecurityType, hidden: Boolean) {
         if (ssid.isBlank()) {
-            _errorMessage.value = "Network name cannot be empty"
+            _errorMessage.value =
+                getApplication<Application>().getString(R.string.qr_network_name_empty)
             return
         }
 
@@ -51,10 +53,14 @@ class QrCodeGeneratorViewModel(application: Application) : AndroidViewModel(appl
                 if (bitmap != null) {
                     _qrCodeBitmap.value = bitmap
                 } else {
-                    _errorMessage.value = "Failed to generate QR code"
+                    _errorMessage.value =
+                        getApplication<Application>().getString(R.string.qr_code_generation_failed)
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Failed to generate QR code: ${e.message}"
+                _errorMessage.value = getApplication<Application>().getString(
+                    R.string.qr_code_generation_failed_detail,
+                    e.message
+                )
             } finally {
                 _isLoading.value = false
             }

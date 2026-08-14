@@ -249,11 +249,11 @@ class IwWifiScannerAdapter(
 
 
                 val modelText = if (network.wpsModel.isNotBlank()) {
-                    " (${network.wpsModel})"
+                    itemView.context.getString(R.string.iw_model_suffix, network.wpsModel)
                 } else ""
-                bssidTextView.text = "${network.bssid}$modelText"
+                bssidTextView.text = itemView.context.getString(R.string.iw_bssid_model, network.bssid, modelText)
 
-                levelTextView.text = "${signalInt} dBm"
+                levelTextView.text = itemView.context.getString(R.string.iw_signal_dbm, signalInt)
                 distanceTextView.text = distance
 
                 securityIcon.setImageResource(security.iconRes)
@@ -278,7 +278,7 @@ class IwWifiScannerAdapter(
                 protocolInfo.visibility = View.GONE
                 protocolFullInfo.visibility = View.GONE
 
-                securityInfo.text = security.getSecurityString()
+                securityInfo.text = security.getSecurityString(itemView.context)
                 securityInfo.visibility = View.VISIBLE
 
                 securityTypesInfo.visibility = View.GONE
@@ -287,7 +287,7 @@ class IwWifiScannerAdapter(
 
                 if (security.hasWps || network.wpsEnabled) {
                     wpsInfo.visibility = View.VISIBLE
-                    wpsInfo.text = "WPS"
+                    wpsInfo.text = itemView.context.getString(R.string.iw_wps_badge)
                     wpsInfo.setTextColor(ContextCompat.getColor(itemView.context, R.color.blue_500))
                     wpsIcon.visibility = View.VISIBLE
                     val wpsTint = if (PixieDustChecker.isPixieDustVulnerable(network)) {
@@ -462,9 +462,11 @@ class IwWifiScannerAdapter(
                             network.heCapabilities.contains(
                                 "80+80 MHz",
                                 ignoreCase = true
-                            ) -> "HT160"
+                            ) -> itemView.context.getString(R.string.iw_bw_ht160)
 
-                    network.heCapabilities.contains("80 MHz", ignoreCase = true) -> "HT80"
+                    network.heCapabilities.contains("80 MHz", ignoreCase = true) ->
+                        itemView.context.getString(R.string.iw_bw_ht80)
+
                     else -> null
                 }
             }
@@ -473,17 +475,19 @@ class IwWifiScannerAdapter(
             val caps = network.capabilities.uppercase(Locale.ROOT)
             if (caps.contains("VHT")) {
                 return when {
-                    caps.contains("160MHZ") || caps.contains("80+80MHZ") -> "HT160"
-                    caps.contains("80MHZ") -> "HT80"
+                    caps.contains("160MHZ") || caps.contains("80+80MHZ") ->
+                        itemView.context.getString(R.string.iw_bw_ht160)
+
+                    caps.contains("80MHZ") -> itemView.context.getString(R.string.iw_bw_ht80)
                     else -> null
                 }
             }
 
 
             return when {
-                network.htHt20Ht40 -> "HT20/40"
-                network.htChannelWidth.contains("40") -> "HT40"
-                network.htChannelWidth.contains("20") -> "HT20"
+                network.htHt20Ht40 -> itemView.context.getString(R.string.iw_bw_ht2040)
+                network.htChannelWidth.contains("40") -> itemView.context.getString(R.string.iw_bw_ht40)
+                network.htChannelWidth.contains("20") -> itemView.context.getString(R.string.iw_bw_ht20)
                 else -> null
             }
         }
@@ -687,12 +691,12 @@ class IwWifiScannerAdapter(
         val iconRes: Int,
         val hasWps: Boolean = false
     ) {
-        fun getSecurityString(): String {
+        fun getSecurityString(context: Context): String {
             return when (iconRes) {
-                R.drawable.ic_lock -> "WPA2/WPA3"
-                R.drawable.ic_lock_outline -> "WEP"
-                R.drawable.ic_lock_open -> "Open"
-                else -> "Unknown"
+                R.drawable.ic_lock -> context.getString(R.string.iw_sec_wpa23)
+                R.drawable.ic_lock_outline -> context.getString(R.string.iw_sec_wep)
+                R.drawable.ic_lock_open -> context.getString(R.string.iw_sec_open)
+                else -> context.getString(R.string.unknown)
             }
         }
     }

@@ -41,7 +41,7 @@ class YouTubeTabFragment : Fragment() {
         viewModel.isChecking.observe(viewLifecycleOwner) { checking ->
             binding.buttonCheckYoutube.isEnabled = !checking
             binding.progressBar.visibility = if (checking) View.VISIBLE else View.GONE
-            binding.buttonCheckYoutube.text = if (checking) "Checking..." else "Run YouTube Check"
+            binding.buttonCheckYoutube.text = if (checking) getString(R.string.ib_checking) else getString(R.string.ib_run_youtube_check)
         }
 
         viewModel.youtubeResult.observe(viewLifecycleOwner) { result ->
@@ -68,27 +68,27 @@ class YouTubeTabFragment : Fragment() {
             else -> R.drawable.ic_error
         }
         binding.statusIcon.setImageResource(iconRes)
-        binding.statusLabel.text = result.status.label()
+        binding.statusLabel.text = result.status.label(ctx)
 
         val sec = result.totalDurationMs / 1000f
-        binding.durationText.text = "${String.format("%.1f", sec)}s"
+        binding.durationText.text = getString(R.string.ib_duration_sec, sec)
 
         binding.endpointSummaryText.text =
-            "${result.endpointReachableCount}/${result.endpointTotal} reachable"
+            getString(R.string.ib_count_reachable, result.endpointReachableCount, result.endpointTotal)
         binding.endpointContainer.removeAllViews()
         for (ep in result.endpointResults) {
             binding.endpointContainer.addView(createEndpointRow(ep))
         }
 
         if (result.downloadSpeedKbps != null) {
-            binding.downloadText.text = "${String.format("%.1f", result.downloadSpeedKbps)} KB/s"
+            binding.downloadText.text = getString(R.string.ib_speed_kbps, result.downloadSpeedKbps)
             binding.downloadText.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
             if (result.downloadBytes != null) {
                 binding.downloadBytesText.text = formatBytes(result.downloadBytes)
                 binding.downloadBytesText.visibility = View.VISIBLE
             }
         } else {
-            binding.downloadText.text = "Not available"
+            binding.downloadText.text = getString(R.string.ib_not_available)
             binding.downloadText.setTextColor(ContextCompat.getColor(ctx, R.color.error_red))
             binding.downloadBytesText.visibility = View.GONE
         }
@@ -98,7 +98,7 @@ class YouTubeTabFragment : Fragment() {
             val shortUrl = result.downloadUrlUsed.substringAfter("://").substringBeforeLast("/")
             sourceParts.add(shortUrl)
         }
-        sourceParts.add("${result.endpointReachableCount}/${result.endpointTotal} endpoints")
+        sourceParts.add(getString(R.string.ib_endpoints_summary, result.endpointReachableCount, result.endpointTotal))
         binding.sourceText.text = sourceParts.joinToString("  ·  ")
     }
 
@@ -117,12 +117,12 @@ class YouTubeTabFragment : Fragment() {
         if (ep.reachable) {
             val gd = dot.background as GradientDrawable
             gd.setColor(ContextCompat.getColor(ctx, R.color.success_green))
-            statusText.text = "Reachable"
+            statusText.text = ctx.getString(R.string.ib_reachable)
             statusText.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
         } else {
             val gd = dot.background as GradientDrawable
             gd.setColor(ContextCompat.getColor(ctx, R.color.error_red))
-            statusText.text = "Unreachable"
+            statusText.text = ctx.getString(R.string.ib_unreachable)
             statusText.setTextColor(ContextCompat.getColor(ctx, R.color.error_red))
         }
 

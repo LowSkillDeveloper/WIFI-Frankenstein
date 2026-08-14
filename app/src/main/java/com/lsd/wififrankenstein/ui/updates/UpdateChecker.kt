@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.updates
 
 import android.content.Context
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.network.NetworkClient
 import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
@@ -81,7 +82,7 @@ class UpdateChecker(private val context: Context) {
             val appInfo = json.getJSONObject("app")
             val currentVersion =
                 context.packageManager.getPackageInfo(context.packageName, 0)?.versionName
-                    ?: "Unknown"
+                    ?: context.getString(R.string.unknown)
             val newVersion = appInfo.getString("version")
 
             if (currentVersion != newVersion) {
@@ -247,9 +248,19 @@ class UpdateChecker(private val context: Context) {
     }.flowOn(Dispatchers.IO)
 
     private fun formatFileSize(size: Long): String {
-        if (size <= 0) return "0 B"
-        val units = arrayOf("B", "KB", "MB", "GB", "TB")
+        if (size <= 0) return context.getString(R.string.upd_file_size_zero)
+        val units = arrayOf(
+            context.getString(R.string.upd_file_size_unit_b),
+            context.getString(R.string.upd_file_size_unit_kb),
+            context.getString(R.string.upd_file_size_unit_mb),
+            context.getString(R.string.upd_file_size_unit_gb),
+            context.getString(R.string.upd_file_size_unit_tb)
+        )
         val digitGroups = (log10(size.toDouble()) / log10(1024.0)).toInt()
-        return "%.2f %s".format(size / 1024.0.pow(digitGroups.toDouble()), units[digitGroups])
+        return context.getString(
+            R.string.upd_file_size_format,
+            size / 1024.0.pow(digitGroups.toDouble()),
+            units[digitGroups]
+        )
     }
 }

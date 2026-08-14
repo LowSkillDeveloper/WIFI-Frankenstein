@@ -32,7 +32,7 @@
                     android:id="@+id/buttonToggleScan"
                     android:layout_width="wrap_content"
                     android:layout_height="40dp"
-                    android:text="Start" />
+                    android:text="@string/start" />
 
                 <FrameLayout
                     android:layout_width="0dp"
@@ -93,17 +93,17 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="AP List" />
+            android:text="@string/ap_list" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Events" />
+            android:text="@string/events" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Settings" />
+            android:text="@string/menu_settings" />
     </com.google.android.material.tabs.TabLayout>
 
     <ViewFlipper
@@ -146,7 +146,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Clients only" />
+                        android:text="@string/clients_only" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -167,7 +167,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center"
-                    android:text="No access points found"
+                    android:text="@string/no_access_points_found"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                     android:visibility="gone" />
             </FrameLayout>
@@ -185,14 +185,14 @@
                     android:layout_height="40dp"
                     android:layout_marginEnd="4dp"
                     android:layout_weight="1"
-                    android:text="Deauth All" />
+                    android:text="@string/deauth_all" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/buttonAssocAll"
                     android:layout_width="0dp"
                     android:layout_height="40dp"
                     android:layout_weight="1"
-                    android:text="Assoc All" />
+                    android:text="@string/assoc_all" />
             </LinearLayout>
 
             <TextView
@@ -201,7 +201,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:padding="4dp"
-                android:text="APs: 0 | Handshakes: 0"
+                android:text="@string/bettercap_ap_hs_count"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
         </LinearLayout>
 
@@ -240,28 +240,28 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:checked="true"
-                            android:text="All" />
+                            android:text="@string/all" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chipEventAp"
                             style="@style/Widget.MaterialComponents.Chip.Filter"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="AP" />
+                            android:text="@string/ap" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chipEventHandshake"
                             style="@style/Widget.MaterialComponents.Chip.Filter"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="HS" />
+                            android:text="@string/hs" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chipEventDeauth"
                             style="@style/Widget.MaterialComponents.Chip.Filter"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Deauth" />
+                            android:text="@string/deauth" />
                     </com.google.android.material.chip.ChipGroup>
 
                     <com.google.android.material.button.MaterialButton
@@ -280,7 +280,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:padding="24dp"
-                android:text="No events yet"
+                android:text="@string/no_events_yet"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                 android:visibility="visible" />
 
@@ -340,12 +340,12 @@
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
                             android:checked="true"
-                            android:text="Channel Hopping" />
+                            android:text="@string/channel_hopping" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Hop Period"
+                            android:text="@string/hop_period"
                             android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
 
                         <SeekBar
@@ -360,7 +360,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:gravity="center"
-                            android:text="250 ms"
+                            android:text="@string/hop_period_default"
                             android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
 
                         <View
@@ -372,7 +372,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Min RSSI"
+                            android:text="@string/min_rssi"
                             android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
 
                         <SeekBar
@@ -387,7 +387,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:gravity="center"
-                            android:text="-90 dBm"
+                            android:text="@string/min_rssi_default"
                             android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -410,7 +410,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Attack Defaults"
+                            android:text="@string/attack_defaults"
                             android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2" />
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
@@ -418,25 +418,25 @@
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
                             android:checked="true"
-                            android:text="Deauth open" />
+                            android:text="@string/deauth_open" />
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
                             android:id="@+id/switchDeauthAcquired"
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
-                            android:text="Deauth acquired" />
+                            android:text="@string/deauth_acquired" />
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
                             android:id="@+id/switchAssocOpen"
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
-                            android:text="Assoc open" />
+                            android:text="@string/assoc_open" />
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
                             android:id="@+id/switchAssocAcquired"
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
-                            android:text="Assoc acquired" />
+                            android:text="@string/assoc_acquired" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -458,7 +458,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Handshake Capture"
+                            android:text="@string/menu_handshake_capture"
                             android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2" />
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
@@ -466,7 +466,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
                             android:checked="true"
-                            android:text="Auto-save" />
+                            android:text="@string/auto_save" />
 
                         <TextView
                             android:id="@+id/textHandshakeFile"
@@ -474,7 +474,7 @@
                             android:layout_height="wrap_content"
                             android:background="@color/divider_color"
                             android:padding="8dp"
-                            android:text="/sdcard/.../captured/"
+                            android:text="@string/bettercap_capture_dir"
                             android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>

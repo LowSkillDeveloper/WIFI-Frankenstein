@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentPagerAdapter
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentInternetBlockingBinding
 
 class InternetBlockingFragment : Fragment() {
@@ -24,7 +25,7 @@ class InternetBlockingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val adapter = ViewPagerAdapter(childFragmentManager)
+        val adapter = ViewPagerAdapter(childFragmentManager, requireContext())
         binding.viewPager.adapter = adapter
         binding.tabLayout.setupWithViewPager(binding.viewPager)
     }
@@ -34,7 +35,10 @@ class InternetBlockingFragment : Fragment() {
         _binding = null
     }
 
-    private class ViewPagerAdapter(fm: androidx.fragment.app.FragmentManager) :
+    private class ViewPagerAdapter(
+        fm: androidx.fragment.app.FragmentManager,
+        private val appContext: android.content.Context
+    ) :
         FragmentPagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
 
         override fun getItem(position: Int): Fragment {
@@ -52,13 +56,13 @@ class InternetBlockingFragment : Fragment() {
 
         override fun getPageTitle(position: Int): CharSequence? {
             return when (position) {
-                0 -> "Main"
-                1 -> "DNS"
-                2 -> "Domains"
-                3 -> "TCP"
-                4 -> "SNI"
-                5 -> "Telegram"
-                6 -> "YouTube"
+                0 -> appContext.getString(R.string.ib_tab_main)
+                1 -> appContext.getString(R.string.ib_tab_dns)
+                2 -> appContext.getString(R.string.ib_tab_domains)
+                3 -> appContext.getString(R.string.ib_tab_tcp)
+                4 -> appContext.getString(R.string.ib_tab_sni)
+                5 -> appContext.getString(R.string.ib_tab_telegram)
+                6 -> appContext.getString(R.string.ib_tab_youtube)
                 else -> throw IllegalArgumentException("Unknown tab $position")
             }
         }

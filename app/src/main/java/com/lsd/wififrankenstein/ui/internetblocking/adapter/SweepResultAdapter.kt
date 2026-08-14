@@ -6,6 +6,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.ItemSweepResultBinding
 import com.lsd.wififrankenstein.ui.internetblocking.model.SweepResult
 
@@ -14,14 +15,15 @@ class SweepResultAdapter : ListAdapter<SweepResult, SweepResultAdapter.ViewHolde
     class ViewHolder(private val binding: ItemSweepResultBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(result: SweepResult) {
-            binding.provider.text = "${result.targetProvider} (${result.targetId})"
-            binding.ipPort.text = "${result.targetIp}:${result.targetPort}"
-            binding.status.text = result.status.label()
+            val ctx = binding.root.context
+            binding.provider.text = ctx.getString(R.string.ib_tcp_provider, result.targetProvider, result.targetId)
+            binding.ipPort.text = ctx.getString(R.string.ib_sweep_ipport, result.targetIp, result.targetPort)
+            binding.status.text = result.status.label(ctx)
             binding.status.setTextColor(
-                ContextCompat.getColor(binding.root.context, result.status.colorRes())
+                ContextCompat.getColor(ctx, result.status.colorRes())
             )
             binding.workingSni.text = result.workingSni
-            binding.rtt.text = String.format("%.0f ms", result.rtt * 1000)
+            binding.rtt.text = ctx.getString(R.string.ib_sweep_rtt, result.rtt * 1000)
         }
     }
 

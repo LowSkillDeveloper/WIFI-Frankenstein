@@ -195,9 +195,9 @@ object DatabaseResultActionsHandler {
             append("\nDatabase: ${extractDatabaseName(result.databaseName)}\n")
         }
         MaterialAlertDialogBuilder(context)
-            .setTitle("Additional Information")
+            .setTitle(context.getString(R.string.ws_additional_info))
             .setMessage(message)
-            .setPositiveButton("OK", null)
+            .setPositiveButton(context.getString(R.string.ok), null)
             .show()
     }
 
@@ -622,7 +622,11 @@ object DatabaseResultActionsHandler {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText(label, text)
         clipboard.setPrimaryClip(clip)
-        Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            context,
+            context.getString(R.string.copied_to_clipboard, label),
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun generateQrCode(content: String): android.graphics.Bitmap? {

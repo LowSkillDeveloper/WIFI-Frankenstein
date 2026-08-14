@@ -66,13 +66,13 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _searchResults = MutableLiveData<List<LocationResult>>()
     private val _isLoading = MutableLiveData<Boolean>()
-    private val _error = MutableLiveData<String>()
+    private val _error = MutableLiveData<String?>()
     private val _savedApiKeys = MutableLiveData<ApiKeys>()
     private val _logMessages = MutableLiveData<String>()
 
     val searchResults: LiveData<List<LocationResult>> = _searchResults
     val isLoading: LiveData<Boolean> = _isLoading
-    val error: LiveData<String> = _error
+    val error: LiveData<String?> = _error
     val savedApiKeys: LiveData<ApiKeys> = _savedApiKeys
     val logMessages: LiveData<String> = _logMessages
 

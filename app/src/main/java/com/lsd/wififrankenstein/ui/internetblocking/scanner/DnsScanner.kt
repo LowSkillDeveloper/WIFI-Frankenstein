@@ -1,5 +1,7 @@
 package com.lsd.wififrankenstein.ui.internetblocking.scanner
 
+import android.content.Context
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.internetblocking.model.CheckStatus
 import com.lsd.wififrankenstein.ui.internetblocking.model.DnsCheckResult
 import com.lsd.wififrankenstein.util.Log
@@ -17,7 +19,9 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
-class DnsScanner {
+class DnsScanner(
+    private val context: Context
+) {
     companion object {
         private const val TAG = "DnsScanner"
         private const val RETRY_ATTEMPTS = 2
@@ -109,10 +113,10 @@ class DnsScanner {
         return withContext(Dispatchers.IO) {
             Log.d(TAG, "Starting DNS spoofing check for ${domains.size} domains")
             val probeDomain = domains.firstOrNull() ?: "example.com"
-            onProgress?.invoke(0, "Подготовка...")
+            onProgress?.invoke(0, context.getString(R.string.ib_dns_progress_prepare))
 
 
-            onProgress?.invoke(5, "Фаза 1: пинг серверов...")
+            onProgress?.invoke(5, context.getString(R.string.ib_dns_progress_ping))
             val udpPhase1 = quickPingAllUdp(probeDomain)
             val jsonPhase1 = quickPingAllJson(probeDomain)
             val wirePhase1 = quickPingAllWire(probeDomain)
@@ -136,7 +140,7 @@ class DnsScanner {
                     "  Wire ${it.server.name} (${it.server.ip}): ${it.ips ?: "null"}"
                 )
             }
-            onProgress?.invoke(25, "Пинг завершён")
+            onProgress?.invoke(25, context.getString(R.string.ib_dns_progress_ping_done))
 
 
             val silentUdp = udpPhase1.filter { it.ips == null }
@@ -149,7 +153,7 @@ class DnsScanner {
             )
 
             if (silentUdp.isNotEmpty() || silentJson.isNotEmpty() || silentWire.isNotEmpty()) {
-                onProgress?.invoke(30, "Фаза 2: полный тест молчащих серверов...")
+                onProgress?.invoke(30, context.getString(R.string.ib_dns_progress_phase2))
             }
 
             val (fullUdp, fullJson, fullWire) = if (silentUdp.isNotEmpty() || silentJson.isNotEmpty() || silentWire.isNotEmpty()) {
@@ -185,7 +189,7 @@ class DnsScanner {
                 Triple(emptyList(), emptyList(), emptyList())
             }
 
-            onProgress?.invoke(45, "Выбор серверов...")
+            onProgress?.invoke(45, context.getString(R.string.ib_dns_progress_select))
 
             Log.d(
                 TAG,
@@ -216,7 +220,7 @@ class DnsScanner {
             )
 
 
-            onProgress?.invoke(50, "Полный тест: UDP...")
+            onProgress?.invoke(50, context.getString(R.string.ib_dns_progress_full_udp))
             val udpProbe = if (udpServer != null) {
                 Log.d(TAG, "Using UDP server: ${udpServer.ip} (${udpServer.name})")
                 probeUdpAll(udpServer.ip, domains, timeoutMs)
@@ -226,7 +230,7 @@ class DnsScanner {
             }
             Log.d(TAG, "UDP probe results: ${udpProbe.results}")
 
-            onProgress?.invoke(65, "Полный тест: DoH JSON...")
+            onProgress?.invoke(65, context.getString(R.string.ib_dns_progress_full_json))
             val jsonProbe = if (jsonServer != null) {
                 Log.d(TAG, "Using DoH JSON server: ${jsonServer.ip} (${jsonServer.name})")
                 probeDoHJsonAll(jsonServer.ip, domains, timeoutMs)
@@ -236,7 +240,7 @@ class DnsScanner {
             }
             Log.d(TAG, "JSON probe results: ${jsonProbe.results}")
 
-            onProgress?.invoke(80, "Полный тест: DoH Wire...")
+            onProgress?.invoke(80, context.getString(R.string.ib_dns_progress_full_wire))
             val wireProbe = if (wireServer != null) {
                 Log.d(TAG, "Using DoH Wire server: ${wireServer.ip} (${wireServer.name})")
                 probeDoHWireAll(wireServer.ip, domains, timeoutMs)
@@ -246,7 +250,7 @@ class DnsScanner {
             }
             Log.d(TAG, "Wire probe results: ${wireProbe.results}")
 
-            onProgress?.invoke(90, "Анализ результатов...")
+            onProgress?.invoke(90, context.getString(R.string.ib_dns_progress_analyze))
 
             val ipCount = mutableMapOf<String, Int>()
             for (res in udpProbe.results.values) {
@@ -262,7 +266,7 @@ class DnsScanner {
                 Log.d(TAG, "No stub IPs detected. IP counts: $ipCount")
             }
 
-            onProgress?.invoke(95, "Генерация отчёта...")
+            onProgress?.invoke(95, context.getString(R.string.ib_dns_progress_report))
 
             Log.d(TAG, "=== Full Probe Results ===")
             Log.d(
@@ -363,10 +367,10 @@ class DnsScanner {
                     append(" | DoH Wire: ${wireIps.joinToString(", ") ?: "—"}")
                     if (wireStatus != null) append(" ($wireStatus)")
                     if (status == CheckStatus.DnsSpoof) {
-                        append("\nПересечение: пусто")
+                        append("\n" + context.getString(R.string.ib_dns_intersection_empty))
                     } else if (status == CheckStatus.Ok) {
                         val intersection = udpIps.toSet() intersect trusted
-                        append("\nПересечение: ${intersection.joinToString(", ")}")
+                        append("\n" + context.getString(R.string.ib_dns_intersection, intersection.joinToString(", ")))
                     }
                 }
 
@@ -389,7 +393,7 @@ class DnsScanner {
                     jsonRawResponse = rawJson
                 )
             }
-            onProgress?.invoke(100, "Готово")
+            onProgress?.invoke(100, context.getString(R.string.ib_dns_progress_done))
             results
         }
     }

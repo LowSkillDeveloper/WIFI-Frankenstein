@@ -1,10 +1,16 @@
 package com.lsd.wififrankenstein.ui.routerscan
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -12,6 +18,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textfield.TextInputLayout
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.data.RouterScanResult
@@ -24,6 +31,7 @@ import com.lsd.wififrankenstein.util.ChrootManager
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.RootlessManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.apache.commons.net.util.SubnetUtils
@@ -42,7 +50,28 @@ class RouterScanFragment : Fragment() {
     private lateinit var resultAdapter: RouterScanAdapter
     private lateinit var consoleAdapter: ConsoleAdapter
     private var consoleVisible = false
-    private var showFailed = true
+    private var showFailed = false
+    private var saveJob: Job? = null
+
+    private val exportLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        try {
+            requireContext().contentResolver.openOutputStream(uri)?.use { os ->
+                os.write(buildCsv().toByteArray())
+            }
+            Toast.makeText(requireContext(), R.string.router_scan_export_saved, Toast.LENGTH_SHORT)
+                .show()
+            viewModel.addConsoleLine(getString(R.string.rs_exported_csv))
+        } catch (e: Exception) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.router_scan_export_failed, e.message),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -127,7 +156,7 @@ class RouterScanFragment : Fragment() {
     private fun startChrootInstallation() {
         if (!chrootManager.isArmArchitecture()) {
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Unsupported Architecture")
+                .setTitle(getString(R.string.rs_unsupported_arch))
                 .setMessage(
                     getString(
                         R.string.chroot_arch_warning,
@@ -183,15 +212,7 @@ class RouterScanFragment : Fragment() {
     private fun setupRecyclerViews() {
         resultAdapter = RouterScanAdapter(
             { result ->
-                val message = """
-                    IP: ${result.ip}:${result.port}
-                    SSID: ${result.ssid}
-                    Auth: ${result.auth}
-                    Sec: ${result.sec}
-                    Key: ${result.psk}
-                    WPS: ${result.wps}
-                """.trimIndent()
-                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                showDetailsDialog(result)
             },
             { result ->
                 showFullOutputDialog(result)
@@ -238,13 +259,6 @@ class RouterScanFragment : Fragment() {
             showSettingsDialog()
         }
 
-        binding.buttonSave.setOnClickListener {
-            val ip = binding.editTextIp.text?.toString()?.trim() ?: ""
-            val ports = binding.editTextPorts.text?.toString()?.trim() ?: "80"
-            viewModel.saveState(ip, ports)
-            Toast.makeText(requireContext(), "Settings saved", Toast.LENGTH_SHORT).show()
-        }
-
         binding.buttonToggleConsole.setOnClickListener {
             toggleConsole()
         }
@@ -254,6 +268,26 @@ class RouterScanFragment : Fragment() {
             binding.chipShowFailed.isChecked = showFailed
             filterResults()
         }
+
+        setupAutoSave()
+    }
+
+    private fun setupAutoSave() {
+        val watcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                saveJob?.cancel()
+                saveJob = viewLifecycleOwner.lifecycleScope.launch {
+                    delay(400)
+                    val ip = binding.editTextIp.text?.toString()?.trim() ?: ""
+                    val ports = binding.editTextPorts.text?.toString()?.trim() ?: ""
+                    viewModel.saveState(ip, ports)
+                }
+            }
+        }
+        binding.editTextIp.addTextChangedListener(watcher)
+        binding.editTextPorts.addTextChangedListener(watcher)
     }
 
     private fun filterResults() {
@@ -271,26 +305,37 @@ class RouterScanFragment : Fragment() {
         viewModel.saveInputState(ipInput, portsInput)
 
         if (ipInput.isEmpty()) {
-            Toast.makeText(requireContext(), "Enter IP address or range", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.rs_enter_ip),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
 
         val ips = parseIpRange(ipInput)
         if (ips.isEmpty()) {
-            Toast.makeText(requireContext(), "Invalid IP address or range", Toast.LENGTH_SHORT)
-                .show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.rs_invalid_ip),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
 
         if (ips.size > 500) {
-            Toast.makeText(requireContext(), "Range too large. Max 500 IPs.", Toast.LENGTH_LONG)
-                .show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.rs_range_too_large),
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
 
         val ports = parsePorts(portsInput)
         if (ports.isEmpty()) {
-            Toast.makeText(requireContext(), "Invalid port", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.rs_invalid_port), Toast.LENGTH_SHORT)
+                .show()
             return
         }
 
@@ -301,17 +346,30 @@ class RouterScanFragment : Fragment() {
         viewModel.state.observe(viewLifecycleOwner) { state ->
             val isScanning = state.isScanning
 
-            binding.buttonScan.text = if (isScanning) "Cancel" else "Start Scan"
+            binding.buttonScan.text = if (isScanning) {
+                getString(R.string.router_scan_cancel)
+            } else {
+                getString(R.string.router_scan_start_scan)
+            }
+
+            val percent = if (state.totalToScan > 0) {
+                (state.rsCount * 100) / state.totalToScan
+            } else {
+                0
+            }
+            binding.textScanPercent.text = getString(R.string.progress_percent, percent)
 
             binding.progressBar.progress = state.rsCount.coerceAtMost(state.totalToScan)
             binding.progressBar.max = state.totalToScan
             binding.pingProgressBar.progress = state.pingCount.coerceAtMost(state.totalToScan)
             binding.pingProgressBar.max = state.totalToScan
 
-            binding.textScanned.text = "Scanned: ${state.rsCount}/${state.totalToScan}"
-            binding.textPing.text = "Ping: ${state.successfulPingCount}/${state.pingCount}"
-            binding.textSuccess.text = "Success: ${state.successCount}"
-            binding.textFailure.text = "Failed: ${state.failureCount}"
+            binding.textScanned.text =
+                getString(R.string.rs_scanned, state.rsCount, state.totalToScan)
+            binding.textPing.text =
+                getString(R.string.rs_ping, state.successfulPingCount, state.pingCount)
+            binding.textSuccess.text = getString(R.string.rs_success, state.successCount)
+            binding.textFailure.text = getString(R.string.rs_failed, state.failureCount)
 
             if (state.error != null) {
                 Toast.makeText(requireContext(), state.error, Toast.LENGTH_SHORT).show()
@@ -402,8 +460,8 @@ class RouterScanFragment : Fragment() {
         val timeoutInput = dialogView.findViewById<TextInputLayout>(R.id.timeoutInput)
         val rsTimeoutInput = dialogView.findViewById<TextInputLayout>(R.id.rsTimeoutInput)
         val pingBeforeScanSwitch =
-            dialogView.findViewById<android.widget.Switch>(R.id.pingBeforeScanSwitch)
-        val saveToDbSwitch = dialogView.findViewById<android.widget.Switch>(R.id.saveToDbSwitch)
+            dialogView.findViewById<SwitchMaterial>(R.id.pingBeforeScanSwitch)
+        val saveToDbSwitch = dialogView.findViewById<SwitchMaterial>(R.id.saveToDbSwitch)
 
         maxThreadsInput.editText?.setText(settings.maxThreads.toString())
         timeoutInput.editText?.setText(settings.timeout.toString())
@@ -412,9 +470,9 @@ class RouterScanFragment : Fragment() {
         saveToDbSwitch.isChecked = settings.saveToLocalDb
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Router Scan Settings")
+            .setTitle(getString(R.string.rs_settings_title))
             .setView(dialogView)
-            .setPositiveButton("Save") { _, _ ->
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
                 val maxThreads = maxThreadsInput.editText?.text?.toString()?.toIntOrNull() ?: 10
                 val timeout = timeoutInput.editText?.text?.toString()?.toIntOrNull() ?: 1000
                 val rsTimeout =
@@ -428,9 +486,13 @@ class RouterScanFragment : Fragment() {
                     pingBefore,
                     saveToDb
                 )
-                Toast.makeText(requireContext(), "Settings updated", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.rs_settings_updated),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
@@ -445,15 +507,19 @@ class RouterScanFragment : Fragment() {
         val successful = viewModel.getSuccessfulResults()
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Scan Complete")
+            .setTitle(getString(R.string.rs_scan_complete_title))
             .setMessage(
-                "Scanned: $totalCount\n" +
-                        "Successful: $successCount\n" +
-                        "Failed: $failureCount\n" +
-                        "Active IPs: $activeIps / $pingedCount"
+                getString(
+                    R.string.rs_scan_complete_message,
+                    totalCount,
+                    successCount,
+                    failureCount,
+                    activeIps,
+                    pingedCount
+                )
             )
-            .setPositiveButton("OK", null)
-            .setNeutralButton("Save") { _, _ ->
+            .setPositiveButton(getString(R.string.ok), null)
+            .setNeutralButton(getString(R.string.save)) { _, _ ->
                 exportToCsv()
             }
             .apply {
@@ -469,29 +535,127 @@ class RouterScanFragment : Fragment() {
     private fun exportToCsv() {
         val state = viewModel.state.value ?: return
         if (state.results.isEmpty()) {
-            Toast.makeText(requireContext(), "No results to export", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.rs_no_results_export),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
+        exportLauncher.launch("router_scan_results.csv")
+    }
 
-        val csv = buildString {
-            appendLine("\"IP Address\";\"Port\";\"Time (ms)\";\"Status\";\"Server Type\";\"Authorization\";\"Sec\";\"Server name\";\"BSSID\";\"ESSID\";\"Key\";\"WPS PIN\";\"Latitude\";\"Longitude\"")
+    private fun buildCsv(): String {
+        val state = viewModel.state.value ?: return ""
+        return buildString {
+            appendLine("\"IP Address\";\"Port\";\"Time (ms)\";\"Status\";\"Server Type\";\"Authorization\";\"Sec\";\"Server name\";\"BSSID\";\"ESSID\";\"Key\";\"WPS PIN\";\"Latitude\";\"Longitude\";\"LAN IP\";\"LAN Mask\";\"WAN IP\";\"WAN Mask\";\"WAN Gate\";\"DNS\"")
             state.results.filter { it.success }.forEach { result ->
                 appendLine(
-                    "\"${result.ip}\";\"${result.port}\";\"\";\"${result.status}\";\"${result.serverType}\";\"${result.auth}\";\"${result.sec}\";\"${result.title}\";\"${result.bssid}\";\"${result.ssid}\";\"${result.psk}\";\"${result.wps}\";\"${result.lat}\";\"${result.lon}\""
+                    "\"${result.ip}\";\"${result.port}\";\"\";\"${result.status}\";\"${result.serverType}\";\"${result.auth}\";\"${result.sec}\";\"${result.title}\";\"${result.bssid}\";\"${result.ssid}\";\"${result.psk}\";\"${result.wps}\";\"${result.lat}\";\"${result.lon}\";\"${result.lanIp}\";\"${result.lanMask}\";\"${result.wanIp}\";\"${result.wanMask}\";\"${result.wanGate}\";\"${result.dns}\""
                 )
             }
         }
+    }
 
-        requireContext().openFileOutput(
-            "router_scan_results.csv",
-            android.content.Context.MODE_PRIVATE
-        ).use {
-            it.write(csv.toByteArray())
+    private fun showDetailsDialog(result: RouterScanResult) {
+        val content = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24, 8, 24, 8)
         }
 
-        Toast.makeText(requireContext(), "Exported to router_scan_results.csv", Toast.LENGTH_SHORT)
+        val fields = listOf(
+            "IP" to "${result.ip}:${result.port}",
+            "Status" to result.status,
+            "SSID" to result.ssid,
+            "BSSID" to result.bssid,
+            "Auth" to result.auth,
+            "Sec" to result.sec,
+            "PSK" to result.psk,
+            "WPS" to result.wps,
+            "Title" to result.title,
+            "Type" to result.serverType,
+            "LAN IP" to result.lanIp,
+            "LAN Mask" to result.lanMask,
+            "WAN IP" to result.wanIp,
+            "WAN Mask" to result.wanMask,
+            "WAN Gate" to result.wanGate,
+            "DNS" to result.dns,
+            "Lat" to result.lat,
+            "Lon" to result.lon
+        ).filter { it.second.isNotEmpty() }
+
+        for ((label, value) in fields) {
+            val row = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                minimumHeight = (40 * resources.displayMetrics.density).toInt()
+            }
+
+            val labelView = TextView(requireContext()).apply {
+                text = label
+                textSize = 12f
+                setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    marginEnd = (12 * resources.displayMetrics.density).toInt()
+                }
+            }
+            row.addView(labelView)
+
+            val valueView = TextView(requireContext()).apply {
+                text = value
+                textSize = 14f
+                setTextIsSelectable(true)
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    1f
+                )
+            }
+            row.addView(valueView)
+
+            val copyButton = ImageButton(requireContext()).apply {
+                setImageResource(R.drawable.ic_content_copy)
+                val attrs = intArrayOf(android.R.attr.selectableItemBackgroundBorderless)
+                val ta = context.obtainStyledAttributes(attrs)
+                val bgRes = ta.getResourceId(0, 0)
+                ta.recycle()
+                setBackgroundResource(bgRes)
+                contentDescription = getString(R.string.copy)
+                setOnClickListener { copyField(label, value) }
+                layoutParams = LinearLayout.LayoutParams(
+                    (32 * resources.displayMetrics.density).toInt(),
+                    (32 * resources.displayMetrics.density).toInt()
+                )
+            }
+            row.addView(copyButton)
+
+            content.addView(row)
+        }
+
+        val scrollView = android.widget.ScrollView(requireContext()).apply {
+            addView(content, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.rs_ip_port, result.ip, result.port))
+            .setView(scrollView)
+            .setPositiveButton(getString(R.string.close), null)
             .show()
-        viewModel.addConsoleLine("[+] Exported CSV to router_scan_results.csv")
+    }
+
+    private fun copyField(label: String, value: String) {
+        try {
+            val clipboard =
+                requireContext().getSystemService(android.content.ClipboardManager::class.java)
+            clipboard?.setPrimaryClip(android.content.ClipData.newPlainText(label, value))
+            Toast.makeText(requireContext(), getString(R.string.copied, label), Toast.LENGTH_SHORT)
+                .show()
+        } catch (_: Exception) {
+        }
     }
 
     private fun showFullOutputDialog(result: RouterScanResult) {
@@ -503,7 +667,7 @@ class RouterScanFragment : Fragment() {
         }
         val textView = android.widget.TextView(requireContext()).apply {
             textSize = 11f
-            setTextColor(ContextCompat.getColor(context, android.R.color.primary_text_dark))
+            setTextColor(ContextCompat.getColor(context, R.color.text_primary))
             setPadding(16, 16, 16, 16)
             text = result.fullOutput
             setTextIsSelectable(true)
@@ -516,9 +680,9 @@ class RouterScanFragment : Fragment() {
         )
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("${result.ip}:${result.port} - Full Output")
+            .setTitle(getString(R.string.rs_full_output_title, result.ip, result.port))
             .setView(scrollView)
-            .setPositiveButton("OK", null)
+            .setPositiveButton(getString(R.string.ok), null)
             .setOnDismissListener {
                 try {
                     val clipboard =
@@ -528,7 +692,7 @@ class RouterScanFragment : Fragment() {
                     clipboard?.setPrimaryClip(clip)
                     Toast.makeText(
                         requireContext(),
-                        "Output copied to clipboard",
+                        getString(R.string.rs_output_copied),
                         Toast.LENGTH_SHORT
                     ).show()
                 } catch (_: Exception) {
@@ -540,7 +704,11 @@ class RouterScanFragment : Fragment() {
     private fun toggleConsole() {
         consoleVisible = !consoleVisible
         binding.consoleContent.visibility = if (consoleVisible) View.VISIBLE else View.GONE
-        binding.buttonToggleConsole.text = if (consoleVisible) "Console ▲" else "Console ▼"
+        binding.buttonToggleConsole.text = if (consoleVisible) {
+            getString(R.string.router_scan_console_close)
+        } else {
+            getString(R.string.router_scan_console_open)
+        }
     }
 
     private fun restoreState() {
@@ -550,7 +718,8 @@ class RouterScanFragment : Fragment() {
             binding.editTextPorts.setText(ports)
         }
         val settings = viewModel.getScanSettings()
-        binding.editTextMaxThreads.text = "Threads: ${settings.maxThreads}"
+        binding.editTextMaxThreads.text =
+            getString(R.string.router_scan_threads_format, settings.maxThreads)
     }
 
     private fun uploadSingleTo3WiFi(result: RouterScanResult) {
@@ -592,15 +761,32 @@ class RouterScanFragment : Fragment() {
                     .setSingleChoiceItems(names, 0) { _, which -> selectedIndex = which }
                     .setPositiveButton(android.R.string.ok) { _, _ ->
                         if (selectedIndex >= 0) {
-                            doUpload(results, servers[selectedIndex])
+                            confirmAndUpload(results, servers[selectedIndex])
                         }
                     }
                     .setNegativeButton(android.R.string.cancel, null)
                     .show()
                 return@launch
             }
-            doUpload(results, server)
+            confirmAndUpload(results, server)
         }
+    }
+
+    private fun confirmAndUpload(results: List<RouterScanResult>, server: DbItem) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.router_scan_upload_3wifi)
+            .setMessage(
+                getString(
+                    R.string.router_scan_upload_confirm_message,
+                    results.size,
+                    server.path
+                )
+            )
+            .setPositiveButton(R.string.router_scan_upload_3wifi) { _, _ ->
+                doUpload(results, server)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun doUpload(results: List<RouterScanResult>, server: DbItem) {
@@ -629,6 +815,8 @@ class RouterScanFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        saveJob?.cancel()
+        saveJob = null
         _binding = null
     }
 

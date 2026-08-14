@@ -6,6 +6,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.ItemTcpResultBinding
 import com.lsd.wififrankenstein.ui.internetblocking.model.TcpCheckResult
 
@@ -14,17 +15,18 @@ class TcpResultAdapter : ListAdapter<TcpCheckResult, TcpResultAdapter.ViewHolder
     class ViewHolder(private val binding: ItemTcpResultBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(result: TcpCheckResult) {
-            binding.provider.text = "${result.provider} (${result.id})"
-            binding.ipPort.text = "${result.ip}:${result.port}"
-            binding.status.text = result.status.label()
+            val ctx = binding.root.context
+            binding.provider.text = ctx.getString(R.string.ib_tcp_provider, result.provider, result.id)
+            binding.ipPort.text = ctx.getString(R.string.ib_tcp_ipport, result.ip, result.port)
+            binding.status.text = result.status.label(ctx)
             binding.status.setTextColor(
-                ContextCompat.getColor(binding.root.context, result.status.colorRes())
+                ContextCompat.getColor(ctx, result.status.colorRes())
             )
 
             binding.details.text = buildString {
-                append("Alive: ${if (result.alive) "Yes" else "No"}")
-                result.rtt?.let { append("\nRTT: ${String.format("%.2f", it)}s") }
-                result.blockKb?.let { append("\nBlock at: ${it}KB") }
+                append(ctx.getString(R.string.ib_tcp_alive, ctx.getString(if (result.alive) R.string.yes else R.string.no)))
+                result.rtt?.let { append(ctx.getString(R.string.ib_tcp_rtt, it)) }
+                result.blockKb?.let { append(ctx.getString(R.string.ib_tcp_block_at, it)) }
                 result.blockDetail?.let { append("\n$it") }
             }
         }

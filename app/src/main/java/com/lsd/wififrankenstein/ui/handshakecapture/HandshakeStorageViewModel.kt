@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.network.NetworkException
 import com.lsd.wififrankenstein.network.OhcClient
 import com.lsd.wififrankenstein.network.WpaSecClient
@@ -773,7 +774,7 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                             0,
                             1,
                             emptyList(),
-                            listOf("Download failed: ${e.message}")
+                            listOf(getApplication<Application>().getString(R.string.hsc_download_failed, e.message))
                         )
                     )
                 }
@@ -783,9 +784,23 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
 
     fun importFromText(text: String, onResult: (HandshakeImportManager.ImportResult) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
-            val result = importManager.importFromText(text)
-            loadStorage()
-            withContext(Dispatchers.Main) { onResult(result) }
+            try {
+                val result = importManager.importFromText(text)
+                loadStorage()
+                withContext(Dispatchers.Main) { onResult(result) }
+            } catch (e: Exception) {
+                Log.e(tag, "importFromText failed", e)
+                withContext(Dispatchers.Main) {
+                    onResult(
+                        HandshakeImportManager.ImportResult(
+                            0,
+                            1,
+                            emptyList(),
+                            listOf("Import failed: ${e.message}")
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -796,7 +811,7 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
         if (path != null) {
             return "${wpaSecDictManager.getDictSizeMb()} • $path"
         }
-        return "Not downloaded"
+        return getApplication<Application>().getString(R.string.hsc_not_downloaded)
     }
 
     fun downloadWpaSecDict(onResult: (String?) -> Unit) {

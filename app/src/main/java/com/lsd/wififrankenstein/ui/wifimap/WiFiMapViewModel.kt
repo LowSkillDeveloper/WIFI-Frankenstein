@@ -132,6 +132,10 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         get() = settingsPrefs.getBoolean("map_rdap_enrichment", false)
         set(value) = settingsPrefs.edit { putBoolean("map_rdap_enrichment", value) }
 
+    var enableIpRangeCounts: Boolean
+        get() = settingsPrefs.getBoolean("map_ip_range_counts", false)
+        set(value) = settingsPrefs.edit { putBoolean("map_ip_range_counts", value) }
+
     var searchRadius: Float
         get() = settingsPrefs.getFloat("map_search_radius", 5f)
         set(value) = settingsPrefs.edit { putFloat("map_search_radius", value) }
@@ -807,7 +811,12 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 Log.d(TAG, "Load points cancelled")
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading points", e)
-                _error.postValue("Error loading map data: ${e.localizedMessage}")
+                _error.postValue(
+                    getApplication<Application>().getString(
+                        R.string.wm_error_loading_map,
+                        e.localizedMessage
+                    )
+                )
             } finally {
                 isLoadingPoints = false
                 _loadingProgress.postValue(100)
@@ -930,9 +939,12 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                         latitude = mapPoint.latitude,
                         longitude = mapPoint.longitude,
                         bssidDecimal = -1L,
-                        source = "Server Cluster",
+                        source = getApplication<Application>().getString(R.string.wm_source_server_cluster),
                         databaseId = database.id,
-                        essid = "Cluster (${mapPoint.count} points)",
+                        essid = getApplication<Application>().getString(
+                            R.string.wm_cluster_label,
+                            mapPoint.count
+                        ),
                         color = getColorForDatabase(database.id),
                         clusterCount = mapPoint.count,
                         isCluster = true
@@ -1695,7 +1707,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                         info["time"]?.toString() ?: info["timestamp"]?.toString()
 
                                     NetworkRecord(
-                                        essid = essid ?: "Unknown SSID",
+                                        essid = essid
+                                            ?: getApplication<Application>().getString(R.string.unknown_ssid),
                                         password = password,
                                         wpsPin = wpsPin,
                                         routerModel = routerModel,
@@ -1997,7 +2010,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         lat: Double,
         lon: Double,
         radius: Double,
-        rdapEnrichment: Boolean = false
+        rdapEnrichment: Boolean = false,
+        countPoints: Boolean = false
     ) {
         ipRangeSearchJob?.cancel()
         _ipRangesLoading.value = true
@@ -2010,37 +2024,49 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                 Log.d(
                     "WiFiMapVM",
-                    "searchIpRanges: ${selectedDbs.size} selected DBs, types=${selectedDbs.map { it.dbType }}, rdapEnrichment=$rdapEnrichment"
+                    "searchIpRanges: ${selectedDbs.size} selected DBs, types=${selectedDbs.map { it.dbType }}, rdapEnrichment=$rdapEnrichment, countPoints=$countPoints"
                 )
 
-                val seenRanges = HashSet<String>()
                 val allRanges = ArrayList<IpRangeResult>()
+                val rangesById = HashMap<String, IpRangeResult>()
 
                 for (db in selectedDbs) {
                     if (db.dbType == DbType.SQLITE_FILE_P3WIFI || db.dbType == DbType.SMARTLINK_SQLITE_FILE_P3WIFI) {
                         val helper = getHelper(db)
                         if (helper is SQLite3WiFiHelper) {
                             val dbColor = getColorForDatabase(db.id)
-                            val ranges = helper.getIpRanges(lat, lon, radius, true)
+                            val ranges = helper.getIpRanges(lat, lon, radius, true, countPoints)
 
                             for (map in ranges) {
                                 val rangeStr = map["range"] as? String ?: ""
-                                if (rangeStr.isNotEmpty() && seenRanges.add(rangeStr)) {
-                                    allRanges.add(
-                                        IpRangeResult(
-                                            range = rangeStr,
-                                            netname = if (rdapEnrichment) (map["netname"] as? String
-                                                ?: "") else "",
-                                            description = if (rdapEnrichment) (map["descr"] as? String
-                                                ?: "") else "",
-                                            country = if (rdapEnrichment) (map["country"] as? String
-                                                ?: "") else "",
-                                            sourceName = db.type,
-                                            databaseId = db.id,
-                                            databaseColor = dbColor
+                                if (rangeStr.isEmpty()) continue
+
+                                val existing = rangesById[rangeStr]
+                                val mapCount = (map["count"] as? Int) ?: 0
+                                if (existing != null) {
+                                    if (countPoints) {
+                                        rangesById[rangeStr] = existing.copy(
+                                            pointCount = existing.pointCount + mapCount
                                         )
-                                    )
+                                    }
+                                    continue
                                 }
+
+                                val result = IpRangeResult(
+                                    range = rangeStr,
+                                    netname = if (rdapEnrichment) (map["netname"] as? String
+                                        ?: "") else "",
+                                    description = if (rdapEnrichment) (map["descr"] as? String
+                                        ?: "") else "",
+                                    country = if (rdapEnrichment) (map["country"] as? String
+                                        ?: "") else "",
+                                    sourceName = db.type,
+                                    databaseId = db.id,
+                                    databaseColor = dbColor,
+                                    pointCount = if (countPoints) mapCount else 0
+                                )
+                                rangesById[rangeStr] = result
+                                allRanges.add(result)
                             }
                         }
                     }
@@ -2091,15 +2117,15 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     private fun getSourceLabel(sourceValue: Int?): String? {
         if (sourceValue == null) return null
         return when (sourceValue) {
-            0 -> "3WiFi"
-            1 -> "3WiFi (dead)"
-            2 -> "Google"
-            3 -> "Yandex"
-            4 -> "Apple"
-            5 -> "Apple"
-            6 -> "Microsoft"
-            8 -> "Skyhook"
-            else -> "Unknown ($sourceValue)"
+            0 -> getApplication<Application>().getString(R.string.source_3wifi)
+            1 -> getApplication<Application>().getString(R.string.source_3wifi_dead)
+            2 -> getApplication<Application>().getString(R.string.source_google)
+            3 -> getApplication<Application>().getString(R.string.source_yandex)
+            4 -> getApplication<Application>().getString(R.string.source_apple)
+            5 -> getApplication<Application>().getString(R.string.source_apple)
+            6 -> getApplication<Application>().getString(R.string.source_microsoft)
+            8 -> getApplication<Application>().getString(R.string.source_skyhook)
+            else -> getApplication<Application>().getString(R.string.source_unknown, sourceValue)
         }
     }
 

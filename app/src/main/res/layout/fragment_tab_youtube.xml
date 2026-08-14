@@ -29,14 +29,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
-                    android:text="YouTube Check"
+                    android:text="@string/youtube_check"
                     android:textAppearance="?attr/textAppearanceHeadline6" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="20dp"
-                    android:text="Tests YouTube endpoint accessibility and download speed to detect throttling or blocking"
+                    android:text="@string/ib_youtube_desc"
                     android:textAppearance="?attr/textAppearanceBody2"
                     android:textColor="?android:attr/textColorSecondary" />
 
@@ -44,7 +44,7 @@
                     android:id="@+id/buttonCheckYoutube"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="Run YouTube Check"
+                    android:text="@string/ib_run_youtube_check"
                     app:cornerRadius="8dp"
                     app:icon="@drawable/ic_youtube"
                     app:iconGravity="textStart" />
@@ -93,7 +93,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="OK"
+                        android:text="@string/ok"
                         android:textAppearance="?attr/textAppearanceSubtitle1"
                         android:textColor="@android:color/white"
                         android:textStyle="bold" />
@@ -117,7 +117,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="Endpoints"
+                        android:text="@string/endpoints"
                         android:textAppearance="?attr/textAppearanceSubtitle1"
                         android:textStyle="bold" />
 
@@ -126,7 +126,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="10dp"
-                        android:text="0/5 reachable"
+                        android:text="@string/reachable_0_5"
                         android:textAppearance="?attr/textAppearanceBody2" />
 
                     <LinearLayout
@@ -145,7 +145,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="Download Speed"
+                        android:text="@string/download_speed"
                         android:textAppearance="?attr/textAppearanceSubtitle1"
                         android:textStyle="bold" />
 
@@ -166,7 +166,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="8dp"
-                            android:text="Download:"
+                            android:text="@string/download_label"
                             android:textAppearance="?attr/textAppearanceBody2"
                             android:textStyle="bold" />
 
@@ -175,7 +175,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="—"
+                            android:text="@string/dash_placeholder"
                             android:textAppearance="?attr/textAppearanceBody2" />
 
                         <TextView
@@ -246,7 +246,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     android:gravity="center"
-                    android:text="No data yet"
+                    android:text="@string/no_data_yet"
                     android:textAppearance="?attr/textAppearanceSubtitle1"
                     android:textColor="?android:attr/textColorHint" />
 
@@ -254,7 +254,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
-                    android:text="Tap the button above to run the check"
+                    android:text="@string/tap_to_run_check"
                     android:textAppearance="?attr/textAppearanceBody2"
                     android:textColor="?android:attr/textColorHint" />
             </LinearLayout>

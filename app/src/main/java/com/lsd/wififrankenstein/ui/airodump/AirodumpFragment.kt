@@ -285,13 +285,14 @@ class AirodumpFragment : Fragment() {
 
         backgroundAttached = true
         viewModel.resetCaptureStats()
-        viewModel.addConsoleLine("[*] Attached to background capture")
+        viewModel.addConsoleLine(getString(R.string.aird_attached_background))
         HandshakeCaptureService.getConsoleHistory().forEach { viewModel.addConsoleLine(it) }
         HandshakeCaptureService.getLatestStats()?.let { viewModel.updateCaptureStats(it) }
 
         binding.textAttackTargetSsid.text =
             active.ssid.ifEmpty { getString(R.string.pixiedust_hidden_network) }
-        binding.textAttackTargetInfo.text = "${active.bssid}  ·  CH ${active.channel}"
+        binding.textAttackTargetInfo.text =
+            getString(R.string.aird_target_info, active.bssid, active.channel)
 
         attachBackgroundReceiver()
         startBackgroundStatsPolling()
@@ -331,9 +332,9 @@ class AirodumpFragment : Fragment() {
                     HandshakeCaptureService.BROADCAST_CAPTURE_EVENT -> {
                         when (intent.getStringExtra(HandshakeCaptureService.EXTRA_EVENT)) {
                             "HANDSHAKE" ->
-                                viewModel.addConsoleLine("[+] Handshake detected by airodump")
+                                viewModel.addConsoleLine(getString(R.string.aird_hs_detected_airodump))
 
-                            "PMKID" -> viewModel.addConsoleLine("[+] PMKID detected by airodump")
+                            "PMKID" -> viewModel.addConsoleLine(getString(R.string.aird_pmkid_detected_airodump))
                         }
                     }
 
@@ -342,7 +343,7 @@ class AirodumpFragment : Fragment() {
                         val valid =
                             intent.getBooleanExtra(HandshakeCaptureService.EXTRA_VALID, false)
                         if (valid && !saved.isNullOrEmpty()) {
-                            viewModel.addConsoleLine("[+] Saved to storage: $saved")
+                            viewModel.addConsoleLine(getString(R.string.aird_saved_storage, saved))
                             Toast.makeText(
                                 requireContext(),
                                 R.string.background_capture_saved,
@@ -351,13 +352,13 @@ class AirodumpFragment : Fragment() {
                             detachBackgroundCapture()
                             navigateToStorage(saved)
                         } else {
-                            viewModel.addConsoleLine("[-] Background capture finished — no valid handshake")
+                            viewModel.addConsoleLine(getString(R.string.aird_bg_finished_no_hs))
                         }
                     }
 
                     HandshakeCaptureService.BROADCAST_CAPTURE_ERROR -> {
                         val msg = intent.getStringExtra(HandshakeCaptureService.EXTRA_ERROR_MESSAGE)
-                        viewModel.addConsoleLine("[!] Background capture error: $msg")
+                        viewModel.addConsoleLine(getString(R.string.aird_bg_error, msg))
                     }
                 }
             }
@@ -567,8 +568,11 @@ class AirodumpFragment : Fragment() {
 
         binding.buttonContinueToScan.setOnClickListener {
             if (captureInterface.isBlank()) {
-                Toast.makeText(requireContext(), "Select a capture interface", Toast.LENGTH_SHORT)
-                    .show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.aird_select_capture_interface),
+                    Toast.LENGTH_SHORT
+                ).show()
                 return@setOnClickListener
             }
             goToStep(Step.SCAN)
@@ -961,17 +965,17 @@ class AirodumpFragment : Fragment() {
         val isWpa3 = network.securityType.contains("WPA3", ignoreCase = true) ||
                 network.authSuite.uppercase() == "SAE" || network.authSuite.uppercase() == "OWE"
         val message = buildString {
-            appendLine("SSID: $ssid")
-            appendLine("BSSID: ${network.bssid}")
-            appendLine("Channel: ${network.channel}")
+            appendLine(getString(R.string.aird_dialog_ssid, ssid))
+            appendLine(getString(R.string.aird_dialog_bssid, network.bssid))
+            appendLine(getString(R.string.aird_dialog_channel, network.channel))
             if (network.securityType.isNotEmpty()) {
-                appendLine("Security: ${network.securityType}")
+                appendLine(getString(R.string.aird_dialog_security, network.securityType))
             }
             appendLine()
             if (isWpa3) {
-                appendLine("⚠ WARNING: WPA3/SAE network detected!")
-                appendLine("Traditional EAPOL handshake capture is NOT possible for WPA3.")
-                appendLine("The capture will produce no usable hash.")
+                appendLine(getString(R.string.aird_wpa3_dialog_warning))
+                appendLine(getString(R.string.aird_wpa3_dialog_eapol))
+                appendLine(getString(R.string.aird_wpa3_dialog_no_hash))
                 appendLine()
             }
             append(getString(R.string.airodump_target_confirm_message))
@@ -1000,7 +1004,7 @@ class AirodumpFragment : Fragment() {
                 ?: run {
                     Toast.makeText(
                         requireContext(),
-                        "No capture interface selected",
+                        getString(R.string.aird_no_capture_interface),
                         Toast.LENGTH_SHORT
                     ).show()
                     return
@@ -1011,17 +1015,25 @@ class AirodumpFragment : Fragment() {
         val bssid = if (binding.tabLayout.selectedTabPosition == MODE_MANUAL) {
             val input = binding.editTextBssid.text?.toString()?.trim() ?: ""
             if (input.isEmpty()) {
-                Toast.makeText(requireContext(), "Enter BSSID", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.enter_bssid), Toast.LENGTH_SHORT)
+                    .show()
                 return
             }
             normalizeBssid(input) ?: run {
-                Toast.makeText(requireContext(), "Invalid BSSID format", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.invalid_bssid_format),
+                    Toast.LENGTH_SHORT
+                ).show()
                 return
             }
         } else {
             selectedNetwork?.bssid?.uppercase() ?: run {
-                Toast.makeText(requireContext(), "Select a network first", Toast.LENGTH_SHORT)
-                    .show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.aird_select_network_first),
+                    Toast.LENGTH_SHORT
+                ).show()
                 return
             }
         }
@@ -1066,7 +1078,8 @@ class AirodumpFragment : Fragment() {
 
         binding.textAttackTargetSsid.text =
             ssid.ifEmpty { getString(R.string.pixiedust_hidden_network) }
-        binding.textAttackTargetInfo.text = "$bssid  ·  CH $channel"
+        binding.textAttackTargetInfo.text =
+            getString(R.string.aird_target_info, bssid, channel)
 
         renderInterfaceChips()
         goToStep(Step.ATTACK)
@@ -1086,7 +1099,8 @@ class AirodumpFragment : Fragment() {
         val bssid = selectedNetwork?.bssid?.uppercase()
             ?: viewModel.captureStats.value?.targetBssid?.uppercase()
         if (bssid.isNullOrEmpty()) {
-            Toast.makeText(requireContext(), "No target selected", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.aird_no_target_selected), Toast.LENGTH_SHORT)
+                .show()
             return
         }
         val sheet = BottomSheetDialog(requireContext())
@@ -1101,7 +1115,7 @@ class AirodumpFragment : Fragment() {
         view.findViewById<View>(R.id.buttonDeauthAllClients).setOnClickListener {
             sheet.dismiss()
             if (currentClients.isEmpty()) {
-                Toast.makeText(requireContext(), "No clients found yet", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.aird_no_clients_yet), Toast.LENGTH_SHORT).show()
             } else {
                 performDeauth(bssid, "*ALL*")
             }
@@ -1262,7 +1276,7 @@ class AirodumpFragment : Fragment() {
             )
         )
         if (!dir.exists() || !dir.isDirectory) {
-            Toast.makeText(requireContext(), "Storage folder not found", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.aird_storage_folder_not_found), Toast.LENGTH_SHORT).show()
             return
         }
         try {
@@ -1293,7 +1307,7 @@ class AirodumpFragment : Fragment() {
             } catch (e2: Exception) {
                 Toast.makeText(
                     requireContext(),
-                    "Cannot open folder: ${e2.message}",
+                    getString(R.string.aird_cannot_open_folder, e2.message),
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -1484,7 +1498,7 @@ class AirodumpFragment : Fragment() {
                     if (capFile != null) {
                         showHcxpcapngtoolResult(capFile, isPmkid = false)
                     } else {
-                        viewModel.addConsoleLine("[-] No cap file path available for verification")
+                        viewModel.addConsoleLine(getString(R.string.aird_no_cap_path))
                     }
                 }
             }
@@ -1497,7 +1511,7 @@ class AirodumpFragment : Fragment() {
                     if (capFile != null) {
                         showHcxpcapngtoolResult(capFile, isPmkid = true)
                     } else {
-                        viewModel.addConsoleLine("[-] No cap file path available for verification")
+                        viewModel.addConsoleLine(getString(R.string.aird_no_cap_path))
                     }
                 }
             }
@@ -1505,7 +1519,7 @@ class AirodumpFragment : Fragment() {
     }
 
     private fun showHcxpcapngtoolResult(capFile: String, isPmkid: Boolean) {
-        viewModel.addConsoleLine("[*] Running hcxpcapngtool verification...")
+        viewModel.addConsoleLine(getString(R.string.aird_running_hcx_verify))
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val output = viewModel.runHcxpcapngtool(capFile, isPmkid)
@@ -1522,7 +1536,7 @@ class AirodumpFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    viewModel.addConsoleLine("[-] hcxpcapngtool error: ${e.message}")
+                    viewModel.addConsoleLine(getString(R.string.aird_hcx_error, e.message))
                 }
             }
         }
@@ -1536,7 +1550,7 @@ class AirodumpFragment : Fragment() {
         } else {
             getString(R.string.airodump_hcx_no_handshake)
         }
-        val displayText = "$statusText\n\n--- hcxpcapngtool output ---\n$output"
+        val displayText = "$statusText\n\n${getString(R.string.aird_hcx_output_separator)}\n$output"
             .lines()
             .take(80)
             .joinToString("\n")
@@ -1572,8 +1586,8 @@ class AirodumpFragment : Fragment() {
         viewModel.captureEvents.observe(viewLifecycleOwner) { events ->
             for (event in events) {
                 when (event) {
-                    "PMKID" -> viewModel.addConsoleLine("[+] PMKID detected by airodump")
-                    "HANDSHAKE" -> viewModel.addConsoleLine("[+] Handshake detected by airodump")
+                    "PMKID" -> viewModel.addConsoleLine(getString(R.string.aird_pmkid_detected_airodump))
+                    "HANDSHAKE" -> viewModel.addConsoleLine(getString(R.string.aird_hs_detected_airodump))
                 }
             }
             if (events.isNotEmpty()) {
@@ -1899,7 +1913,9 @@ class AirodumpFragment : Fragment() {
             if (showToggle) {
                 val isMonitor = item.mode == IwWifiManager.MODE_MONITOR
                 val isUnavailable = item.mode == IwWifiManager.MODE_UNAVAILABLE
-                holder.binding.buttonToggleMode.text = if (isMonitor) "Managed" else "Monitor"
+                holder.binding.buttonToggleMode.text =
+                    if (isMonitor) holder.binding.root.context.getString(R.string.aird_mode_managed)
+                    else holder.binding.root.context.getString(R.string.aird_mode_monitor)
                 holder.binding.buttonToggleMode.visibility = View.VISIBLE
                 holder.binding.buttonToggleMode.isEnabled = !isUnavailable
                 holder.binding.buttonToggleMode.setOnClickListener {

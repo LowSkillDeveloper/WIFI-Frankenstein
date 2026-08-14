@@ -1,6 +1,8 @@
 package com.lsd.wififrankenstein.util
 
+import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import com.lsd.wififrankenstein.R
 
 object DatabaseOptimizer {
     private const val TAG = "DatabaseOptimizer"
@@ -71,6 +73,7 @@ object DatabaseOptimizer {
     }
 
     fun getQueryPlan(
+        context: Context,
         db: SQLiteDatabase,
         query: String,
         indexLevel: DatabaseIndices.IndexLevel? = null
@@ -78,8 +81,8 @@ object DatabaseOptimizer {
         val plan = StringBuilder()
         try {
             val level = indexLevel ?: DatabaseIndices.determineIndexLevel(db)
-            plan.append("Index Level: $level\n")
-            plan.append("Query Plan:\n")
+            plan.append(context.getString(R.string.dbopt_index_level, level))
+            plan.append(context.getString(R.string.dbopt_query_plan))
 
             db.rawQuery("EXPLAIN QUERY PLAN $query", null).use { cursor ->
                 while (cursor.moveToNext()) {
@@ -92,7 +95,7 @@ object DatabaseOptimizer {
 
             when (level) {
                 DatabaseIndices.IndexLevel.NONE -> {
-                    plan.append("\nWarning: No indexes available. Consider creating indexes for better performance.")
+                    plan.append(context.getString(R.string.dbopt_warning_no_indexes))
                 }
 
                 DatabaseIndices.IndexLevel.BASIC -> {
@@ -101,12 +104,12 @@ object DatabaseOptimizer {
                             ignoreCase = true
                         )
                     ) {
-                        plan.append("\nNote: Query includes fields that would benefit from FULL indexing.")
+                        plan.append(context.getString(R.string.dbopt_note_full_index))
                     }
                 }
 
                 DatabaseIndices.IndexLevel.FULL -> {
-                    plan.append("\nOptimal: Full indexes available for best performance.")
+                    plan.append(context.getString(R.string.dbopt_optimal_full))
                 }
             }
         } catch (e: Exception) {

@@ -29,9 +29,9 @@
                     android:id="@+id/iconStorageHeader"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:contentDescription="storage"
+                    android:contentDescription="@string/cd_storage"
                     android:src="@drawable/grid_3x3_24px"
-                    app:layout_constraintBottom_toBottomOf="@id/textStorageCount"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:tint="?attr/colorPrimary" />
@@ -41,7 +41,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
                     android:orientation="vertical"
-                    app:layout_constraintBottom_toBottomOf="@id/textStorageCount"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toStartOf="@id/buttonRefreshStorage"
                     app:layout_constraintStart_toEndOf="@id/iconStorageHeader"
                     app:layout_constraintTop_toTopOf="parent">
@@ -161,7 +161,7 @@
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
-                    android:contentDescription="search"
+                    android:contentDescription="@string/cd_search"
                     android:src="@drawable/ic_search"
                     app:tint="?android:attr/textColorSecondary" />
 
@@ -184,7 +184,7 @@
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:clickable="true"
-                    android:contentDescription="clear"
+                    android:contentDescription="@string/clear"
                     android:focusable="true"
                     android:src="@drawable/ic_close"
                     android:visibility="gone"
@@ -244,7 +244,7 @@
                     android:layout_width="80dp"
                     android:layout_height="80dp"
                     android:alpha="0.3"
-                    android:contentDescription="empty"
+                    android:contentDescription="@string/cd_empty"
                     android:src="@drawable/grid_3x3_24px" />
 
                 <TextView

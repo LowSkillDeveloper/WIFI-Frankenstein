@@ -2144,7 +2144,8 @@ class SQLite3WiFiHelper(
         latitude: Double,
         longitude: Double,
         radius: Double,
-        useRir: Boolean = false
+        useRir: Boolean = false,
+        countPoints: Boolean = false
     ): List<Map<String, Any?>> =
         withContext(Dispatchers.IO) {
             Log.d(TAG, "Getting IP ranges for lat=$latitude, lon=$longitude, radius=$radius")
@@ -2193,12 +2194,19 @@ class SQLite3WiFiHelper(
 
                             if (!processedRanges.contains(rangeString)) {
                                 processedRanges.add(rangeString)
+                                val pointCount =
+                                    if (countPoints) {
+                                        countIpsInRange(sortedIps, ipRange.startIP, ipRange.endIP)
+                                    } else {
+                                        0
+                                    }
                                 ranges.add(
                                     mapOf(
                                         "range" to rangeString,
                                         "netname" to ipRange.netname,
                                         "descr" to ipRange.description,
-                                        "country" to ipRange.country
+                                        "country" to ipRange.country,
+                                        "count" to pointCount
                                     )
                                 )
                             }
@@ -2213,6 +2221,15 @@ class SQLite3WiFiHelper(
                 emptyList()
             }
         }
+
+    private fun countIpsInRange(sortedIps: List<Long>, startIP: Long, endIP: Long): Int {
+        var count = 0
+        for (ip in sortedIps) {
+            if (ip > endIP) break
+            if (ip >= startIP) count++
+        }
+        return count
+    }
 
     private suspend fun collectIpsInBounds(
         tableName: String,
@@ -2272,16 +2289,19 @@ class SQLite3WiFiHelper(
 
             if (bssidSet.isEmpty()) return ips
 
-            val placeholders = bssidSet.joinToString(",") { "?" }
-            val ipQuery =
-                "SELECT DISTINCT n.IP, n.WANIP FROM $tableName n WHERE n.BSSID IN ($placeholders) AND (n.IP != 0 OR n.WANIP != 0) LIMIT 1000"
-            db.rawQuery(ipQuery, bssidSet.map { it.toString() }.toTypedArray())?.use { cursor ->
-                while (cursor.moveToNext()) {
-                    val ip = cursor.getLong(0)
-                    val wanip = cursor.getLong(1)
-                    if (ip != 0L) ips.add(ip)
-                    if (wanip != 0L) ips.add(wanip)
+            for (chunk in bssidSet.chunked(500)) {
+                val placeholders = chunk.joinToString(",") { "?" }
+                val ipQuery =
+                    "SELECT DISTINCT n.IP, n.WANIP FROM $tableName n WHERE n.BSSID IN ($placeholders) AND (n.IP != 0 OR n.WANIP != 0) LIMIT 1000"
+                db.rawQuery(ipQuery, chunk.map { it.toString() }.toTypedArray())?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val ip = cursor.getLong(0)
+                        val wanip = cursor.getLong(1)
+                        if (ip != 0L) ips.add(ip)
+                        if (wanip != 0L) ips.add(wanip)
+                    }
                 }
+                if (ips.size >= 1000) break
             }
         } else {
             val geoQuery = """
@@ -2445,23 +2465,26 @@ class SQLite3WiFiHelper(
                 }
 
                 val ips = mutableSetOf<Long>()
-                val bssidPlaceholders =
-                    bssidSet.mapIndexed { index, _ -> "?$index" }.joinToString(",")
-                val ipQuery = """
-                    SELECT DISTINCT n.IP, n.WANIP FROM $tableName n
-                    WHERE n.BSSID IN ($bssidPlaceholders)
-                    AND (n.IP != 0 OR n.WANIP != 0)
-                    LIMIT 1000
-                """
+                for (chunk in bssidSet.chunked(500)) {
+                    val bssidPlaceholders =
+                        chunk.mapIndexed { index, _ -> "?$index" }.joinToString(",")
+                    val ipQuery = """
+                        SELECT DISTINCT n.IP, n.WANIP FROM $tableName n
+                        WHERE n.BSSID IN ($bssidPlaceholders)
+                        AND (n.IP != 0 OR n.WANIP != 0)
+                        LIMIT 1000
+                    """
 
-                val ipArgs = bssidSet.map { it.toString() }.toTypedArray()
-                database?.rawQuery(ipQuery, ipArgs)?.use { cursor ->
-                    while (cursor.moveToNext()) {
-                        val ip = cursor.getLong(0)
-                        val wanip = cursor.getLong(1)
-                        if (ip != 0L) ips.add(ip)
-                        if (wanip != 0L) ips.add(wanip)
+                    val ipArgs = chunk.map { it.toString() }.toTypedArray()
+                    database?.rawQuery(ipQuery, ipArgs)?.use { cursor ->
+                        while (cursor.moveToNext()) {
+                            val ip = cursor.getLong(0)
+                            val wanip = cursor.getLong(1)
+                            if (ip != 0L) ips.add(ip)
+                            if (wanip != 0L) ips.add(wanip)
+                        }
                     }
+                    if (ips.size >= 1000) break
                 }
 
                 val ranges = mutableListOf<com.lsd.wififrankenstein.ui.ipranges.IpRangeResult>()

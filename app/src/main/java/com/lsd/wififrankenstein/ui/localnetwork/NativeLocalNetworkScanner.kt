@@ -3,6 +3,7 @@ package com.lsd.wififrankenstein.ui.localnetwork
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.Log
 import jcifs.netbios.NbtAddress
 import kotlinx.coroutines.CompletableDeferred
@@ -159,7 +160,9 @@ class NativeLocalNetworkScanner(private val context: Context) {
 
         try {
             Log.d(TAG, "Starting native ping sweep on $subnet")
-            onProgress(ScanProgress(phase = "ping_sweep", line = "Scanning $subnet..."))
+            onProgress(
+                ScanProgress(phase = "ping_sweep", line = context.getString(R.string.nat_scanning_subnet, subnet))
+            )
 
             val ipList = expandCidr(subnet)
             val selfIp = findSelfIp()
@@ -167,14 +170,18 @@ class NativeLocalNetworkScanner(private val context: Context) {
             var processedHosts = 0
             val progressLock = Any()
 
-            onProgress(ScanProgress(phase = "ping_sweep", line = "Targets: ${targetIps.size} IPs"))
+            onProgress(
+                ScanProgress(phase = "ping_sweep", line = context.getString(R.string.nat_targets, targetIps.size))
+            )
 
             fun addDevice(ip: String, mac: String, source: String, ttl: Int = 0) {
                 val vendor = if (mac.isNotEmpty()) OuiDatabase.lookupByMac(mac) ?: "" else ""
                 val cleanMac = mac.ifEmpty { "??:??:??:??:??:??" }
                 val vendorStr = if (vendor.isNotEmpty()) " - $vendor" else ""
                 Log.d(TAG, "Found ($source): $ip $cleanMac$vendorStr")
-                onProgress(ScanProgress(phase = "parsing", line = "Found ($source): $ip"))
+                onProgress(
+                    ScanProgress(phase = "parsing", line = context.getString(R.string.nat_found_source, source, ip))
+                )
                 devices.add(
                     LocalDevice(
                         ip = ip,
@@ -192,7 +199,7 @@ class NativeLocalNetworkScanner(private val context: Context) {
             onProgress(
                 ScanProgress(
                     phase = "ping_sweep",
-                    line = "Initial ARP cache: ${initialArp.size} entries"
+                    line = context.getString(R.string.nat_arp_cache, initialArp.size)
                 )
             )
 
@@ -218,7 +225,7 @@ class NativeLocalNetworkScanner(private val context: Context) {
                 onProgress(
                     ScanProgress(
                         phase = "ping_sweep",
-                        line = "Pinging ${remainingForPing.size} hosts..."
+                        line = context.getString(R.string.nat_pinging_hosts, remainingForPing.size)
                     )
                 )
 
@@ -266,7 +273,7 @@ class NativeLocalNetworkScanner(private val context: Context) {
                 onProgress(
                     ScanProgress(
                         phase = "ping_sweep",
-                        line = "ICMP: $pingAliveCount devices found"
+                        line = context.getString(R.string.nat_icmp_found, pingAliveCount)
                     )
                 )
             }
@@ -295,7 +302,7 @@ class NativeLocalNetworkScanner(private val context: Context) {
                     onProgress(
                         ScanProgress(
                             phase = "ping_sweep",
-                            line = "TCP probe: ${remainingForTcp.size} hosts..."
+                            line = context.getString(R.string.nat_tcp_probe, remainingForTcp.size)
                         )
                     )
 
@@ -337,7 +344,7 @@ class NativeLocalNetworkScanner(private val context: Context) {
                     onProgress(
                         ScanProgress(
                             phase = "ping_sweep",
-                            line = "TCP: $tcpAliveCount devices found"
+                            line = context.getString(R.string.nat_tcp_found, tcpAliveCount)
                         )
                     )
                 }
@@ -397,10 +404,14 @@ class NativeLocalNetworkScanner(private val context: Context) {
                 TAG,
                 "Native ping sweep complete: ${devices.size} devices found in ${totalTime}ms"
             )
-            onProgress(ScanProgress(phase = "done", line = "Found ${devices.size} devices"))
+            onProgress(
+                ScanProgress(phase = "done", line = context.getString(R.string.nat_found_devices, devices.size))
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Native ping sweep failed", e)
-            onProgress(ScanProgress(phase = "error", line = "Ping sweep failed: ${e.message}"))
+            onProgress(
+                ScanProgress(phase = "error", line = context.getString(R.string.nat_ping_sweep_failed, e.message))
+            )
         }
 
         devices
@@ -441,7 +452,9 @@ class NativeLocalNetworkScanner(private val context: Context) {
     ): LocalDevice = withContext(Dispatchers.IO) {
         try {
             Log.d(TAG, "Scanning ports on ${device.ip} (fast=$fastScan)")
-            onProgress(ScanProgress(phase = "port_scan", line = "Scanning ${device.ip}..."))
+            onProgress(
+                ScanProgress(phase = "port_scan", line = context.getString(R.string.nat_scanning_device, device.ip))
+            )
 
             val portsToScan = if (fastScan) TOP_PORTS else MID_PORTS
             val openPorts = mutableListOf<Int>()
@@ -516,7 +529,7 @@ class NativeLocalNetworkScanner(private val context: Context) {
             onProgress(
                 ScanProgress(
                     phase = "port_scan",
-                    line = "${device.ip}: ${sortedPorts.size} ports open"
+                    line = context.getString(R.string.nat_ports_open, device.ip, sortedPorts.size)
                 )
             )
 
@@ -534,7 +547,7 @@ class NativeLocalNetworkScanner(private val context: Context) {
             onProgress(
                 ScanProgress(
                     phase = "error",
-                    line = "Port scan failed for ${device.ip}: ${e.message}"
+                    line = context.getString(R.string.nat_port_scan_failed, device.ip, e.message)
                 )
             )
             device
@@ -604,16 +617,16 @@ class NativeLocalNetworkScanner(private val context: Context) {
     private fun osNameFromType(type: OSType, ports: List<Int>): String {
         val portStr = if (ports.isNotEmpty()) ports.take(5).joinToString(", ") else ""
         return when (type) {
-            OSType.ANDROID -> "Android (port $portStr)"
-            OSType.WINDOWS -> "Windows (port $portStr)"
-            OSType.LINUX -> "Linux/Unix (port $portStr)"
-            OSType.IOS -> "iOS (port $portStr)"
-            OSType.MACOS -> "macOS (port $portStr)"
-            OSType.PRINTER -> "Printer (port $portStr)"
-            OSType.CAMERA -> "Camera/DVR (port $portStr)"
-            OSType.ROUTER -> "Router (port $portStr)"
-            OSType.EMBEDDED -> "Embedded/IoT (port $portStr)"
-            else -> "Unknown"
+            OSType.ANDROID -> context.getString(R.string.nat_os_android, portStr)
+            OSType.WINDOWS -> context.getString(R.string.nat_os_windows, portStr)
+            OSType.LINUX -> context.getString(R.string.nat_os_linux, portStr)
+            OSType.IOS -> context.getString(R.string.nat_os_ios, portStr)
+            OSType.MACOS -> context.getString(R.string.nat_os_macos, portStr)
+            OSType.PRINTER -> context.getString(R.string.nat_os_printer, portStr)
+            OSType.CAMERA -> context.getString(R.string.nat_os_camera, portStr)
+            OSType.ROUTER -> context.getString(R.string.nat_os_router, portStr)
+            OSType.EMBEDDED -> context.getString(R.string.nat_os_embedded, portStr)
+            else -> context.getString(R.string.unknown)
         }
     }
 

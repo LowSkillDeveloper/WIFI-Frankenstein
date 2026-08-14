@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:gravity="center"
     android:padding="16dp"
-    android:text="Vendor Information"
+    android:text="@string/vendor_information"
     android:textSize="20sp"
     android:textStyle="bold" />
 

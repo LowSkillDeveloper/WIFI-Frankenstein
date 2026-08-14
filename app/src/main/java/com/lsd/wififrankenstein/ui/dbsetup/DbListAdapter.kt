@@ -54,7 +54,9 @@ class DbListAdapter(
             }
 
             if (!item.tableName.isNullOrBlank()) {
-                binding.textViewDbType.append(" · ${item.tableName}")
+                binding.textViewDbType.append(
+                    binding.root.context.getString(R.string.ds_table_name_suffix, item.tableName)
+                )
             }
 
             binding.chipDbType.text = getChipTypeText(binding.root.context, item)
@@ -81,9 +83,16 @@ class DbListAdapter(
             } else {
                 binding.textViewDbSize.visibility = View.VISIBLE
                 binding.textViewDbSize.text = if (item.cachedSizeInMB > 0) {
-                    "%.1f / %.1f MB".format(item.originalSizeInMB, item.cachedSizeInMB)
+                    binding.root.context.getString(
+                        R.string.ds_db_size_dual,
+                        "%.1f".format(item.originalSizeInMB),
+                        "%.1f".format(item.cachedSizeInMB)
+                    )
                 } else {
-                    "%.1f MB".format(item.originalSizeInMB)
+                    binding.root.context.getString(
+                        R.string.ds_db_size_single,
+                        "%.1f".format(item.originalSizeInMB)
+                    )
                 }
             }
 

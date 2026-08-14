@@ -1,13 +1,17 @@
 package com.lsd.wififrankenstein.util
 
 import android.content.Context
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.data.ChrootInfo
 import com.lsd.wififrankenstein.data.RouterScanResult
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -478,13 +482,13 @@ class ChrootManager(private val context: Context) {
     ): Boolean = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== downloadAndInstall START ===")
         try {
-            onStatusUpdate("Fetching chroot information...")
+            onStatusUpdate(context.getString(R.string.chroot_status_fetching_info))
             onProgress(5)
 
             val chrootInfo = getChrootInfo()
             if (chrootInfo == null) {
                 Log.e(TAG, "Failed to get chroot info")
-                onStatusUpdate("Failed to fetch chroot information")
+                onStatusUpdate(context.getString(R.string.chroot_status_fetch_failed))
                 return@withContext false
             }
             Log.d(TAG, "Chroot info: version=${chrootInfo.version}")
@@ -492,11 +496,11 @@ class ChrootManager(private val context: Context) {
             val archive = if (isAarch64()) chrootInfo.aarch64 else chrootInfo.armhf
             val archLabel = getArchitecture().label
 
-            onStatusUpdate("Preparing chroot environment for $archLabel...")
+            onStatusUpdate(context.getString(R.string.chroot_status_preparing_env, archLabel))
             onProgress(10)
 
             copyBusyboxFromAssets()
-            onStatusUpdate("Running permission diagnostics...")
+            onStatusUpdate(context.getString(R.string.chroot_status_perm_diagnostics))
             val diag = ChrootDiagnostics(BUSYBOX_PATH, CHROOT_PATH)
             val diagResults = diag.runDiagnostic { result ->
                 val icon = when {
@@ -516,14 +520,14 @@ class ChrootManager(private val context: Context) {
             }
 
             val selinuxStage = diagResults.find { it.name == "selinux_status" }
-            onStatusUpdate("SELinux: ${selinuxStage?.output?.trim() ?: "unknown"}")
+            onStatusUpdate(context.getString(R.string.chroot_status_selinux, selinuxStage?.output?.trim() ?: context.getString(R.string.unknown)))
 
             val contextStage = diagResults.find { it.name == "context" }
             val ctxLine = contextStage?.output?.lineSequence()?.firstOrNull()?.trim() ?: "unknown"
-            onStatusUpdate("Context: $ctxLine")
+            onStatusUpdate(context.getString(R.string.chroot_status_context, ctxLine))
 
             val rootStage = diagResults.find { it.name == "root" }
-            onStatusUpdate("Root: ${if (rootStage?.success == true) "OK" else "FAIL"}")
+            onStatusUpdate(context.getString(R.string.chroot_status_root, if (rootStage?.success == true) "OK" else "FAIL"))
 
             val allAvc = diagResults.flatMap { it.avcEntries }
             val chrootSyscallOk =
@@ -548,26 +552,26 @@ class ChrootManager(private val context: Context) {
 
             if (allAvc.isNotEmpty()) {
                 allAvc.forEach { avc ->
-                    onStatusUpdate("AVC: ${avc.toReadable()}")
+                    onStatusUpdate(context.getString(R.string.chroot_status_avc, avc.toReadable()))
                 }
             }
 
             if (mcsProblem) {
-                onStatusUpdate("MCS: busybox in app_data_file blocks execute. Move to /data/local/")
+                onStatusUpdate(context.getString(R.string.chroot_status_mcs_busybox))
             }
             if (domainTransition) {
                 val rules = chrootExecAvc.mapNotNull { it.toMagiskRule() }.distinct()
-                onStatusUpdate("Domain transition blocked. Apply: ${rules.firstOrNull() ?: "N/A"}")
+                onStatusUpdate(context.getString(R.string.chroot_status_domain_transition, rules.firstOrNull() ?: "N/A"))
             }
 
             val noexecDirs = execDirs.filter { !it.second }
             if (noexecDirs.isNotEmpty()) {
                 noexecDirs.forEach { (path, _) ->
-                    onStatusUpdate("noexec: $path")
+                    onStatusUpdate(context.getString(R.string.chroot_status_noexec, path))
                 }
                 val execDirsAvail = execDirs.filter { it.second }
                 if (execDirsAvail.isNotEmpty()) {
-                    onStatusUpdate("exec available: ${execDirsAvail.first().first}")
+                    onStatusUpdate(context.getString(R.string.chroot_status_exec_available, execDirsAvail.first().first))
                 }
             }
 
@@ -602,62 +606,62 @@ class ChrootManager(private val context: Context) {
             if (!chrootSyscallOk && !systemChrootWorks) {
                 failReason = when {
                     isDynamicBusybox && linkerWorks -> {
-                        onStatusUpdate("Busybox is dynamically linked — chroot needs linker inside")
-                        onStatusUpdate("Solution: use static busybox or copy linker during setup")
+                        onStatusUpdate(context.getString(R.string.chroot_status_busybox_dynamic))
+                        onStatusUpdate(context.getString(R.string.chroot_status_busybox_solution))
                         "dynamic_busybox"
                     }
 
                     allAvc.isNotEmpty() && hasMagiskPolicy -> {
-                        onStatusUpdate("SELinux blocks ${allAvc.size} operation(s). Applying rules...")
+                        onStatusUpdate(context.getString(R.string.chroot_status_selinux_blocks, allAvc.size))
                         diag.applyMagiskRules(diagResults)
-                        onStatusUpdate("Rules applied. Re-testing...")
+                        onStatusUpdate(context.getString(R.string.chroot_status_rules_applied))
                         "selinux_fixed"
                     }
 
                     isKnox && chrootExit126 -> {
-                        onStatusUpdate("Samsung Knox blocks chroot() without logging AVC")
-                        onStatusUpdate("Kernel-level restriction on stock Samsung ROMs")
-                        onStatusUpdate("Solution: flash custom kernel or LineageOS")
+                        onStatusUpdate(context.getString(R.string.chroot_status_knox_blocks))
+                        onStatusUpdate(context.getString(R.string.chroot_status_knox_kernel))
+                        onStatusUpdate(context.getString(R.string.chroot_status_knox_solution))
                         "knox_block"
                     }
 
                     seccompMode2 && chrootExit126 -> {
-                        onStatusUpdate("Seccomp filter (mode 2) blocks chroot syscall")
-                        onStatusUpdate("Try: kernel without seccomp or use proot")
+                        onStatusUpdate(context.getString(R.string.chroot_status_seccomp_blocks))
+                        onStatusUpdate(context.getString(R.string.chroot_status_seccomp_try))
                         "seccomp_block"
                     }
 
                     kernelCfgStage != null && kernelCfgStage.output != "CONFIG_UNKNOWN" && !hasChrootConfig -> {
-                        onStatusUpdate("Kernel compiled without CONFIG_CHROOT")
-                        onStatusUpdate("This ROM does not support chroot() at all")
+                        onStatusUpdate(context.getString(R.string.chroot_status_no_config_chroot))
+                        onStatusUpdate(context.getString(R.string.chroot_status_rom_no_chroot))
                         "no_kernel_config"
                     }
 
                     chrootDisabled -> {
-                        onStatusUpdate("chroot disabled via kernel sysctl (chroot_enabled=0)")
+                        onStatusUpdate(context.getString(R.string.chroot_status_sysctl_disabled))
                         "sysctl_disabled"
                     }
 
                     allAvc.isNotEmpty() && !hasMagiskPolicy -> {
                         val rules = allAvc.mapNotNull { it.toMagiskRule() }.distinct()
-                        onStatusUpdate("SELinux blocks ${rules.size} operation(s), magiskpolicy not found")
+                        onStatusUpdate(context.getString(R.string.chroot_status_selinux_no_magisk, rules.size))
                         rules.take(3)
-                            .forEach { onStatusUpdate("  allow ${it.removePrefix("allow ")}") }
-                        onStatusUpdate("Apply via Magisk module with sepolicy.rule")
+                            .forEach { onStatusUpdate(context.getString(R.string.chroot_status_allow_line, it.removePrefix("allow "))) }
+                        onStatusUpdate(context.getString(R.string.chroot_status_apply_magisk))
                         "selinux_no_magisk"
                     }
 
                     chrootExit126 -> {
                         val ctx =
                             contextStage?.output?.lineSequence()?.firstOrNull()?.trim() ?: "unknown"
-                        onStatusUpdate("chroot() blocked silently (exit 126), no AVC logged")
-                        onStatusUpdate("Context: $ctx")
-                        onStatusUpdate("Possible: Knox, Seccomp, missing CONFIG_CHROOT")
+                        onStatusUpdate(context.getString(R.string.chroot_status_silent_126))
+                        onStatusUpdate(context.getString(R.string.chroot_status_context_line, ctx))
+                        onStatusUpdate(context.getString(R.string.chroot_status_possible_causes))
                         "silent_denial"
                     }
 
                     else -> {
-                        onStatusUpdate("chroot test failed for unknown reason")
+                        onStatusUpdate(context.getString(R.string.chroot_status_test_failed_unknown))
                         "unknown"
                     }
                 }
@@ -681,14 +685,14 @@ class ChrootManager(private val context: Context) {
                     if (chrootExit126 && problems.isEmpty()) problems.add("chroot blocked silently (unknown cause)")
 
                     val summary = problems.joinToString("\n")
-                    onStatusUpdate("Problems: $summary")
-                    onStatusUpdate("Installation cannot proceed on this device.")
+                    onStatusUpdate(context.getString(R.string.chroot_status_problems, summary))
+                    onStatusUpdate(context.getString(R.string.chroot_status_cannot_proceed))
                     onDiagnosticUpdate?.invoke("Problems", " ✗", summary, summary)
                     return@withContext false
                 }
             }
             if (systemChrootWorks) {
-                onStatusUpdate("/system/bin/chroot works — using system binary as fallback")
+                onStatusUpdate(context.getString(R.string.chroot_status_system_binary_fallback))
             }
 
             val verifyResult = verifyBusyboxApplets()
@@ -700,7 +704,7 @@ class ChrootManager(private val context: Context) {
 
             if (rootDirExists(CHROOT_PATH)) {
                 Log.d(TAG, "Old chroot exists, removing...")
-                onStatusUpdate("Removing old chroot...")
+                onStatusUpdate(context.getString(R.string.chroot_status_removing_old))
                 unmountChroot()
                 Shell.cmd("$BUSYBOX_PATH rm -rf $CHROOT_PATH").exec()
                 Log.d(TAG, "Old chroot removed")
@@ -714,7 +718,7 @@ class ChrootManager(private val context: Context) {
             val tempFile = File(context.cacheDir, archive.filename)
             Log.d(TAG, "Temp file path: ${tempFile.absolutePath}")
 
-            onStatusUpdate("Downloading ${archive.filename}...")
+            onStatusUpdate(context.getString(R.string.chroot_status_downloading, archive.filename))
             Log.d(TAG, "Downloading from: ${archive.download_url}")
             if (!downloadFile(
                     archive.download_url,
@@ -725,21 +729,21 @@ class ChrootManager(private val context: Context) {
                 )
             ) {
                 Log.e(TAG, "Download failed")
-                onStatusUpdate("Download failed")
+                onStatusUpdate(context.getString(R.string.chroot_status_download_failed))
                 return@withContext false
             }
             Log.d(TAG, "Download complete. File size: ${tempFile.length()} bytes")
 
-            onStatusUpdate("Extracting archive...")
+            onStatusUpdate(context.getString(R.string.chroot_status_extracting))
             Log.d(TAG, "Starting extraction...")
             extractTarGz(tempFile, chrootDir, onProgress, onCancelled)
             Log.d(TAG, "Extraction complete")
 
-            onStatusUpdate("Setting up chroot...")
+            onStatusUpdate(context.getString(R.string.chroot_status_setting_up))
             setupChroot()
             onProgress(85)
 
-            onStatusUpdate("Saving version...")
+            onStatusUpdate(context.getString(R.string.chroot_status_saving_version))
             saveVersion(chrootInfo.version)
             onProgress(90)
 
@@ -750,7 +754,7 @@ class ChrootManager(private val context: Context) {
             Shell.cmd("$BUSYBOX_PATH chmod 440 '$CHROOT_PATH/etc/sudoers' 2>/dev/null || true")
                 .exec()
 
-            onStatusUpdate("Testing chroot...")
+            onStatusUpdate(context.getString(R.string.chroot_status_testing))
             val isValid = testChroot()
             onProgress(95)
 
@@ -759,19 +763,19 @@ class ChrootManager(private val context: Context) {
 
             if (isValid) {
                 Log.d(TAG, "=== downloadAndInstall SUCCESS ===")
-                onStatusUpdate("Installation completed!")
+                onStatusUpdate(context.getString(R.string.chroot_status_installation_completed))
                 onProgress(100)
                 true
             } else {
                 Log.e(TAG, "=== downloadAndInstall FAILED: chroot test failed ===")
-                onStatusUpdate("Chroot test failed")
+                onStatusUpdate(context.getString(R.string.chroot_status_test_failed))
                 cleanupFailedInstall()
                 false
             }
 
         } catch (e: Exception) {
             Log.e(TAG, "Installation failed", e)
-            onStatusUpdate("Installation failed: ${e.message}")
+            onStatusUpdate(context.getString(R.string.chroot_status_installation_failed, e.message))
             cleanupFailedInstall()
             false
         }
@@ -1634,7 +1638,8 @@ class ChrootManager(private val context: Context) {
             override suspend fun executeParallel(
                 commands: Map<String, String>,
                 timeout: Long,
-                maxThreads: Int
+                maxThreads: Int,
+                onTargetCompleted: ((String, List<String>) -> Unit)?
             ): Map<String, List<String>> {
                 if (commands.isEmpty()) return emptyMap()
 
@@ -1646,6 +1651,7 @@ class ChrootManager(private val context: Context) {
                 val baseDeadline = System.currentTimeMillis() + timeout
                 val ipDeadlines = commands.keys.associateWith { baseDeadline }.toMutableMap()
                 val ipPids = mutableMapOf<String, Int>()
+                val collectedTargets = mutableSetOf<String>()
 
 
                 for ((ip, cmd) in commands) {
@@ -1657,11 +1663,23 @@ class ChrootManager(private val context: Context) {
                     stdin.flush()
                     delay(10)
                 }
-                delay(50)
 
-
+                val pidLines = mutableListOf<String>()
+                val pidDeadline = System.currentTimeMillis() + 3_000
+                var pidPollInterval = 50L
+                while (System.currentTimeMillis() < pidDeadline && pidLines.size < commands.size) {
+                    synchronized(stdoutLines) {
+                        for (line in stdoutLines) {
+                            if (line.matches(Regex("^\\d+$")) && !pidLines.contains(line)) {
+                                pidLines.add(line)
+                            }
+                        }
+                        stdoutLines.clear()
+                    }
+                    delay(pidPollInterval)
+                    pidPollInterval = (pidPollInterval * 2).coerceAtMost(250)
+                }
                 synchronized(stdoutLines) {
-                    val pidLines = stdoutLines.filter { it.matches(Regex("^\\d+$")) }
                     var idx = 0
                     for (ip in commands.keys) {
                         if (idx < pidLines.size) {
@@ -1673,12 +1691,14 @@ class ChrootManager(private val context: Context) {
                         }
                     }
                 }
-                synchronized(stdoutLines) { stdoutLines.clear() }
-                Log.d(TAG, "Captured PIDs: ${ipPids.filter { it.value != null }}")
+                Log.d(TAG, "Captured PIDs: $ipPids")
 
 
                 val batchJob = SupervisorJob()
-                val monitorJob = CoroutineScope(Dispatchers.Default + batchJob).launch {
+                val batchContext = batchJob + CoroutineExceptionHandler { _, t ->
+                    Log.e(TAG, "parallel batch job error", t)
+                }
+                val monitorJob = CoroutineScope(Dispatchers.Default + batchContext).launch {
                     while (isActive) {
                         val now = System.currentTimeMillis()
                         val toKill = ipPids.filter { (ip, pid) ->
@@ -1686,22 +1706,34 @@ class ChrootManager(private val context: Context) {
                         }
                         for ((ip, pid) in toKill) {
                             Log.d(TAG, "Timeout killed rs for $ip (PID $pid)")
-                            stdin.write("kill $pid 2>/dev/null\n".toByteArray())
-                            stdin.flush()
+                            try {
+                                stdin.write("kill $pid 2>/dev/null\n".toByteArray())
+                                stdin.flush()
+                            } catch (e: IOException) {
+                                Log.w(TAG, "monitorJob: stdin closed, stopping")
+                                return@launch
+                            }
                             ipPids.remove(ip)
                             ipDeadlines.remove(ip)
                         }
                         delay(2000)
                     }
                 }
-                val statusJob = CoroutineScope(Dispatchers.Default + batchJob).launch {
+                val statusJob = CoroutineScope(Dispatchers.Default + batchContext).launch {
                     var lastStatus = mutableMapOf<String, String>()
                     while (isActive) {
+                        var streamClosed = false
                         for (ip in commands.keys) {
                             val tmpFile = tmpFiles[ip] ?: continue
                             val marker = "STATUS_CHECK_${ip}"
-                            stdin.write("echo $marker; cat $tmpFile 2>/dev/null | tail -10\necho STATUS_END\n".toByteArray())
-                            stdin.flush()
+                            try {
+                                stdin.write("echo $marker; cat $tmpFile 2>/dev/null | tail -10\necho STATUS_END\n".toByteArray())
+                                stdin.flush()
+                            } catch (e: IOException) {
+                                Log.w(TAG, "statusJob: stdin closed, stopping")
+                                streamClosed = true
+                                break
+                            }
                             delay(200)
 
                             synchronized(stdoutLines) {
@@ -1730,27 +1762,73 @@ class ChrootManager(private val context: Context) {
                                 }
                             }
                         }
+                        if (streamClosed) break
                         delay(3000)
                     }
                 }
 
 
+                suspend fun deliverCompletedTarget(ipPort: String) {
+                    val cb = onTargetCompleted ?: return
+                    val tmpFile = tmpFiles[ipPort] ?: return
+                    val startM = "LINE_START_$ipPort"
+                    val endM = "LINE_END_$ipPort"
+                    var delivered: List<String>? = null
+                    withContext(NonCancellable) {
+                        try {
+                            stdin.write("echo \"$startM\"; cat $tmpFile 2>/dev/null; echo \"$endM\"\n".toByteArray())
+                            stdin.flush()
+                        } catch (e: IOException) {
+                            Log.w(TAG, "deliver read failed for $ipPort")
+                            return@withContext
+                        }
+                        val deadline = System.currentTimeMillis() + 8_000
+                        var waitInterval = 50L
+                        while (System.currentTimeMillis() < deadline) {
+                            synchronized(stdoutLines) {
+                                val allOut = stdoutLines.joinToString("\n")
+                                val s = allOut.indexOf(startM)
+                                val e = allOut.indexOf(endM)
+                                if (s != -1 && e != -1 && e > s) {
+                                    val content = allOut.substring(s + startM.length, e)
+                                    delivered = content.split("\n").filter { it.isNotEmpty() }
+                                    return@withContext
+                                }
+                            }
+                            delay(waitInterval)
+                            waitInterval = (waitInterval * 2).coerceAtMost(250)
+                        }
+                        Log.w(TAG, "Timed out reading output for $ipPort")
+                    }
+                    if (delivered != null) {
+                        collectedTargets.add(ipPort)
+                        cb(ipPort, delivered!!)
+                    }
+                }
+
+                try {
                 val maxWait = 120000L
                 var elapsed = 0L
                 var pollInterval = 1000L
-                while (elapsed < maxWait) {
+                pollLoop@ while (elapsed < maxWait) {
 
                     val pidList = ipPids.values.filter { it != 0 }
                     if (pidList.isEmpty()) break
 
 
                     for (pid in pidList) {
-                        stdin.write("kill -0 $pid 2>/dev/null && echo PID_${pid}_ALIVE || echo PID_${pid}_DEAD\n".toByteArray())
-                        stdin.flush()
+                        try {
+                            stdin.write("kill -0 $pid 2>/dev/null && echo PID_${pid}_ALIVE || echo PID_${pid}_DEAD\n".toByteArray())
+                            stdin.flush()
+                        } catch (e: IOException) {
+                            Log.w(TAG, "poll loop: stdin closed, stopping")
+                            break@pollLoop
+                        }
                         delay(20)
                     }
 
                     delay(pollInterval)
+                    val completedTargets = mutableListOf<String>()
                     synchronized(stdoutLines) {
                         val alivePids = pidList.filter { pid ->
                             stdoutLines.any { it.contains("PID_${pid}_ALIVE") }
@@ -1763,23 +1841,31 @@ class ChrootManager(private val context: Context) {
                                 val ipToRemove = ipPids.entries.find { it.value == pid }?.key
                                 if (ipToRemove != null) {
                                     ipPids.remove(ipToRemove)
+                                    completedTargets.add(ipToRemove)
                                     Log.d(TAG, "Process $pid for $ipToRemove completed")
                                 }
                             }
                         }
+                    }
 
-                        if (alivePids.isEmpty()) {
+                    for (ipPort in completedTargets) {
+                        deliverCompletedTarget(ipPort)
+                    }
+                    synchronized(stdoutLines) { stdoutLines.clear() }
+
+                    synchronized(stdoutLines) {
+                        if (ipPids.values.none { it != 0 }) {
                             Log.d(TAG, "All processes completed")
                             break
                         }
                         Log.d(
                             TAG,
-                            "${alivePids.size} processes still alive: ${alivePids.joinToString(", ")}"
+                            "${ipPids.values.count { it != 0 }} processes still alive"
                         )
                     }
 
                     elapsed += pollInterval
-                    pollInterval = (pollInterval * 2).coerceAtMost(5000)
+                    pollInterval = (pollInterval * 2).coerceAtMost(1500)
                 }
 
                 batchJob.cancel()
@@ -1790,38 +1876,87 @@ class ChrootManager(private val context: Context) {
 
 
                 val results = mutableMapOf<String, List<String>>()
-                for ((ip, tmpFile) in tmpFiles) {
-                    val startMarker = "BATCH_START_${ip}"
-                    val endMarker = "BATCH_END_${ip}"
-                    stdin.write("echo \"$startMarker\"; cat $tmpFile 2>/dev/null; echo \"$endMarker\"\n".toByteArray())
-                    stdin.flush()
-                }
-                delay(100)
-
-                synchronized(stdoutLines) {
-                    val allOut = stdoutLines.joinToString("\n")
-                    for ((ip, tmpFile) in tmpFiles) {
+                val pendingTmpFiles = tmpFiles.filterKeys { it !in collectedTargets }
+                if (pendingTmpFiles.isNotEmpty()) {
+                    for ((ip, tmpFile) in pendingTmpFiles) {
                         val startMarker = "BATCH_START_${ip}"
                         val endMarker = "BATCH_END_${ip}"
-                        val startIdx = allOut.indexOf(startMarker)
-                        val endIdx = allOut.indexOf(endMarker)
-                        if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
-                            val content = allOut.substring(startIdx + startMarker.length, endIdx)
-                            results[ip] = content.split("\n").filter { it.isNotEmpty() }
-                        } else {
-                            results[ip] = emptyList()
-                            Log.w(TAG, "No output for $ip")
+                        try {
+                            stdin.write("echo \"$startMarker\"; cat $tmpFile 2>/dev/null; echo \"$endMarker\"\n".toByteArray())
+                            stdin.flush()
+                        } catch (e: IOException) {
+                            Log.w(TAG, "final collection: stdin closed")
+                            break
+                        }
+                    }
+
+                    val collectDeadline = System.currentTimeMillis() + 15_000
+                    var collectPollInterval = 100L
+                    while (System.currentTimeMillis() < collectDeadline) {
+                        synchronized(stdoutLines) {
+                            val allOut = stdoutLines.joinToString("\n")
+                            val allMarkersPresent = pendingTmpFiles.keys.all { ip ->
+                                val s = allOut.indexOf("BATCH_START_${ip}")
+                                val e = allOut.indexOf("BATCH_END_${ip}")
+                                s != -1 && e != -1 && e > s
+                            }
+                            if (allMarkersPresent) break
+                        }
+                        delay(collectPollInterval)
+                        collectPollInterval = (collectPollInterval * 2).coerceAtMost(500)
+                    }
+
+                    synchronized(stdoutLines) {
+                        val allOut = stdoutLines.joinToString("\n")
+                        for ((ip, tmpFile) in pendingTmpFiles) {
+                            val startMarker = "BATCH_START_${ip}"
+                            val endMarker = "BATCH_END_${ip}"
+                            val startIdx = allOut.indexOf(startMarker)
+                            val endIdx = allOut.indexOf(endMarker)
+                            if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
+                                val content = allOut.substring(startIdx + startMarker.length, endIdx)
+                                results[ip] = content.split("\n").filter { it.isNotEmpty() }
+                            } else {
+                                results[ip] = emptyList()
+                                Log.w(TAG, "No output for $ip")
+                            }
                         }
                     }
                 }
 
 
                 val rmCmd = "rm -f ${tmpFiles.values.joinToString(" ")}"
-                stdin.write(rmCmd.toByteArray())
-                stdin.write("\n".toByteArray())
-                stdin.flush()
+                try {
+                    stdin.write(rmCmd.toByteArray())
+                    stdin.write("\n".toByteArray())
+                    stdin.flush()
+                } catch (e: IOException) {
+                    Log.w(TAG, "Failed to rm tmp files", e)
+                }
 
                 return results
+                } finally {
+                    withContext(NonCancellable) {
+                        monitorJob.cancel()
+                        statusJob.cancel()
+                        batchJob.cancel()
+                        try {
+                            withTimeoutOrNull(5_000) { batchJob.join() }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "join batchJob", e)
+                        }
+                        for ((ip, pid) in ipPids) {
+                            if (pid == 0) continue
+                            try {
+                                stdin.write("kill $pid 2>/dev/null\n".toByteArray())
+                                stdin.flush()
+                            } catch (e: IOException) {
+                                Log.w(TAG, "final kill failed for $ip")
+                            }
+                        }
+                        Log.d(TAG, "executeParallel finally: cleanup done")
+                    }
+                }
             }
 
             override fun extendTimeout(key: String, additionalTimeMs: Long) {
@@ -1860,7 +1995,8 @@ class ChrootManager(private val context: Context) {
         suspend fun executeParallel(
             commands: Map<String, String>,
             timeout: Long,
-            maxThreads: Int
+            maxThreads: Int,
+            onTargetCompleted: ((String, List<String>) -> Unit)? = null
         ): Map<String, List<String>>
 
         fun extendTimeout(key: String, additionalTimeMs: Long)

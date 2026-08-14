@@ -1,6 +1,8 @@
 package com.lsd.wififrankenstein.util
 
+import android.content.Context
 import android.os.Build
+import com.lsd.wififrankenstein.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -26,7 +28,7 @@ data class BenchmarkProgress(
     val percent: Int = -1
 )
 
-class WpaBenchmark {
+class WpaBenchmark(private val context: Context) {
 
     companion object {
         private const val TAG = "WpaBenchmark"
@@ -169,7 +171,7 @@ class WpaBenchmark {
             val kv = TEST_EAPOL_HASH.keyver ?: 2
             for (threads in listOf(1, 2, 4, cpuCount).distinct()) {
                 if (threads > cpuCount) continue
-                val label = "Multi-Thread ($threads/$cpuCount cores)"
+                val label = context.getString(R.string.benchmark_multi_thread, threads, cpuCount)
                 Log.i(TAG, "--- $label (sustained ${MULTI_TARGET_MS}ms) ---")
                 onProgress(BenchmarkProgress(label, "running..."))
                 val deadline = System.currentTimeMillis() + MULTI_TARGET_MS

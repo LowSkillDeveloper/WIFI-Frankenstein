@@ -68,7 +68,7 @@
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
-                    android:contentDescription="UDP"
+                    android:contentDescription="@string/udp"
                     android:src="@drawable/ic_dns_udp"
                     android:tint="?attr/colorPrimary" />
 
@@ -76,7 +76,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="UDP DNS"
+                    android:text="@string/udp_dns"
                     android:textAppearance="?attr/textAppearanceCaption"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -112,7 +112,7 @@
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
-                    android:contentDescription="DoH JSON"
+                    android:contentDescription="@string/doh_json"
                     android:src="@drawable/ic_dns_doh"
                     android:tint="?attr/colorPrimary" />
 
@@ -120,7 +120,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="DoH JSON"
+                    android:text="@string/doh_json"
                     android:textAppearance="?attr/textAppearanceCaption"
                     android:textStyle="bold" />
 
@@ -130,7 +130,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="Ещё"
+                    android:text="@string/more_options"
                     android:textAppearance="?attr/textAppearanceCaption" />
             </LinearLayout>
 
@@ -165,7 +165,7 @@
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
-                    android:contentDescription="DoH Wire"
+                    android:contentDescription="@string/doh_wire"
                     android:src="@drawable/ic_dns_wire"
                     android:tint="?attr/colorPrimary" />
 
@@ -173,7 +173,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="DoH Wire"
+                    android:text="@string/doh_wire"
                     android:textAppearance="?attr/textAppearanceCaption"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -209,7 +209,7 @@
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
-                    android:contentDescription="Analysis"
+                    android:contentDescription="@string/analysis"
                     android:src="@drawable/ic_dns_analysis"
                     android:tint="?attr/colorPrimary" />
 
@@ -217,7 +217,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="Анализ"
+                    android:text="@string/analysis"
                     android:textAppearance="?attr/textAppearanceCaption"
                     android:textStyle="bold" />
             </LinearLayout>                        <TextView

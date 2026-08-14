@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.WifiApplication
 import com.lsd.wififrankenstein.ui.airodump.InterfaceStatus
 import com.lsd.wififrankenstein.ui.iwwifi.IwWifiManager
@@ -413,20 +414,28 @@ class WlanInterfaceManagerViewModel(application: Application) : AndroidViewModel
     fun setInterfaceMode(ifaceName: String, targetMode: String) {
         viewModelScope.launch {
             try {
-                _toastMessage.postValue("Switching $ifaceName...")
+                val app = getApplication<Application>()
+                _toastMessage.postValue(app.getString(R.string.st_iface_switching, ifaceName))
                 val success = withContext(Dispatchers.IO) {
                     iwWifiManager.setInterfaceMode(ifaceName, targetMode)
                 }
                 if (success) {
                     knownInterfaces[ifaceName] = targetMode
                     pollInterfaceStatus()
-                    _toastMessage.postValue("$ifaceName → $targetMode")
+                    _toastMessage.postValue(
+                        app.getString(R.string.st_iface_mode_changed, ifaceName, targetMode)
+                    )
                 } else {
-                    _toastMessage.postValue("Failed to switch $ifaceName")
+                    _toastMessage.postValue(app.getString(R.string.ws_switch_failed, ifaceName))
                 }
             } catch (e: Exception) {
                 Log.e(tag, "Failed to set interface mode", e)
-                _toastMessage.postValue("Error switching $ifaceName")
+                _toastMessage.postValue(
+                    getApplication<Application>().getString(
+                        R.string.st_iface_error_switching,
+                        ifaceName
+                    )
+                )
             }
         }
     }

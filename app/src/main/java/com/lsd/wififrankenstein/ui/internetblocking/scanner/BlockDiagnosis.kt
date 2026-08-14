@@ -1,5 +1,7 @@
 package com.lsd.wififrankenstein.ui.internetblocking.scanner
 
+import android.content.Context
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.internetblocking.model.CheckStatus
 
 
@@ -48,6 +50,7 @@ internal object BlockDiagnosis {
 
 
     fun diagnose(
+        context: Context,
         dnsStatus: CheckStatus,
         tls13Status: CheckStatus,
         tls12Status: CheckStatus,
@@ -61,45 +64,41 @@ internal object BlockDiagnosis {
     ): BlockDiagnosisResult {
         if (!baselineReachable) {
             return BlockDiagnosisResult(
-                blockStage = "Сеть",
-                blockMechanism = "Базовые хосты (1.1.1.1, 8.8.8.8) недоступны",
-                conclusion = "Интернет-соединение нарушено целиком (базовые хосты не отвечают). " +
-                        "Проверьте Wi-Fi/мобильные данные.",
-                confidence = "средняя уверенность"
+                blockStage = context.getString(R.string.ib_bd_stage_network),
+                blockMechanism = context.getString(R.string.ib_bd_mech_base_hosts_down),
+                conclusion = context.getString(R.string.ib_bd_conc_base_hosts_down),
+                confidence = context.getString(R.string.ib_bd_conf_medium)
             )
         }
 
         if (dnsStatus in dnsBlockStatuses) {
             return BlockDiagnosisResult(
-                blockStage = "DNS",
-                blockMechanism = dnsMechanism(dnsStatus),
-                conclusion = "DNS отвечает подменёнными данными — блокировка на уровне DNS. " +
-                        "Полный анализ — во вкладке DNS.",
-                confidence = "высокая уверенность"
+                blockStage = context.getString(R.string.ib_bd_stage_dns),
+                blockMechanism = dnsMechanism(context, dnsStatus),
+                conclusion = context.getString(R.string.ib_bd_conc_dns_spoofed),
+                confidence = context.getString(R.string.ib_bd_conf_high)
             )
         }
 
         if (dnsStatus == CheckStatus.Error) {
             return BlockDiagnosisResult(
-                blockStage = "DNS",
-                blockMechanism = "Домен не разрешился (UDP и DoH пусто)",
-                conclusion = "Не удалось разрешить домен. Проверьте, существует ли домен, " +
-                        "и не блокируется ли сам DNS.",
-                confidence = "низкая уверенность"
+                blockStage = context.getString(R.string.ib_bd_stage_dns),
+                blockMechanism = context.getString(R.string.ib_bd_mech_domain_not_resolved),
+                conclusion = context.getString(R.string.ib_bd_conc_domain_not_resolved),
+                confidence = context.getString(R.string.ib_bd_conf_low)
             )
         }
 
         if (!tcpReachable) {
             val (mechanism, confidence) = when {
-                tcp443Refused -> "TCP-соединение активно отклонено (REFUSED)" to "средняя уверенность"
-                port80Reachable -> "TCP:443 не отвечает, но порт 80 открыт — порт-блокировка / DPI на 443" to "высокая уверенность"
-                else -> "SYN-пакеты молча роняются (blackhole / silent drop, без RST)" to "высокая уверенность"
+                tcp443Refused -> context.getString(R.string.ib_bd_mech_tcp_refused) to context.getString(R.string.ib_bd_conf_medium)
+                port80Reachable -> context.getString(R.string.ib_bd_mech_port_block_443) to context.getString(R.string.ib_bd_conf_high)
+                else -> context.getString(R.string.ib_bd_mech_syn_drop) to context.getString(R.string.ib_bd_conf_high)
             }
             return BlockDiagnosisResult(
-                blockStage = "TCP/IP",
+                blockStage = context.getString(R.string.ib_bd_stage_tcp_ip),
                 blockMechanism = mechanism,
-                conclusion = "DNS чистый, но TCP-соединение к адресам домена не устанавливается — " +
-                        "блок на IP/TCP-уровне (не DNS и не SNI).",
+                conclusion = context.getString(R.string.ib_bd_conc_tcp_blocked),
                 confidence = confidence
             )
         }
@@ -109,11 +108,10 @@ internal object BlockDiagnosis {
         }
         if (readTimeout) {
             return BlockDiagnosisResult(
-                blockStage = "TCP (троттлинг)",
-                blockMechanism = "Обрыв чтения после небольшого объёма данных (TCP 16-20KB drop)",
-                conclusion = "Соединение устанавливается, но данные режутся после ~16-20KB — " +
-                        "признак DPI-троттлинга. Проверьте во вкладке TCP.",
-                confidence = "высокая уверенность"
+                blockStage = context.getString(R.string.ib_bd_stage_tcp_throttling),
+                blockMechanism = context.getString(R.string.ib_bd_mech_read_drop),
+                conclusion = context.getString(R.string.ib_bd_conc_tcp_throttling),
+                confidence = context.getString(R.string.ib_bd_conf_high)
             )
         }
 
@@ -121,99 +119,96 @@ internal object BlockDiagnosis {
         if (!tlsOk) {
             return when (sniDifferential) {
                 SniBlockVerdict.SNI_BLOCKED -> BlockDiagnosisResult(
-                    blockStage = "TLS/DPI",
-                    blockMechanism = "SNI-based блок: TLS с SNI домена падает, с чужим SNI работает",
-                    conclusion = "TCP открывается, но TLS-хендшейк блокируется по SNI — активный " +
-                            "SNI-фильтр на пути (ISP/TSPU). Рабочие SNI можно найти во вкладке SNI.",
-                    confidence = "средняя уверенность"
+                    blockStage = context.getString(R.string.ib_bd_stage_tls_dpi),
+                    blockMechanism = context.getString(R.string.ib_bd_mech_sni_block),
+                    conclusion = context.getString(R.string.ib_bd_conc_sni_block),
+                    confidence = context.getString(R.string.ib_bd_conf_medium)
                 )
 
                 SniBlockVerdict.IP_BLOCKED -> BlockDiagnosisResult(
-                    blockStage = "TLS",
-                    blockMechanism = tlsMechanism(tls13Status, tls12Status),
-                    conclusion = "TCP открывается, но TLS-хендшейк не проходит даже с чужим SNI — " +
-                            "блокировка на уровне TLS/IP.",
-                    confidence = "средняя уверенность"
+                    blockStage = context.getString(R.string.ib_bd_stage_tls),
+                    blockMechanism = tlsMechanism(context, tls13Status, tls12Status),
+                    conclusion = context.getString(R.string.ib_bd_conc_tls_ip_blocked),
+                    confidence = context.getString(R.string.ib_bd_conf_medium)
                 )
 
                 SniBlockVerdict.INCONCLUSIVE -> BlockDiagnosisResult(
-                    blockStage = "TLS",
-                    blockMechanism = tlsMechanism(tls13Status, tls12Status),
-                    conclusion = "TCP открывается, но TLS-хендшейк не проходит; SNI-дифференциал " +
-                            "не дал однозначного результата.",
-                    confidence = "низкая уверенность"
+                    blockStage = context.getString(R.string.ib_bd_stage_tls),
+                    blockMechanism = tlsMechanism(context, tls13Status, tls12Status),
+                    conclusion = context.getString(R.string.ib_bd_conc_tls_inconclusive),
+                    confidence = context.getString(R.string.ib_bd_conf_low)
                 )
             }
         }
 
         if (httpStub) {
             return BlockDiagnosisResult(
-                blockStage = "HTTP",
-                blockMechanism = "Страница-заглушка провайдера в теле ответа",
-                conclusion = "Сервер отвечает, но тело ответа — заглушка провайдера (блок на уровне контента).",
-                confidence = "высокая уверенность"
+                blockStage = context.getString(R.string.ib_bd_stage_http),
+                blockMechanism = context.getString(R.string.ib_bd_mech_stub_page),
+                conclusion = context.getString(R.string.ib_bd_conc_stub_page),
+                confidence = context.getString(R.string.ib_bd_conf_high)
             )
         }
 
         if (httpStatus == CheckStatus.Blocked) {
             return BlockDiagnosisResult(
-                blockStage = "HTTP",
-                blockMechanism = "HTTP 451 / cross-domain redirect",
-                conclusion = "TLS проходит, но HTTP-ответ блокируется (451/редирект) на уровне контента.",
-                confidence = "высокая уверенность"
+                blockStage = context.getString(R.string.ib_bd_stage_http),
+                blockMechanism = context.getString(R.string.ib_bd_mech_http451),
+                conclusion = context.getString(R.string.ib_bd_conc_http451),
+                confidence = context.getString(R.string.ib_bd_conf_high)
             )
         }
 
         if (httpStatus !in okStatuses) {
             return BlockDiagnosisResult(
-                blockStage = "HTTP",
-                blockMechanism = httpMechanism(httpStatus),
-                conclusion = "TLS проходит, но HTTP-запрос не удался (${httpStatus.label()}).",
-                confidence = "средняя уверенность"
+                blockStage = context.getString(R.string.ib_bd_stage_http),
+                blockMechanism = httpMechanism(context, httpStatus),
+                conclusion = context.getString(R.string.ib_bd_conc_http_failed, httpStatus.label(context)),
+                confidence = context.getString(R.string.ib_bd_conf_medium)
             )
         }
 
         return BlockDiagnosisResult(
             blockStage = "—",
             blockMechanism = "—",
-            conclusion = "Домен доступен: DNS, TCP и TLS проходят. Блокировка не обнаружена.",
+            conclusion = context.getString(R.string.ib_bd_conc_no_block),
             confidence = "—"
         )
     }
 
-    private fun dnsMechanism(status: CheckStatus): String = when (status) {
-        CheckStatus.DnsSpoof -> "DNS-подмена: UDP и DoH вернули разные IP"
-        CheckStatus.DnsIntercept -> "DNS-перехват: UDP не ответил, DoH вернул IP"
-        CheckStatus.FakeIp -> "Fake-IP (198.18.0.0/15) в DNS-ответе"
-        CheckStatus.FakeNxdomain -> "Fake NXDOMAIN в DNS-ответе"
-        CheckStatus.FakeEmpty -> "Fake empty DNS-ответ"
-        CheckStatus.DohBlocked -> "DoH-серверы заблокированы"
-        else -> status.label()
+    private fun dnsMechanism(context: Context, status: CheckStatus): String = when (status) {
+        CheckStatus.DnsSpoof -> context.getString(R.string.ib_bd_dns_spoof)
+        CheckStatus.DnsIntercept -> context.getString(R.string.ib_bd_dns_intercept)
+        CheckStatus.FakeIp -> context.getString(R.string.ib_bd_dns_fake_ip)
+        CheckStatus.FakeNxdomain -> context.getString(R.string.ib_bd_dns_fake_nxdomain)
+        CheckStatus.FakeEmpty -> context.getString(R.string.ib_bd_dns_fake_empty)
+        CheckStatus.DohBlocked -> context.getString(R.string.ib_bd_dns_doh_blocked)
+        else -> status.label(context)
     }
 
-    private fun tlsMechanism(s1: CheckStatus, s2: CheckStatus): String {
+    private fun tlsMechanism(context: Context, s1: CheckStatus, s2: CheckStatus): String {
         val bad = listOf(s1, s2).filterNot { it in okStatuses }
         return when (bad.firstOrNull()) {
-            CheckStatus.TlsRst -> "Активный сброс TLS (TCP RST на handshake)"
-            CheckStatus.TlsDrop -> "TLS handshake зависает (пакеты роняются)"
-            CheckStatus.TlsAlert -> "TLS alert от DPI"
-            CheckStatus.TlsMitm -> "Подмена сертификата (MITM)"
-            CheckStatus.TlsSpoof -> "Подмена TLS-ответа (garbage data)"
-            CheckStatus.TlsEof -> "Обрыв TLS (EOF)"
-            CheckStatus.SynDrop -> "SYN не доходит до сервера"
-            CheckStatus.NoTls13 -> "Сервер не поддерживает TLS 1.3"
-            else -> bad.firstOrNull()?.label() ?: "TLS-сбой"
+            CheckStatus.TlsRst -> context.getString(R.string.ib_bd_tls_rst)
+            CheckStatus.TlsDrop -> context.getString(R.string.ib_bd_tls_drop)
+            CheckStatus.TlsAlert -> context.getString(R.string.ib_bd_tls_alert)
+            CheckStatus.TlsMitm -> context.getString(R.string.ib_bd_tls_mitm)
+            CheckStatus.TlsSpoof -> context.getString(R.string.ib_bd_tls_spoof)
+            CheckStatus.TlsEof -> context.getString(R.string.ib_bd_tls_eof)
+            CheckStatus.SynDrop -> context.getString(R.string.ib_bd_tls_syn_drop)
+            CheckStatus.NoTls13 -> context.getString(R.string.ib_bd_tls_no_tls13)
+            else -> bad.firstOrNull()?.label(context) ?: context.getString(R.string.ib_bd_tls_fail)
         }
     }
 
-    private fun httpMechanism(status: CheckStatus): String = when (status) {
-        CheckStatus.Timeout -> "HTTP таймаут (порт 80 фильтруется)"
-        CheckStatus.SynDrop -> "HTTP SYN timeout (порт 80)"
-        CheckStatus.SendTimeout -> "Таймаут отправки HTTP"
-        CheckStatus.ReadTimeout -> "Таймаут чтения HTTP"
-        CheckStatus.TcpRst -> "TCP RST на HTTP"
-        CheckStatus.Refused -> "HTTP соединение отклонено"
-        CheckStatus.Error -> "Ошибка HTTP-запроса"
-        else -> "HTTP: ${status.label()}"
+    private fun httpMechanism(context: Context, status: CheckStatus): String = when (status) {
+        CheckStatus.Timeout -> context.getString(R.string.ib_bd_http_timeout)
+        CheckStatus.SynDrop -> context.getString(R.string.ib_bd_http_syn_timeout)
+        CheckStatus.SendTimeout -> context.getString(R.string.ib_bd_http_send_timeout)
+        CheckStatus.ReadTimeout -> context.getString(R.string.ib_bd_http_read_timeout)
+        CheckStatus.TcpRst -> context.getString(R.string.ib_bd_http_tcp_rst)
+        CheckStatus.Refused -> context.getString(R.string.ib_bd_http_refused)
+        CheckStatus.Error -> context.getString(R.string.ib_bd_http_error)
+        else -> context.getString(R.string.ib_bd_http_label, status.label(context))
     }
 }

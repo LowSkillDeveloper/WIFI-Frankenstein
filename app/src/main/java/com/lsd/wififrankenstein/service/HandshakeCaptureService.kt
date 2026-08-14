@@ -218,7 +218,10 @@ class HandshakeCaptureService : Service() {
         val excludeSelf = intent.getBooleanExtra(EXTRA_EXCLUDE_SELF, false)
         val deviceMac = intent.getStringExtra(EXTRA_DEVICE_MAC)
 
-        val notification = buildNotification("Starting capture", "$essid ($bssid)").build()
+        val notification = buildNotification(
+            getString(R.string.hs_starting_capture),
+            getString(R.string.hs_capture_target, essid, bssid)
+        ).build()
         startForeground(NOTIFICATION_ID, notification)
 
         captureLocationProvider.start()
@@ -261,8 +264,11 @@ class HandshakeCaptureService : Service() {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Background capture failed", e)
-                broadcastError(e.message ?: "Capture error")
-                updateNotification("Error", e.message ?: "Capture error")
+                broadcastError(e.message ?: getString(R.string.hs_capture_error))
+                updateNotification(
+                    getString(R.string.hs_error_title),
+                    e.message ?: getString(R.string.hs_capture_error)
+                )
             } finally {
                 stopCapture()
             }
@@ -320,7 +326,7 @@ class HandshakeCaptureService : Service() {
             outputFormat = format,
             onProgress = { line ->
                 addLine(line)
-                updateNotification("Capture", line)
+                updateNotification(getString(R.string.hs_capture_title), line)
             },
             onStats = { stats ->
                 latestStats = stats
@@ -330,7 +336,7 @@ class HandshakeCaptureService : Service() {
                 when (event) {
                     "HANDSHAKE" -> {
                         addLine("[+] Handshake detected by airodump")
-                        updateNotification("Capture", "Handshake detected!")
+                        updateNotification(getString(R.string.hs_capture_title), getString(R.string.hs_handshake_detected))
                     }
 
                     "PMKID" -> {
@@ -426,7 +432,7 @@ class HandshakeCaptureService : Service() {
                             handshakeConfirmed = true
                             handshakeDetectedAtMs = System.currentTimeMillis()
                             addLine("[+] Handshake confirmed. Auto-saving in ${AUTO_SAVE_DELAY_MS / 1000}s...")
-                            updateNotification("Capture", "Handshake confirmed!")
+                            updateNotification(getString(R.string.hs_capture_title), getString(R.string.hs_handshake_confirmed))
                         }
                     } else if (System.currentTimeMillis() - handshakeDetectedAtMs!! >= AUTO_SAVE_DELAY_MS) {
                         addLine("[+] Auto-saving now")
@@ -645,7 +651,10 @@ class HandshakeCaptureService : Service() {
             putExtra(EXTRA_VALID, valid)
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
-        updateNotification("Capture", if (valid) "Saved: $savedPath" else "Not saved")
+        updateNotification(
+            getString(R.string.hs_capture_title),
+            if (valid) getString(R.string.hs_saved, savedPath) else getString(R.string.hs_not_saved)
+        )
     }
 
     private fun broadcastError(message: String) {

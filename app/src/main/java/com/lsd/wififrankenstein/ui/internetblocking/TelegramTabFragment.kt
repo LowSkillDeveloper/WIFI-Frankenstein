@@ -41,7 +41,7 @@ class TelegramTabFragment : Fragment() {
         viewModel.isChecking.observe(viewLifecycleOwner) { checking ->
             binding.buttonCheckTelegram.isEnabled = !checking
             binding.progressBar.visibility = if (checking) View.VISIBLE else View.GONE
-            binding.buttonCheckTelegram.text = if (checking) "Checking..." else "Run Telegram Check"
+            binding.buttonCheckTelegram.text = if (checking) getString(R.string.ib_checking) else getString(R.string.ib_run_telegram_check)
         }
 
         viewModel.telegramResult.observe(viewLifecycleOwner) { result ->
@@ -69,13 +69,13 @@ class TelegramTabFragment : Fragment() {
             else -> R.drawable.ic_error
         }
         binding.statusIcon.setImageResource(iconRes)
-        binding.statusLabel.text = result.status.label()
+        binding.statusLabel.text = result.status.label(ctx)
 
         val sec = result.totalDurationMs / 1000f
-        binding.durationText.text = "${String.format("%.1f", sec)}s"
+        binding.durationText.text = getString(R.string.ib_duration_sec, sec)
 
 
-        binding.dcSummaryText.text = "${result.dcReachableCount}/${result.dcTotal} reachable"
+        binding.dcSummaryText.text = getString(R.string.ib_count_reachable, result.dcReachableCount, result.dcTotal)
         binding.dcContainer.removeAllViews()
         for (dc in result.dcResults) {
             binding.dcContainer.addView(createDcRow(dc))
@@ -83,28 +83,28 @@ class TelegramTabFragment : Fragment() {
 
 
         if (result.downloadSpeedKbps != null) {
-            binding.downloadText.text = "${String.format("%.1f", result.downloadSpeedKbps)} KB/s"
+            binding.downloadText.text = getString(R.string.ib_speed_kbps, result.downloadSpeedKbps)
             binding.downloadText.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
             if (result.downloadBytes != null) {
                 binding.downloadBytesText.text = formatBytes(result.downloadBytes)
                 binding.downloadBytesText.visibility = View.VISIBLE
             }
         } else {
-            binding.downloadText.text = "Not available"
+            binding.downloadText.text = getString(R.string.ib_not_available)
             binding.downloadText.setTextColor(ContextCompat.getColor(ctx, R.color.error_red))
             binding.downloadBytesText.visibility = View.GONE
         }
 
 
         if (result.uploadSpeedKbps != null) {
-            binding.uploadText.text = "${String.format("%.1f", result.uploadSpeedKbps)} KB/s"
+            binding.uploadText.text = getString(R.string.ib_speed_kbps, result.uploadSpeedKbps)
             binding.uploadText.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
             if (result.uploadBytes != null) {
                 binding.uploadBytesText.text = formatBytes(result.uploadBytes)
                 binding.uploadBytesText.visibility = View.VISIBLE
             }
         } else {
-            binding.uploadText.text = "Not available"
+            binding.uploadText.text = getString(R.string.ib_not_available)
             binding.uploadText.setTextColor(ContextCompat.getColor(ctx, R.color.error_red))
             binding.uploadBytesText.visibility = View.GONE
         }
@@ -114,7 +114,7 @@ class TelegramTabFragment : Fragment() {
         if (result.downloadUrlUsed != null) {
             sourceParts.add(result.downloadUrlUsed)
         }
-        sourceParts.add("DC ${result.dcReachableCount}/${result.dcTotal}")
+        sourceParts.add(getString(R.string.ib_dc_summary, result.dcReachableCount, result.dcTotal))
         binding.sourceText.text = sourceParts.joinToString("  ·  ")
     }
 
@@ -133,12 +133,12 @@ class TelegramTabFragment : Fragment() {
         if (dc.reachable) {
             val gd = dot.background as GradientDrawable
             gd.setColor(ContextCompat.getColor(ctx, R.color.success_green))
-            statusText.text = "Reachable"
+            statusText.text = ctx.getString(R.string.ib_reachable)
             statusText.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
         } else {
             val gd = dot.background as GradientDrawable
             gd.setColor(ContextCompat.getColor(ctx, R.color.error_red))
-            statusText.text = "Unreachable"
+            statusText.text = ctx.getString(R.string.ib_unreachable)
             statusText.setTextColor(ContextCompat.getColor(ctx, R.color.error_red))
         }
 

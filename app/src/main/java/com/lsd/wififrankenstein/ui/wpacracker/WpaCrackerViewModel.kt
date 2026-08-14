@@ -11,6 +11,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.service.WpaCrackService
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
@@ -82,10 +83,14 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
     private val _availableEngines = MutableLiveData<List<CrackEngine>>()
     val availableEngines: LiveData<List<CrackEngine>> = _availableEngines
 
-    private val _handshakeInfo = MutableLiveData("Tap to select handshake source")
+    private val _handshakeInfo = MutableLiveData(
+        application.getString(R.string.wpa_tap_select_handshake)
+    )
     val handshakeInfo: LiveData<String> = _handshakeInfo
 
-    private val _wordlistInfo = MutableLiveData("Tap to select wordlist source")
+    private val _wordlistInfo = MutableLiveData(
+        application.getString(R.string.wpa_tap_select_wordlist)
+    )
     val wordlistInfo: LiveData<String> = _wordlistInfo
 
     private val _isPreparingWordlist = MutableLiveData(false)
@@ -233,8 +238,11 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         }
         _availableEngines.value = engines
         _chrootStatus.value = when {
-            hasChroot -> "Chroot aircrack-ng available"
-            hasRoot -> "Chroot not installed — install it to use aircrack-ng"
+            hasChroot -> getApplication<Application>().getString(R.string.wpa_chroot_available)
+            hasRoot -> getApplication<Application>().getString(
+                R.string.wpa_chroot_not_installed_use_aircrack
+            )
+
             else -> ""
         }
     }
@@ -248,19 +256,30 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
     fun runBenchmark() {
         _benchmarkRunning.value = true
-        _benchmarkProgress.value = BenchmarkProgress("Starting...")
+        _benchmarkProgress.value = BenchmarkProgress(
+            getApplication<Application>().getString(R.string.wpa_starting)
+        )
         _benchmarkResult.value = null
-        val benchmark = WpaBenchmark()
+        val benchmark = WpaBenchmark(getApplication())
         viewModelScope.launch {
             try {
                 val report = benchmark.runAll { progress ->
                     _benchmarkProgress.postValue(progress)
                 }
                 _benchmarkResult.value = report
-                _benchmarkProgress.value = BenchmarkProgress("Complete", "All tests finished", 100)
+                _benchmarkProgress.value = BenchmarkProgress(
+                    getApplication<Application>().getString(R.string.wpa_benchmark_complete),
+                    getApplication<Application>().getString(R.string.wpa_benchmark_all_finished),
+                    100
+                )
             } catch (e: Exception) {
                 Log.e("WpaCrackerVM", "Benchmark failed", e)
-                _benchmarkProgress.value = BenchmarkProgress("Error: ${e.message}")
+                _benchmarkProgress.value = BenchmarkProgress(
+                    getApplication<Application>().getString(
+                        R.string.wpa_benchmark_error,
+                        e.message
+                    )
+                )
             } finally {
                 _benchmarkRunning.value = false
             }
@@ -274,14 +293,17 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
     fun loadHandshakeFile(uri: Uri) {
         _state.value = WpaCrackerState.LoadingHandshake
-        _handshakeInfo.value = "Loading handshake..."
+        _handshakeInfo.value = getApplication<Application>().getString(R.string.wpa_loading_handshake)
         viewModelScope.launch {
             try {
                 val app = getApplication<Application>()
                 val inputStream = app.contentResolver.openInputStream(uri)
                 if (inputStream == null) {
-                    _state.value = WpaCrackerState.Error("Cannot open file")
-                    _handshakeInfo.value = "Tap to select handshake source"
+                    _state.value = WpaCrackerState.Error(
+                        getApplication<Application>().getString(R.string.wpa_cannot_open_file)
+                    )
+                    _handshakeInfo.value =
+                        getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
                     return@launch
                 }
                 val bytes = inputStream.use { it.readBytes() }
@@ -299,25 +321,38 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                     _handshakeInfo.value = hash.second
                     _state.value = WpaCrackerState.Loaded(hash.first, fileName)
                 } else {
-                    _state.value = WpaCrackerState.Error("No handshakes found in file")
-                    _handshakeInfo.value = "Tap to select handshake source"
+                    _state.value = WpaCrackerState.Error(
+                        getApplication<Application>().getString(R.string.wpa_no_handshakes_in_file)
+                    )
+                    _handshakeInfo.value =
+                        getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
                 }
             } catch (e: Exception) {
-                _state.value = WpaCrackerState.Error("Error loading file: ${e.message}")
-                _handshakeInfo.value = "Tap to select handshake source"
+                _state.value = WpaCrackerState.Error(
+                    getApplication<Application>().getString(
+                        R.string.wpa_error_loading_file,
+                        e.message
+                    )
+                )
+                _handshakeInfo.value =
+                    getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
             }
         }
     }
 
     fun loadHandshakeFromUrl(url: String, isMega: Boolean) {
         _state.value = WpaCrackerState.LoadingHandshake
-        _handshakeInfo.value = "Downloading handshake..."
+        _handshakeInfo.value =
+            getApplication<Application>().getString(R.string.wpa_downloading_handshake)
         viewModelScope.launch {
             try {
                 val app = getApplication<Application>()
                 val result = downloadFile(app, url, isMega, "handshake_dl") ?: run {
-                    _state.value = WpaCrackerState.Error("Download failed")
-                    _handshakeInfo.value = "Tap to select handshake source"
+                    _state.value = WpaCrackerState.Error(
+                        getApplication<Application>().getString(R.string.wpa_download_failed)
+                    )
+                    _handshakeInfo.value =
+                        getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
                     return@launch
                 }
                 val (tempFile, fileName) = result
@@ -328,37 +363,55 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                     _handshakeInfo.value = hash.second
                     _state.value = WpaCrackerState.Loaded(hash.first, fileName)
                 } else {
-                    _state.value = WpaCrackerState.Error("No handshakes found in downloaded file")
-                    _handshakeInfo.value = "Tap to select handshake source"
+                    _state.value = WpaCrackerState.Error(
+                        getApplication<Application>().getString(
+                            R.string.wpa_no_handshakes_downloaded
+                        )
+                    )
+                    _handshakeInfo.value =
+                        getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
                 }
             } catch (e: Exception) {
-                _state.value = WpaCrackerState.Error("Download error: ${e.message}")
-                _handshakeInfo.value = "Tap to select handshake source"
+                _state.value = WpaCrackerState.Error(
+                    getApplication<Application>().getString(R.string.wpa_download_error, e.message)
+                )
+                _handshakeInfo.value =
+                    getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
             }
         }
     }
 
     fun loadHandshakeFromText(text: String) {
         _state.value = WpaCrackerState.LoadingHandshake
-        _handshakeInfo.value = "Parsing pasted hashes..."
+        _handshakeInfo.value = getApplication<Application>().getString(R.string.wpa_parsing_pasted)
         viewModelScope.launch {
             try {
                 val hashes = HandshakeParser.parseText(text)
                 if (hashes.isEmpty()) {
-                    _state.value = WpaCrackerState.Error("No valid hashes found in pasted text")
-                    _handshakeInfo.value = "Tap to select handshake source"
+                    _state.value = WpaCrackerState.Error(
+                        getApplication<Application>().getString(R.string.wpa_no_valid_hashes_pasted)
+                    )
+                    _handshakeInfo.value =
+                        getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
                     return@launch
                 }
                 val hash = hashes.first()
                 currentHash = hash
                 currentFileName = "pasted"
                 val count = hashes.size
-                _handshakeInfo.value =
-                    "Pasted: ${hash.essid} (${count} hash${if (count > 1) "es" else ""})"
+                _handshakeInfo.value = getApplication<Application>().getString(
+                    R.string.wpa_pasted_hash_essid,
+                    hash.essid,
+                    count,
+                    if (count > 1) "es" else ""
+                )
                 _state.value = WpaCrackerState.Loaded(hash, "pasted")
             } catch (e: Exception) {
-                _state.value = WpaCrackerState.Error("Error: ${e.message}")
-                _handshakeInfo.value = "Tap to select handshake source"
+                _state.value = WpaCrackerState.Error(
+                    getApplication<Application>().getString(R.string.wpa_error_msg, e.message)
+                )
+                _handshakeInfo.value =
+                    getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
             }
         }
     }
@@ -385,15 +438,54 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
         return hash to buildString {
             when (format) {
-                HandshakeFormat.PCAP, HandshakeFormat.PCAPNG -> append("Capture: ")
-                HandshakeFormat.M22000 -> append("Hash: ")
-                HandshakeFormat.HCCAPX -> append("HCCAPX: ")
-                HandshakeFormat.HCCAP -> append("HCCAP: ")
-                HandshakeFormat.PMKID -> append("PMKID: ")
-                HandshakeFormat.UNKNOWN -> append("File: ")
+                HandshakeFormat.PCAP, HandshakeFormat.PCAPNG -> append(
+                    getApplication<Application>().getString(
+                        R.string.wpa_info_capture,
+                        fileName,
+                        hash.essid
+                    )
+                )
+
+                HandshakeFormat.M22000 -> append(
+                    getApplication<Application>().getString(
+                        R.string.wpa_info_hash,
+                        fileName,
+                        hash.essid
+                    )
+                )
+
+                HandshakeFormat.HCCAPX -> append(
+                    getApplication<Application>().getString(
+                        R.string.wpa_info_hccapx,
+                        fileName,
+                        hash.essid
+                    )
+                )
+
+                HandshakeFormat.HCCAP -> append(
+                    getApplication<Application>().getString(
+                        R.string.wpa_info_hccap,
+                        fileName,
+                        hash.essid
+                    )
+                )
+
+                HandshakeFormat.PMKID -> append(
+                    getApplication<Application>().getString(
+                        R.string.wpa_info_pmkid,
+                        fileName,
+                        hash.essid
+                    )
+                )
+
+                HandshakeFormat.UNKNOWN -> append(
+                    getApplication<Application>().getString(
+                        R.string.wpa_info_file,
+                        fileName,
+                        hash.essid
+                    )
+                )
             }
-            append(fileName)
-            append(" | ${hash.essid}")
         }
     }
 
@@ -445,23 +537,34 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         storageFileName: String? = null
     ) {
         if (hashes.isEmpty()) {
-            _state.value = WpaCrackerState.Error("No hashes found in storage item")
-            _handshakeInfo.value = "Tap to select handshake source"
+            _state.value = WpaCrackerState.Error(
+                getApplication<Application>().getString(R.string.wpa_no_hashes_storage)
+            )
+            _handshakeInfo.value =
+                getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
             return
         }
         val hash = hashes[selectedIndex.coerceIn(0, hashes.lastIndex)]
         currentHash = hash
         currentFileName = storageFileName
         val count = hashes.size
-        val suffix = if (count > 1) " [${count} hashes]" else ""
-        _handshakeInfo.value = "Storage: ${hash.essid} (${hash.macAp})$suffix"
+        val suffix = if (count > 1) {
+            getApplication<Application>().getString(R.string.wpa_hashes_suffix, count)
+        } else ""
+        _handshakeInfo.value = getApplication<Application>().getString(
+            R.string.wpa_storage_info,
+            hash.essid,
+            hash.macAp,
+            suffix
+        )
         _state.value = WpaCrackerState.Loaded(hash, "storage")
     }
 
     fun setHandshakeHash(hash: HandshakeHash, fileName: String = "imported") {
         currentHash = hash
         currentFileName = fileName
-        _handshakeInfo.value = "Imported: ${hash.essid}"
+        _handshakeInfo.value =
+            getApplication<Application>().getString(R.string.wpa_imported, hash.essid)
         _state.value = WpaCrackerState.Loaded(hash, fileName)
     }
 
@@ -470,18 +573,21 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         if (hash != null) {
             currentHash = hash
             currentFileName = "22000 line"
-            _handshakeInfo.value = "Line: ${hash.essid}"
+            _handshakeInfo.value = getApplication<Application>().getString(R.string.wpa_line, hash.essid)
             _state.value = WpaCrackerState.Loaded(hash, "22000 line")
         } else {
-            _state.value = WpaCrackerState.Error("Invalid 22000 line")
-            _handshakeInfo.value = "Tap to select handshake source"
+            _state.value = WpaCrackerState.Error(
+                getApplication<Application>().getString(R.string.wpa_invalid_22000)
+            )
+            _handshakeInfo.value =
+                getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
         }
     }
 
     fun setWordlistFile(uri: Uri) {
         wordlistUri = uri
         val fileName = uri.lastPathSegment ?: "wordlist.txt"
-        _wordlistInfo.value = "File: $fileName"
+        _wordlistInfo.value = getApplication<Application>().getString(R.string.wpa_file, fileName)
         if (_selectedEngine.value == CrackEngine.CHROOT_AIRCRACK) {
             viewModelScope.launch {
                 copyWordlistToChroot(uri)
@@ -492,24 +598,30 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
     fun loadWordlistFromUrl(url: String, isMega: Boolean) {
         _isPreparingWordlist.value = true
-        _wordlistInfo.value = "Downloading wordlist..."
+        _wordlistInfo.value =
+            getApplication<Application>().getString(R.string.wpa_downloading_wordlist)
         viewModelScope.launch {
             try {
                 val app = getApplication<Application>()
                 val result = downloadFile(app, url, isMega, "wordlist_dl") ?: run {
-                    _wordlistInfo.value = "Download failed — tap to retry"
+                    _wordlistInfo.value = getApplication<Application>().getString(
+                        R.string.wpa_download_failed_retry
+                    )
                     return@launch
                 }
                 val (tempFile, fileName) = result
                 val uri = Uri.fromFile(tempFile)
                 wordlistUri = uri
-                _wordlistInfo.value = "URL: $fileName"
+                _wordlistInfo.value = getApplication<Application>().getString(R.string.wpa_url, fileName)
                 if (_selectedEngine.value == CrackEngine.CHROOT_AIRCRACK) {
                     copyWordlistToChroot(uri)
                 }
                 checkSessionMatch()
             } catch (e: Exception) {
-                _wordlistInfo.value = "Download error: ${e.message}"
+                _wordlistInfo.value = getApplication<Application>().getString(
+                    R.string.wpa_download_error,
+                    e.message
+                )
             } finally {
                 _isPreparingWordlist.value = false
             }
@@ -524,13 +636,19 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                 val tempFile = File(app.cacheDir, "pasted_wordlist_${System.nanoTime()}.txt")
                 tempFile.writeText(passwords.joinToString("\n"))
                 wordlistUri = Uri.fromFile(tempFile)
-                _wordlistInfo.value = "Pasted: ${passwords.size} passwords"
+                _wordlistInfo.value = getApplication<Application>().getString(
+                    R.string.wpa_pasted_passwords,
+                    passwords.size
+                )
                 if (_selectedEngine.value == CrackEngine.CHROOT_AIRCRACK) {
                     copyWordlistToChroot(wordlistUri!!)
                 }
                 checkSessionMatch()
             } catch (e: Exception) {
-                _wordlistInfo.value = "Error: ${e.message}"
+                _wordlistInfo.value = getApplication<Application>().getString(
+                    R.string.wpa_error_msg,
+                    e.message
+                )
             } finally {
                 _isPreparingWordlist.value = false
             }
@@ -539,7 +657,8 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
     fun useWpaSecDict() {
         _isPreparingWordlist.value = true
-        _wordlistInfo.value = "Checking wpa-sec dictionary..."
+        _wordlistInfo.value =
+            getApplication<Application>().getString(R.string.wpa_checking_wpasec)
         viewModelScope.launch {
             try {
                 val app = getApplication<Application>()
@@ -548,8 +667,16 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                 if (path != null) {
                     val file = File(path)
                     wordlistUri = Uri.fromFile(file)
-                    val mb = if (file.length() > 0) " (${file.length() / (1024 * 1024)} MB)" else ""
-                    _wordlistInfo.value = "wpa-sec dictionary$mb"
+                    val mb = if (file.length() > 0) {
+                        getApplication<Application>().getString(
+                            R.string.wpa_mb_suffix,
+                            file.length() / (1024 * 1024)
+                        )
+                    } else ""
+                    _wordlistInfo.value = getApplication<Application>().getString(
+                        R.string.wpa_wpasec_dict,
+                        mb
+                    )
                     if (_selectedEngine.value == CrackEngine.CHROOT_AIRCRACK) {
                         wordlistChrootPath = chrootize(file)
                     }
@@ -558,17 +685,24 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                     val cached = manager.getDictPath()
                     if (cached != null) {
                         wordlistUri = Uri.fromFile(File(cached))
-                        _wordlistInfo.value = "wpa-sec dictionary (cached)"
+                        _wordlistInfo.value = getApplication<Application>().getString(
+                            R.string.wpa_wpasec_dict_cached
+                        )
                         if (_selectedEngine.value == CrackEngine.CHROOT_AIRCRACK) {
                             wordlistChrootPath = chrootize(File(cached))
                         }
                         checkSessionMatch()
                     } else {
-                        _wordlistInfo.value = "wpa-sec unavailable — no internet/cache"
+                        _wordlistInfo.value = getApplication<Application>().getString(
+                            R.string.wpa_wpasec_unavailable
+                        )
                     }
                 }
             } catch (e: Exception) {
-                _wordlistInfo.value = "wpa-sec error: ${e.message}"
+                _wordlistInfo.value = getApplication<Application>().getString(
+                    R.string.wpa_wpasec_error,
+                    e.message
+                )
             } finally {
                 _isPreparingWordlist.value = false
             }
@@ -614,7 +748,9 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                     hash
                 )
             } else {
-                _state.value = WpaCrackerState.Error("Password did not match")
+                _state.value = WpaCrackerState.Error(
+                    getApplication<Application>().getString(R.string.wpa_password_did_not_match)
+                )
             }
         }
     }
@@ -645,12 +781,15 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         val hash = currentHash
         if (hash != null) {
             if (hash.type == HandshakeType.EAPOL && (hash.anonce.isNullOrBlank() || hash.eapol.isNullOrBlank())) {
-                _state.value =
-                    WpaCrackerState.Error("Invalid handshake: missing EAPOL data (anonce/eapol). This handshake file contains only a beacon, not a 4-way handshake.")
+                _state.value = WpaCrackerState.Error(
+                    getApplication<Application>().getString(R.string.wpa_invalid_handshake_beacon)
+                )
                 return
             }
             if ((hash.type == HandshakeType.PMKID || hash.type == HandshakeType.PMKID_EAPOL) && hash.pmkidOrMic.isBlank()) {
-                _state.value = WpaCrackerState.Error("Invalid PMKID hash: pmkid is empty.")
+                _state.value = WpaCrackerState.Error(
+                    getApplication<Application>().getString(R.string.wpa_invalid_pmkid)
+                )
                 return
             }
         }
@@ -678,7 +817,14 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         _isPaused.value = false
         _isRunningInBackground.value = true
         _state.value = WpaCrackerState.Cracking(
-            OfflineProgress("Starting...", 0, 0, 0.0, 0, 0)
+            OfflineProgress(
+                getApplication<Application>().getString(R.string.wpa_starting),
+                0,
+                0,
+                0.0,
+                0,
+                0
+            )
         )
     }
 
@@ -720,30 +866,37 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
     fun restoreSession(session: CrackSessionData) {
         val hash = HandshakeHash.parseAny(session.handshakeLine)
         if (hash == null) {
-            _state.value =
-                WpaCrackerState.Error("Failed to restore session: invalid handshake data")
+            _state.value = WpaCrackerState.Error(
+                getApplication<Application>().getString(R.string.wpa_restore_invalid_data)
+            )
             sessionManager.removeSession(session.handshakeLine, session.wordlistUri)
             _savedSession.value = null
             return
         }
         if (hash.type == HandshakeType.EAPOL && (hash.anonce.isNullOrBlank() || hash.eapol.isNullOrBlank())) {
-            _state.value =
-                WpaCrackerState.Error("Failed to restore session: invalid handshake: missing EAPOL data (anonce/eapol)")
+            _state.value = WpaCrackerState.Error(
+                getApplication<Application>().getString(R.string.wpa_restore_invalid_handshake)
+            )
             sessionManager.removeSession(session.handshakeLine, session.wordlistUri)
             _savedSession.value = null
             return
         }
         if ((hash.type == HandshakeType.PMKID || hash.type == HandshakeType.PMKID_EAPOL) && hash.pmkidOrMic.isBlank()) {
-            _state.value =
-                WpaCrackerState.Error("Failed to restore session: invalid PMKID hash: pmkid is empty")
+            _state.value = WpaCrackerState.Error(
+                getApplication<Application>().getString(R.string.wpa_restore_invalid_pmkid)
+            )
             sessionManager.removeSession(session.handshakeLine, session.wordlistUri)
             _savedSession.value = null
             return
         }
         currentHash = hash
         wordlistUri = Uri.parse(session.wordlistUri)
-        _handshakeInfo.value = "Restored: ${hash.essid}"
-        _wordlistInfo.value = "Resuming wordlist at offset ${session.offset}"
+        _handshakeInfo.value =
+            getApplication<Application>().getString(R.string.wpa_restored, hash.essid)
+        _wordlistInfo.value = getApplication<Application>().getString(
+            R.string.wpa_resuming_offset,
+            session.offset
+        )
         _state.value = WpaCrackerState.Loaded(hash, "restored")
 
         if (session.engineName == "CHROOT_AIRCRACK") {
@@ -765,7 +918,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
             _isRunningInBackground.value = true
             _state.value = WpaCrackerState.Cracking(
                 OfflineProgress(
-                    "Resuming...",
+                    getApplication<Application>().getString(R.string.wpa_resuming),
                     session.offset,
                     session.totalLines,
                     0.0,
@@ -804,7 +957,9 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
     private fun startChrootCracking() {
         val hash = currentHash ?: return
         val uri = wordlistUri ?: run {
-            _state.value = WpaCrackerState.Error("No wordlist selected")
+            _state.value = WpaCrackerState.Error(
+                getApplication<Application>().getString(R.string.wpa_no_wordlist_selected)
+            )
             return
         }
 
@@ -893,8 +1048,8 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         _hashResult.value = null
         _consoleLines.value = emptyList()
         _chrootProgress.value = null
-        _handshakeInfo.value = "Tap to select handshake source"
-        _wordlistInfo.value = "Tap to select wordlist source"
+        _handshakeInfo.value = getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
+        _wordlistInfo.value = getApplication<Application>().getString(R.string.wpa_tap_select_wordlist)
         _isPaused.value = false
         _isRunningInBackground.value = false
     }

@@ -112,7 +112,7 @@ class TestResultsAdapter(private val results: List<Pair<String, Pair<Boolean, St
 
                     resultMessage.append(context.getString(R.string.time, elapsedTime))
 
-                    val apiError = "API error: $error"
+                    val apiError = context.getString(R.string.ds_api_error, error)
                     additionalInfo.append(apiError)
                     additionalInfo.setSpan(
                         ForegroundColorSpan(ContextCompat.getColor(context, R.color.error_red)),
@@ -122,13 +122,13 @@ class TestResultsAdapter(private val results: List<Pair<String, Pair<Boolean, St
                     )
                 }
             } catch (_: JSONException) {
-                resultMessage.append("JSON parsing error")
+                resultMessage.append(context.getString(R.string.ds_json_parsing_error))
             }
         } else {
             val errorAvailabilityMessage =
                 context.getString(R.string.api_availability_http_error, responseCode)
             val normalPart = errorAvailabilityMessage.substringBefore("HTTP ERROR")
-            val errorPart = "HTTP ERROR $responseCode"
+            val errorPart = context.getString(R.string.ds_http_error, responseCode)
 
             resultMessage.append(normalPart)
             resultMessage.append(errorPart)

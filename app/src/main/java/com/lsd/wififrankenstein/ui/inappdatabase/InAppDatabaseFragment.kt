@@ -389,7 +389,7 @@ class InAppDatabaseFragment : Fragment() {
                     showSnackbar(
                         getString(
                             R.string.wpa_sec_import_failed,
-                            "Invalid API key format"
+                            getString(R.string.ia_invalid_api_key_format)
                         )
                     )
                 }
@@ -438,7 +438,11 @@ class InAppDatabaseFragment : Fragment() {
     }
 
     private fun showImportDialog() {
-        val formats = arrayOf("JSON", "CSV", "TXT (RouterScan)")
+        val formats = arrayOf(
+            getString(R.string.ds_format_json),
+            getString(R.string.ds_format_csv),
+            getString(R.string.ds_format_txt_router_scan)
+        )
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.import_format)
             .setItems(formats) { _, which ->
@@ -452,7 +456,10 @@ class InAppDatabaseFragment : Fragment() {
     }
 
     private fun showExportDialog() {
-        val formats = arrayOf("JSON", "CSV")
+        val formats = arrayOf(
+            getString(R.string.ds_format_json),
+            getString(R.string.ds_format_csv)
+        )
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.export_format)
             .setItems(formats) { _, which ->
@@ -816,7 +823,7 @@ class InAppDatabaseFragment : Fragment() {
             }
             val csv = ThreeWiFiUploader.convertToCsv(rows)
             viewLifecycleOwner.lifecycleScope.launch {
-                val result = ThreeWiFiUploader.uploadCsv(server, csv)
+                val result = ThreeWiFiUploader.uploadCsv(requireContext(), server, csv)
                 val msg = if (result.success) getString(R.string.upload_success_text)
                 else "${getString(R.string.upload_failed_text)}: ${result.message}"
                 Toast.makeText(

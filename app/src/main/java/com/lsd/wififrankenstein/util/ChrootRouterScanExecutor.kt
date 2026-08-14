@@ -117,13 +117,10 @@ class ChrootRouterScanExecutor(private val context: Context) : RouterScanExecuto
                 val rsCommands = batch.associate { (ip, p) ->
                     "$ip:$p" to "export LD_LIBRARY_PATH=/opt/RouterScan && ${RouterScanUtil.RS_PATH} $ip ${RouterScanUtil.AUTH_BASIC} ${RouterScanUtil.AUTH_DIGEST} ${RouterScanUtil.AUTH_FORM}"
                 }
-                val rsOutput =
-                    executor.executeParallel(rsCommands, config.rsTimeout, config.maxThreads)
 
-                val batchResults = rsOutput.map { (ipPort, output) ->
+                fun handleTargetOutput(ipPort: String, fullOut: String): RouterScanResult {
                     val ip = ipPort.substringBefore(":")
                     val p = ipPort.substringAfter(":")
-                    val fullOut = output.joinToString("\n")
                     val parsed = RouterScanUtil.parseRouterOutput(fullOut, ip, p, fullOut)
                     onResult?.invoke(parsed)
                     if (parsed.success) {
@@ -131,7 +128,20 @@ class ChrootRouterScanExecutor(private val context: Context) : RouterScanExecuto
                     } else {
                         onProgress?.invoke("[-] $ip:$p: ${parsed.status}")
                     }
-                    parsed
+                    return parsed
+                }
+
+                val rsOutput = executor.executeParallel(
+                    rsCommands,
+                    config.rsTimeout,
+                    config.maxThreads,
+                    onTargetCompleted = { ipPort, lines ->
+                        handleTargetOutput(ipPort, lines.joinToString("\n"))
+                    }
+                )
+
+                val batchResults = rsOutput.map { (ipPort, output) ->
+                    handleTargetOutput(ipPort, output.joinToString("\n"))
                 }
 
                 results.addAll(batchResults)

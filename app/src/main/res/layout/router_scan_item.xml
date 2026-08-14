@@ -4,24 +4,25 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="12dp"
+    android:layout_marginHorizontal="4dp"
     android:layout_marginVertical="4dp"
     android:foreground="?android:attr/selectableItemBackground"
     app:cardCornerRadius="12dp"
-    app:cardElevation="2dp"
+    app:cardElevation="1dp"
     app:contentPadding="0dp"
-    app:strokeWidth="0dp">
+    app:strokeColor="@color/divider_color"
+    app:strokeWidth="1dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="12dp"
+        android:paddingStart="14dp"
         android:paddingTop="12dp"
-        android:paddingEnd="16dp"
+        android:paddingEnd="14dp"
         android:paddingBottom="12dp">
         <View
             android:id="@+id/status_indicator"
-            android:layout_width="3dp"
+            android:layout_width="4dp"
             android:layout_height="0dp"
             android:background="#FFC107"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -38,6 +39,7 @@
             android:textColor="?android:attr/textColorPrimary"
             android:textSize="15sp"
             android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@id/badge_container"
             app:layout_constraintEnd_toStartOf="@id/badge_container"
             app:layout_constraintStart_toEndOf="@id/status_indicator"
             app:layout_constraintTop_toTopOf="parent"
@@ -51,19 +53,18 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <View
-                android:id="@+id/status_dot"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginEnd="4dp"
-                android:background="@drawable/bg_status_dot" />
-
             <TextView
                 android:id="@+id/text_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="?android:attr/textColorSecondary"
-                android:textSize="12sp"
+                android:background="@drawable/bg_status_badge"
+                android:backgroundTint="@color/warning_orange"
+                android:paddingStart="10dp"
+                android:paddingTop="3dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="3dp"
+                android:textColor="@android:color/white"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 tools:text="Success" />
         </LinearLayout>
@@ -152,7 +153,7 @@
             android:layout_height="1dp"
             android:layout_marginStart="12dp"
             android:layout_marginTop="8dp"
-            android:background="@color/divider"
+            android:background="@color/divider_color"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/status_indicator"
@@ -172,7 +173,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="PSK"
+                android:text="@string/psk"
                 android:textColor="?android:attr/textColorTertiary"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -208,7 +209,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="WPS"
+                android:text="@string/filter_wps"
                 android:textColor="?android:attr/textColorTertiary"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -244,7 +245,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Title"
+                android:text="@string/title"
                 android:textColor="?android:attr/textColorTertiary"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -279,7 +280,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Type"
+                android:text="@string/type"
                 android:textColor="?android:attr/textColorTertiary"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -317,8 +318,9 @@
                 android:layout_height="32dp"
                 android:layout_marginEnd="8dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Upload to 3WiFi"
+                android:contentDescription="@string/router_scan_upload_3wifi"
                 android:src="@drawable/ic_file_upload"
+                android:tint="?attr/colorOnSurfaceVariant"
                 android:visibility="gone" />
 
             <ImageButton
@@ -326,10 +328,10 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Full output"
+                android:contentDescription="@string/cd_full_output"
                 android:src="@android:drawable/ic_menu_view"
+                android:tint="?attr/colorOnSurfaceVariant"
                 android:visibility="gone" />
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>
-

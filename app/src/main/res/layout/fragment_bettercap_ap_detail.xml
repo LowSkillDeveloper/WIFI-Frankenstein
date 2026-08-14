@@ -112,14 +112,14 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Show details"
+                        android:text="@string/show_details"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
 
                     <ImageView
                         android:id="@+id/iconToggleDetails"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
-                        android:contentDescription="Toggle details"
+                        android:contentDescription="@string/cd_toggle_details"
                         android:src="@drawable/ic_expand_more"
                         app:tint="?attr/colorControlNormal" />
                 </LinearLayout>
@@ -208,7 +208,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Clients"
+                        android:text="@string/clients"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
 
                     <com.google.android.material.button.MaterialButton
@@ -216,7 +216,7 @@
                         style="@style/Widget.MaterialComponents.Button.TextButton"
                         android:layout_width="wrap_content"
                         android:layout_height="48dp"
-                        android:text="Select All" />
+                        android:text="@string/select_all" />
                 </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
@@ -231,7 +231,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:padding="24dp"
-                    android:text="No clients connected"
+                    android:text="@string/no_clients_connected"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
                     android:visibility="gone" />
             </LinearLayout>
@@ -256,21 +256,21 @@
                     android:id="@+id/buttonDeauthSelected"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="Deauth Selected" />
+                    android:text="@string/deauth_selected" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/buttonDeauthAll"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
                     android:layout_marginTop="8dp"
-                    android:text="Deauth All Clients" />
+                    android:text="@string/deauth_all_clients" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/buttonAssoc"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
                     android:layout_marginTop="8dp"
-                    android:text="Assoc (PMKID Capture)" />
+                    android:text="@string/assoc_pmkid_capture" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -295,7 +295,7 @@
                     android:id="@+id/textHandshakeStatus"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Handshake: not captured"
+                    android:text="@string/handshake_not_captured"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
 
                 <LinearLayout
@@ -312,14 +312,14 @@
                         android:layout_height="48dp"
                         android:layout_marginEnd="4dp"
                         android:layout_weight="1"
-                        android:text="Download" />
+                        android:text="@string/download" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/buttonViewInStorage"
                         android:layout_width="0dp"
                         android:layout_height="48dp"
                         android:layout_weight="1"
-                        android:text="View in Storage" />
+                        android:text="@string/view_in_storage" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

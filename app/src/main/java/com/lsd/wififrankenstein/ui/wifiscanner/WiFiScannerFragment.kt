@@ -286,7 +286,7 @@ class WiFiScannerFragment : Fragment() {
                     )
                     Toast.makeText(
                         requireContext(),
-                        "Scan interface: $previous → $scanInterface",
+                        getString(R.string.ws_scan_interface_changed, previous, scanInterface),
                         Toast.LENGTH_SHORT
                     ).show()
 
@@ -722,7 +722,7 @@ class WiFiScannerFragment : Fragment() {
                             val message = if (totalNetworks > 0) {
                                 getString(R.string.wpa_algorithms_generated, totalNetworks)
                             } else {
-                                "No algorithms found"
+                                getString(R.string.ws_no_algorithms_found)
                             }
                             Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
                         }
@@ -731,7 +731,8 @@ class WiFiScannerFragment : Fragment() {
                         withContext(Dispatchers.Main) {
                             if (_binding == null) return@withContext
                             hideProgressBar()
-                            Toast.makeText(requireContext(), "Error", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), getString(R.string.ws_error), Toast.LENGTH_SHORT)
+                                .show()
                         }
                     }
                 }
@@ -1316,12 +1317,15 @@ class WiFiScannerFragment : Fragment() {
                     iwWifiManager.setInterfaceMode(scanInterface, IwWifiManager.MODE_MANAGED)
                 if (success) {
                     binding.monitorModeBanner.root.visibility = View.GONE
-                    Toast.makeText(requireContext(), "$scanInterface → managed", Toast.LENGTH_SHORT)
-                        .show()
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.ws_switch_managed, scanInterface),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
                     Toast.makeText(
                         requireContext(),
-                        "Failed to switch $scanInterface",
+                        getString(R.string.ws_switch_failed, scanInterface),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -1531,7 +1535,7 @@ class WiFiScannerFragment : Fragment() {
                     dialog.dismiss()
                 } ?: Toast.makeText(
                     requireContext(),
-                    "Wi-Fi network is not selected",
+                    getString(R.string.ws_network_not_selected),
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -1588,7 +1592,7 @@ class WiFiScannerFragment : Fragment() {
                     dialog.dismiss()
                 } ?: Toast.makeText(
                     requireContext(),
-                    "Wi-Fi network is not selected",
+                    getString(R.string.ws_network_not_selected),
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -1643,7 +1647,7 @@ class WiFiScannerFragment : Fragment() {
                 val ssid = selectedWifi?.SSID ?: selectedIwNetwork?.ssid ?: ""
                 val bssid = currentBssid ?: return@setOnClickListener
                 if (ssid.isEmpty()) {
-                    Toast.makeText(requireContext(), "SSID not available", Toast.LENGTH_SHORT)
+                    Toast.makeText(requireContext(), getString(R.string.ws_ssid_not_available), Toast.LENGTH_SHORT)
                         .show()
                     return@setOnClickListener
                 }
@@ -1906,8 +1910,11 @@ class WiFiScannerFragment : Fragment() {
                 .getSystemService(Context.WIFI_SERVICE) as WifiManager
             val gateway = wifiManager.dhcpInfo?.gateway ?: 0
             if (gateway == 0) {
-                Toast.makeText(requireContext(), "Router IP not available", Toast.LENGTH_SHORT)
-                    .show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.ws_router_ip_not_available),
+                    Toast.LENGTH_SHORT
+                ).show()
                 return
             }
             val bundle = Bundle().apply {
@@ -2537,7 +2544,7 @@ class WiFiScannerFragment : Fragment() {
             onlineVendor1TextView,
             onlineVendor2TextView
         ).forEach { textView ->
-            textView.setOnClickListener { copyToClipboard("Vendor", textView.text.toString()) }
+            textView.setOnClickListener { copyToClipboard(getString(R.string.ws_vendor), textView.text.toString()) }
         }
     }
 

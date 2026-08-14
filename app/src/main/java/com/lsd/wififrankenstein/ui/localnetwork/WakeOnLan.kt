@@ -2,6 +2,7 @@ package com.lsd.wififrankenstein.ui.localnetwork
 
 import android.content.Context
 import android.os.PowerManager
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.Log
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -21,7 +22,7 @@ object WakeOnLan {
         try {
             val cleanMac = macAddress.replace(":", "").replace("-", "").replace(".", "")
             if (cleanMac.length != 12) {
-                return Pair(false, "Invalid MAC address length: ${cleanMac.length} hex chars")
+                return Pair(false, context.getString(R.string.nat_invalid_mac, cleanMac.length))
             }
 
             val macBytes = ByteArray(6)
@@ -47,13 +48,13 @@ object WakeOnLan {
                     socket.send(DatagramPacket(magicPacket, magicPacket.size, address, PORT))
                 }
                 Log.d(TAG, "WoL sent to $macAddress via $broadcastIp:$PORT")
-                return Pair(true, "WoL packet sent to $macAddress")
+                return Pair(true, context.getString(R.string.nat_wol_sent, macAddress))
             } finally {
                 wakeLock.release()
             }
         } catch (e: Exception) {
             Log.e(TAG, "WoL failed", e)
-            return Pair(false, "WoL failed: ${e.message}")
+            return Pair(false, context.getString(R.string.nat_wol_failed, e.message))
         }
     }
 }

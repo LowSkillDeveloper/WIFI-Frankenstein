@@ -3,6 +3,7 @@ package com.lsd.wififrankenstein.ui.databasefinder
 import android.content.Context
 import android.database.Cursor
 import androidx.core.net.toUri
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.dbsetup.API3WiFiHelper
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.SQLite3WiFiHelper
@@ -41,7 +42,7 @@ class WiFi3DetailLoader(
                 }
 
                 if (decimalBssid == null) {
-                    emit(mapOf("error" to "Invalid BSSID format"))
+                    emit(mapOf("error" to context.getString(R.string.invalid_bssid_format)))
                     return@flow
                 }
 
@@ -83,11 +84,11 @@ class WiFi3DetailLoader(
 
                                 emit(formatted)
                             } else {
-                                emit(mapOf("message" to "No detailed data found"))
+                                emit(mapOf("message" to context.getString(R.string.df_no_detailed_data)))
                             }
                         }
                     } else {
-                        emit(mapOf("error" to "Could not open database"))
+                        emit(mapOf("error" to context.getString(R.string.df_could_not_open_db)))
                     }
                 } finally {
                     helper.close()
@@ -196,12 +197,12 @@ class CustomDbDetailLoader(
                 val columnMap = dbItem.columnMap
 
                 if (tableName == null) {
-                    emit(mapOf("error" to "Table name not defined"))
+                    emit(mapOf("error" to context.getString(R.string.df_table_not_defined)))
                     return@flow
                 }
 
                 if (columnMap == null) {
-                    emit(mapOf("error" to "Column mapping not defined"))
+                    emit(mapOf("error" to context.getString(R.string.df_column_mapping_not_defined)))
                     return@flow
                 }
 
@@ -374,11 +375,11 @@ class CustomDbDetailLoader(
 
                                     emit(normalizedResult)
                                 } else {
-                                    emit(mapOf("message" to "No detailed data found"))
+                                    emit(mapOf("message" to context.getString(R.string.df_no_detailed_data)))
                                 }
                             }
                     } else {
-                        emit(mapOf("error" to "Could not open database"))
+                        emit(mapOf("error" to context.getString(R.string.df_could_not_open_db)))
                     }
                 } finally {
                     helper.close()
@@ -436,7 +437,7 @@ class LocalAppDetailLoader(
 
                         emit(normalizedResult)
                     } else {
-                        emit(mapOf("message" to "No detailed data found"))
+                        emit(mapOf("message" to context.getString(R.string.df_no_detailed_data)))
                     }
                 }
             } catch (e: Exception) {
@@ -509,10 +510,10 @@ class ApiDetailLoader(
                     if (networkData != null) {
                         emit(networkData)
                     } else {
-                        emit(mapOf("message" to "No detailed data found"))
+                        emit(mapOf("message" to context.getString(R.string.df_no_detailed_data)))
                     }
                 } else {
-                    emit(mapOf("message" to "No detailed data found"))
+                    emit(mapOf("message" to context.getString(R.string.df_no_detailed_data)))
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in ApiDetailLoader", e)

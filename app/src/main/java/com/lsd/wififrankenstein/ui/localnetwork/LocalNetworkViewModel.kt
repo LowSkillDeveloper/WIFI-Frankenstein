@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.ChrootManager
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
@@ -108,13 +109,18 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                     routerScanAvailable = prev?.routerScanAvailable ?: false
                 )
             )
-            addLine("[*] Starting local network scan...")
+            addLine(getApplication<Application>().getString(R.string.ln_start_scan))
 
             try {
                 val mode = _state.value?.scanMode ?: ScanMode.NATIVE
-                addLine("[*] Mode: $mode")
+                addLine(getApplication<Application>().getString(R.string.ln_mode, mode))
 
-                addLine("[*] Detecting subnet on $interfaceName...")
+                addLine(
+                    getApplication<Application>().getString(
+                        R.string.ln_detecting_subnet_line,
+                        interfaceName
+                    )
+                )
                 val subnetInfo = if (mode == ScanMode.CHROOT) {
                     chrootScanner.detectSubnet(interfaceName)
                 } else {
@@ -122,18 +128,24 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                 }
 
                 if (subnetInfo == null) {
-                    addLine("[-] Failed to detect subnet")
+                    addLine(getApplication<Application>().getString(R.string.ln_failed_detect_subnet))
                     _state.postValue(
                         _state.value?.copy(
                             isScanning = false,
                             phase = "",
-                            error = "Cannot detect subnet"
+                            error = getApplication<Application>().getString(R.string.ln_cannot_detect_subnet)
                         )
                     )
                     return@launch
                 }
 
-                addLine("[+] Subnet: ${subnetInfo.subnet}, Gateway: ${subnetInfo.gateway}")
+                addLine(
+                    getApplication<Application>().getString(
+                        R.string.ln_subnet_gateway,
+                        subnetInfo.subnet,
+                        subnetInfo.gateway
+                    )
+                )
                 _state.postValue(
                     _state.value?.copy(
                         subnet = subnetInfo.subnet,
@@ -142,7 +154,9 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                     )
                 )
 
-                addLine("[*] Ping sweep on ${subnetInfo.subnet}...")
+                addLine(
+                    getApplication<Application>().getString(R.string.ln_ping_sweep, subnetInfo.subnet)
+                )
                 val discoveredDevices = if (mode == ScanMode.CHROOT) {
                     chrootScanner.pingSweep(subnetInfo.subnet) { progress ->
                         handleSweepProgress(progress)
@@ -154,9 +168,19 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                 }
 
                 if (discoveredDevices.isEmpty()) {
-                    addLine("[-] No devices found on ${subnetInfo.subnet}")
+                    addLine(
+                        getApplication<Application>().getString(
+                            R.string.ln_no_devices_on,
+                            subnetInfo.subnet
+                        )
+                    )
                 } else {
-                    addLine("[+] Found ${discoveredDevices.size} devices")
+                    addLine(
+                        getApplication<Application>().getString(
+                            R.string.ln_found_devices,
+                            discoveredDevices.size
+                        )
+                    )
                 }
 
                 val gatewayIp = subnetInfo.gateway
@@ -177,10 +201,15 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                     mutableDevices.addAll(sortedDevices)
                 }
 
-                addLine("[+] Scan complete — ${discoveredDevices.size} devices found")
+                addLine(
+                    getApplication<Application>().getString(
+                        R.string.ln_scan_complete,
+                        discoveredDevices.size
+                    )
+                )
                 _state.postValue(_state.value?.copy(isScanning = false, phase = ""))
             } catch (e: Exception) {
-                val msg = "Scan failed: ${e.message}"
+                val msg = getApplication<Application>().getString(R.string.ln_scan_failed, e.message)
                 Log.e(TAG, msg, e)
                 addLine("[-] $msg")
                 _state.postValue(_state.value?.copy(isScanning = false, phase = "", error = msg))
@@ -206,13 +235,18 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                     routerScanAvailable = prev?.routerScanAvailable ?: false
                 )
             )
-            addLine("[*] Starting detailed scan...")
+            addLine(getApplication<Application>().getString(R.string.ln_start_detailed_scan))
             val viewModelStartTime = System.currentTimeMillis()
 
             try {
                 val mode = _state.value?.scanMode ?: ScanMode.NATIVE
 
-                addLine("[*] Detecting subnet on $interfaceName...")
+                addLine(
+                    getApplication<Application>().getString(
+                        R.string.ln_detecting_subnet_line,
+                        interfaceName
+                    )
+                )
                 val subnetInfo = if (mode == ScanMode.CHROOT) {
                     chrootScanner.detectSubnet(interfaceName)
                 } else {
@@ -220,18 +254,24 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                 }
 
                 if (subnetInfo == null) {
-                    addLine("[-] Failed to detect subnet")
+                    addLine(getApplication<Application>().getString(R.string.ln_failed_detect_subnet))
                     _state.postValue(
                         _state.value?.copy(
                             isScanning = false,
                             phase = "",
-                            error = "Cannot detect subnet"
+                            error = getApplication<Application>().getString(R.string.ln_cannot_detect_subnet)
                         )
                     )
                     return@launch
                 }
 
-                addLine("[+] Subnet: ${subnetInfo.subnet}, Gateway: ${subnetInfo.gateway}")
+                addLine(
+                    getApplication<Application>().getString(
+                        R.string.ln_subnet_gateway,
+                        subnetInfo.subnet,
+                        subnetInfo.gateway
+                    )
+                )
                 _state.postValue(
                     _state.value?.copy(
                         subnet = subnetInfo.subnet,
@@ -240,7 +280,9 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                     )
                 )
 
-                addLine("[*] Ping sweep on ${subnetInfo.subnet}...")
+                addLine(
+                    getApplication<Application>().getString(R.string.ln_ping_sweep, subnetInfo.subnet)
+                )
                 val discoveredDevices = if (mode == ScanMode.CHROOT) {
                     chrootScanner.pingSweep(subnetInfo.subnet) { progress ->
                         handleSweepProgress(progress)
@@ -252,12 +294,17 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                 }
 
                 if (discoveredDevices.isEmpty()) {
-                    addLine("[-] No devices found")
+                    addLine(getApplication<Application>().getString(R.string.ln_no_devices))
                     _state.postValue(_state.value?.copy(isScanning = false, phase = ""))
                     return@launch
                 }
 
-                addLine("[+] Found ${discoveredDevices.size} devices, starting parallel port scan...")
+                addLine(
+                    getApplication<Application>().getString(
+                        R.string.ln_found_parallel_scan,
+                        discoveredDevices.size
+                    )
+                )
 
                 val detailedDevices = discoveredDevices.toMutableList()
                 var scannedCount = 0
@@ -322,8 +369,12 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
 
                 val totalPorts = sortedDevices.sumOf { it.openPorts.size }
                 val totalTime = System.currentTimeMillis() - viewModelStartTime
-                val summary =
-                    "[+] Detailed scan complete: ${discoveredDevices.size} devices, $totalPorts open ports, ${totalTime}ms total"
+                val summary = getApplication<Application>().getString(
+                    R.string.ln_detailed_scan_complete,
+                    discoveredDevices.size,
+                    totalPorts,
+                    totalTime
+                )
                 Log.d(TAG, summary)
                 addLine(summary)
                 _state.postValue(
@@ -335,7 +386,8 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                     )
                 )
             } catch (e: Exception) {
-                val msg = "Detailed scan failed: ${e.message}"
+                val msg =
+                    getApplication<Application>().getString(R.string.ln_detailed_scan_failed, e.message)
                 Log.e(TAG, msg, e)
                 addLine("[-] $msg")
                 _state.postValue(_state.value?.copy(isScanning = false, phase = "", error = msg))
@@ -349,7 +401,7 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
         quickScanJob = null
         detailedScanJob = null
         _state.postValue(_state.value?.copy(isScanning = false, phase = ""))
-        addLine("[-] Scan cancelled")
+        addLine(getApplication<Application>().getString(R.string.ln_scan_cancelled))
     }
 
     fun clearResults() {
@@ -376,14 +428,16 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
 
     fun cutInternet(device: LocalDevice, gatewayIp: String, durationSeconds: Int = 0) {
         if (_state.value?.hasRoot != true) {
-            addLine("[-] Cut Internet requires root access")
+            addLine(getApplication<Application>().getString(R.string.ln_cut_requires_root))
             return
         }
 
         cutJobs[device.ip]?.cancel()
         cutJobs[device.ip] = viewModelScope.launch {
             val iface = _state.value?.selectedInterface ?: "wlan0"
-            addLine("[*] Cutting internet for ${device.ip}...")
+            addLine(
+                getApplication<Application>().getString(R.string.ln_cutting_internet, device.ip)
+            )
             val (success, output) = nativeArpSpoof.cutInternet(
                 device.ip,
                 gatewayIp,
@@ -395,7 +449,14 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                 if (durationSeconds > 0) {
                     delay(durationSeconds * 1000L)
                     val (restored, _) = nativeArpSpoof.restoreInternet(device.ip, gatewayIp)
-                    if (restored) addLine("[+] Internet restored for ${device.ip}")
+                    if (restored) {
+                        addLine(
+                            getApplication<Application>().getString(
+                                R.string.ln_internet_restored,
+                                device.ip
+                            )
+                        )
+                    }
                 }
             } else {
                 addLine("[-] $output")
@@ -406,23 +467,35 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
     fun restoreInternet(device: LocalDevice, gatewayIp: String) {
         cutJobs[device.ip]?.cancel()
         cutJobs[device.ip] = viewModelScope.launch {
-            addLine("[*] Restoring internet for ${device.ip}...")
+            addLine(
+                getApplication<Application>().getString(R.string.ln_restoring_internet, device.ip)
+            )
             val (success, output) = nativeArpSpoof.restoreInternet(
                 device.ip,
                 gatewayIp,
                 _state.value?.selectedInterface ?: "wlan0"
             )
             if (success) {
-                addLine("[+] Internet restored for ${device.ip}")
+                addLine(
+                    getApplication<Application>().getString(R.string.ln_internet_restored, device.ip)
+                )
             } else {
-                addLine("[-] Failed to restore internet for ${device.ip}: $output")
+                addLine(
+                    getApplication<Application>().getString(
+                        R.string.ln_restore_failed,
+                        device.ip,
+                        output
+                    )
+                )
             }
         }
     }
 
     fun sendWakeOnLan(context: android.content.Context, device: LocalDevice) {
         viewModelScope.launch {
-            addLine("[*] Sending Wake-on-LAN to ${device.ip}...")
+            addLine(
+                getApplication<Application>().getString(R.string.ln_sending_wol, device.ip)
+            )
             val (success, msg) = withContext(Dispatchers.IO) {
                 WakeOnLan.send(context, device.mac)
             }
@@ -438,7 +511,7 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
         val device = mutableDevices.find { it.ip == ip } ?: return null
         if (device.openPorts.isNotEmpty() && device.osType != OSType.UNKNOWN) return device
 
-        addLine("[*] Scanning ${device.ip}...")
+        addLine(getApplication<Application>().getString(R.string.ln_scanning_device, device.ip))
         return withContext(Dispatchers.IO) {
             val mode = _state.value?.scanMode ?: ScanMode.NATIVE
             val scanned = if (mode == ScanMode.CHROOT) {
@@ -471,11 +544,12 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                 }
             }
             addLine(
-                "[+] ${scanned.ip}: ${scanned.openPorts.size} ports open, OS: ${
-                    scanned.os.take(
-                        40
-                    )
-                }"
+                getApplication<Application>().getString(
+                    R.string.ln_ports_open,
+                    scanned.ip,
+                    scanned.openPorts.size,
+                    scanned.os.take(40)
+                )
             )
             scanned
         }

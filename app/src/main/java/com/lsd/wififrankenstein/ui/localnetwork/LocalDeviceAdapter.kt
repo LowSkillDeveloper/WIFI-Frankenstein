@@ -58,7 +58,7 @@ class LocalDeviceAdapter(
                 device.hostname.isNotEmpty() -> device.hostname
                 device.netbiosName.isNotEmpty() -> device.netbiosName
                 device.vendor.isNotEmpty() -> device.vendor
-                else -> "Unknown device"
+                else -> ctx.getString(R.string.ln_unknown_device)
             }
             binding.textHostname.text = displayName
 
@@ -89,7 +89,8 @@ class LocalDeviceAdapter(
                 ContextCompat.getColor(ctx, R.color.error_red)
 
             binding.statusDot.backgroundTintList = ColorStateList.valueOf(dotColor)
-            binding.textStatus.text = if (device.isAlive) "Online" else "Offline"
+            binding.textStatus.text =
+                if (device.isAlive) ctx.getString(R.string.ln_online) else ctx.getString(R.string.ln_offline)
 
             if (device.responseTimeMs > 0) {
                 binding.textLatency.text = "${device.responseTimeMs}ms"

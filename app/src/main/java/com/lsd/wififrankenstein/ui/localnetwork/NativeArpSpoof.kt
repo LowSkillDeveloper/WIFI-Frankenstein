@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.localnetwork
 
 import android.content.Context
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.Log
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +27,10 @@ class NativeArpSpoof(private val context: Context) {
 
             val ourMac = getLocalMac(iface)
             if (ourMac == null) {
-                return@withContext Pair(false, "Cannot determine our MAC address on $iface")
+                return@withContext Pair(
+                    false,
+                    context.getString(R.string.nat_cannot_determine_mac, iface)
+                )
             }
 
 
@@ -35,19 +39,22 @@ class NativeArpSpoof(private val context: Context) {
 
             val success = sendArpPoison(targetIp, gatewayIp, ourMac, iface)
             if (!success) {
-                return@withContext Pair(false, "ARP poison failed (insufficient permissions?)")
+                return@withContext Pair(
+                    false,
+                    context.getString(R.string.nat_arp_poison_failed)
+                )
             }
 
             val msg = if (durationSeconds > 0) {
-                "Internet cut for $targetIp for ${durationSeconds}s"
+                context.getString(R.string.nat_cut_success, targetIp, durationSeconds)
             } else {
-                "Internet cut for $targetIp until manual restore"
+                context.getString(R.string.nat_cut_manual, targetIp)
             }
             Log.d(TAG, msg)
             Pair(true, msg)
         } catch (e: Exception) {
             Log.e(TAG, "Cut failed", e)
-            Pair(false, "Error: ${e.message}")
+            Pair(false, context.getString(R.string.error_general, e.message))
         }
     }
 
@@ -80,10 +87,10 @@ class NativeArpSpoof(private val context: Context) {
             cachedTargetMac = null
             cachedGatewayMac = null
 
-            Pair(true, "Internet restored for $targetIp (entries will fix on next ARP exchange)")
+            Pair(true, context.getString(R.string.nat_restore_success, targetIp))
         } catch (e: Exception) {
             Log.e(TAG, "Restore failed", e)
-            Pair(false, "Error: ${e.message}")
+            Pair(false, context.getString(R.string.error_general, e.message))
         }
     }
 

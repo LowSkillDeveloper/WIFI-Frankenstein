@@ -37,7 +37,7 @@
                         style="@style/SegmentButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="MAC (BSSID)"
+                        android:text="@string/mac_bssid"
                         app:icon="@drawable/ic_location"
                         app:iconGravity="textStart"
                         app:iconPadding="6dp" />
@@ -47,7 +47,7 @@
                         style="@style/SegmentButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="ESSID"
+                        android:text="@string/filter_essid"
                         app:icon="@drawable/ic_wifi"
                         app:iconGravity="textStart"
                         app:iconPadding="6dp" />

@@ -159,7 +159,7 @@
             android:id="@+id/textViewMain"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Main"
+            android:text="@string/ib_tab_main"
             android:textAppearance="?attr/textAppearanceCaption"
             android:textColor="?attr/colorSecondary"
             android:textStyle="bold"

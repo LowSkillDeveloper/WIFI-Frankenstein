@@ -21,7 +21,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:text="WPA Offline Cracker"
+                android:text="@string/wpa_offline_cracker"
                 android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
 
             <com.google.android.material.card.MaterialCardView
@@ -43,7 +43,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Crack Engine"
+                        android:text="@string/crack_engine"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
                     <RadioGroup
@@ -56,7 +56,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Native is faster than Chroot."
+                        android:text="@string/native_faster_than_chroot"
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:textColor="?android:attr/textColorSecondary" />
 
@@ -93,7 +93,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Handshake Source"
+                        android:text="@string/handshake_source"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
                     <TextView
@@ -101,7 +101,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Tap to select handshake source"
+                        android:text="@string/wpa_tap_select_handshake"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -159,7 +159,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Wordlist"
+                        android:text="@string/wordlist"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
                     <TextView
@@ -167,7 +167,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Tap to select wordlist source"
+                        android:text="@string/wpa_tap_select_wordlist"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                         android:textColor="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
@@ -179,7 +179,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 android:enabled="false"
-                android:text="Start Cracking"
+                android:text="@string/wpa_start_cracking"
                 app:icon="@drawable/ic_lock_open" />
 
             <com.google.android.material.card.MaterialCardView
@@ -230,7 +230,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="4dp"
                             android:layout_weight="1"
-                            android:text="Pause"
+                            android:text="@string/pause"
                             android:visibility="gone" />
 
                         <com.google.android.material.button.MaterialButton
@@ -240,7 +240,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
                             android:layout_weight="1"
-                            android:text="Stop"
+                            android:text="@string/stop"
                             android:visibility="gone" />
                     </LinearLayout>
 
@@ -250,7 +250,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:gravity="center"
-                        android:text="Running in background"
+                        android:text="@string/running_in_background"
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:visibility="gone" />
@@ -275,7 +275,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Chroot Crack Progress"
+                        android:text="@string/chroot_crack_progress"
                         android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
 
                     <com.google.android.material.progressindicator.LinearProgressIndicator
@@ -347,7 +347,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:layout_marginTop="4dp"
-                        android:text="Console"
+                        android:text="@string/airodump_console"
                         android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -407,7 +407,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="Copy Password"
+                        android:text="@string/copy_password"
                         android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -418,7 +418,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Cancel"
+                android:text="@string/cancel"
                 android:visibility="gone" />
 
             <View
@@ -432,7 +432,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:text="Benchmark"
+                android:text="@string/benchmark"
                 android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
             <com.google.android.material.card.MaterialCardView
@@ -454,7 +454,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Device Performance"
+                        android:text="@string/device_performance"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -546,7 +546,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Run Benchmark"
+                        android:text="@string/run_benchmark"
                         app:icon="@drawable/ic_scan" />
 
                     <ProgressBar

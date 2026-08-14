@@ -461,7 +461,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            android:hint="SSID (optional)">
+                            android:hint="@string/ssid_optional">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/editTextSsid"
@@ -668,7 +668,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="PWR"
+                                        android:text="@string/airodump_col_pwr"
                                         android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
                                         android:textColor="?android:attr/textColorSecondary" />
 
@@ -689,7 +689,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="Beacons"
+                                        android:text="@string/airodump_col_beacons"
                                         android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
                                         android:textColor="?android:attr/textColorSecondary" />
 
@@ -710,7 +710,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="#Data"
+                                        android:text="@string/airodump_col_data"
                                         android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
                                         android:textColor="?android:attr/textColorSecondary" />
 
@@ -731,7 +731,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="RXQ"
+                                        android:text="@string/airodump_col_rxq"
                                         android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
                                         android:textColor="?android:attr/textColorSecondary" />
 
@@ -758,7 +758,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="ENC"
+                                        android:text="@string/airodump_col_enc"
                                         android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
                                         android:textColor="?android:attr/textColorSecondary" />
 
@@ -779,7 +779,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="Cipher"
+                                        android:text="@string/airodump_col_cipher"
                                         android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
                                         android:textColor="?android:attr/textColorSecondary" />
 
@@ -800,7 +800,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="AUTH"
+                                        android:text="@string/airodump_col_auth"
                                         android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
                                         android:textColor="?android:attr/textColorSecondary" />
 
@@ -821,7 +821,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="Clients"
+                                        android:text="@string/clients"
                                         android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
                                         android:textColor="?android:attr/textColorSecondary" />
 
@@ -849,7 +849,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="12dp"
-                                android:text="Best client"
+                                android:text="@string/airodump_col_best_client"
                                 android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
                                 android:textColor="?android:attr/textColorSecondary" />
 

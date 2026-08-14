@@ -548,7 +548,11 @@ class NetworkRecordsAdapter(
                     }
 
                     val label = TextView(context).apply {
-                        text = if (description == key) key else "$key ($description)"
+                        text = if (description == key) {
+                            key
+                        } else {
+                            context.getString(R.string.wm_raw_key_description, key, description)
+                        }
                         textSize = 12f
                         layoutParams = LinearLayout.LayoutParams(
                             0,

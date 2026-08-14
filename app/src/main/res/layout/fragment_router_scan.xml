@@ -9,20 +9,24 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
-        android:paddingBottom="80dp">
+        android:paddingBottom="96dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp">
+
+            <!-- Target card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:contentPadding="16dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:contentPadding="16dp"
+                app:strokeColor="@color/divider_color"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -32,24 +36,17 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="4dp"
-                        android:text="@string/router_scan_title"
-                        android:textAppearance="?attr/textAppearanceHeadline6" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="@string/router_scan_description"
-                        android:textAppearance="?attr/textAppearanceBody2"
-                        android:textColor="?android:attr/textColorSecondary" />
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/router_scan_section_target"
+                        android:textAppearance="?attr/textAppearanceSubtitle1"
+                        android:textStyle="bold" />
 
                     <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/RoundedOutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:hint="IP / Range (e.g., 192.168.1.1, 192.168.1.0/24, 192.168.1.1-10)">
+                        android:layout_marginBottom="8dp"
+                        android:hint="@string/router_scan_ip_hint">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/editTextIp"
@@ -60,11 +57,11 @@
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        style="@style/RoundedOutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:hint="Ports (one per line)">
+                        android:layout_marginBottom="8dp"
+                        android:hint="@string/router_scan_ports_hint">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/editTextPorts"
@@ -86,7 +83,6 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Threads: 10"
                             android:textAppearance="?attr/textAppearanceBody2"
                             android:textColor="?android:attr/textColorSecondary" />
 
@@ -95,37 +91,32 @@
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Settings"
+                            android:text="@string/router_scan_settings"
                             app:icon="@drawable/ic_settings"
-                            app:iconSize="18dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/buttonSave"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="Save"
-                            app:icon="@drawable/ic_save"
                             app:iconSize="18dp" />
                     </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/buttonScan"
+                        style="@style/RoundedButton"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Start Scan"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/router_scan_start_scan"
                         app:icon="@drawable/ic_scan"
                         app:iconGravity="textStart" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Console card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeColor="@color/divider_color"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -140,7 +131,7 @@
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
                         android:paddingVertical="12dp"
-                        android:text="Console"
+                        android:text="@string/router_scan_console_open"
                         app:icon="@drawable/ic_terminal"
                         app:iconGravity="textStart" />
 
@@ -149,8 +140,9 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:paddingHorizontal="12dp"
-                        android:paddingBottom="8dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="12dp"
                         android:visibility="gone">
 
                         <View
@@ -162,25 +154,32 @@
                         <androidx.recyclerview.widget.RecyclerView
                             android:id="@+id/recyclerViewConsole"
                             android:layout_width="match_parent"
-                            android:layout_height="200dp" />
+                            android:layout_height="220dp"
+                            android:background="@drawable/bg_console"
+                            android:padding="10dp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Results card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:contentPadding="16dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:contentPadding="16dp"
+                app:strokeColor="@color/divider_color"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -190,12 +189,35 @@
                             android:text="@string/router_scan_results"
                             android:textAppearance="?attr/textAppearanceHeadline6" />
 
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="0dp"
+                            android:layout_weight="1" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipShowFailed"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:text="@string/router_scan_show_failed"
+                            android:textSize="12sp"
+                            app:chipCornerRadius="8dp"
+                            app:chipMinHeight="28dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/buttonExport"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="36dp"
                             android:layout_height="36dp"
-                            android:layout_marginStart="8dp"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             app:icon="@drawable/ic_file_download"
@@ -225,22 +247,6 @@
                             app:icon="@drawable/ic_file_upload"
                             app:iconPadding="0dp"
                             app:iconSize="18dp" />
-
-                        <Space
-                            android:layout_width="0dp"
-                            android:layout_height="0dp"
-                            android:layout_weight="1" />
-
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chipShowFailed"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:checked="true"
-                            android:text="Show Failed"
-                            android:textSize="12sp"
-                            app:chipCornerRadius="8dp"
-                            app:chipMinHeight="28dp" />
                     </LinearLayout>
 
                     <androidx.recyclerview.widget.RecyclerView
@@ -252,6 +258,7 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
     <LinearLayout
         android:id="@+id/placeholderChroot"
         android:layout_width="match_parent"
@@ -264,7 +271,7 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="12dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="2dp"
             app:contentPadding="28dp"
             app:strokeColor="?android:attr/textColorTertiary"
@@ -275,6 +282,14 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
                 android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginBottom="16dp"
+                    android:contentDescription="@string/router_scan_title"
+                    android:src="@drawable/router_24px"
+                    android:tint="?android:attr/textColorTertiary" />
 
                 <TextView
                     android:id="@+id/textViewChrootTitle"
@@ -319,84 +334,97 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
-    <com.google.android.material.card.MaterialCardView
+
+    <!-- Bottom progress sheet -->
+    <LinearLayout
         android:id="@+id/bottomProgressCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginBottom="8dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="6dp"
-        app:contentPadding="10dp">
+        android:background="@drawable/bg_bottom_sheet"
+        android:backgroundTint="?attr/colorSurface"
+        android:elevation="10dp"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="12dp">
+
+        <TextView
+            android:id="@+id/textScanPercent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/router_scan_zero_percent"
+            android:textAppearance="?attr/textAppearanceHeadline6"
+            android:textColor="?attr/colorPrimary"
+            android:textStyle="bold" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:progress="0"
+            android:progressTint="?attr/colorPrimary" />
+
+        <ProgressBar
+            android:id="@+id/pingProgressBar"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:progress="0"
+            android:progressTint="@color/warning_orange" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
 
-            <ProgressBar
-                android:id="@+id/progressBar"
-                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/textScanned"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:progress="0"
-                android:progressTint="?attr/colorPrimary" />
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/router_scan_scanned_zero"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11sp" />
 
-            <ProgressBar
-                android:id="@+id/pingProgressBar"
-                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/textPing"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="6dp"
-                android:progress="0"
-                android:progressTint="@color/warning_orange" />
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/router_scan_ping_zero"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="11sp" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/textSuccess"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/router_scan_success_zero"
+                android:textColor="@color/success_green"
+                android:textSize="11sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/textScanned"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Scanned: 0/0"
-                    android:textColor="?android:attr/textColorSecondary"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:id="@+id/textPing"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Ping: 0"
-                    android:textColor="?android:attr/textColorSecondary"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:id="@+id/textSuccess"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Success: 0"
-                    android:textColor="@color/success_green"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/textFailure"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Failed: 0"
-                    android:textColor="@color/error_red"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+            <TextView
+                android:id="@+id/textFailure"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/router_scan_failed_zero"
+                android:textColor="@color/error_red"
+                android:textSize="11sp"
+                android:textStyle="bold" />
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-

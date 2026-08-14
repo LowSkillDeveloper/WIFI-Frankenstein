@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
+import com.lsd.wififrankenstein.R
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -86,7 +87,7 @@ class PskBruteForceRunner(private val context: Context) {
                             currentPassword = password,
                             attemptNumber = attempts,
                             totalPasswords = totalLines,
-                            statusMessage = "Trying: $password"
+                            statusMessage = context.getString(R.string.brute_trying, password)
                         )
                     )
 
@@ -105,7 +106,7 @@ class PskBruteForceRunner(private val context: Context) {
                                 currentPassword = password,
                                 attemptNumber = attempts,
                                 totalPasswords = totalLines,
-                                statusMessage = "FOUND: $password"
+                                statusMessage = context.getString(R.string.brute_found, password)
                             )
                         )
                         return@withContext PskBruteForceResult(password, true, attempts)

@@ -329,7 +329,7 @@
                             android:layout_columnWeight="1"
                             android:gravity="center"
                             android:padding="4dp"
-                            android:text="M1"
+                            android:text="@string/handshake_m1"
                             android:textSize="11sp"
                             android:textStyle="bold" />
 
@@ -339,7 +339,7 @@
                             android:layout_columnWeight="1"
                             android:gravity="center"
                             android:padding="4dp"
-                            android:text="M2"
+                            android:text="@string/handshake_m2"
                             android:textSize="11sp"
                             android:textStyle="bold" />
 
@@ -349,7 +349,7 @@
                             android:layout_columnWeight="1"
                             android:gravity="center"
                             android:padding="4dp"
-                            android:text="M3"
+                            android:text="@string/handshake_m3"
                             android:textSize="11sp"
                             android:textStyle="bold" />
 
@@ -359,7 +359,7 @@
                             android:layout_columnWeight="1"
                             android:gravity="center"
                             android:padding="4dp"
-                            android:text="M4"
+                            android:text="@string/handshake_m4"
                             android:textSize="11sp"
                             android:textStyle="bold" />
 
@@ -663,7 +663,7 @@
                             style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
                             android:layout_width="36dp"
                             android:layout_height="36dp"
-                            android:contentDescription="Copy 16800 hash"
+                            android:contentDescription="@string/cd_copy_16800_hash"
                             android:insetLeft="0dp"
                             android:insetTop="0dp"
                             android:insetRight="0dp"
@@ -676,7 +676,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="MD5"
+                        android:text="@string/md5"
                         android:textSize="12sp"
                         android:textStyle="bold" />
 
@@ -705,7 +705,7 @@
                             style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
                             android:layout_width="36dp"
                             android:layout_height="36dp"
-                            android:contentDescription="Copy MD5 hash"
+                            android:contentDescription="@string/cd_copy_md5_hash"
                             android:insetLeft="0dp"
                             android:insetTop="0dp"
                             android:insetRight="0dp"
@@ -825,7 +825,7 @@
             style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:contentDescription="More"
+            android:contentDescription="@string/more_options"
             android:insetLeft="0dp"
             android:insetTop="0dp"
             android:insetRight="0dp"

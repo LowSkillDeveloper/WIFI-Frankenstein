@@ -1,5 +1,6 @@
 package com.lsd.wififrankenstein.ui.internetblocking.scanner
 
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.internetblocking.model.CheckStatus
 import com.lsd.wififrankenstein.ui.internetblocking.model.DomainCheckResult
 import com.lsd.wififrankenstein.util.Log
@@ -127,7 +128,7 @@ class TlsScanner(
     }
 
     private val differentialClient by lazy(LazyThreadSafetyMode.NONE) {
-        DpiHttpClient(tlsVersion = "TLSv1.3", callTracker = callTracker)
+        DpiHttpClient(context, tlsVersion = "TLSv1.3", callTracker = callTracker)
     }
 
     suspend fun checkDomains(
@@ -148,12 +149,12 @@ class TlsScanner(
         val httpResults: MutableList<DpiResult> = mutableListOf()
 
 
-        val tls13Client = DpiHttpClient(tlsVersion = "TLSv1.3", callTracker = callTracker)
-        val tls12Client = DpiHttpClient(tlsVersion = "TLSv1.2", callTracker = callTracker)
-        val httpClient = DpiHttpClient(tlsVersion = null, callTracker = callTracker)
+        val tls13Client = DpiHttpClient(context, tlsVersion = "TLSv1.3", callTracker = callTracker)
+        val tls12Client = DpiHttpClient(context, tlsVersion = "TLSv1.2", callTracker = callTracker)
+        val httpClient = DpiHttpClient(context, tlsVersion = null, callTracker = callTracker)
 
 
-        onProgress?.invoke(5, "Фаза 0/4: DNS-резолв...")
+        onProgress?.invoke(5, context.getString(R.string.ib_tls_progress_phase0))
         Log.d(TAG, "Phase 0/4: DNS resolution for ${domains.size} domains")
         coroutineScope {
             dnsResults.addAll(domains.map { domain ->
@@ -163,9 +164,9 @@ class TlsScanner(
                         val resolvedIp = resolveDomain(domain)
                         val fakeIpType = getFakeIpType(resolvedIp ?: "")
                         val dnsStatus = when (fakeIpType) {
-                            "fakeip" -> "Fake-IP (198.18.0.0/15)"
-                            "isp" -> "ISP Stub DNS"
-                            "local" -> "Local IP"
+                            "fakeip" -> context.getString(R.string.ib_tls_dns_fakeip)
+                            "isp" -> context.getString(R.string.ib_tls_dns_isp)
+                            "local" -> context.getString(R.string.ib_tls_dns_local)
                             else -> null
                         }
                         DnsResult(domain, resolvedIp, fakeIpType, dnsStatus)
@@ -180,7 +181,7 @@ class TlsScanner(
         }
 
 
-        onProgress?.invoke(25, "Фаза 1/4: TLS 1.3...")
+        onProgress?.invoke(25, context.getString(R.string.ib_tls_progress_phase1))
         Log.d(TAG, "Phase 1/4: TLS 1.3 probing for ${domains.size} domains")
         coroutineScope {
             tls13Results.addAll(dnsResults.map { dnsResult ->
@@ -197,7 +198,7 @@ class TlsScanner(
                         throw e
                     } catch (e: Exception) {
                         Log.e(TAG, "TLS 1.3 probe failed for ${dnsResult.domain}: ${e.message}")
-                        DpiResult(CheckStatus.Error, "Probe failed: ${e.message}", 0, 0.0)
+                        DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
                     } finally {
                         semaphore.release()
                     }
@@ -206,7 +207,7 @@ class TlsScanner(
         }
 
 
-        onProgress?.invoke(50, "Фаза 2/4: TLS 1.2...")
+        onProgress?.invoke(50, context.getString(R.string.ib_tls_progress_phase2))
         Log.d(TAG, "Phase 2/4: TLS 1.2 probing for ${domains.size} domains")
         coroutineScope {
             tls12Results.addAll(dnsResults.map { dnsResult ->
@@ -223,7 +224,7 @@ class TlsScanner(
                         throw e
                     } catch (e: Exception) {
                         Log.e(TAG, "TLS 1.2 probe failed for ${dnsResult.domain}: ${e.message}")
-                        DpiResult(CheckStatus.Error, "Probe failed: ${e.message}", 0, 0.0)
+                        DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
                     } finally {
                         semaphore.release()
                     }
@@ -232,7 +233,7 @@ class TlsScanner(
         }
 
 
-        onProgress?.invoke(75, "Фаза 3/4: HTTP...")
+        onProgress?.invoke(75, context.getString(R.string.ib_tls_progress_phase3))
         Log.d(TAG, "Phase 3/4: HTTP probing for ${domains.size} domains")
         coroutineScope {
             httpResults.addAll(dnsResults.map { dnsResult ->
@@ -244,7 +245,7 @@ class TlsScanner(
                         throw e
                     } catch (e: Exception) {
                         Log.e(TAG, "HTTP probe failed for ${dnsResult.domain}: ${e.message}")
-                        DpiResult(CheckStatus.Error, "Probe failed: ${e.message}", 0, 0.0)
+                        DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
                     } finally {
                         semaphore.release()
                     }
@@ -252,7 +253,7 @@ class TlsScanner(
             }.awaitAll())
         }
 
-        onProgress?.invoke(95, "Сбор результатов...")
+        onProgress?.invoke(95, context.getString(R.string.ib_tls_progress_collect))
 
 
         Log.d(TAG, "Merging results for ${domains.size} domains")
@@ -269,9 +270,9 @@ class TlsScanner(
 
             val details = buildString {
                 if (dnsResult.dnsStatus != null) append("DNS: ${dnsResult.dnsStatus}; ")
-                if (tls13.status != CheckStatus.Ok) append("TLS 1.3: ${tls13.status.label()} - ${tls13.detail}; ")
-                if (tls12.status != CheckStatus.Ok) append("TLS 1.2: ${tls12.status.label()} - ${tls12.detail}; ")
-                if (http.status != CheckStatus.Ok) append("HTTP: ${http.status.label()} - ${http.detail}")
+                if (tls13.status != CheckStatus.Ok) append("TLS 1.3: ${tls13.status.label(context)} - ${tls13.detail}; ")
+                if (tls12.status != CheckStatus.Ok) append("TLS 1.2: ${tls12.status.label(context)} - ${tls12.detail}; ")
+                if (http.status != CheckStatus.Ok) append("HTTP: ${http.status.label(context)} - ${http.detail}")
             }.takeIf { it.isNotBlank() }
 
             DomainCheckResult(
@@ -310,23 +311,23 @@ class TlsScanner(
         onProgress: ((Int, String) -> Unit)? = null
     ): DomainCheckResult {
         Log.d(TAG, "Parallel domain check for $domain (timeout=${timeoutMs}ms)")
-        onProgress?.invoke(5, "DNS-резолв…")
+        onProgress?.invoke(5, context.getString(R.string.ib_tls_progress_dns))
 
         val resolvedIp = resolveDomain(domain)
         val fakeIpType = getFakeIpType(resolvedIp ?: "")
         val dnsStatus = when (fakeIpType) {
-            "fakeip" -> "Fake-IP (198.18.0.0/15)"
-            "isp" -> "ISP Stub DNS"
-            "local" -> "Local IP"
+            "fakeip" -> context.getString(R.string.ib_tls_dns_fakeip)
+            "isp" -> context.getString(R.string.ib_tls_dns_isp)
+            "local" -> context.getString(R.string.ib_tls_dns_local)
             else -> null
         }
         val dnsResult = DnsResult(domain, resolvedIp, fakeIpType, dnsStatus)
 
-        val tls13Client = DpiHttpClient(tlsVersion = "TLSv1.3", callTracker = callTracker)
-        val tls12Client = DpiHttpClient(tlsVersion = "TLSv1.2", callTracker = callTracker)
-        val httpClient = DpiHttpClient(tlsVersion = null, callTracker = callTracker)
+        val tls13Client = DpiHttpClient(context, tlsVersion = "TLSv1.3", callTracker = callTracker)
+        val tls12Client = DpiHttpClient(context, tlsVersion = "TLSv1.2", callTracker = callTracker)
+        val httpClient = DpiHttpClient(context, tlsVersion = null, callTracker = callTracker)
 
-        onProgress?.invoke(25, "TLS 1.3 + 1.2 + HTTP…")
+        onProgress?.invoke(25, context.getString(R.string.ib_tls_progress_combined))
         val (tls13, tls12, http) = coroutineScope {
             val d1 = async(Dispatchers.IO) {
                 try {
@@ -334,7 +335,7 @@ class TlsScanner(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    DpiResult(CheckStatus.Error, "Probe failed: ${e.message}", 0, 0.0)
+                    DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
                 }
             }
             val d2 = async(Dispatchers.IO) {
@@ -343,7 +344,7 @@ class TlsScanner(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    DpiResult(CheckStatus.Error, "Probe failed: ${e.message}", 0, 0.0)
+                    DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
                 }
             }
             val d3 = async(Dispatchers.IO) {
@@ -352,20 +353,20 @@ class TlsScanner(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    DpiResult(CheckStatus.Error, "Probe failed: ${e.message}", 0, 0.0)
+                    DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
                 }
             }
             Triple(d1.await(), d2.await(), d3.await())
         }
 
-        onProgress?.invoke(95, "Сбор результатов…")
+        onProgress?.invoke(95, context.getString(R.string.ib_tls_progress_collect))
 
         val bytesReceived = maxOf(tls13.bytesRead, tls12.bytesRead, http.bytesRead)
         val details = buildString {
             if (dnsResult.dnsStatus != null) append("DNS: ${dnsResult.dnsStatus}; ")
-            if (tls13.status != CheckStatus.Ok) append("TLS 1.3: ${tls13.status.label()} - ${tls13.detail}; ")
-            if (tls12.status != CheckStatus.Ok) append("TLS 1.2: ${tls12.status.label()} - ${tls12.detail}; ")
-            if (http.status != CheckStatus.Ok) append("HTTP: ${http.status.label()} - ${http.detail}")
+            if (tls13.status != CheckStatus.Ok) append("TLS 1.3: ${tls13.status.label(context)} - ${tls13.detail}; ")
+            if (tls12.status != CheckStatus.Ok) append("TLS 1.2: ${tls12.status.label(context)} - ${tls12.detail}; ")
+            if (http.status != CheckStatus.Ok) append("HTTP: ${http.status.label(context)} - ${http.detail}")
         }.takeIf { it.isNotBlank() }
 
         return DomainCheckResult(

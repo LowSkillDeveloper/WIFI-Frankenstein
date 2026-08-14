@@ -23,6 +23,12 @@ object RouterScanUtil {
     val SEC_REGEX = Regex("^Sec:\\s*(.+)$")
     val SERVER_STATUS_REGEX = Regex("^Status:\\s*(.+)$")
     val SERVER_TYPE_REGEX = Regex("^Type:\\s*(.+)$")
+    val LAN_IP_REGEX = Regex("^LANIP:\\s*(.+)$")
+    val LAN_MASK_REGEX = Regex("^LANMask:\\s*(.+)$")
+    val WAN_IP_REGEX = Regex("^WANIP:\\s*(.+)$")
+    val WAN_MASK_REGEX = Regex("^WANMask:\\s*(.+)$")
+    val WAN_GATE_REGEX = Regex("^WANGate:\\s*(.+)$")
+    val DNS_REGEX = Regex("^DNS:\\s*(.+)$")
 
     fun parseRouterOutput(
         output: String,
@@ -39,6 +45,12 @@ object RouterScanUtil {
         var title = ""
         var serverStatus = ""
         var serverType = ""
+        var lanIp = ""
+        var lanMask = ""
+        var wanIp = ""
+        var wanMask = ""
+        var wanGate = ""
+        var dns = ""
         var success = false
 
         for (line in output.split("\n")) {
@@ -83,6 +95,30 @@ object RouterScanUtil {
             SERVER_TYPE_REGEX.find(trimmed)?.groups?.get(1)?.value?.let {
                 serverType = it
             }
+
+            LAN_IP_REGEX.find(trimmed)?.groups?.get(1)?.value?.let {
+                lanIp = it
+            }
+
+            LAN_MASK_REGEX.find(trimmed)?.groups?.get(1)?.value?.let {
+                lanMask = it
+            }
+
+            WAN_IP_REGEX.find(trimmed)?.groups?.get(1)?.value?.let {
+                wanIp = it
+            }
+
+            WAN_MASK_REGEX.find(trimmed)?.groups?.get(1)?.value?.let {
+                wanMask = it
+            }
+
+            WAN_GATE_REGEX.find(trimmed)?.groups?.get(1)?.value?.let {
+                wanGate = it
+            }
+
+            DNS_REGEX.find(trimmed)?.groups?.get(1)?.value?.let {
+                dns = it
+            }
         }
 
         val isDoneWithoutData = !success && serverStatus == "Done"
@@ -97,6 +133,12 @@ object RouterScanUtil {
             wps = wps,
             title = title,
             serverType = serverType,
+            lanIp = lanIp,
+            lanMask = lanMask,
+            wanIp = wanIp,
+            wanMask = wanMask,
+            wanGate = wanGate,
+            dns = dns,
             success = success,
             status = if (success) "Success" else if (isDoneWithoutData) "Done" else serverStatus.ifBlank { "Failed" },
             type = if (success) 1 else if (isDoneWithoutData) 0 else 2,

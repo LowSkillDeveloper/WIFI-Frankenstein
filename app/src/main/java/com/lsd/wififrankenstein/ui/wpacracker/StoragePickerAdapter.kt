@@ -46,7 +46,9 @@ class StoragePickerAdapter(
             infoParts.add(item.fileName)
             infoParts.add(item.formattedSize)
             if (item.handshakeCount > 1) {
-                infoParts.add("${item.handshakeCount} handshakes")
+                infoParts.add(
+                    binding.root.context.getString(R.string.wpa_handshake_count, item.handshakeCount)
+                )
             }
             binding.pickerFileInfo.text = infoParts.joinToString(" · ")
 
@@ -63,12 +65,13 @@ class StoragePickerAdapter(
                 binding.pickerError.text = if (hasHashes) {
                     binding.root.context.getString(R.string.handshake_storage_picker_hash_only)
                 } else {
-                    "File not found"
+                    binding.root.context.getString(R.string.wpa_file_not_found)
                 }
                 binding.root.alpha = if (hasHashes) 0.85f else 0.5f
             } else if (item.handshakeCount == 0 && item.hash22000 == null && item.hashPmkid == null) {
                 binding.pickerError.visibility = android.view.View.VISIBLE
-                binding.pickerError.text = "No hashes — will parse on tap"
+                binding.pickerError.text =
+                    binding.root.context.getString(R.string.wpa_no_hashes_will_parse)
                 binding.root.alpha = 0.7f
             } else {
                 binding.pickerError.visibility = android.view.View.GONE

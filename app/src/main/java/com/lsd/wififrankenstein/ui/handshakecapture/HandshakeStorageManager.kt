@@ -36,7 +36,12 @@ class HandshakeStorageManager(private val context: Context) {
     }
 
     fun ensureStorageDir() {
-        chrootOrShell("mkdir -p $STORAGE_DIR")
+        if (!chrootOrShell("mkdir -p $STORAGE_DIR").isSuccess) {
+            try {
+                File(storageDirHost()).mkdirs()
+            } catch (_: Exception) {
+            }
+        }
         migrateOldJvmFiles()
     }
 
@@ -51,7 +56,10 @@ class HandshakeStorageManager(private val context: Context) {
                 val chrootPath = "$STORAGE_DIR/${file.name}"
                 val exists = chrootOrShell("test -e '$chrootPath'")
                 if (!exists.isSuccess) {
-                    chrootOrShell("cp '${HandshakeCaptureRunner.jvmPathToChroot(file.absolutePath)}' '$chrootPath' 2>/dev/null; true")
+                    val jvmOk = copyViaJvmBlocking(file, file.name) != null
+                    if (!jvmOk) {
+                        chrootOrShell("cp '${HandshakeCaptureRunner.jvmPathToChroot(file.absolutePath)}' '$chrootPath' 2>/dev/null; true")
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -64,8 +72,11 @@ class HandshakeStorageManager(private val context: Context) {
             try {
                 ensureStorageDir()
 
+                val hostSource = File(jvmPathOf(capFilePath))
                 val sourceCheck = chrootOrShell("test -e '$capFilePath' && echo EXISTS")
-                if (!sourceCheck.isSuccess || sourceCheck.out.firstOrNull()?.trim() != "EXISTS") {
+                val sourceExists = hostSource.exists() ||
+                        (sourceCheck.isSuccess && sourceCheck.out.firstOrNull()?.trim() == "EXISTS")
+                if (!sourceExists) {
                     Log.e(TAG, "moveToStorage: cap file missing: $capFilePath")
                     return@withContext null
                 }
@@ -74,19 +85,16 @@ class HandshakeStorageManager(private val context: Context) {
                 val formattedBssid = bssid?.replace(":", "") ?: "000000000000"
                 var destName = "${safeEssid}_${formattedBssid}.pcap"
                 var counter = 1
-                while (chrootOrShell("test -e '$STORAGE_DIR/$destName'").isSuccess) {
+                while (fileExistsInStorage(destName)) {
                     destName = "${safeEssid}_${formattedBssid}_$counter.cap"
                     counter++
                 }
 
                 val chrootDest = "$STORAGE_DIR/$destName"
-                val cpResult = chrootOrShell(
-                    "cp -f '$capFilePath' '$chrootDest' 2>&1 && echo CP_OK"
-                )
-                if (!cpResult.isSuccess || cpResult.out.firstOrNull()?.trim() != "CP_OK") {
+                if (!copyIntoStorage(hostSource, destName)) {
                     Log.e(
                         TAG,
-                        "copy to $chrootDest failed: code=${cpResult.code} out=${cpResult.out}"
+                        "copy to $chrootDest failed (chroot + JVM)"
                     )
                     return@withContext null
                 }
@@ -134,6 +142,60 @@ class HandshakeStorageManager(private val context: Context) {
 
     private fun storageDirHost(): String =
         STORAGE_DIR.replaceFirst("/sdcard", "/storage/emulated/0")
+
+    private fun jvmPathOf(chrootPath: String): String =
+        chrootPath.replaceFirst("/sdcard", "/storage/emulated/0")
+
+    private fun jvmFileExists(name: String): Boolean =
+        File(storageDirHost(), name).exists()
+
+    private fun fileExistsInStorage(name: String): Boolean {
+        if (jvmFileExists(name)) return true
+        return try {
+            chrootOrShell("test -e '$STORAGE_DIR/$name'").isSuccess
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private suspend fun copyIntoStorage(hostSource: File, destName: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val chrootDest = "$STORAGE_DIR/$destName"
+            try {
+                val cp = chrootOrShell(
+                    "cp -f '${HandshakeCaptureRunner.jvmPathToChroot(hostSource.absolutePath)}' '$chrootDest' 2>&1 && echo CP_OK"
+                )
+                if (cp.isSuccess && cp.out.firstOrNull()?.trim() == "CP_OK") return@withContext true
+            } catch (_: Exception) {
+            }
+            try {
+                val dest = File(storageDirHost(), destName)
+                dest.parentFile?.mkdirs()
+                if (hostSource.exists()) {
+                    hostSource.copyTo(dest, overwrite = true)
+                    return@withContext dest.exists()
+                }
+            } catch (_: Exception) {
+            }
+            false
+        }
+
+    private fun copyViaJvmBlocking(source: File, destName: String): String? {
+        return try {
+            val dest = File(storageDirHost(), destName)
+            dest.parentFile?.mkdirs()
+            source.copyTo(dest, overwrite = true)
+            if (dest.exists() && dest.length() > 0) "$STORAGE_DIR/$destName" else null
+        } catch (e: Exception) {
+            Log.e(TAG, "copyViaJvm failed: $destName", e)
+            null
+        }
+    }
+
+    suspend fun copyViaJvm(source: File, destName: String): String? =
+        withContext(Dispatchers.IO) {
+            copyViaJvmBlocking(source, destName)
+        }
 
     private val CAP_EXTENSIONS = setOf("cap", "pcap", "pcapng", "hccapx", "22000", "pcapdump")
     private val CAP_EXTENSIONS_GREP = "pcapdump|pcapng|pcap|hccapx|22000|cap"

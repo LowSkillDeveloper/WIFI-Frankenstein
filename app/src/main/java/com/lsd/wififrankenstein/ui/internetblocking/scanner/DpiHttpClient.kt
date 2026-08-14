@@ -1,5 +1,6 @@
 package com.lsd.wififrankenstein.ui.internetblocking.scanner
 
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.internetblocking.model.CheckStatus
 import com.lsd.wififrankenstein.ui.internetblocking.model.StageTrace
 import com.lsd.wififrankenstein.util.Log
@@ -46,6 +47,7 @@ data class ProxyConfig(
 
 
 class DpiHttpClient(
+    private val context: android.content.Context,
     private val tlsVersion: String? = null,
     private val proxyConfig: ProxyConfig? = null,
     private val callTracker: ((Call) -> Unit)? = null
@@ -392,7 +394,7 @@ class DpiHttpClient(
                 elapsed = elapsed(startTime)
             )
         } catch (e: javax.net.ssl.SSLException) {
-            val classification = ErrorClassifier.classifySslError(e, 0, connectionState.stage)
+            val classification = ErrorClassifier.classifySslError(context, e, 0, connectionState.stage)
             Log.w(
                 TAG,
                 "HTTPS SSL ERROR: $domain | status=${classification.first.label()} | detail=${classification.second} | stage=${connectionState.stage} | elapsed=${
@@ -407,7 +409,7 @@ class DpiHttpClient(
                 elapsed = elapsed(startTime)
             )
         } catch (e: java.net.ConnectException) {
-            val classification = ErrorClassifier.classifyConnectError(e, 0, connectionState.stage)
+            val classification = ErrorClassifier.classifyConnectError(context, e, 0, connectionState.stage)
             Log.w(
                 TAG,
                 "HTTPS CONNECT ERROR: $domain | status=${classification.first.label()} | detail=${classification.second} | stage=${connectionState.stage} | elapsed=${
@@ -422,7 +424,7 @@ class DpiHttpClient(
                 elapsed = elapsed(startTime)
             )
         } catch (e: IOException) {
-            val classification = ErrorClassifier.classifyReadError(e, 0, connectionState.stage)
+            val classification = ErrorClassifier.classifyReadError(context, e, 0, connectionState.stage)
             Log.w(
                 TAG,
                 "HTTPS IO ERROR: $domain | status=${classification.first.label()} | detail=${classification.second} | stage=${connectionState.stage} | elapsed=${
@@ -709,9 +711,9 @@ class DpiHttpClient(
     internal fun classifyTimeout(stage: String): Pair<CheckStatus, String> = when (stage) {
         "tcp_connect" -> CheckStatus.SynDrop to "TCP SYN timeout (blackhole)"
         "tls_handshake", "tls_connected" -> CheckStatus.TlsDrop to "TLS handshake timeout"
-        "sending_data" -> CheckStatus.SendTimeout to "Таймаут отправки данных"
-        "reading_data" -> CheckStatus.ReadTimeout to "Таймаут чтения данных"
-        else -> CheckStatus.Timeout to "Timeout ($stage)"
+        "sending_data" -> CheckStatus.SendTimeout to context.getString(R.string.ib_ec_send_timeout)
+        "reading_data" -> CheckStatus.ReadTimeout to context.getString(R.string.ib_ec_read_timeout)
+        else -> CheckStatus.Timeout to context.getString(R.string.ib_ec_timeout_stage, stage)
     }
 }
 

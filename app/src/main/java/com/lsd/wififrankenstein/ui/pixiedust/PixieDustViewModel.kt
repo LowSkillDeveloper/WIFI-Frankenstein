@@ -10,6 +10,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.service.ChrootAttackService
 import com.lsd.wififrankenstein.service.ChrootAttackType
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
@@ -105,9 +106,15 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                     if (text.contains("[-] Error: wrong PIN code") && !wrongPinShown) {
                         wrongPinShown = true
                         addConsoleLine("")
-                        addConsoleLine("[INFO] Generated PIN didn\'t match — this is normal")
-                        addConsoleLine("[INFO] The attack collected enough data for computation")
-                        addConsoleLine("[INFO] Please wait for computation to finish...")
+                        addConsoleLine(
+                            getApplication<Application>().getString(R.string.pixie_info_pin_mismatch_normal)
+                        )
+                        addConsoleLine(
+                            getApplication<Application>().getString(R.string.pixie_info_data_collected)
+                        )
+                        addConsoleLine(
+                            getApplication<Application>().getString(R.string.pixie_info_wait_computation)
+                        )
                         addConsoleLine("")
                     }
                 }
@@ -123,20 +130,37 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                     _attackResult.postValue(result)
                     _isAttackRunning.postValue(false)
                     if (success && pin != null) {
-                        addConsoleLine("[+] Attack SUCCESS! PIN: $pin")
+                        addConsoleLine(
+                            getApplication<Application>().getString(
+                                R.string.pixie_attack_success_pin,
+                                pin
+                            )
+                        )
                         savePixieResult(result)
                     } else {
-                        addConsoleLine("[-] Attack FAILED")
-                        reason?.let { addConsoleLine("[-] Reason: $it") }
+                        addConsoleLine(getApplication<Application>().getString(R.string.pixie_attack_failed))
+                        reason?.let {
+                            addConsoleLine(
+                                getApplication<Application>().getString(R.string.pixie_reason, it)
+                            )
+                        }
                     }
                 }
 
                 ChrootAttackService.BROADCAST_ERROR -> {
                     val error = intent.getStringExtra(ChrootAttackService.EXTRA_ERROR_MESSAGE)
                         ?: "Unknown error"
-                    addConsoleLine("[-] Error: $error")
+                    addConsoleLine(
+                        getApplication<Application>().getString(R.string.pixie_error_console, error)
+                    )
                     _attackResult.postValue(
-                        PixieDustResult(null, null, false, "ERROR: $error", reason = error)
+                        PixieDustResult(
+                            null,
+                            null,
+                            false,
+                            getApplication<Application>().getString(R.string.pixie_result_error, error),
+                            reason = error
+                        )
                     )
                     _isAttackRunning.postValue(false)
                 }
@@ -274,31 +298,52 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
     fun setInterfaceMode(iface: String, mode: String) {
         viewModelScope.launch {
             try {
-                addConsoleLine("[*] Switching $iface to $mode mode...")
+                addConsoleLine(
+                    getApplication<Application>().getString(R.string.pixie_switching_mode, iface, mode)
+                )
                 val success = if (isNativeMode()) {
                     nativeWifiHelper.setInterfaceMode(iface, mode)
                 } else {
                     iwWifiManager.setInterfaceMode(iface, mode)
                 }
                 if (success) {
-                    addConsoleLine("[+] $iface switched to $mode mode")
+                    addConsoleLine(
+                        getApplication<Application>().getString(R.string.pixie_switched_mode, iface, mode)
+                    )
                     checkScanMode(scanInterface)
                     checkAttackMode(attackInterface)
-                    _toastMessage.postValue("Interface switched to $mode mode")
+                    _toastMessage.postValue(
+                        getApplication<Application>().getString(
+                            R.string.pixie_interface_switched,
+                            mode
+                        )
+                    )
                 } else {
-                    addConsoleLine("[-] Failed to switch $iface to $mode mode")
-                    _toastMessage.postValue("Failed to switch interface")
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.pixie_failed_switch_mode,
+                            iface,
+                            mode
+                        )
+                    )
+                    _toastMessage.postValue(
+                        getApplication<Application>().getString(R.string.pixie_failed_switch_interface)
+                    )
                 }
             } catch (e: Exception) {
                 Log.e(tag, "Failed to set interface mode", e)
-                addConsoleLine("[-] Error: ${e.message}")
+                addConsoleLine(
+                    getApplication<Application>().getString(R.string.pixie_error_console, e.message)
+                )
             }
         }
     }
 
     fun scanNetworks(iface: String) {
         if (_isScanning.value == true) {
-            addConsoleLine("[-] Scan already in progress")
+            addConsoleLine(
+                getApplication<Application>().getString(R.string.pixie_scan_already_in_progress)
+            )
             return
         }
         _isScanning.value = true
@@ -315,7 +360,7 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                         com.lsd.wififrankenstein.R.string.pixiedust_no_networks
                     )
                 } else {
-                    "${nets.size} networks found"
+                    getApplication<Application>().getString(R.string.pixie_networks_found, nets.size)
                 }
             } catch (e: SecurityException) {
                 Log.e(tag, "Scan failed: location permission required", e)
@@ -327,7 +372,8 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                 throw e
             } catch (e: Exception) {
                 Log.e(tag, "Scan failed", e)
-                _statusText.value = "Scan failed: ${e.message}"
+                _statusText.value =
+                    getApplication<Application>().getString(R.string.pixie_scan_failed, e.message)
             } finally {
                 _isScanning.value = false
             }
@@ -341,7 +387,9 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         if (!isNative) {
             val chrootType = chrootManager.getChrootType()
             if (chrootType is ChrootType.Root) {
-                addConsoleLine("[*] Scanning for networks on $iface (chroot)...")
+                addConsoleLine(
+                    getApplication<Application>().getString(R.string.pixie_scanning_chroot, iface)
+                )
                 try {
                     val chrootNets = withTimeout(30_000L) {
                         chrootManager.resetMountFailedCooldown()
@@ -349,45 +397,74 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                         iwWifiManager.scanWifiNetworks(iface)
                     }
                     if (chrootNets.isNotEmpty()) {
-                        addConsoleLine("[+] Scan complete: ${chrootNets.size} networks found (chroot)")
+                        addConsoleLine(
+                            getApplication<Application>().getString(
+                                R.string.pixie_scan_complete_chroot,
+                                chrootNets.size
+                            )
+                        )
                         return chrootNets
                     }
-                    addConsoleLine("[-] Chroot scan returned no networks, falling back")
+                    addConsoleLine(
+                        getApplication<Application>().getString(R.string.pixie_chroot_no_nets_fallback)
+                    )
                 } catch (e: TimeoutCancellationException) {
                     Log.w(tag, "Chroot scan timed out, falling back")
-                    addConsoleLine("[-] Chroot scan timed out, falling back")
+                    addConsoleLine(
+                        getApplication<Application>().getString(R.string.pixie_chroot_scan_timeout)
+                    )
                 } catch (e: Exception) {
                     Log.w(tag, "Chroot scan failed, falling back", e)
-                    addConsoleLine("[-] Chroot scan failed, falling back")
+                    addConsoleLine(
+                        getApplication<Application>().getString(R.string.pixie_chroot_scan_failed)
+                    )
                 }
             }
         }
 
 
-        addConsoleLine("[*] Scanning for networks on $iface (in-app iw)...")
+        addConsoleLine(
+            getApplication<Application>().getString(R.string.pixie_scanning_inapp, iface)
+        )
         try {
             val iwNets = withTimeout(30_000L) {
                 nativeWifiHelper.ensureReady()
                 nativeWifiHelper.scanWifiNetworks(iface)
             }
             if (iwNets.isNotEmpty()) {
-                addConsoleLine("[+] Scan complete: ${iwNets.size} networks found (in-app iw)")
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.pixie_scan_complete_inapp,
+                        iwNets.size
+                    )
+                )
                 return iwNets
             }
-            addConsoleLine("[-] In-app iw scan returned no networks, falling back")
+            addConsoleLine(
+                getApplication<Application>().getString(R.string.pixie_inapp_scan_empty_fallback)
+            )
         } catch (e: TimeoutCancellationException) {
             Log.w(tag, "In-app iw scan timed out, falling back")
-            addConsoleLine("[-] In-app iw scan timed out, falling back")
+            addConsoleLine(
+                getApplication<Application>().getString(R.string.pixie_inapp_scan_timeout)
+            )
         } catch (e: Exception) {
             Log.w(tag, "In-app iw scan failed, falling back", e)
-            addConsoleLine("[-] In-app iw scan failed, falling back")
+            addConsoleLine(
+                getApplication<Application>().getString(R.string.pixie_inapp_scan_failed)
+            )
         }
 
 
-        addConsoleLine("[*] Scanning via Android system WiFi...")
+        addConsoleLine(getApplication<Application>().getString(R.string.pixie_scanning_system))
         val systemNets = iwWifiManager.scanWifiNetworksNative()
         if (systemNets.isNotEmpty()) {
-            addConsoleLine("[+] Scan complete: ${systemNets.size} networks found (system)")
+            addConsoleLine(
+                getApplication<Application>().getString(
+                    R.string.pixie_scan_complete_system,
+                    systemNets.size
+                )
+            )
         }
         return systemNets
     }
@@ -429,7 +506,9 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         dbSetupViewModel: DbSetupViewModel?
     ) {
         if (_isAttackRunning.value == true) {
-            addConsoleLine("[-] Attack already in progress")
+            addConsoleLine(
+                getApplication<Application>().getString(R.string.pixie_attack_already_in_progress)
+            )
             return
         }
 
@@ -439,7 +518,9 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         wrongPinShown = false
         clearConsole()
 
-        addConsoleLine("[*] Starting PixieDust attack on $bssid via $iface")
+        addConsoleLine(
+            getApplication<Application>().getString(R.string.pixie_starting_attack, bssid, iface)
+        )
 
         val prefs = getApplication<Application>()
             .getSharedPreferences("pixie_prefs", Context.MODE_PRIVATE)
@@ -477,15 +558,33 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                             )
                             if (bestScored != null && bestScored.source in highQualitySources) {
                                 customPin = bestScored.pin
-                                addConsoleLine("[*] Using WPS PIN Generator: $customPin")
+                                addConsoleLine(
+                                    getApplication<Application>().getString(
+                                        R.string.pixie_using_pin_generator,
+                                        customPin
+                                    )
+                                )
                             } else if (bestScored != null) {
-                                addConsoleLine("[*] WPS PIN Generator: only algorithmic PINs found, attacking without -p")
+                                addConsoleLine(
+                                    getApplication<Application>().getString(
+                                        R.string.pixie_pin_gen_only_algorithmic
+                                    )
+                                )
                             } else {
-                                addConsoleLine("[*] WPS PIN Generator: no PIN found, using default")
+                                addConsoleLine(
+                                    getApplication<Application>().getString(
+                                        R.string.pixie_pin_gen_no_pin_default
+                                    )
+                                )
                             }
                         } catch (e: Exception) {
                             Log.w(tag, "PIN generation failed", e)
-                            addConsoleLine("[!] PIN generator error: ${e.message}")
+                            addConsoleLine(
+                                getApplication<Application>().getString(
+                                    R.string.pixie_pin_gen_error,
+                                    e.message
+                                )
+                            )
                         }
                     }
 
@@ -500,14 +599,18 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                 }
             } catch (e: Exception) {
                 Log.e(tag, "Failed to start attack service", e)
-                addConsoleLine("[-] Error: ${e.message}")
+                addConsoleLine(
+                    getApplication<Application>().getString(R.string.pixie_error_console, e.message)
+                )
                 _isAttackRunning.postValue(false)
             }
         }
     }
 
     fun stopAttack() {
-        addConsoleLine("[-] Attack cancelled by user")
+        addConsoleLine(
+            getApplication<Application>().getString(R.string.pixie_attack_cancelled)
+        )
         ChrootAttackService.cancelAttack(getApplication())
         _isAttackRunning.value = false
         _attackResult.postValue(
@@ -515,7 +618,10 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                 null,
                 null,
                 false,
-                "CANCELLED: Attack cancelled by user"
+                getApplication<Application>().getString(
+                    R.string.pixie_result_cancelled,
+                    getApplication<Application>().getString(R.string.pixie_attack_cancelled)
+                )
             )
         )
     }

@@ -30,14 +30,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
-                    android:text="Domain Analysis"
+                    android:text="@string/domain_analysis"
                     android:textAppearance="?attr/textAppearanceHeadline6" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:text="Check a domain for DNS spoofing, TLS availability, and TCP connectivity"
+                    android:text="@string/ib_check_domain_desc"
                     android:textAppearance="?attr/textAppearanceBody2"
                     android:textColor="?android:attr/textColorSecondary" />
 
@@ -45,21 +45,21 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:hint="Domain (e.g., google.com)">
+                    android:hint="@string/ib_domain_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/editTextDomain"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textUri"
-                        android:text="google.com" />
+                        android:text="@string/google_com" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/buttonCheck"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="Check Domain"
+                    android:text="@string/ib_check_domain"
                     app:cornerRadius="8dp"
                     app:icon="@drawable/ic_scan"
                     app:iconGravity="textStart" />
@@ -121,7 +121,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="OK"
+                        android:text="@string/ok"
                         android:textAppearance="?attr/textAppearanceSubtitle1"
                         android:textColor="@android:color/white"
                         android:textStyle="bold" />
@@ -194,7 +194,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="DNS Spoofing"
+                        android:text="@string/dns_spoofing"
                         android:textAppearance="?attr/textAppearanceSubtitle1"
                         android:textStyle="bold" />
 
@@ -243,7 +243,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="TLS Availability"
+                        android:text="@string/tls_availability"
                         android:textAppearance="?attr/textAppearanceSubtitle1"
                         android:textStyle="bold" />
 
@@ -265,7 +265,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="6dp"
-                            android:text="TLS 1.3:"
+                            android:text="@string/tls_1_3_label"
                             android:textAppearance="?attr/textAppearanceBody2" />
 
                         <TextView
@@ -305,7 +305,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="6dp"
-                            android:text="TLS 1.2:"
+                            android:text="@string/tls_1_2_label"
                             android:textAppearance="?attr/textAppearanceBody2" />
 
                         <TextView
@@ -346,7 +346,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="6dp"
-                            android:text="HTTP:"
+                            android:text="@string/http_label"
                             android:textAppearance="?attr/textAppearanceBody2" />
 
                         <TextView
@@ -379,7 +379,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="TCP Connectivity"
+                        android:text="@string/tcp_connectivity"
                         android:textAppearance="?attr/textAppearanceSubtitle1"
                         android:textStyle="bold" />
 
@@ -402,7 +402,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="6dp"
-                            android:text="Port 443:"
+                            android:text="@string/port_443_label"
                             android:textAppearance="?attr/textAppearanceBody2" />
 
                         <TextView
@@ -420,7 +420,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:layout_marginBottom="8dp"
-                        android:text="TCP 16-20KB Blocking"
+                        android:text="@string/tcp_16_20_blocking"
                         android:textAppearance="?attr/textAppearanceSubtitle1"
                         android:textStyle="bold" />
 
@@ -507,7 +507,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Check Log"
+                        android:text="@string/check_log"
                         android:textAppearance="?attr/textAppearanceSubtitle1"
                         android:textStyle="bold" />
 
@@ -564,7 +564,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Что значит статус"
+                        android:text="@string/status_meaning"
                         android:textAppearance="?attr/textAppearanceSubtitle1"
                         android:textStyle="bold" />
 
@@ -619,7 +619,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     android:gravity="center"
-                    android:text="No data yet"
+                    android:text="@string/no_data_yet"
                     android:textAppearance="?attr/textAppearanceSubtitle1"
                     android:textColor="?android:attr/textColorHint" />
 
@@ -627,7 +627,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
-                    android:text="Enter a domain and tap Check Domain"
+                    android:text="@string/ib_enter_domain_hint"
                     android:textAppearance="?attr/textAppearanceBody2"
                     android:textColor="?android:attr/textColorHint" />
             </LinearLayout>

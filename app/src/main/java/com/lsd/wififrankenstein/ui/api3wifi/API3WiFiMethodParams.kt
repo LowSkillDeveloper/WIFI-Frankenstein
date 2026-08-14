@@ -471,7 +471,8 @@ sealed class API3WiFiMethodParams {
 
         override fun validate() {
             if (bssidList.isEmpty()) {
-                bssidInputLayout.error = "At least one BSSID required"
+                bssidInputLayout.error =
+                    bssidInputLayout.context.getString(R.string.at_least_one_bssid)
             } else {
                 bssidInputLayout.error = null
             }
@@ -563,7 +564,8 @@ sealed class API3WiFiMethodParams {
 
         override fun validate() {
             if (bssidList.isEmpty()) {
-                bssidInputLayout.error = "At least one BSSID required"
+                bssidInputLayout.error =
+                    bssidInputLayout.context.getString(R.string.at_least_one_bssid)
             } else {
                 bssidInputLayout.error = null
             }
@@ -653,9 +655,12 @@ sealed class API3WiFiMethodParams {
             val lon = longitudeInput.text.toString().toFloatOrNull()
             val rad = radiusInput.text.toString().toFloatOrNull()
 
-            latitudeInputLayout.error = if (lat == null) "Invalid number format" else null
-            longitudeInputLayout.error = if (lon == null) "Invalid number format" else null
-            radiusInputLayout.error = if (rad == null) "Invalid number format" else null
+            latitudeInputLayout.error =
+                if (lat == null) latitudeInputLayout.context.getString(R.string.api3_invalid_number_format) else null
+            longitudeInputLayout.error =
+                if (lon == null) longitudeInputLayout.context.getString(R.string.api3_invalid_number_format) else null
+            radiusInputLayout.error =
+                if (rad == null) radiusInputLayout.context.getString(R.string.api3_invalid_number_format) else null
         }
 
         override fun clear() {

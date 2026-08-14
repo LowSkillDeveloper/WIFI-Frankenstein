@@ -152,7 +152,7 @@ class HandshakeStorageAdapter(
             checkSelect.setOnClickListener { toggleSelection(item.filePath) }
 
             textDisplayName.text = item.displayName
-            textFileInfo.text = "${item.dateFormatted}  |  ${item.formattedSize}"
+            textFileInfo.text = itemView.context.getString(R.string.hsc_storage_adapter_format, item.dateFormatted, item.formattedSize)
 
             cardRoot.alpha = 1.0f
             if (!item.fileExists) {

@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.ChrootCapabilities
 import com.lsd.wififrankenstein.util.HandshakeFormat
 import com.lsd.wififrankenstein.util.HandshakeHash
@@ -68,7 +69,7 @@ class HandshakeConverterViewModel(application: Application) : AndroidViewModel(a
                 return@withContext ConvertFileItem(
                     id, tempFile.absolutePath, fileName, format,
                     emptyList(), false, false, emptyList(), TargetFormat.HASH_22000,
-                    error = "Unsupported format"
+                    error = getApplication<Application>().getString(R.string.hc_unsupported_format)
                 )
             }
 
@@ -77,7 +78,7 @@ class HandshakeConverterViewModel(application: Application) : AndroidViewModel(a
                 return@withContext ConvertFileItem(
                     id, tempFile.absolutePath, fileName, format,
                     emptyList(), false, false, emptyList(), TargetFormat.HASH_22000,
-                    error = "No handshakes found"
+                    error = getApplication<Application>().getString(R.string.hc_no_handshakes)
                 )
             }
 

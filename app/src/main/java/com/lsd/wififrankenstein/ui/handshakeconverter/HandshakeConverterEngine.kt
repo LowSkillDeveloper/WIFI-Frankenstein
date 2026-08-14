@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.handshakeconverter
 
 import android.content.Context
+import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.ChrootCapabilities
 import com.lsd.wififrankenstein.util.ChrootManager
 import com.lsd.wififrankenstein.util.HandshakeHash
@@ -23,7 +24,7 @@ class HandshakeConverterEngine(private val context: Context) {
             try {
                 val lines = item.hash22000Lines
                 if (lines.isEmpty()) {
-                    return@withContext fail(item, target, "No hashes to convert")
+                    return@withContext fail(item, target, context.getString(R.string.hc_no_hashes_to_convert))
                 }
                 val baseName = item.fileName.substringBeforeLast('.')
                 val hashes = lines.mapNotNull { HandshakeHash.parse22000Line(it) }
@@ -74,13 +75,13 @@ class HandshakeConverterEngine(private val context: Context) {
                 }
 
                 if (outputFile == null || !outputFile.exists() || outputFile.length() == 0L) {
-                    fail(item, target, "Conversion produced empty output")
+                    fail(item, target, context.getString(R.string.hc_empty_output))
                 } else {
                     ConvertResultItem(item.fileName, outputFile.absolutePath, target, true)
                 }
             } catch (e: Exception) {
                 Log.w(tag, "convert failed for ${item.fileName}", e)
-                fail(item, target, e.message ?: "Conversion error")
+                fail(item, target, e.message ?: context.getString(R.string.hc_conversion_error))
             }
         }
 

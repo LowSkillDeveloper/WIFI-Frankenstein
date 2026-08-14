@@ -157,7 +157,8 @@ class NetworksAdapter(
 
             binding.algorithmText.text =
                 binding.root.context.getString(R.string.algorithm_used, result.algorithm)
-            binding.keysCountText.text = "${result.keys.size} keys"
+            binding.keysCountText.text =
+                binding.root.context.getString(R.string.wpa_keys_count, result.keys.size)
 
             val supportText = when (result.supportState) {
                 WpaResult.SUPPORTED -> binding.root.context.getString(R.string.support_state_supported)

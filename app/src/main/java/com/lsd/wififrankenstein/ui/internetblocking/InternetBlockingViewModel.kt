@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.internetblocking
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -78,6 +79,8 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
     private val _isChecking = MutableLiveData<Boolean>(false)
     val isChecking: LiveData<Boolean> = _isChecking
 
+    private val appContext: Context = application
+
     private val _dnsResults = MutableLiveData<List<DnsCheckResult>>(emptyList())
     val dnsResults: LiveData<List<DnsCheckResult>> = _dnsResults
 
@@ -120,7 +123,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
 
     fun getCurrentSniListType(): SniListType = sniListType
 
-    private val dnsScanner = DnsScanner()
+    private val dnsScanner = DnsScanner(appContext)
     private val tlsScanner = TlsScanner(application) { call ->
         synchronized(activeCalls) { activeCalls.add(call) }
     }
@@ -144,7 +147,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
     fun setSniListType(type: SniListType) {
         sniListType = type
         configManager.saveSniListType(type)
-        addConsole("[*] SNI list changed to: ${type.name}")
+        addConsole(appContext.getString(R.string.ib_console_sni_list_changed, type.name))
     }
 
     fun checkDns() {
@@ -155,7 +158,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 ensureActive()
                 _isChecking.value = true
                 _progress.value = 0
-                addConsole("[*] Starting DNS spoofing check...")
+                addConsole(appContext.getString(R.string.ib_console_dns_start))
 
                 val domains = loadDomains()
                 Log.d(TAG, "Loaded ${domains.size} domains for DNS check")
@@ -165,7 +168,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                     onProgress = { percent, text ->
                         _progress.postValue(percent)
                         _progressText.postValue(text)
-                        addConsole("[*] $text ($percent%)")
+                        addConsole(appContext.getString(R.string.ib_console_progress, text, percent))
                     }
                 )
 
@@ -191,9 +194,9 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 val stubIps = ipCount.filterValues { it >= 2 }.keys
                 lastStubIps = stubIps
 
-                addConsole("[+] DNS check complete: $ok OK, $spoofed подмена, $intercepted перехват, $fakeNxdomain fake-NXDOMAIN, $fakeEmpty fake-empty, $fakeIp FakeIP, $dohBlocked DoH-блок")
+                addConsole(appContext.getString(R.string.ib_console_dns_complete, ok, spoofed, intercepted, fakeNxdomain, fakeEmpty, fakeIp, dohBlocked))
                 if (stubIps.isNotEmpty()) {
-                    addConsole("[*] Stub IPs (заглушки провайдера): ${stubIps.joinToString(", ")}")
+                    addConsole(appContext.getString(R.string.ib_console_stub_ips, stubIps.joinToString(", ")))
                 }
                 Log.d(TAG, "DNS check complete: $ok OK, $spoofed spoofed out of ${results.size}")
             } catch (e: CancellationException) {
@@ -201,7 +204,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
             } catch (e: Exception) {
                 Log.e(TAG, "DNS check failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole("[-] DNS check error: ${e.javaClass.simpleName}: ${e.message}")
+                addConsole(appContext.getString(R.string.ib_console_dns_error, e.javaClass.simpleName, e.message))
             }
         }
     }
@@ -214,7 +217,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 ensureActive()
                 _isChecking.value = true
                 _progress.value = 0
-                addConsole("[*] Starting domain accessibility check...")
+                addConsole(appContext.getString(R.string.ib_console_domains_start))
 
                 val domains = loadDomains()
                 Log.d(TAG, "Loaded ${domains.size} domains for TLS check")
@@ -225,7 +228,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                     onProgress = { percent, text ->
                         _progress.postValue(percent)
                         _progressText.postValue(text)
-                        addConsole("[*] $text ($percent%)")
+                        addConsole(appContext.getString(R.string.ib_console_progress, text, percent))
                     }
                 )
 
@@ -240,14 +243,14 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                         it.tls12Status == CheckStatus.Ok || it.tls12Status == CheckStatus.NotBlocked || it.tls12Status == CheckStatus.Redirect
                     !ok13 || !ok12
                 }
-                addConsole("[+] Domain check complete: $blocked/${results.size} domains affected")
+                addConsole(appContext.getString(R.string.ib_console_domains_complete, blocked, results.size))
                 Log.d(TAG, "Domain check complete: $blocked blocked out of ${results.size}")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Domain check failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole("[-] Domain check error: ${e.javaClass.simpleName}: ${e.message}")
+                addConsole(appContext.getString(R.string.ib_console_domains_error, e.javaClass.simpleName, e.message))
             }
         }
     }
@@ -268,7 +271,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 ensureActive()
                 _isChecking.value = true
                 _progress.value = 0
-                addConsole("[*] Starting TCP 16-20KB block detection...")
+                addConsole(appContext.getString(R.string.ib_console_tcp16_start))
 
                 val results = runTcp16Check()
 
@@ -277,14 +280,14 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 _progress.value = 100
 
                 val failed = results.count { it.status != CheckStatus.Ok }
-                addConsole("[+] TCP 16-20KB check complete: $failed/${results.size} targets failed")
+                addConsole(appContext.getString(R.string.ib_console_tcp16_complete, failed, results.size))
                 Log.d(TAG, "TCP 16-20KB check complete: $failed failed out of ${results.size}")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "TCP 16-20KB check failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole("[-] TCP 16-20KB check error: ${e.javaClass.simpleName}: ${e.message}")
+                addConsole(appContext.getString(R.string.ib_console_tcp16_error, e.javaClass.simpleName, e.message))
             }
         }
     }
@@ -304,22 +307,22 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 _isChecking.value = true
                 _sweepResults.value = emptyList()
                 _sweepStatus.postValue("")
-                addConsole("[*] Starting SNI sweep with ${sniListType.name} list...")
+                addConsole(appContext.getString(R.string.ib_console_sni_start, sniListType.name))
 
 
                 var failedTargets = (_tcpResults.value ?: emptyList())
                     .filter { it.status != CheckStatus.Ok }
                 if (failedTargets.isEmpty()) {
-                    addConsole("[*] No TCP 16-20KB data — running TCP check first…")
-                    _sweepStatus.postValue("Running TCP 16-20KB check first…")
-                    updateProgress(10, "TCP 16-20KB…")
+                    addConsole(appContext.getString(R.string.ib_console_tcp16_first))
+                    _sweepStatus.postValue(appContext.getString(R.string.ib_sweep_status_tcp16_first))
+                    updateProgress(10, appContext.getString(R.string.ib_progress_tcp16))
                     val tcpResults = runTcp16Check()
                     _tcpResults.value = tcpResults
                     failedTargets = tcpResults.filter { it.status != CheckStatus.Ok }
                 }
 
                 if (failedTargets.isEmpty()) {
-                    val msg = "No blocked targets after TCP 16-20KB check"
+                    val msg = appContext.getString(R.string.ib_msg_no_blocked_targets)
                     addConsole("[-] $msg")
                     Log.w(TAG, "checkSniSweep: $msg")
                     _sweepStatus.postValue(msg)
@@ -330,7 +333,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
 
                 val sniList = selectedSniList()
                 if (sniList.isEmpty()) {
-                    val msg = "SNI list '${sniListType.name}' is empty — sweep skipped"
+                    val msg = appContext.getString(R.string.ib_msg_sni_empty, sniListType.name)
                     addConsole("[-] $msg")
                     Log.w(TAG, "checkSniSweep: $msg")
                     _sweepStatus.postValue(msg)
@@ -338,7 +341,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                     return@launch
                 }
 
-                val startMsg = "Sweeping ${failedTargets.size} targets with ${sniList.size} SNI…"
+                val startMsg = appContext.getString(R.string.ib_msg_sweeping, failedTargets.size, sniList.size)
                 addConsole("[*] $startMsg")
                 _sweepStatus.postValue(startMsg)
                 updateProgress(15, startMsg)
@@ -348,11 +351,11 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
 
                 val workingSni = sweepResults.size
                 val endMsg = if (workingSni > 0) {
-                    "Found $workingSni working SNI"
+                    appContext.getString(R.string.ib_msg_found_sni, workingSni)
                 } else {
-                    "No working SNI — block is likely at IP/TCP level, not SNI"
+                    appContext.getString(R.string.ib_msg_no_working_sni)
                 }
-                addConsole("[+] SNI sweep complete: $workingSni working SNI found")
+                addConsole(appContext.getString(R.string.ib_console_sni_complete, workingSni))
                 _sweepStatus.postValue(endMsg)
                 updateProgress(100, endMsg)
                 _isChecking.value = false
@@ -361,8 +364,8 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
             } catch (e: Exception) {
                 Log.e(TAG, "SNI sweep failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole("[-] SNI sweep error: ${e.javaClass.simpleName}: ${e.message}")
-                _sweepStatus.postValue("SNI sweep error: ${e.message}")
+                addConsole(appContext.getString(R.string.ib_console_sni_error, e.javaClass.simpleName, e.message))
+                _sweepStatus.postValue(appContext.getString(R.string.ib_sweep_status_error, e.message))
             }
         }
     }
@@ -374,7 +377,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
             try {
                 ensureActive()
                 _isChecking.value = true
-                addConsole("[*] Starting Telegram check...")
+                addConsole(appContext.getString(R.string.ib_console_telegram_start))
 
                 val result = telegramScanner.checkTelegram()
 
@@ -382,39 +385,39 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 _isChecking.value = false
 
                 val r = result
-                addConsole("[+] Telegram: ${r.status.label()} (${r.dcReachableCount}/${r.dcTotal} DC)")
+                addConsole(appContext.getString(R.string.ib_console_telegram_complete, r.status.label(appContext), r.dcReachableCount, r.dcTotal))
                 val dcParts = r.dcResults.map { "${it.label}=${if (it.reachable) "+" else "-"}" }
-                addConsole("    DC: ${dcParts.joinToString(" ")}")
+                addConsole(appContext.getString(R.string.ib_console_dc, dcParts.joinToString(" ")))
                 if (r.downloadSpeedKbps != null) {
                     addConsole(
-                        "    Download: ${
-                            String.format(
-                                "%.1f",
-                                r.downloadSpeedKbps
-                            )
-                        } KB/s ${r.downloadBytes?.let { "(${formatBytes(it)})" } ?: ""}")
+                        appContext.getString(
+                            R.string.ib_console_download,
+                            r.downloadSpeedKbps,
+                            r.downloadBytes?.let { "(${formatBytes(it)})" } ?: ""
+                        )
+                    )
                 } else {
-                    addConsole("    Download: N/A")
+                    addConsole(appContext.getString(R.string.ib_console_download_na))
                 }
                 if (r.uploadSpeedKbps != null) {
                     addConsole(
-                        "    Upload:   ${
-                            String.format(
-                                "%.1f",
-                                r.uploadSpeedKbps
-                            )
-                        } KB/s ${r.uploadBytes?.let { "(${formatBytes(it)})" } ?: ""}")
+                        appContext.getString(
+                            R.string.ib_console_upload,
+                            r.uploadSpeedKbps,
+                            r.uploadBytes?.let { "(${formatBytes(it)})" } ?: ""
+                        )
+                    )
                 } else {
-                    addConsole("    Upload:   N/A")
+                    addConsole(appContext.getString(R.string.ib_console_upload_na))
                 }
-                addConsole("    Duration: ${r.totalDurationMs / 1000f}s")
+                addConsole(appContext.getString(R.string.ib_console_duration, r.totalDurationMs / 1000f))
                 Log.d(TAG, "Telegram check complete: ${r.status.label()}")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Telegram check failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole("[-] Telegram check error: ${e.javaClass.simpleName}: ${e.message}")
+                addConsole(appContext.getString(R.string.ib_console_telegram_error, e.javaClass.simpleName, e.message))
             }
         }
     }
@@ -426,7 +429,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
             try {
                 ensureActive()
                 _isChecking.value = true
-                addConsole("[*] Starting YouTube check...")
+                addConsole(appContext.getString(R.string.ib_console_youtube_start))
 
                 val result = youtubeScanner.checkYoutube()
 
@@ -434,29 +437,29 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 _isChecking.value = false
 
                 val r = result
-                addConsole("[+] YouTube: ${r.status.label()} (${r.endpointReachableCount}/${r.endpointTotal} endpoints)")
+                addConsole(appContext.getString(R.string.ib_console_youtube_complete, r.status.label(appContext), r.endpointReachableCount, r.endpointTotal))
                 val epParts =
                     r.endpointResults.map { "${it.label}=${if (it.reachable) "+" else "-"}" }
-                addConsole("    Endpoints: ${epParts.joinToString(" ")}")
+                addConsole(appContext.getString(R.string.ib_console_endpoints, epParts.joinToString(" ")))
                 if (r.downloadSpeedKbps != null) {
                     addConsole(
-                        "    Download: ${
-                            String.format(
-                                "%.1f",
-                                r.downloadSpeedKbps
-                            )
-                        } KB/s ${r.downloadBytes?.let { "(${formatBytes(it)})" } ?: ""}")
+                        appContext.getString(
+                            R.string.ib_console_download,
+                            r.downloadSpeedKbps,
+                            r.downloadBytes?.let { "(${formatBytes(it)})" } ?: ""
+                        )
+                    )
                 } else {
-                    addConsole("    Download: N/A")
+                    addConsole(appContext.getString(R.string.ib_console_download_na))
                 }
-                addConsole("    Duration: ${r.totalDurationMs / 1000f}s")
+                addConsole(appContext.getString(R.string.ib_console_duration, r.totalDurationMs / 1000f))
                 Log.d(TAG, "YouTube check complete: ${r.status.label()}")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "YouTube check failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole("[-] YouTube check error: ${e.javaClass.simpleName}: ${e.message}")
+                addConsole(appContext.getString(R.string.ib_console_youtube_error, e.javaClass.simpleName, e.message))
             }
         }
     }
@@ -479,7 +482,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
             activeCalls.clear()
         }
         _isChecking.value = false
-        addConsole("[-] Check cancelled")
+        addConsole(appContext.getString(R.string.ib_console_cancelled))
     }
 
     fun clearResults() {
@@ -582,16 +585,16 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 _progress.postValue(0)
                 _progressText.postValue("")
                 val startTime = System.currentTimeMillis()
-                addConsole("[*] Checking domain: $domain")
+                addConsole(appContext.getString(R.string.ib_console_checking_domain, domain))
 
                 val result = withTimeout(MAIN_CHECK_TIMEOUT_MS) {
                     checkMainDomainInternal(domain, startTime)
                 }
 
                 _isChecking.value = false
-                updateProgress(100, "Готово")
-                val label = result.overallStatus.label()
-                addConsole("[+] Main check complete: $label")
+                updateProgress(100, appContext.getString(R.string.ib_progress_done))
+                val label = result.overallStatus.label(appContext)
+                addConsole(appContext.getString(R.string.ib_console_main_complete, label))
                 addConsole("[*] ${result.conclusion}")
                 Log.d(
                     TAG,
@@ -601,11 +604,11 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
             } catch (e: TimeoutCancellationException) {
                 Log.e(TAG, "Main check timed out for $domain after ${MAIN_CHECK_TIMEOUT_MS}ms")
                 _isChecking.postValue(false)
-                updateProgress(100, "Timed out")
-                addConsole("[-] Main check timed out (>${MAIN_CHECK_TIMEOUT_MS / 1000}s)")
+                updateProgress(100, appContext.getString(R.string.ib_progress_timed_out))
+                addConsole(appContext.getString(R.string.ib_console_main_timeout, MAIN_CHECK_TIMEOUT_MS / 1000))
                 _mainTabResult.value = errorResult(
                     domain,
-                    "Timeout: check took longer than ${MAIN_CHECK_TIMEOUT_MS / 1000}s"
+                    appContext.getString(R.string.ib_error_timeout, MAIN_CHECK_TIMEOUT_MS / 1000)
                 )
             } catch (e: CancellationException) {
                 throw e
@@ -616,7 +619,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                     e
                 )
                 _isChecking.postValue(false)
-                addConsole("[-] Main check error: ${e.javaClass.simpleName}: ${e.message}")
+                addConsole(appContext.getString(R.string.ib_console_main_error, e.javaClass.simpleName, e.message))
                 _mainTabResult.value = errorResult(domain, e.message ?: e.javaClass.simpleName)
             }
         }
@@ -627,30 +630,34 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
         startTime: Long
     ): MainTabResult {
 
-        updateProgress(5, "DNS…")
+        updateProgress(5, appContext.getString(R.string.ib_progress_dns))
         val dnsVerdict = dnsScanner.quickCheckDns(domain)
         ensureActive()
-        addConsole("[*] DNS: ${dnsVerdict.status.label()} — ${dnsVerdict.details}")
+        addConsole(appContext.getString(R.string.ib_console_dns_line, dnsVerdict.status.label(appContext), dnsVerdict.details))
         val dnsStatus = dnsVerdict.status
 
         val resolvedIp = dnsVerdict.udpIps.firstOrNull() ?: tlsScanner.resolveDomain(domain)
         ensureActive()
-        addConsole("[*] IP: ${resolvedIp ?: "unresolvable"}")
+        addConsole(appContext.getString(R.string.ib_console_ip_line, resolvedIp ?: appContext.getString(R.string.ib_unresolvable)))
 
 
-        updateProgress(8, "Baseline…")
+        updateProgress(8, appContext.getString(R.string.ib_progress_baseline))
         val baselineResults = tcpPingScanner.pingTargets(
             BASELINE_TARGETS,
             timeoutMs = BASELINE_TIMEOUT_MS
         )
         val baselineReachable = baselineResults.any { it.reachable }
         addConsole(
-            "[*] Baseline: ${if (baselineReachable) "OK" else "unreachable"} " +
-                    "(${baselineResults.filter { it.reachable }.size}/${baselineResults.size})"
+            appContext.getString(
+                R.string.ib_console_baseline,
+                if (baselineReachable) appContext.getString(R.string.ib_status_ok) else appContext.getString(R.string.ib_baseline_unreachable),
+                baselineResults.filter { it.reachable }.size,
+                baselineResults.size
+            )
         )
 
 
-        updateProgress(12, "TCP + TLS…")
+        updateProgress(12, appContext.getString(R.string.ib_progress_tcp_tls))
         val targetTcpTargets = if (resolvedIp != null) {
             listOf(
                 TcpPingTarget(resolvedIp, 443, "$domain:443"),
@@ -668,7 +675,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 domain = domain,
                 stubIps = lastStubIps,
                 onProgress = { percent, text ->
-                    updateProgress(12 + (percent * 58 / 100), "TLS: $text")
+                    updateProgress(12 + (percent * 58 / 100), appContext.getString(R.string.ib_progress_tls, text))
                 }
             )
         }
@@ -685,7 +692,11 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
 
         updateProgress(
             72,
-            "TCP: ${if (tcpReachable) "open" else "blocked"}, 80: ${if (port80Reachable) "open" else "blocked"}"
+            appContext.getString(
+                R.string.ib_progress_tcp_status,
+                if (tcpReachable) appContext.getString(R.string.ib_tcp_open) else appContext.getString(R.string.ib_tcp_blocked),
+                if (port80Reachable) appContext.getString(R.string.ib_tcp_open) else appContext.getString(R.string.ib_tcp_blocked)
+            )
         )
 
         val tls13Status = domainResult?.tls13Status ?: CheckStatus.Error
@@ -697,15 +708,19 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
         val isThrottle = listOf(tls13Status, tls12Status, httpStatus).any {
             it == CheckStatus.ReadTimeout
         }
-        updateProgress(76, "SNI-diff…")
+        updateProgress(76, appContext.getString(R.string.ib_progress_sni_diff))
         val sniVerdict = if (tcpReachable && resolvedIp != null && !isThrottle &&
             (tls13Status !in TLS_OK_STATUSES || tls12Status !in TLS_OK_STATUSES)
         ) {
             try {
                 val benign = tlsScanner.checkSniDifferential(resolvedIp)
                 addConsole(
-                    "[*] SNI-diff (benign SNI → $resolvedIp): ${benign.status.label()} " +
-                            "— ${benign.detail}"
+                    appContext.getString(
+                        R.string.ib_console_sni_diff,
+                        resolvedIp,
+                        benign.status.label(appContext),
+                        benign.detail
+                    )
                 )
                 SniBlockDecision.classify(
                     targetReset = true,
@@ -721,7 +736,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
             SniBlockVerdict.INCONCLUSIVE
         }
 
-        updateProgress(85, "Анализ…")
+        updateProgress(85, appContext.getString(R.string.ib_progress_analyzing))
 
         val probeStatuses = listOf(tls13Status, tls12Status, httpStatus)
         val tcp16Detected = probeStatuses.any { it == CheckStatus.ReadTimeout }
@@ -741,6 +756,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
         val tcp443Refused = tcp443?.status == CheckStatus.Refused
 
         val diagnosis = BlockDiagnosis.diagnose(
+            context = appContext,
             dnsStatus = dnsStatus,
             tls13Status = tls13Status,
             tls12Status = tls12Status,
@@ -806,7 +822,7 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
         totalDurationMs = 0,
         blockStage = "Error",
         blockMechanism = message,
-        conclusion = "Ошибка проверки: $message"
+        conclusion = appContext.getString(R.string.ib_error_check, message)
     )
 
     private fun formatBytes(bytes: Long): String {

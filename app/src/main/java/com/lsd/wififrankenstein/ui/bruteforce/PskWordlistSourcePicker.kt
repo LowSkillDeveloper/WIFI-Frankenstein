@@ -69,15 +69,15 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.pickerTitle.text = "Select wordlist source"
+        binding.pickerTitle.text = getString(R.string.brute_wordlist_source_title)
         binding.btnPickerClose.setOnClickListener { dismiss() }
 
         val options = listOf(
-            SourceOption(R.drawable.ic_folder_open, "From File (.txt)"),
-            SourceOption(R.drawable.ic_file_download, "From URL (direct / MEGA / archive)"),
-            SourceOption(R.drawable.ic_content_copy, "Paste Password List"),
-            SourceOption(R.drawable.cloud_download_24px, "wpa-sec Dictionary (auto-update)"),
-            SourceOption(R.drawable.ic_key, "Single Password Test")
+            SourceOption(R.drawable.ic_folder_open, getString(R.string.brute_source_from_file)),
+            SourceOption(R.drawable.ic_file_download, getString(R.string.brute_source_from_url)),
+            SourceOption(R.drawable.ic_content_copy, getString(R.string.brute_source_paste)),
+            SourceOption(R.drawable.cloud_download_24px, getString(R.string.brute_source_wpa_sec)),
+            SourceOption(R.drawable.ic_key, getString(R.string.brute_source_single))
         )
 
         val density = resources.displayMetrics.density
@@ -156,11 +156,11 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
 
     private fun showWordlistUrlDialog() {
         val input = EditText(requireContext()).apply {
-            hint = "https://example.com/wordlist.txt"
+            hint = getString(R.string.wordlist_url_hint)
             setPadding(48, 32, 48, 32)
         }
         val megaCheck = CheckBox(requireContext()).apply {
-            text = "MEGA link"
+            text = getString(R.string.brute_mega_link)
             setPadding(48, 8, 48, 16)
         }
         val layout = LinearLayout(requireContext()).apply {
@@ -169,9 +169,9 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
             addView(megaCheck)
         }
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Download wordlist from URL")
+            .setTitle(R.string.brute_download_url_title)
             .setView(layout)
-            .setPositiveButton("Download") { _, _ ->
+            .setPositiveButton(R.string.download) { _, _ ->
                 val url = input.text.toString().trim()
                 if (url.isBlank()) return@setPositiveButton
                 downloadFromUrl(url, megaCheck.isChecked)
@@ -181,13 +181,13 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
     }
 
     private fun downloadFromUrl(url: String, isMega: Boolean) {
-        Toast.makeText(requireContext(), "Downloading wordlist...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.brute_downloading_wordlist), Toast.LENGTH_SHORT).show()
         lifecycleScope.launch {
             val result = downloadWordlist(url, isMega)
             if (result != null) {
-                pickWordlist(Uri.fromFile(result.first), "URL: ${result.second}")
+                pickWordlist(Uri.fromFile(result.first), getString(R.string.brute_url_label, result.second))
             } else {
-                Toast.makeText(requireContext(), "Download failed", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), getString(R.string.brute_download_failed), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -252,21 +252,21 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
 
     private fun showWordlistPasteDialog() {
         val input = EditText(requireContext()).apply {
-            hint = "password1\npassword2\n..."
+            hint = getString(R.string.brute_paste_hint)
             setPadding(48, 32, 48, 32)
             minLines = 8
             gravity = Gravity.TOP
         }
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Paste password list")
-            .setMessage("One password per line")
+            .setTitle(R.string.brute_paste_title)
+            .setMessage(R.string.brute_one_per_line)
             .setView(input)
-            .setPositiveButton("Load") { _, _ ->
+            .setPositiveButton(R.string.brute_load) { _, _ ->
                 val text = input.text.toString().trim()
                 if (text.isBlank()) return@setPositiveButton
                 val passwords = text.lines().map { it.trim() }.filter { it.isNotBlank() }
                 if (passwords.isEmpty()) {
-                    Toast.makeText(requireContext(), "No passwords found", Toast.LENGTH_SHORT)
+                    Toast.makeText(requireContext(), getString(R.string.brute_no_passwords), Toast.LENGTH_SHORT)
                         .show()
                     return@setPositiveButton
                 }
@@ -286,20 +286,20 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
                 f.writeText(passwords.joinToString("\n"))
                 f
             }
-            pickWordlist(Uri.fromFile(file), "Pasted: ${passwords.size} passwords")
+            pickWordlist(Uri.fromFile(file), getString(R.string.brute_pasted, passwords.size))
         }
     }
 
     private fun showSinglePasswordDialog() {
         val input = EditText(requireContext()).apply {
-            hint = "Enter a single WPA password to test"
+            hint = getString(R.string.brute_single_hint)
             setPadding(48, 32, 48, 32)
         }
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Single Password Test")
-            .setMessage("Enter one password to try against the target network")
+            .setTitle(R.string.brute_source_single)
+            .setMessage(R.string.brute_single_message)
             .setView(input)
-            .setPositiveButton("Test") { _, _ ->
+            .setPositiveButton(R.string.brute_test) { _, _ ->
                 val password = input.text.toString().trim()
                 if (password.isBlank()) return@setPositiveButton
                 writeSinglePassword(password)
@@ -318,12 +318,12 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
                 f.writeText(password)
                 f
             }
-            pickWordlist(Uri.fromFile(file), "Single password")
+            pickWordlist(Uri.fromFile(file), getString(R.string.handshake_crack_mode_single))
         }
     }
 
     private fun useWpaSecDict() {
-        Toast.makeText(requireContext(), "Checking wpa-sec dictionary...", Toast.LENGTH_SHORT)
+        Toast.makeText(requireContext(), getString(R.string.brute_checking_wpa_sec), Toast.LENGTH_SHORT)
             .show()
         lifecycleScope.launch {
             val path = withContext(Dispatchers.IO) {
@@ -332,12 +332,12 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
             }
             if (path != null) {
                 val file = File(path)
-                val mb = if (file.length() > 0) " (${file.length() / (1024 * 1024)} MB)" else ""
-                pickWordlist(Uri.fromFile(file), "wpa-sec dictionary$mb")
+                val mb = if (file.length() > 0) getString(R.string.brute_mb_suffix, file.length() / (1024 * 1024)) else ""
+                pickWordlist(Uri.fromFile(file), getString(R.string.brute_wpa_sec_dict_label, mb))
             } else {
                 Toast.makeText(
                     requireContext(),
-                    "wpa-sec unavailable — no internet/cache",
+                    getString(R.string.brute_wpa_sec_unavailable),
                     Toast.LENGTH_LONG
                 ).show()
             }

@@ -391,7 +391,7 @@ class DatabaseFinderViewModel(application: Application) : AndroidViewModel(appli
 
         if (dbSetupViewModel.dbList.value.isNullOrEmpty()) {
             Log.d(TAG, "Database list not loaded yet, waiting for data...")
-            emit(mapOf("message" to "Загрузка списка баз данных..."))
+            emit(mapOf("message" to getApplication<Application>().getString(R.string.df_loading_db_list)))
 
             dbSetupViewModel.loadDbList()
 
@@ -403,7 +403,7 @@ class DatabaseFinderViewModel(application: Application) : AndroidViewModel(appli
 
             if (dbSetupViewModel.dbList.value.isNullOrEmpty()) {
                 Log.e(TAG, "Failed to load database list after waiting")
-                emit(mapOf("error" to "Не удалось загрузить список баз данных"))
+                emit(mapOf("error" to getApplication<Application>().getString(R.string.df_failed_load_db_list)))
                 return@flow
             }
         }
@@ -429,11 +429,11 @@ class DatabaseFinderViewModel(application: Application) : AndroidViewModel(appli
                 return@flow
             }
             Log.e(TAG, "Database not found for source: ${searchResult.source}")
-            emit(mapOf("error" to "База данных не найдена"))
+            emit(mapOf("error" to app.getString(R.string.df_database_not_found)))
             return@flow
         }
 
-        emit(mapOf("message" to "Загрузка данных..."))
+        emit(mapOf("message" to getApplication<Application>().getString(R.string.df_loading_data)))
 
         Log.d(TAG, "getDetailData: dbType=${dbItem.dbType}, source=${searchResult.source}")
 
@@ -454,7 +454,7 @@ class DatabaseFinderViewModel(application: Application) : AndroidViewModel(appli
             DbType.WIFI_API -> ApiDetailLoader(getApplication(), dbItem, searchResult.bssid)
             else -> {
                 Log.e(TAG, "Unsupported database type: ${dbItem.dbType}")
-                emit(mapOf("error" to "Неподдерживаемый тип базы данных"))
+                emit(mapOf("error" to getApplication<Application>().getString(R.string.df_unsupported_db_type)))
                 return@flow
             }
         }

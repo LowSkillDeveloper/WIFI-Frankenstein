@@ -157,13 +157,14 @@ class SettingsFragment : Fragment() {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "WiFi Frankenstein Log")
+                putExtra(Intent.EXTRA_SUBJECT, getString(R.string.st_share_log_subject))
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
-            startActivity(Intent.createChooser(shareIntent, "Share log file"))
+            startActivity(Intent.createChooser(shareIntent, getString(R.string.st_share_log_chooser)))
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Error sharing log file", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.st_error_share_log), Toast.LENGTH_SHORT)
+                .show()
         }
     }
 
@@ -598,7 +599,8 @@ class SettingsFragment : Fragment() {
 
         binding.buttonClearAPICache.setOnClickListener {
             viewModel.clearAPI3WiFiCache()
-            Toast.makeText(context, "API 3WiFi cache cleared", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.st_api_cache_cleared), Toast.LENGTH_SHORT)
+                .show()
         }
 
         setupInfoButtons()
@@ -686,7 +688,7 @@ class SettingsFragment : Fragment() {
         viewModel.setTryAlternativeUrl(binding.switchTryAlternativeUrl.isChecked)
         viewModel.setIgnoreSSLCertificate(binding.switchIgnoreSSLCertificate.isChecked)
 
-        Toast.makeText(context, "API 3WiFi settings saved", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, getString(R.string.st_api_settings_saved), Toast.LENGTH_SHORT).show()
     }
 
     private fun showWarningDialog() {
@@ -922,14 +924,17 @@ class SettingsFragment : Fragment() {
         val cm = ChrootManager(requireContext())
         val rootlessManager = RootlessManager(requireContext())
         if (!rootlessManager.isSupportedArchitecture()) {
-            Toast.makeText(requireContext(), "Rootless requires arm64 or x86_64", Toast.LENGTH_LONG)
-                .show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.rootless_arch_required),
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
 
         val progressDialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.install_rootless)
-            .setMessage("Preparing...")
+            .setMessage(getString(R.string.rootless_preparing))
             .setCancelable(false)
             .show()
 
@@ -941,15 +946,18 @@ class SettingsFragment : Fragment() {
             if (archive == null) {
                 withContext(Dispatchers.Main) {
                     progressDialog.dismiss()
-                    Toast.makeText(requireContext(), "Failed to get rootfs URL", Toast.LENGTH_LONG)
-                        .show()
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.rootless_failed_rootfs_url),
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
                 return@launch
             }
             val success = rootlessManager.setupRootfs(
                 onProgress = { progress ->
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-                        progressDialog.setMessage("Progress: $progress%")
+                        progressDialog.setMessage(getString(R.string.rootless_progress, progress))
                     }
                 },
                 onStatusUpdate = { status ->
@@ -960,15 +968,20 @@ class SettingsFragment : Fragment() {
                 downloadUrl = archive.download_url,
                 onDiagnosticUpdate = { name, icon, result ->
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-                        progressDialog.setMessage("$icon $name: $result")
+                        progressDialog.setMessage(
+                            getString(R.string.rootless_diagnostic_line, icon, name, result)
+                        )
                     }
                 }
             )
             withContext(Dispatchers.Main) {
                 progressDialog.dismiss()
                 if (success) {
-                    Toast.makeText(requireContext(), "Rootless setup completed", Toast.LENGTH_SHORT)
-                        .show()
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.rootless_setup_completed),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
                 updateChrootUI(cm)
             }
@@ -988,7 +1001,7 @@ class SettingsFragment : Fragment() {
         if (!chrootManager.isArmArchitecture()) {
             val archLabel = chrootManager.getArchitecture().label
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Unsupported Architecture")
+                .setTitle(R.string.rs_unsupported_arch)
                 .setMessage(getString(R.string.chroot_arch_warning, archLabel))
                 .setPositiveButton(R.string.continue_text) { _, _ -> doInstallChroot(chrootManager) }
                 .setNegativeButton(android.R.string.cancel, null)
@@ -1179,15 +1192,15 @@ class SettingsFragment : Fragment() {
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, height)
 
         val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Chroot Diagnostics")
+            .setTitle(R.string.st_chroot_diagnostics_title)
             .setView(scroll)
             .setCancelable(false)
             .setNeutralButton(getString(R.string.copy_log), null)
-            .setNegativeButton("Close", null)
+            .setNegativeButton(R.string.close, null)
             .show()
 
         val loadingText = TextView(requireContext()).apply {
-            text = "Running diagnostics..."
+            text = getString(R.string.st_chroot_diagnostics_running)
             textSize = 13f
             alpha = 0.6f
             gravity = Gravity.CENTER
@@ -1248,14 +1261,14 @@ class SettingsFragment : Fragment() {
                         if (hasMagisk) {
                             dialog.setButton(
                                 android.content.DialogInterface.BUTTON_POSITIVE,
-                                "Apply magiskpolicy"
+                                getString(R.string.st_diag_apply_magiskpolicy)
                             ) { _, _ ->
                                 applyRules(chrootManager, results)
                             }
                         } else {
                             dialog.setButton(
                                 android.content.DialogInterface.BUTTON_POSITIVE,
-                                "Copy sepolicy.rule"
+                                getString(R.string.st_diag_copy_sepolicy_rule)
                             ) { _, _ ->
                                 val diag = ChrootDiagnostics(
                                     "/data/local/wififrankenstein/tools/busybox",
@@ -1277,10 +1290,15 @@ class SettingsFragment : Fragment() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     container.removeView(loadingText)
-                    addDiagCard(container, "Error", " ✗", e.message ?: "unknown")
+                    addDiagCard(
+                        container,
+                        getString(R.string.ws_error),
+                        " ✗",
+                        e.message ?: getString(R.string.st_diag_unknown)
+                    )
                     dialog.setButton(
                         android.content.DialogInterface.BUTTON_NEGATIVE,
-                        "Close"
+                        getString(R.string.close)
                     ) { _, _ -> dialog.dismiss() }
                     dialog.setButton(
                         android.content.DialogInterface.BUTTON_NEUTRAL,
@@ -1291,7 +1309,7 @@ class SettingsFragment : Fragment() {
                         clipboard.setPrimaryClip(
                             android.content.ClipData.newPlainText(
                                 "chroot_diagnostic_error",
-                                e.message ?: "unknown error"
+                                e.message ?: getString(R.string.svc_unknown_error)
                             )
                         )
                         Toast.makeText(requireContext(), R.string.log_copied, Toast.LENGTH_SHORT)
@@ -1362,15 +1380,18 @@ class SettingsFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
                         requireContext(),
-                        if (ok) "Rules applied successfully"
-                        else "Some rules failed",
+                        if (ok) getString(R.string.st_diag_rules_applied)
+                        else getString(R.string.st_diag_rules_failed),
                         Toast.LENGTH_LONG
                     ).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Apply error: ${e.message}", Toast.LENGTH_LONG)
-                        .show()
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.st_diag_apply_error, e.message),
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }
@@ -1393,7 +1414,7 @@ class SettingsFragment : Fragment() {
         binding.switchTryAlternativeUrl.isChecked = true
         binding.switchIgnoreSSLCertificate.isChecked = false
 
-        Toast.makeText(context, "API 3WiFi settings reset to default", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, getString(R.string.st_api_settings_reset), Toast.LENGTH_SHORT).show()
     }
 
     private fun observeViewModel() {
@@ -1633,10 +1654,10 @@ class SettingsFragment : Fragment() {
             }
 
             val modeLabel = when (item.mode) {
-                IwWifiManager.MODE_MANAGED -> "MANAGED"
-                IwWifiManager.MODE_MONITOR -> "MONITOR"
-                IwWifiManager.MODE_UNAVAILABLE -> "UNAVAILABLE"
-                else -> "UNKNOWN"
+                IwWifiManager.MODE_MANAGED -> getString(R.string.st_iface_mode_managed)
+                IwWifiManager.MODE_MONITOR -> getString(R.string.st_iface_mode_monitor)
+                IwWifiManager.MODE_UNAVAILABLE -> getString(R.string.st_iface_mode_unavailable)
+                else -> getString(R.string.st_iface_mode_unknown)
             }
             holder.binding.textInterfaceMode.text = modeLabel
 
@@ -1652,7 +1673,9 @@ class SettingsFragment : Fragment() {
 
             val isMonitor = item.mode == IwWifiManager.MODE_MONITOR
             val isUnavailable = item.mode == IwWifiManager.MODE_UNAVAILABLE
-            holder.binding.buttonToggleMode.text = if (isMonitor) "Managed" else "Monitor"
+            holder.binding.buttonToggleMode.text =
+                if (isMonitor) getString(R.string.st_iface_toggle_managed)
+                else getString(R.string.st_iface_toggle_monitor)
             holder.binding.buttonToggleMode.isEnabled = !isUnavailable
             holder.binding.buttonToggleMode.setOnClickListener {
                 onToggle(item.name)

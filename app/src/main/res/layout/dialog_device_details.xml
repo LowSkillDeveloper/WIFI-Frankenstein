@@ -44,7 +44,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
-                        android:text="General"
+                        android:text="@string/general"
                         android:textAppearance="?attr/textAppearanceSubtitle2" />
                 </LinearLayout>
 
@@ -57,7 +57,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="IP Address"
+                        android:text="@string/lbl_ip_address"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -80,7 +80,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="MAC"
+                        android:text="@string/filter_mac"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -103,7 +103,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="Vendor"
+                        android:text="@string/ws_vendor"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -125,7 +125,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="Hostname"
+                        android:text="@string/hostname"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -147,7 +147,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="NetBIOS"
+                        android:text="@string/netbios"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -169,7 +169,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="Status"
+                        android:text="@string/status"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -192,7 +192,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="Latency"
+                        android:text="@string/latency"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -226,7 +226,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="OS Detection"
+                    android:text="@string/os_detection"
                     android:textAppearance="?attr/textAppearanceSubtitle2" />
 
                 <LinearLayout
@@ -238,7 +238,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="OS Details"
+                        android:text="@string/os_details"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -263,7 +263,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="OS Family"
+                        android:text="@string/os_family"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -288,7 +288,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="Device Type"
+                        android:text="@string/device_type"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -313,7 +313,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="OS CPE"
+                        android:text="@string/os_cpe"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -338,7 +338,7 @@
                     <TextView
                         android:layout_width="100dp"
                         android:layout_height="wrap_content"
-                        android:text="Distance"
+                        android:text="@string/distance"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -373,7 +373,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="Open Ports"
+                    android:text="@string/lbl_open_ports"
                     android:textAppearance="?attr/textAppearanceSubtitle2" />
 
                 <TextView
@@ -403,7 +403,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="Actions"
+                    android:text="@string/actions"
                     android:textAppearance="?attr/textAppearanceSubtitle2" />
 
                 <com.google.android.material.button.MaterialButton
@@ -412,7 +412,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="Scan Device"
+                    android:text="@string/ln_scan_device"
                     app:icon="@drawable/ic_scan"
                     app:iconGravity="textStart" />
 
@@ -422,7 +422,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="Disconnect Internet (ARP Spoof)"
+                    android:text="@string/disconnect_internet_arp_spoof"
                     app:icon="@drawable/ic_cancel"
                     app:iconGravity="textStart" />
 
@@ -432,7 +432,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="Router Scan"
+                    android:text="@string/svc_router_scan_title"
                     app:icon="@drawable/router_24px"
                     app:iconGravity="textStart" />
 
@@ -441,7 +441,7 @@
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Wake-on-LAN"
+                    android:text="@string/wake_on_lan"
                     app:icon="@drawable/ic_wifi"
                     app:iconGravity="textStart" />
 
@@ -451,7 +451,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Open in Browser"
+                    android:text="@string/open_in_browser"
                     android:visibility="gone"
                     app:icon="@drawable/ic_open_in_browser"
                     app:iconGravity="textStart" />
