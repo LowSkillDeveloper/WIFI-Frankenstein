@@ -58,8 +58,6 @@ The application combines various WiFi tools and functionality into one powerful 
 - **Offline IP ranges**: Using local databases, we find ranges of IP addresses for scanning with RouterScan
 - **Updates**: Support for updating the application and its components
 
-3WIFI 
-
 ### 🎨 Customization
 - **Theme Options**: Multiple color styles to customize the app appearance
 - **Icon Customization**: Change the application icon to suit your preferences
