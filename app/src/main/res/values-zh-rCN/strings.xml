@@ -2911,6 +2911,7 @@
 <string name="ds_failed_export_db">导出数据库失败：%1$s</string>
 <string name="ds_failed_fetch_sources">获取来源失败</string>
 <string name="ds_failed_fetch_smartlink">获取 SmartLink 数据库失败</string>
+<string name="ds_mega_folder_not_supported">不支持 MEGA 文件夹链接。请改用 MEGA 文件链接。</string>
 <string name="ds_failed_fetch_db_info">获取数据库信息失败</string>
 <string name="ds_failed_fetch_sources_info">获取来源信息失败</string>
 <string name="ds_db_size_dual">%1$s / %2$s MB</string>

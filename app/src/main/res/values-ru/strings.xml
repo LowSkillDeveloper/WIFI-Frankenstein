@@ -2215,6 +2215,7 @@
 <string name="ds_failed_export_db">Не удалось экспортировать базу данных: %1$s</string>
 <string name="ds_failed_fetch_sources">Не удалось загрузить источники</string>
 <string name="ds_failed_fetch_smartlink">Не удалось загрузить базы данных SmartLink</string>
+<string name="ds_mega_folder_not_supported">Ссылки на папки MEGA не поддерживаются. Используйте ссылку на файл MEGA.</string>
 <string name="ds_failed_fetch_db_info">Не удалось получить информацию о базе данных</string>
 <string name="ds_failed_fetch_sources_info">Не удалось получить информацию об источниках</string>
 <string name="ds_db_size_dual">%1$s / %2$s MB</string>

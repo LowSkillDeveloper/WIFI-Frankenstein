@@ -19,6 +19,7 @@ import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.service.DownloadService
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.SmartLinkDbInfo
+import com.lsd.wififrankenstein.ui.dbsetup.parseSmartLinkDbObject
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -289,21 +290,7 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
                 val databasesArray = json.getJSONArray("databases")
 
                 (0 until databasesArray.length()).map { i ->
-                    val dbInfo = databasesArray.getJSONObject(i)
-                    SmartLinkDbInfo(
-                        id = dbInfo.getString("id"),
-                        name = dbInfo.getString("name"),
-                        downloadUrls = listOfNotNull(
-                            dbInfo.optString("downloadUrl", null),
-                            dbInfo.optString("downloadUrl1", null),
-                            dbInfo.optString("downloadUrl2", null),
-                            dbInfo.optString("downloadUrl3", null),
-                            dbInfo.optString("downloadUrl4", null),
-                            dbInfo.optString("downloadUrl5", null)
-                        ),
-                        version = dbInfo.getString("version"),
-                        type = dbInfo.getString("type")
-                    )
+                    parseSmartLinkDbObject(databasesArray.getJSONObject(i))
                 }
             } catch (e: Exception) {
                 emptyList()

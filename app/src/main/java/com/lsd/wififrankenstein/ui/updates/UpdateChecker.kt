@@ -5,7 +5,7 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.network.NetworkClient
 import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
-import com.lsd.wififrankenstein.ui.dbsetup.SmartLinkDbInfo
+import com.lsd.wififrankenstein.ui.dbsetup.parseSmartLinkDbObject
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -165,27 +165,11 @@ class UpdateChecker(private val context: Context) {
                     val databasesArray = updateJson.getJSONArray("databases")
 
                     for (i in 0 until databasesArray.length()) {
-                        val dbInfo = databasesArray.getJSONObject(i)
-                        val serverId = dbInfo.getString("id")
+                        val info = parseSmartLinkDbObject(databasesArray.getJSONObject(i))
 
-                        if (serverId == installedDb.idJson) {
-                            val serverVersion = dbInfo.getString("version")
+                        if (info.id == installedDb.idJson) {
+                            val serverVersion = info.version
                             val localVersion = installedDb.version ?: "1.0"
-
-                            val info = SmartLinkDbInfo(
-                                id = serverId,
-                                name = dbInfo.getString("name"),
-                                downloadUrls = listOfNotNull(
-                                    dbInfo.optString("downloadUrl", null),
-                                    dbInfo.optString("downloadUrl1", null),
-                                    dbInfo.optString("downloadUrl2", null),
-                                    dbInfo.optString("downloadUrl3", null),
-                                    dbInfo.optString("downloadUrl4", null),
-                                    dbInfo.optString("downloadUrl5", null)
-                                ),
-                                version = serverVersion,
-                                type = dbInfo.getString("type")
-                            )
 
                             return@mapNotNull SmartLinkDbUpdateInfo(
                                 dbItem = installedDb,
