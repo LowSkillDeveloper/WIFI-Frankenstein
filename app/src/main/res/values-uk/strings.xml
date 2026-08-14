@@ -736,6 +736,7 @@
 <string name="project_bye_bye_vpn">ByeByeVpn – GNU GPL v3.0</string>
 <string name="project_wigle_api">Wigle.net API – умови сервісного API</string>
 <string name="project_router_scan">Router Scan (Stas\'M) – Freeware (пропрієтарна)</string>
+<string name="project_strykerapp">Ідею середовища chroot, виявлення зовнішніх адаптерів та RouterScan взято з StrykerOSS (github.com/zalexdev/strykerapp) – Ліцензія GNU GPL v3.0</string>
 <string name="binary_wpa_supplicant">wpa_supplicant – Ліцензія BSD</string>
 <string name="binary_wpa_cli">wpa_cli – Ліцензія BSD</string>
 <string name="binary_libnl">libnl – GNU LGPL v2.1</string>

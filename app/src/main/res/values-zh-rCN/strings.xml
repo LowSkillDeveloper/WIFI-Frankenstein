@@ -920,6 +920,7 @@
 <string name="project_bye_bye_vpn">ByeByeVpn - GNU GPL v3.0</string>
 <string name="project_wigle_api">Wigle.net API - 服务 API 条款</string>
 <string name="project_router_scan">Router Scan (Stas\'M) - 免费软件（专有）</string>
+<string name="project_strykerapp">chroot 环境、外部适配器检测和 RouterScan 的想法来自 StrykerOSS (github.com/zalexdev/strykerapp) - GNU GPL v3.0</string>
 <string name="binary_wpa_supplicant">wpa_supplicant - BSD License</string>
 <string name="binary_wpa_cli">wpa_cli - BSD License</string>
 <string name="binary_libnl">libnl - GNU LGPL v2.1</string>
