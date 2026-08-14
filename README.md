@@ -1,8 +1,8 @@
 # WiFi Frankenstein
 
-![App Version](https://img.shields.io/badge/app_version-1.1-blue)
+![App Version](https://img.shields.io/badge/app_version-2.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
-![Kotlin](https://img.shields.io/badge/kotlin-2.2.10-purple)
+![Kotlin](https://img.shields.io/badge/kotlin-2.4.10-purple)
 
 
 
@@ -28,29 +28,31 @@ The application combines various WiFi tools and functionality into one powerful 
 ## ✨ Features
 
 ### 📊 Database Management
-- **Local Database Support indexation and mapping**: The local database supports indexing plus WiFi points can be displayed on the map
-- **Local 3WiFi Database Support**: Connect and work with huge 3WiFi databases locally
-- **Custom Database Integration**: Connect any compatible SQLite databases
-- **SmartLinkDB**: Support for updating databases via the Internet
-- **Multiple Manufacturer Databases**: 4 separate databases for checking WiFi device manufacturers
+- **Local Database Support**: The local database supports indexing and WiFi points can be displayed on the map
+- **SQlite Database Integration**: Connect any SQLite databases
 
 ### 🗺️ Mapping & Location
 - **WiFi Maps**: View WiFi points from 3WiFi db and custom databases without an internet connection (The map itself requires internet)
-- **Clustering Control**: Option to enable or disable point clustering on the map
 - **Multiple bases**: Possibility to display wifi points from several different databases on the map at once.
-- **MAC base location**: Finding the location of an access point by its MAC address
+- **MAC base location (geomac)**: Finding the location of an access point by its MAC address
 
 ### 🛠️ Tools & Features
 
 - **WPS PixieDust Android (OneShot)**: If you have root, you can perform a pixeldust attack from your smartphone with built-in wifi module.
+- **MAC Address Locating (geomac)**: Find the geographical location of WiFi access points by MAC address
+- **Handshake Capture**: Capture WPA/WPA2 handshakes (supported with root and a custom kernel)
+- **DPI/RKN Blocking Check**: Check whether your provider or RKN is blocking DPI/websites
+- **Router Scan**: Scan routers via Router Scan by Stas'M
+- **Handshake Cracker**: Bruteforce captured handshakes or PMKID
+- **wpa-sec.stanev.org**: Check if a network is present in the online database, upload handshakes and import your account's data into the local database
+- **Handshake Converter**: Convert handshakes / handshake files between various formats
 - **WiFi Channel Analysis**: Page for analyzing WiFi channels, providing insights into channel usage and performance.
-- **MAC Address Locating**: Find the geographical location of WiFi access points by MAC address
-- **More Detailed Information**: detection of WiFi network technologies, including RTT, NTB, TWT, and MLD
+- **More Detailed Information**: If you have root rights, you can do an iw scan and get the most detailed information about the Wi-Fi network.
 - **Viewing Saved Passwords**:  If you have root, you can view passwords to networks to which the phone was connected and they are saved in its memory.
-- **WPS Pin Generator**: Local pin code generation
-- **WPA Password Generator**: Local wpa passwords generation
-- **Neighbor-based WPS PIN suggestions**: multi-level neighbor-based WPS PIN suggestions from Local DB
-- **WPS Connect**: Possibility to connect via WPS 
+- **WPS Pin Generator**: Local WPS PIN code generation using many different algorithms and data from databases
+- **WPA Password Generator**: Local wpa passwords generation using many different algorithms for old wifi routers
+- **Neighbor-based WPS PIN suggestions**: multi-level neighbor-based WPS PIN suggestions from your DB
+- **WPS Connect**: Possibility to connect via WPS using non-root and root methods
 - **3WiFi API Integration**: Advanced settings and direct API requests
 - **Distance Calculation**: Measure distance to WiFi access point
 - **Offline IP ranges**: Using local databases, we find ranges of IP addresses for scanning with RouterScan
@@ -69,32 +71,37 @@ The application combines various WiFi tools and functionality into one powerful 
 
 ## ⚠️ Known Issues
 
-- **Profile Saving**: Saving wifi profiles may sometimes fail
+- **Profile Saving**: Saving wifi profiles may sometimes fail on a new androids
 
 ## 🔄 Comparison with 3WiFi Locator
 
 | Feature | WiFi Frankenstein | 3WiFi Locator |
 |---------|-------------------|---------------|
 | Local in-app Database | ✅ Yes  | ⚠️ Limited |
+| WiFi Maps | ✅ Yes | ❌ Not supported |
 | Offline Full 3WiFi Database | ✅ Supported | ❌ Not supported |
+| WiFi Location (geoMAC) | ✅ Yes | ❌ Not supported |
+| Handshake capture ® | ✅ Supported (Root, kernel) | ❌ Not supported |
+| Handshake cracker | ✅ Supported | ❌ Not supported |
+| wpa-sec.stanev.org integration| ✅ Supported | ❌ Not supported |
+| WPS PixieDust (OneShot) ® | ✅ Supported (Root) | ❌ Not supported |
+| Router Scan by by Stas'M ® | ✅ Supported (proot) | ❌ Not supported |
+| Checking DPI blocking by your provider or RKN | ✅ Supported | ❌ Not supported |
+| Custom SQLite Database connection | ✅ Supported | ❌ Not supported |
 | Advanced 3WiFi API Settings | ✅ Full access | ⚠️ Limited API access |
-| WPS PixieDust (OneShot) | ✅ Supported (Root) | ❌ Not supported |
-| Viewing saved passwords in memory | ✅ Supported (Root) | ✅ Supported (Root) |
-| WPA Generators (Router Keygen) | ✅ Supported | ❌ Not supported |
-| WPS Generators | ✅ Supported | ⚠️ Limited |
-| Neighbor-based WPS PIN suggestions | ✅ Supported | ❌ Not supported |
+| Viewing saved passwords ® | ✅ Supported (Root) | ✅ Supported (Root) |
+| WPA Algorithms (Router Keygen) | ✅ Supported | ❌ Not supported |
+| WPS Algorithms | ✅ Supported | ⚠️ Limited |
+| Local network scanner | ✅ Supported | ❌ Not supported |
+| Neighbor-based WPS PIN Algorithms | ✅ Supported | ❌ Not supported |
 | 3WIFI offline IP ranges | ✅ Supported | ❌ Not supported |
 | WiFi Channel Analysis | ✅ Supported | ❌ Not supported |
-| Additional WiFi Information | ✅ Yes | ⚠️ Limited |
-| Custom SQLite Databases | ✅ Supported | ❌ Not supported |
-| WiFi Maps | ✅ Yes | ❌ Not supported |
 | WiFi API Maps | ⚠️ Limited | ❌ Not supported |
-| WiFi Location (geoMAC) | ✅ Yes | ❌ Not supported |
 | Database Updates | ✅ SmartLinkDB | ❌ Not supported |
 | App/Component Updates | ✅ Supported | ⚠️ Notification only |
 | Customizable Themes | ✅ Multiple options | ⚠️ Dark mode only |
 | Custom App Icon | ✅ Supported | ❌ Not supported |
-| Manufacturer Databases | ✅ 4 databases | ✅ 3 databases |
+| Manufacturer Databases | ✅ 3 databases | ✅ 3 databases |
 | Distance Calculation | ✅ Supported | ❌ Not supported |
 | SDK version | ✅ Latest | ⚠️Old |
 
