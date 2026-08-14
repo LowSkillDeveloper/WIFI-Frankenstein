@@ -22,9 +22,14 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.json.JSONObject
 import java.io.BufferedInputStream
 import java.io.File
+import java.io.InputStream
+import java.io.PushbackInputStream
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
@@ -45,7 +50,7 @@ data class SmartLinkDbInfo(
     val name: String,
     val downloadUrls: List<String> = emptyList(),
     val version: String,
-    val type: String,
+    val type: String? = null,
     val columnMapping: Map<String, String>? = null,
     val tableName: String? = null
 ) {
@@ -133,6 +138,64 @@ private fun smartLinkInfoFromDirectUrl(url: String): SmartLinkDbInfo {
     )
 }
 
+private fun parseDownloadUrls(jsonObject: JSONObject): List<String> {
+    val urls = mutableListOf<String>()
+
+    if (jsonObject.has("downloadUrl") && !jsonObject.isNull("downloadUrl")) {
+        val url = jsonObject.getString("downloadUrl")
+        if (url.isNotBlank()) {
+            urls.add(url)
+        }
+
+        var extraIndex = 1
+        var hasExtraParts = false
+        while (jsonObject.has("downloadUrl$extraIndex")) {
+            if (!jsonObject.isNull("downloadUrl$extraIndex") &&
+                jsonObject.getString("downloadUrl$extraIndex").isNotBlank()
+            ) {
+                hasExtraParts = true
+            }
+            extraIndex++
+        }
+        if (hasExtraParts) {
+            Log.w(
+                "SmartLinkDbHelper",
+                "downloadUrl and downloadUrlN must not be mixed; using downloadUrl only"
+            )
+        }
+    } else {
+        var urlIndex = 1
+        while (jsonObject.has("downloadUrl$urlIndex") && !jsonObject.isNull("downloadUrl$urlIndex")) {
+            val url = jsonObject.getString("downloadUrl$urlIndex")
+            if (url.isNotBlank()) {
+                urls.add(url)
+            }
+            urlIndex++
+        }
+    }
+
+    return urls
+}
+
+fun parseSmartLinkDbObject(jsonObject: JSONObject): SmartLinkDbInfo {
+    return SmartLinkDbInfo(
+        id = jsonObject.getString("id"),
+        name = jsonObject.getString("name"),
+        downloadUrls = parseDownloadUrls(jsonObject),
+        version = jsonObject.getString("version"),
+        type = jsonObject.optString("type", null)?.takeIf { it.isNotBlank() },
+        columnMapping = if (jsonObject.has("columnMapping") && !jsonObject.isNull("columnMapping")) {
+            val mappingObject = jsonObject.getJSONObject("columnMapping")
+            val mapping = mutableMapOf<String, String>()
+            mappingObject.keys().forEach { key ->
+                mapping[key] = mappingObject.getString(key)
+            }
+            mapping
+        } else null,
+        tableName = jsonObject.optString("tableName", null)?.takeIf { it.isNotBlank() }
+    )
+}
+
 fun interface LegacyDatabaseConflictResolver {
     suspend fun onExpressionIndexConflict(file: File): Boolean
 }
@@ -167,6 +230,7 @@ class SmartLinkDbHelper(private val context: Context) {
     val databases: LiveData<List<SmartLinkDbInfo>> = _databases
 
     private lateinit var jsonUrl: String
+    private var currentUrlType: UrlType? = null
 
     private val _sources = MutableLiveData<List<DbSource>>()
     val sources: LiveData<List<DbSource>> = _sources
@@ -269,34 +333,16 @@ class SmartLinkDbHelper(private val context: Context) {
         }
     }
 
-    private fun parseDownloadUrls(jsonObject: JSONObject): List<String> {
-        val urls = mutableListOf<String>()
-
-        if (jsonObject.has("downloadUrl") && !jsonObject.isNull("downloadUrl")) {
-            val url = jsonObject.getString("downloadUrl")
-            if (url.isNotBlank()) {
-                urls.add(url)
-            }
-        }
-
-        var urlIndex = 1
-        while (jsonObject.has("downloadUrl$urlIndex") && !jsonObject.isNull("downloadUrl$urlIndex")) {
-            val url = jsonObject.getString("downloadUrl$urlIndex")
-            if (url.isNotBlank()) {
-                urls.add(url)
-            }
-            urlIndex++
-        }
-
-        return urls
-    }
-
     suspend fun fetchDatabases(url: String) {
         withContext(Dispatchers.IO) {
             jsonUrl = url
             val urlType = detectUrlType(url)
+            currentUrlType = urlType
 
             if (urlType != UrlType.JSON_API) {
+                if (urlType == UrlType.MEGA && MegaUrlParser.parse(url) == null) {
+                    throw Exception(context.getString(R.string.ds_mega_folder_not_supported))
+                }
                 val dbInfo = if (urlType == UrlType.MEGA) {
                     Log.d(TAG, "Fetching MEGA filename from API...")
                     val name = MegaPublicDownloader(client).resolveFileName(url)
@@ -322,27 +368,8 @@ class SmartLinkDbHelper(private val context: Context) {
 
                 val databases = mutableListOf<SmartLinkDbInfo>()
                 for (i in 0 until databasesArray.length()) {
-                    val dbObject = databasesArray.getJSONObject(i)
-
-                    databases.add(
-                        SmartLinkDbInfo(
-                            id = dbObject.getString("id"),
-                            name = dbObject.getString("name"),
-                            downloadUrls = parseDownloadUrls(dbObject),
-                            version = dbObject.getString("version"),
-                            type = dbObject.getString("type"),
-                            columnMapping = if (dbObject.has("columnMapping") && !dbObject.isNull("columnMapping")) {
-                                val mappingObject = dbObject.getJSONObject("columnMapping")
-                                val mapping = mutableMapOf<String, String>()
-                                mappingObject.keys().forEach { key ->
-                                    mapping[key] = mappingObject.getString(key)
-                                }
-                                mapping
-                            } else null,
-                            tableName = if (dbObject.has("tableName") && !dbObject.isNull("tableName")) {
-                                dbObject.getString("tableName")
-                            } else null
-                        ))
+                    val parsed = parseSmartLinkDbObject(databasesArray.getJSONObject(i))
+                    databases.add(parsed.copy(type = parsed.type ?: "auto"))
                 }
 
                 _databases.postValue(databases)
@@ -410,10 +437,15 @@ class SmartLinkDbHelper(private val context: Context) {
                     val downloadUrl = downloadUrls.first()
                     when {
                         MegaUrlParser.isMegaUrl(downloadUrl) -> {
+                            if (MegaUrlParser.parse(downloadUrl) == null) {
+                                throw Exception(context.getString(R.string.ds_mega_folder_not_supported))
+                            }
                             downloadMegaFile(dbInfo, downloadUrl, finalFile, progressCallback)
                         }
 
-                        downloadUrl.endsWith(".zip", true) || downloadUrl.endsWith(".7z", true) -> {
+                        downloadUrl.endsWith(".zip", true) || downloadUrl.endsWith(".7z", true) ||
+                                downloadUrl.endsWith(".gz", true) || downloadUrl.endsWith(".tgz", true) ||
+                                downloadUrl.endsWith(".tar", true) -> {
                             downloadAndExtractArchiveWithResume(
                                 dbInfo,
                                 downloadUrl,
@@ -471,7 +503,8 @@ class SmartLinkDbHelper(private val context: Context) {
                     cachedSizeInMB = actualFileSize,
                     idJson = dbInfo.id,
                     version = dbInfo.version,
-                    updateUrl = currentSource?.smartlinkUrl ?: jsonUrl,
+                    updateUrl = currentSource?.smartlinkUrl
+                        ?: if (currentUrlType == UrlType.JSON_API) jsonUrl else null,
                     smartlinkType = dbInfo.type,
                     tableName = validatedTableName,
                     columnMap = validatedColumnMap,
@@ -495,7 +528,7 @@ class SmartLinkDbHelper(private val context: Context) {
             var extracted = false
 
             while (entry != null && !extracted) {
-                if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
+                if (!entry.isDirectory && isDbFileName(entry.name)) {
                     outputStream = FileOutputStream(outputFile)
                     val buffer = ByteArray(LEGACY_BUFFER_SIZE)
                     var totalBytesRead = 0L
@@ -550,7 +583,7 @@ class SmartLinkDbHelper(private val context: Context) {
             var extracted = false
 
             while (entry != null && !extracted) {
-                if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
+                if (!entry.isDirectory && isDbFileName(entry.name)) {
                     outputStream = FileOutputStream(outputFile)
                     val buffer = ByteArray(LEGACY_BUFFER_SIZE)
                     var totalBytesRead = 0L
@@ -793,11 +826,113 @@ class SmartLinkDbHelper(private val context: Context) {
     private fun extractArchiveLegacy(archiveFile: File, outputFile: File) {
         val extension = archiveFile.extension.lowercase()
 
-        when {
-            extension == "7z" -> extract7zLegacy(archiveFile, outputFile)
-            extension == "zip" -> extractZipLegacy(archiveFile, outputFile)
+        when (extension) {
+            "7z" -> extract7zLegacy(archiveFile, outputFile)
+            "zip" -> extractZipLegacy(archiveFile, outputFile)
+            "gz" -> extractGzip(archiveFile, outputFile)
+            "tgz", "tar" -> extractTar(archiveFile, outputFile)
             else -> throw Exception("Unsupported archive format: $extension")
         }
+    }
+
+    private fun isDbFileName(name: String): Boolean {
+        val lower = name.lowercase()
+        return lower.endsWith(".db") || lower.endsWith(".sqlite") || lower.endsWith(".sqlite3")
+    }
+
+    private fun isGzipMagic(bytes: ByteArray, length: Int): Boolean {
+        return length >= 2 && bytes[0] == 0x1F.toByte() && bytes[1] == 0x8B.toByte()
+    }
+
+    private fun isTarMagic(bytes: ByteArray, length: Int): Boolean {
+        return length >= 262 && String(bytes, 257, 5, Charsets.ISO_8859_1) == "ustar"
+    }
+
+    private fun readPrefix(file: File, buffer: ByteArray): Int {
+        var read = 0
+        file.inputStream().use { ins ->
+            while (read < buffer.size) {
+                val r = ins.read(buffer, read, buffer.size - read)
+                if (r == -1) break
+                read += r
+            }
+        }
+        return read
+    }
+
+    private fun extractGzip(archiveFile: File, outputFile: File) {
+        val gz = GzipCompressorInputStream(BufferedInputStream(FileInputStream(archiveFile)))
+        try {
+            val first = ByteArray(262)
+            var read = 0
+            while (read < first.size) {
+                val r = gz.read(first, read, first.size - read)
+                if (r == -1) break
+                read += r
+            }
+
+            if (isTarMagic(first, read)) {
+                val pushback = PushbackInputStream(gz, first.size)
+                pushback.unread(first, 0, read)
+                val tar = TarArchiveInputStream(BufferedInputStream(pushback))
+                try {
+                    extractFirstDbEntry(tar, outputFile)
+                } finally {
+                    tar.close()
+                }
+            } else {
+                FileOutputStream(outputFile).use { out ->
+                    out.write(first, 0, read)
+                    val buf = ByteArray(BUFFER_SIZE)
+                    var r: Int
+                    while (gz.read(buf).also { r = it } != -1) {
+                        out.write(buf, 0, r)
+                    }
+                }
+            }
+        } finally {
+            gz.close()
+        }
+    }
+
+    private fun extractTar(archiveFile: File, outputFile: File) {
+        val baseInput = BufferedInputStream(FileInputStream(archiveFile))
+        val first = ByteArray(2)
+        var read = 0
+        while (read < first.size) {
+            val r = baseInput.read(first, read, first.size - read)
+            if (r == -1) break
+            read += r
+        }
+        val pushback = PushbackInputStream(baseInput, first.size)
+        pushback.unread(first, 0, read)
+        val input: InputStream =
+            if (isGzipMagic(first, read)) GzipCompressorInputStream(BufferedInputStream(pushback))
+            else pushback
+        val tar = TarArchiveInputStream(BufferedInputStream(input))
+        try {
+            extractFirstDbEntry(tar, outputFile)
+        } finally {
+            tar.close()
+        }
+    }
+
+    private fun extractFirstDbEntry(tar: TarArchiveInputStream, outputFile: File) {
+        var entry: TarArchiveEntry? = tar.nextEntry
+        while (entry != null) {
+            if (!entry.isDirectory && isDbFileName(entry.name)) {
+                FileOutputStream(outputFile).use { out ->
+                    val buf = ByteArray(BUFFER_SIZE)
+                    var r: Int
+                    while (tar.read(buf).also { r = it } != -1) {
+                        out.write(buf, 0, r)
+                    }
+                }
+                return
+            }
+            entry = tar.nextEntry
+        }
+        throw Exception("No database file found in tar archive")
     }
 
     private fun validateColumnMapping(
@@ -931,13 +1066,13 @@ class SmartLinkDbHelper(private val context: Context) {
 
     private fun isArchiveFile(file: File): Boolean {
         return try {
-            val bytes = ByteArray(6)
-            file.inputStream().use { it.read(bytes) }
-            val isZip = bytes[0] == 0x50.toByte() && bytes[1] == 0x4B.toByte()
-            val is7z = bytes[0] == 0x37.toByte() && bytes[1] == 0x7A.toByte() &&
+            val bytes = ByteArray(262)
+            val length = readPrefix(file, bytes)
+            val isZip = length >= 2 && bytes[0] == 0x50.toByte() && bytes[1] == 0x4B.toByte()
+            val is7z = length >= 6 && bytes[0] == 0x37.toByte() && bytes[1] == 0x7A.toByte() &&
                     bytes[2] == 0xBC.toByte() && bytes[3] == 0xAF.toByte() &&
                     bytes[4] == 0x27.toByte() && bytes[5] == 0x1C.toByte()
-            isZip || is7z
+            isZip || is7z || isGzipMagic(bytes, length) || isTarMagic(bytes, length)
         } catch (e: Exception) {
             false
         }
@@ -945,10 +1080,17 @@ class SmartLinkDbHelper(private val context: Context) {
 
     private fun detectArchiveExtension(file: File): String {
         return try {
-            val bytes = ByteArray(6)
-            file.inputStream().use { it.read(bytes) }
-            if (bytes[0] == 0x50.toByte() && bytes[1] == 0x4B.toByte()) "zip"
-            else "7z"
+            val bytes = ByteArray(262)
+            val length = readPrefix(file, bytes)
+            when {
+                length >= 2 && bytes[0] == 0x50.toByte() && bytes[1] == 0x4B.toByte() -> "zip"
+                length >= 6 && bytes[0] == 0x37.toByte() && bytes[1] == 0x7A.toByte() &&
+                        bytes[2] == 0xBC.toByte() && bytes[3] == 0xAF.toByte() &&
+                        bytes[4] == 0x27.toByte() && bytes[5] == 0x1C.toByte() -> "7z"
+                isTarMagic(bytes, length) -> "tar"
+                isGzipMagic(bytes, length) -> "gz"
+                else -> "zip"
+            }
         } catch (e: Exception) {
             "zip"
         }
@@ -1138,10 +1280,13 @@ class SmartLinkDbHelper(private val context: Context) {
             val archiveExtension = when {
                 firstUrl.contains(".zip.", ignoreCase = true) -> "zip"
                 firstUrl.contains(".7z.", ignoreCase = true) -> "7z"
+                firstUrl.contains(".tgz.", ignoreCase = true) -> "tgz"
+                firstUrl.contains(".tar.", ignoreCase = true) -> "tar"
+                firstUrl.contains(".gz.", ignoreCase = true) -> "gz"
                 else -> {
                     val fullName = firstUrl.substringAfterLast('/')
                     val extensionMatch =
-                        Regex("\\.(zip|7z)\\.[0-9]+$", RegexOption.IGNORE_CASE).find(fullName)
+                        Regex("\\.(zip|7z|tgz|tar|gz)\\.[0-9]+$", RegexOption.IGNORE_CASE).find(fullName)
                     extensionMatch?.groupValues?.get(1)?.lowercase() ?: "zip"
                 }
             }
@@ -1283,9 +1428,11 @@ class SmartLinkDbHelper(private val context: Context) {
     private fun extractArchive(archiveFile: File, outputFile: File) {
         val extension = archiveFile.extension.lowercase()
 
-        when {
-            extension == "7z" -> extract7z(archiveFile, outputFile)
-            extension == "zip" -> extractZip(archiveFile, outputFile)
+        when (extension) {
+            "7z" -> extract7z(archiveFile, outputFile)
+            "zip" -> extractZip(archiveFile, outputFile)
+            "gz" -> extractGzip(archiveFile, outputFile)
+            "tgz", "tar" -> extractTar(archiveFile, outputFile)
             else -> throw Exception("Unsupported archive format: $extension")
         }
     }
@@ -1300,7 +1447,7 @@ class SmartLinkDbHelper(private val context: Context) {
             var extracted = false
 
             while (entry != null && !extracted) {
-                if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
+                if (!entry.isDirectory && isDbFileName(entry.name)) {
                     outputStream = FileOutputStream(outputFile)
                     val buffer = ByteArray(BUFFER_SIZE)
                     var totalBytesRead = 0L
@@ -1353,7 +1500,7 @@ class SmartLinkDbHelper(private val context: Context) {
             var extracted = false
 
             while (entry != null && !extracted) {
-                if (!entry.isDirectory && entry.name.endsWith(".db", true)) {
+                if (!entry.isDirectory && isDbFileName(entry.name)) {
                     outputStream = FileOutputStream(outputFile)
                     val buffer = ByteArray(BUFFER_SIZE)
                     var totalBytesRead = 0L
@@ -1478,13 +1625,7 @@ class SmartLinkDbHelper(private val context: Context) {
                 for (i in 0 until databasesArray.length()) {
                     val info = databasesArray.getJSONObject(i)
                     if (info.getString("id") == dbItem.idJson) {
-                        dbInfo = SmartLinkDbInfo(
-                            id = info.getString("id"),
-                            name = info.getString("name"),
-                            downloadUrls = parseDownloadUrls(info),
-                            version = info.getString("version"),
-                            type = info.getString("type")
-                        )
+                        dbInfo = parseSmartLinkDbObject(info)
                         break
                     }
                 }
@@ -1526,12 +1667,21 @@ class SmartLinkDbHelper(private val context: Context) {
                 val fileSize = file.length().toFloat() / (1024 * 1024)
                 val directPath = file.absolutePath
 
+                val (validatedTableName, validatedColumnMap) =
+                    if (dbInfo.type == "custom-auto-mapping" && dbInfo.columnMapping != null) {
+                        validateColumnMapping(file, dbInfo.columnMapping, dbInfo.tableName)
+                    } else {
+                        Pair(dbInfo.tableName, dbInfo.columnMapping)
+                    }
+
                 dbItem.copy(
                     path = "content://${context.packageName}.fileprovider/databases/$fileName",
                     directPath = directPath,
                     originalSizeInMB = fileSize,
                     cachedSizeInMB = fileSize,
-                    version = newVersion
+                    version = newVersion,
+                    tableName = validatedTableName,
+                    columnMap = validatedColumnMap
                 )
             } catch (e: Exception) {
                 dbItem.idJson?.let { clearDownloadMetadata(it) }

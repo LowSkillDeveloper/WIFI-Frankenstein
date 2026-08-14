@@ -2911,6 +2911,7 @@
 <string name="ds_failed_export_db">Failed to export database: %1$s</string>
 <string name="ds_failed_fetch_sources">Failed to fetch sources</string>
 <string name="ds_failed_fetch_smartlink">Failed to fetch SmartLink databases</string>
+<string name="ds_mega_folder_not_supported">MEGA folder links are not supported. Use a MEGA file link instead.</string>
 <string name="ds_failed_fetch_db_info">Failed to fetch database info</string>
 <string name="ds_failed_fetch_sources_info">Failed to fetch sources info</string>
 <string name="ds_db_size_dual">%1$s / %2$s MB</string>

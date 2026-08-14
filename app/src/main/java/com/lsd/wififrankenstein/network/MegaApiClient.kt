@@ -45,7 +45,7 @@ class MegaApiClient(private val client: OkHttpClient) {
     suspend fun getFileInfo(handle: String): MegaFileInfo = withContext(Dispatchers.IO) {
         Log.d("MegaApiClient", "Fetching file info for handle: $handle")
         val seqno = ThreadLocalRandom.current().nextInt(1_000_000, Int.MAX_VALUE)
-        val url = "$API_BASE/cs?id=$seqno"
+        val url = "$API_BASE/cs?id=$seqno&ak=$APP_KEY"
         val body = JSONArray().apply {
             put(JSONObject().apply {
                 put("a", "g")

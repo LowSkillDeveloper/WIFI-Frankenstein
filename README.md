@@ -58,16 +58,9 @@ The application combines various WiFi tools and functionality into one powerful 
 - **Offline IP ranges**: Using local databases, we find ranges of IP addresses for scanning with RouterScan
 - **Updates**: Support for updating the application and its components
 
-3WIFI 
-
 ### 🎨 Customization
 - **Theme Options**: Multiple color styles to customize the app appearance
 - **Icon Customization**: Change the application icon to suit your preferences
-
-### 💻 Technical Highlights
-- Written in **Kotlin 2.0**
-- Built on the latest Android SDK
-- Utilizes beta and alpha libraries for optimal performance
 
 ## ⚠️ Known Issues
 
@@ -166,9 +159,3 @@ If you find this project useful and would like to support its development, you c
 ```
 4AC1MepXZA8R6XGcL5mjejWRDqKvmbY3YWGEJTCWmFxJ8gPuLULSYxKSWafy9haMXGYuR2CdF3Vr8Q2kS8pBorVpQ4Lie48
 ```
-
-Your support helps maintain and improve this project. Thank you!
-
-## 🤝 Contributing
-
-Bug reports and feature requests are welcome! Feel free to open issues.

@@ -39,6 +39,10 @@ object MegaUrlParser {
         return FILE_LINK_PATTERN.matcher(url).find() || FOLDER_LINK_PATTERN.matcher(url).find()
     }
 
+    fun isFileLink(url: String): Boolean {
+        return FILE_LINK_PATTERN.matcher(url).find()
+    }
+
     fun parse(url: String): MegaParsedLink? {
         val matcher = FILE_LINK_PATTERN.matcher(url)
         if (!matcher.find()) return null
