@@ -692,13 +692,30 @@ class WiFiScannerViewModel(
         level: Int,
         frequency: Int
     ): ScanResult {
-        return ScanResult().apply {
-            SSID = ssid
-            BSSID = bssid
-            this.capabilities = capabilities
-            this.level = level
-            this.frequency = frequency
-            timestamp = System.currentTimeMillis() * 1000
+        return try {
+            val unsafeClass = Class.forName("sun.misc.Unsafe")
+            val field = unsafeClass.getDeclaredField("theUnsafe")
+            field.isAccessible = true
+            val unsafe = field.get(null)
+            val allocateInstance = unsafeClass.getMethod("allocateInstance", Class::class.java)
+            val result = allocateInstance.invoke(unsafe, ScanResult::class.java) as ScanResult
+            result.SSID = ssid
+            result.BSSID = bssid
+            result.capabilities = capabilities
+            result.level = level
+            result.frequency = frequency
+            result.timestamp = System.currentTimeMillis() * 1000
+            result
+        } catch (e: Exception) {
+            Log.w("WiFiScannerViewModel", "Unsafe ScanResult creation failed, using fallback", e)
+            ScanResult().apply {
+                SSID = ssid
+                BSSID = bssid
+                this.capabilities = capabilities
+                this.level = level
+                this.frequency = frequency
+                timestamp = System.currentTimeMillis() * 1000
+            }
         }
     }
 
