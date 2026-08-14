@@ -1,3 +1,31 @@
+#2.0
+Added WiFi checking against wpa-sec.stanev.org
+Added handshake converter and on-device handshake brute force
+Added handshake capture (root, kernel with external adapter support)
+Added DPI-blocking test for sites blocked by provider or RKN
+Added LAN scanning
+Added per-task wlan interface assignment and external adapter detection (root)
+Added pre-attack Pixie Dust vulnerability detection (root)
+Added RouterScan integration via librouter (proot/chroot, arm64)
+Added chroot and proot environments for RouterScan
+Added app functions page as list/grid usable as home page
+Added handshake storage with format conversion, PMKID extraction, upload to wpa-sec.stanev.org and onlinehashcrack.com, detail view and cracking
+WiFi Map: added IP range search, quadkey support, partial offline OSM map download and 3wifi.app points display, optimized point loading
+3WiFi API: added manual data upload and custom server option
+SmartLinkDB: added database downloads via MEGA and direct links (zip)
+Fixed Pixie Dust (root)
+Fixed GeoMac and 3wifi.dev map points display
+Fixed custom SQLite file support and Android 5 compatibility
+Fixed WiFi connection via password and WPS PIN
+Fixed numerous bugs
+Updated 3WiFi database structure to match 3wifi.dev SQL dump
+Improved iw scanner
+Changed default theme to green
+Minor design changes across the app
+Updated all libraries
+Code optimization
+SQL dump to SQLite converter now converts the whole database without data loss
+
 #1.2
 Added local SQL to SQLite converter
 Added IP range search in local databases
