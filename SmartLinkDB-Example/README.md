@@ -182,27 +182,7 @@ The MEGA file may be:
 
 ## Recommended sources (community DB list)
 
-The app also ships a list of **recommended sources**. Each source points to a SmartLinkDB manifest. Format:
-
-```json
-{
-  "sources": [
-    {
-      "id": "my_source",
-      "name": "My WiFi Database Source",
-      "description": "Community WiFi databases",
-      "smartlinkUrl": "https://example.com/wifiSmartLinkDB.json"
-    }
-  ]
-}
-```
-
-- **`id`** — unique source identifier.
-- **`name`** — source name shown in the app.
-- **`description`** — optional short description.
-- **`smartlinkUrl`** — URL of a SmartLinkDB JSON manifest (or a direct/MEGA link).
-
-An example is provided in [`recommended-sources-example.json`](recommended-sources-example.json).
+The app also ships a list of **recommended sources**. Each source points to a SmartLinkDB manifest.
 
 > [!NOTE]
 > If you want to add your database to the SmartLinkDB recommendation section in the application for all users, i.e. share your database, then create a ticket in the "Issues" section on github, with a request to add your smartlinkdb link to the application.
