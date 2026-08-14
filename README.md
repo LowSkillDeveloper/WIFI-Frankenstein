@@ -99,24 +99,34 @@ The application combines various WiFi tools and functionality into one powerful 
 | SDK version | ✅ Latest | ⚠️Old |
 
 
-## 📱 Screenshots (Old version)
+## 📱 Screenshots
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/18ded2df-5a06-4be7-ac22-0e70484c5b4d" width="250" alt="Screenshot 1" />
-  <img src="https://github.com/user-attachments/assets/10dd6ce3-4e53-467e-a5b9-6e4d52f0819e" width="250" alt="Screenshot 2" />
-  <img src="https://github.com/user-attachments/assets/8a59d65e-9d77-4dc0-b6b0-7bfc09e96a69" width="250" alt="Screenshot 3" />
+  <img width="540" height="1110" alt="Screenshot_20260814-152245_WIFI Frankenstein" src="https://github.com/user-attachments/assets/5b2fbd0a-7481-4c1a-a1b0-11b81f3777e3" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_155438_WIFI Frankenstein" src="https://github.com/user-attachments/assets/b1a0f10c-57c9-4695-8add-def6cf5dacf7" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_155421_WIFI Frankenstein" src="https://github.com/user-attachments/assets/01f43032-dbf5-456d-bbda-602b22be98dd" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_155359_WIFI Frankenstein" src="https://github.com/user-attachments/assets/a63a3695-1ba8-4562-96c9-8d0c4812a0c6" />
 </div>
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/805239a4-ed80-4a72-90e4-449d48c77bc5" width="250" alt="Screenshot 4" />
-  <img src="https://github.com/user-attachments/assets/1b028b0d-1f8f-418b-9de1-2d8299e24d0c" width="250" alt="Screenshot 5" />
-  <img src="https://github.com/user-attachments/assets/79167d68-cf4f-4762-9140-a4d5fdb9b696" width="250" alt="Screenshot 6" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_155246_WIFI Frankenstein" src="https://github.com/user-attachments/assets/73f88c47-ba13-4a3a-84be-98482be29622" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_154826_WIFI Frankenstein" src="https://github.com/user-attachments/assets/cfc379bf-33fb-4e07-b8a4-c3689e5cb4b0" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_154822_WIFI Frankenstein" src="https://github.com/user-attachments/assets/3f9bf2cf-7c87-4b94-bd27-8786d1d98aaa" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_154816_WIFI Frankenstein" src="https://github.com/user-attachments/assets/6575f93a-138b-4189-9fa0-0022c483e6b8" />
 </div>
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/f41d7878-4b33-4077-94d0-ab87e1190be3" width="250" alt="Screenshot 7" />
-  <img src="https://github.com/user-attachments/assets/dcb23e83-8013-4db4-8fc5-e1dce1d8a9f2" width="250" alt="Screenshot 8" />
-  <img src="https://github.com/user-attachments/assets/8a60d61e-d061-4e45-ad10-ef6d87f60a2f" width="250" alt="Screenshot 9" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_154416_WIFI Frankenstein" src="https://github.com/user-attachments/assets/b3b3b344-8b9f-485e-9f17-bdb5b3e3870e" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_154406_WIFI Frankenstein" src="https://github.com/user-attachments/assets/4e2dd456-c5b1-4c93-bbc5-97b2450da39c" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_154400_WIFI Frankenstein" src="https://github.com/user-attachments/assets/903ba8e9-5fc2-4012-9687-6e5a05b95b8e" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_153756_WIFI Frankenstein" src="https://github.com/user-attachments/assets/28ec597a-3629-4272-a5c0-ce09890969d2" />
+</div>
+
+<div align="center">
+  <img width="1080" height="2340" alt="Screenshot_20260814_154308_WIFI Frankenstein" src="https://github.com/user-attachments/assets/5c016be2-779b-47f1-a07c-9db4f75ee491" />
+  <img width="540" height="1110" alt="Screenshot_20260814-151411_WIFI Frankenstein" src="https://github.com/user-attachments/assets/b5186339-7521-4701-89e4-77ce20c4477c" />
+  <img width="540" height="1110" alt="Screenshot_20260814-151330_WIFI Frankenstein" src="https://github.com/user-attachments/assets/40182056-8c1d-48a1-8c4e-3a493196471f" />
+  <img width="1080" height="2340" alt="Screenshot_20260814_162200_WIFI Frankenstein" src="https://github.com/user-attachments/assets/c96dc5ba-0384-4702-ae46-ff9851fbc540" />
 </div>
 
 ## 📥 Installation
