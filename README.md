@@ -7,7 +7,9 @@
 
 
 - 📱 **Download the application:**  
-  [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/latest](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/latest)
+  [WIFI-Frankenstein-2.0.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.0/WIFI-Frankenstein-2.0.apk)
+
+
 
 - 🛠️ **Download scripts and view the instructions for converting SQL 3WiFi to SQLite 3Wifi:**  
   [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SQL_3WIFi_to_SQLite_converter_python](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SQL_3WIFi_to_SQLite_converter_python)
