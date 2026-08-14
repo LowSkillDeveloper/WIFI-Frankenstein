@@ -2,10 +2,10 @@
   "version": "3.24.0",
   "aarch64": {
     "filename": "alpine-ready-aarch64.tar.gz",
-    "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v1.0/alpine-ready-aarch64.tar.gz"
+    "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.0/alpine-ready-aarch64.tar.gz"
   },
   "armhf": {
     "filename": "alpine-ready-armhf.tar.gz",
-    "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v1.0/alpine-ready-armhf.tar.gz"
+    "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.0/alpine-ready-armhf.tar.gz"
   }
 }
