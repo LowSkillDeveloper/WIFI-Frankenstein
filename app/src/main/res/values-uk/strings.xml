@@ -693,6 +693,7 @@
 <string name="indexing_no_geo_warning">Потрібна колонка MAC для індексації</string>
 <string name="resuming_download">Поновлення завантаження</string>
 <string name="mega_bandwidth_exceeded">Перевищено ліміт пропускної здатності MEGA (HTTP 509). Досягнуто денну квоту передачі — спробуйте пізніше.</string>
+<string name="mega_file_unavailable">Це посилання MEGA більше недоступне. Файл міг бути видалений або посилання відкликано.</string>
 <string name="extracting_database_progress">Розпакування бази %1$d/%2$d: %3$s</string>
 <string name="download_resumed">Завантаження поновлено з %1$d%%</string>
 <string name="version_changed_restarting">Версія змінилася, перезапуск завантаження</string>

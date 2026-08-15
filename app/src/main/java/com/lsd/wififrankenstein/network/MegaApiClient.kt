@@ -36,6 +36,8 @@ class MegaApiException(message: String, cause: Throwable? = null) : IOException(
 
 class MegaQuotaException(message: String, cause: Throwable? = null) : IOException(message, cause)
 
+class MegaFileUnavailableException(message: String, cause: Throwable? = null) : IOException(message, cause)
+
 class MegaApiClient(private val client: OkHttpClient) {
 
     companion object {
@@ -83,6 +85,9 @@ class MegaApiClient(private val client: OkHttpClient) {
             val code = obj.getInt("e")
             if (code == -17 || code == -24 || code == -4) {
                 throw MegaQuotaException("MEGA bandwidth quota exceeded (API error $code)")
+            }
+            if (code == -9 || code == -11 || code == -14 || code == -16 || code == -18) {
+                throw MegaFileUnavailableException("MEGA file not found or unavailable (API error $code)")
             }
             throw MegaApiException("MEGA API error code $code for handle $handle")
         }

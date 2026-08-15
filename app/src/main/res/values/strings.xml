@@ -258,6 +258,7 @@
 <string name="type_custom">Custom type</string>
 <string name="downloading_database_progress">Downloading database %1$d/%2$d: %3$s</string>
 <string name="mega_bandwidth_exceeded">MEGA bandwidth limit exceeded (HTTP 509). The daily transfer quota is reached — try again later.</string>
+<string name="mega_file_unavailable">This MEGA link is no longer available. The file may have been deleted or the link revoked.</string>
 <string name="extracting_database_progress">Extracting database %1$d/%2$d: %3$s</string>
 <string name="error_downloading_database">Error downloading database: %1$s</string>
 <string name="copying_file_progress">Copying file: %1$d%%</string>

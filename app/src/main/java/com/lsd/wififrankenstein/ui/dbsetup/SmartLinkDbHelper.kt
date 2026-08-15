@@ -9,6 +9,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.network.MegaFileUnavailableException
 import com.lsd.wififrankenstein.network.MegaPublicDownloader
 import com.lsd.wififrankenstein.network.MegaQuotaException
 import com.lsd.wififrankenstein.network.MegaUrlParser
@@ -1208,6 +1209,10 @@ class SmartLinkDbHelper(private val context: Context) {
                 } catch (e: MegaQuotaException) {
                     lastError = e
                     Log.e(TAG, "MEGA bandwidth quota exceeded, not retrying: ${e.message}", e)
+                    break
+                } catch (e: MegaFileUnavailableException) {
+                    lastError = e
+                    Log.e(TAG, "MEGA file unavailable, not retrying: ${e.message}", e)
                     break
                 } catch (e: IOException) {
                     lastError = e
