@@ -1801,12 +1801,12 @@ class WiFiScannerFragment : Fragment() {
         val nativeSupported = PskBruteForceEngines.isNativeSupported(requireContext())
         val chrootReady = isPskChrootReady()
 
-        fun navigateToBruteforce(engine: String) {
+        fun navigateToBruteforce(engine: String?) {
             val bundle = Bundle().apply {
                 putString("ssid", ssid)
                 putString("bssid", bssid)
                 putString("interface", scanInterface)
-                putString("engine", engine)
+                engine?.let { putString("engine", it) }
             }
             try {
                 findNavController().navigate(R.id.nav_bruteforce, bundle)
@@ -1815,49 +1815,37 @@ class WiFiScannerFragment : Fragment() {
             }
         }
 
-        val items = mutableListOf<BottomSheetMenuItem>()
-        if (nativeSupported) {
-            items.add(
+        if (nativeSupported && chrootReady) {
+            val items = listOf(
                 BottomSheetMenuItem(
                     R.id.action_psk_backend_native,
                     getString(R.string.psk_engine_native),
                     R.drawable.ic_wifi
-                )
-            )
-        }
-        if (chrootReady) {
-            items.add(
+                ),
                 BottomSheetMenuItem(
                     R.id.action_psk_backend_chroot,
                     getString(R.string.psk_engine_chroot),
                     R.drawable.ic_wps
                 )
             )
-        }
-
-        when {
-            nativeSupported && !chrootReady -> navigateToBruteforce("NATIVE")
-            !nativeSupported && chrootReady -> navigateToBruteforce("CHROOT")
-            !nativeSupported && !chrootReady -> {
-                Toast.makeText(
-                    requireContext(),
-                    R.string.psk_engine_chroot_unsupported,
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-
-            else -> {
-                BottomSheetMenu.show(
-                    requireContext(),
-                    title = getString(R.string.psk_engine_label),
-                    items = items
-                ) { item ->
-                    when (item.id) {
-                        R.id.action_psk_backend_native -> navigateToBruteforce("NATIVE")
-                        R.id.action_psk_backend_chroot -> navigateToBruteforce("CHROOT")
-                    }
+            BottomSheetMenu.show(
+                requireContext(),
+                title = getString(R.string.psk_engine_label),
+                items = items
+            ) { item ->
+                when (item.id) {
+                    R.id.action_psk_backend_native -> navigateToBruteforce("NATIVE")
+                    R.id.action_psk_backend_chroot -> navigateToBruteforce("CHROOT")
                 }
             }
+        } else {
+            navigateToBruteforce(
+                when {
+                    nativeSupported -> "NATIVE"
+                    chrootReady -> "CHROOT"
+                    else -> null
+                }
+            )
         }
     }
 

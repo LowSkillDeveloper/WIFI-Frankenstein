@@ -677,13 +677,21 @@ class BruteForceFragment : Fragment() {
         val nativeSupported = PskBruteForceEngines.isNativeSupported(requireContext())
         val chrootReady = isChrootEnvReady
 
+        if (selectedPskEngine == null) {
+            selectedPskEngine = if (nativeSupported) PskEngine.NATIVE else PskEngine.CHROOT
+        } else if (selectedPskEngine == PskEngine.NATIVE && !nativeSupported) {
+            selectedPskEngine = if (chrootReady) PskEngine.CHROOT else null
+        } else if (selectedPskEngine == PskEngine.CHROOT && !chrootReady) {
+            selectedPskEngine = if (nativeSupported) PskEngine.NATIVE else null
+        }
+
         binding.radioGroupPskEngine.removeAllViews()
 
         val nativeRadio = RadioButton(requireContext()).apply {
             text = getString(R.string.psk_engine_native)
             id = View.generateViewId()
             isEnabled = nativeSupported
-            isChecked = nativeSupported && selectedPskEngine != PskEngine.CHROOT
+            isChecked = selectedPskEngine == PskEngine.NATIVE
             setOnClickListener {
                 selectedPskEngine = PskEngine.NATIVE
                 updatePskEngineStatus()
@@ -695,7 +703,7 @@ class BruteForceFragment : Fragment() {
             text = getString(R.string.psk_engine_chroot)
             id = View.generateViewId()
             isEnabled = chrootReady
-            isChecked = !nativeSupported || selectedPskEngine == PskEngine.CHROOT
+            isChecked = selectedPskEngine == PskEngine.CHROOT
             setOnClickListener {
                 selectedPskEngine = PskEngine.CHROOT
                 updatePskEngineStatus()
@@ -703,9 +711,6 @@ class BruteForceFragment : Fragment() {
         }
         binding.radioGroupPskEngine.addView(chrootRadio)
 
-        if (selectedPskEngine == null) {
-            selectedPskEngine = if (nativeSupported) PskEngine.NATIVE else PskEngine.CHROOT
-        }
         updatePskEngineStatus()
     }
 
