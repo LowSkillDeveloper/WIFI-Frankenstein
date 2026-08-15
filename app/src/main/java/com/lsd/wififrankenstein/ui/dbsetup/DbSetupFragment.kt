@@ -647,24 +647,38 @@ class DbSetupFragment : Fragment() {
                     )
                     progressBar?.isIndeterminate = false
                     progressBar?.progress = 0
+                    var lastShownProgress = -1
+                    var lastShownExtract = -1
+                    var extractingTextSet = false
 
                     val dbItem = viewModel.downloadSmartLinkDatabase(dbInfo) { progress, bytes, total ->
                         when (progress) {
                             PROGRESS_EXTRACT -> {
-                                progressText?.text = getString(
-                                    R.string.extracting_database_progress,
-                                    index + 1,
-                                    databases.size,
-                                    dbInfo.name
-                                )
-                                progressBar?.isIndeterminate = total == null || total <= 0
-                                if (progressBar?.isIndeterminate == false) {
-                                    progressBar?.progress = bytes.toInt().coerceIn(0, 100)
+                                val pct = bytes.toInt().coerceIn(0, 100)
+                                if (!extractingTextSet) {
+                                    extractingTextSet = true
+                                    progressText?.text = getString(
+                                        R.string.extracting_database_progress,
+                                        index + 1,
+                                        databases.size,
+                                        dbInfo.name
+                                    )
+                                }
+                                val indeterminate = total == null || total <= 0
+                                if (progressBar?.isIndeterminate != indeterminate) {
+                                    progressBar?.isIndeterminate = indeterminate
+                                }
+                                if (!indeterminate && pct != lastShownExtract) {
+                                    lastShownExtract = pct
+                                    progressBar?.progress = pct
                                 }
                             }
                             else -> {
                                 progressBar?.isIndeterminate = false
-                                progressBar?.progress = progress
+                                if (progress >= 0 && progress != lastShownProgress) {
+                                    lastShownProgress = progress
+                                    progressBar?.progress = progress
+                                }
                             }
                         }
                     }

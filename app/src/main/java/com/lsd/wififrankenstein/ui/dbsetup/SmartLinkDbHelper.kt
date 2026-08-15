@@ -10,6 +10,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.network.MegaPublicDownloader
+import com.lsd.wififrankenstein.network.MegaQuotaException
 import com.lsd.wififrankenstein.network.MegaUrlParser
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
 import com.lsd.wififrankenstein.util.Log
@@ -524,6 +525,9 @@ class SmartLinkDbHelper(private val context: Context) {
                     oldFormatWarning = oldFormatWarning
                 )
             } catch (e: CancellationException) {
+                throw e
+            } catch (e: MegaQuotaException) {
+                Log.e(TAG, "Download failed due to MEGA bandwidth quota, preserving partial download", e)
                 throw e
             } catch (e: Exception) {
                 clearDownloadMetadata(dbInfo.id)
@@ -1132,6 +1136,7 @@ class SmartLinkDbHelper(private val context: Context) {
             var attempt = 0
             var lastError: Exception? = null
             var lastMetaSaved = 0L
+            var lastPostedProgress = -1
 
             while (attempt < maxAttempts) {
                 attempt++
@@ -1160,8 +1165,11 @@ class SmartLinkDbHelper(private val context: Context) {
                                     )
                                 )
                             }
-                            mainHandler.post {
-                                progressCallback(progress, downloaded, total)
+                            if (progress != lastPostedProgress) {
+                                lastPostedProgress = progress
+                                mainHandler.post {
+                                    progressCallback(progress, downloaded, total)
+                                }
                             }
                         }
                     )
@@ -1175,13 +1183,17 @@ class SmartLinkDbHelper(private val context: Context) {
                             "${outputFile.nameWithoutExtension}_${dbInfo.version}.$archiveExtension"
                         )
                         downloadedFile.renameTo(tempArchiveFile)
+                        var lastExtractPct = -1
                         try {
                             extractArchiveWithValidation(tempArchiveFile, outputFile) { bytes, total ->
                                 val pct = if (total != null && total > 0) {
                                     ((bytes.toDouble() / total.toDouble()) * 100).toInt()
                                 } else 0
-                                mainHandler.post {
-                                    progressCallback(PROGRESS_EXTRACT, pct.toLong(), total)
+                                if (pct != lastExtractPct) {
+                                    lastExtractPct = pct
+                                    mainHandler.post {
+                                        progressCallback(PROGRESS_EXTRACT, pct.toLong(), total)
+                                    }
                                 }
                             }
                         } finally {
@@ -1193,6 +1205,10 @@ class SmartLinkDbHelper(private val context: Context) {
                     return@withContext
                 } catch (e: CancellationException) {
                     throw e
+                } catch (e: MegaQuotaException) {
+                    lastError = e
+                    Log.e(TAG, "MEGA bandwidth quota exceeded, not retrying: ${e.message}", e)
+                    break
                 } catch (e: IOException) {
                     lastError = e
                     Log.e(TAG, "MEGA download attempt $attempt/$maxAttempts failed: ${e.message}", e)
@@ -1206,7 +1222,9 @@ class SmartLinkDbHelper(private val context: Context) {
                 }
             }
 
-            tempFile.delete()
+            if (lastError !is MegaQuotaException) {
+                tempFile.delete()
+            }
             throw lastError ?: Exception(context.getString(R.string.ds_failed_fetch_db_info))
         }
     }
@@ -1358,12 +1376,16 @@ class SmartLinkDbHelper(private val context: Context) {
                 progressCallback(PROGRESS_RESUME, 0, null)
             }
 
+            var lastExtractPct = -1
             extractArchiveWithValidation(tempArchive, outputFile) { bytes, total ->
                 val pct = if (total != null && total > 0) {
                     ((bytes.toDouble() / total.toDouble()) * 100).toInt()
                 } else 0
-                mainHandler.post {
-                    progressCallback(PROGRESS_EXTRACT, pct.toLong(), total)
+                if (pct != lastExtractPct) {
+                    lastExtractPct = pct
+                    mainHandler.post {
+                        progressCallback(PROGRESS_EXTRACT, pct.toLong(), total)
+                    }
                 }
             }
             tempArchive.delete()
@@ -1473,12 +1495,16 @@ class SmartLinkDbHelper(private val context: Context) {
                 progressCallback(PROGRESS_MERGE, 0, null)
             }
 
+            var lastExtractPct = -1
             extractArchiveWithValidation(mergedArchive, outputFile) { bytes, total ->
                 val pct = if (total != null && total > 0) {
                     ((bytes.toDouble() / total.toDouble()) * 100).toInt()
                 } else 0
-                mainHandler.post {
-                    progressCallback(PROGRESS_EXTRACT, pct.toLong(), total)
+                if (pct != lastExtractPct) {
+                    lastExtractPct = pct
+                    mainHandler.post {
+                        progressCallback(PROGRESS_EXTRACT, pct.toLong(), total)
+                    }
                 }
             }
             mergedArchive.delete()
