@@ -19,6 +19,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.network.MegaFileUnavailableException
 import com.lsd.wififrankenstein.network.MegaQuotaException
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.wifimap.ExternalIndexManager
@@ -510,6 +511,9 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         return try {
             smartLinkDbHelper.fetchDatabases(url)
             smartLinkDbHelper.databases.value
+        } catch (e: MegaFileUnavailableException) {
+            _errorEvent.value = getApplication<Application>().getString(R.string.mega_file_unavailable)
+            null
         } catch (e: Exception) {
             _errorEvent.value = e.message
                 ?: getApplication<Application>().getString(R.string.ds_failed_fetch_smartlink)
@@ -553,10 +557,12 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                 dbItem
             } catch (e: Exception) {
                 if (e !is CancellationException) {
-                    _errorEvent.value = if (e is MegaQuotaException) {
-                        getApplication<Application>().getString(R.string.mega_bandwidth_exceeded)
-                    } else {
-                        e.message
+                    _errorEvent.value = when (e) {
+                        is MegaQuotaException ->
+                            getApplication<Application>().getString(R.string.mega_bandwidth_exceeded)
+                        is MegaFileUnavailableException ->
+                            getApplication<Application>().getString(R.string.mega_file_unavailable)
+                        else -> e.message
                     }
                 }
                 null

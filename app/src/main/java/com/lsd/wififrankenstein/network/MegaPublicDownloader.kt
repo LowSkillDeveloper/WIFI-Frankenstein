@@ -46,6 +46,8 @@ class MegaPublicDownloader(private val client: OkHttpClient) {
                     null
                 }
             }
+        } catch (e: MegaFileUnavailableException) {
+            throw e
         } catch (e: Exception) {
             Log.e("MegaPublicDownloader", "Failed to resolve MEGA filename: ${e.message}", e)
             null
@@ -127,8 +129,10 @@ class MegaPublicDownloader(private val client: OkHttpClient) {
 
         val response = client.newCall(request).execute()
         if (!response.isSuccessful) {
-            if (response.code == 509) {
-                throw MegaQuotaException("MEGA bandwidth quota exceeded (HTTP 509)")
+            when (response.code) {
+                509 -> throw MegaQuotaException("MEGA bandwidth quota exceeded (HTTP 509)")
+                403, 404, 410, 451 ->
+                    throw MegaFileUnavailableException("MEGA file not found or unavailable (HTTP ${response.code})")
             }
             throw MegaApiException("HTTP ${response.code} for download URL")
         }
