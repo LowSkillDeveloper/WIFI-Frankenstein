@@ -723,8 +723,22 @@ class SmartLinkDbHelper(private val context: Context) {
                 """(?i)(?:CREATE(?:\s+UNIQUE)?\s+INDEX\s+\w+\s+ON\s+\w+\s*\([^()]*)(?:LOWER|UPPER)\s*\(""",
                 RegexOption.MULTILINE
             )
-            val content = file.readBytes().let { String(it, Charsets.ISO_8859_1) }
-            pattern.containsMatchIn(content)
+            val chunkSize = 1024 * 1024
+            val overlap = 64 * 1024
+            RandomAccessFile(file, "r").use { raf ->
+                val fileLength = raf.length()
+                var position = 0L
+                val buffer = ByteArray(chunkSize + overlap)
+                while (position < fileLength) {
+                    val toRead = minOf(buffer.size.toLong(), fileLength - position).toInt()
+                    raf.seek(position)
+                    raf.readFully(buffer, 0, toRead)
+                    val content = String(buffer, 0, toRead, Charsets.ISO_8859_1)
+                    if (pattern.containsMatchIn(content)) return true
+                    position += chunkSize
+                }
+            }
+            false
         } catch (e: Exception) {
             Log.e(TAG, "Error scanning for expression indexes", e)
             false
@@ -733,27 +747,44 @@ class SmartLinkDbHelper(private val context: Context) {
 
     private fun patchExpressionIndexes(file: File): Boolean {
         return try {
-            val bytes = file.readBytes()
-            val content = String(bytes, Charsets.ISO_8859_1)
-
-            var modified = false
-            var result = content
-
             val patterns = listOf(
                 Regex("""LOWER\s*\(\s*([\w"`\[\].]+)\s*\)""", RegexOption.IGNORE_CASE),
                 Regex("""UPPER\s*\(\s*([\w"`\[\].]+)\s*\)""", RegexOption.IGNORE_CASE),
             )
 
-            for (pattern in patterns) {
-                result = pattern.replace(result) { match ->
-                    modified = true
-                    val colName = match.groupValues[1]
-                    colName.padEnd(match.value.length)
+            val chunkSize = 1024 * 1024
+            val overlap = 64 * 1024
+            var modified = false
+
+            RandomAccessFile(file, "rw").use { raf ->
+                val fileLength = raf.length()
+                var position = 0L
+                val buffer = ByteArray(chunkSize + overlap)
+                while (position < fileLength) {
+                    val toRead = minOf(buffer.size.toLong(), fileLength - position).toInt()
+                    raf.seek(position)
+                    raf.readFully(buffer, 0, toRead)
+                    val content = String(buffer, 0, toRead, Charsets.ISO_8859_1)
+
+                    for (pattern in patterns) {
+                        for (match in pattern.findAll(content)) {
+                            if (match.range.first >= chunkSize) continue
+                            val colName = match.groupValues[1]
+                            val replacement = colName.padEnd(match.value.length)
+                            if (replacement != match.value) {
+                                val absOffset = position + match.range.first
+                                raf.seek(absOffset)
+                                raf.write(replacement.toByteArray(Charsets.ISO_8859_1))
+                                modified = true
+                            }
+                        }
+                    }
+
+                    position += chunkSize
                 }
             }
 
             if (modified) {
-                file.writeBytes(result.toByteArray(Charsets.ISO_8859_1))
                 Log.d(TAG, "Expression indexes patched in ${file.name}")
                 true
             } else {
@@ -1176,6 +1207,15 @@ class SmartLinkDbHelper(private val context: Context) {
                 throw Exception("Server returned code ${response.code}")
             }
 
+            var effectiveResume = resumePosition
+            if (resumePosition > 0 && response.code == 200) {
+                Log.w(TAG, "Server ignored Range while resuming, restarting from 0")
+                RandomAccessFile(tempFile, "rw").use { raf ->
+                    raf.setLength(0L)
+                }
+                effectiveResume = 0L
+            }
+
             val totalSize = if (response.code == 206) {
                 val contentRange = response.header("Content-Range")
                 contentRange?.substringAfterLast('/')?.toLongOrNull()
@@ -1183,7 +1223,7 @@ class SmartLinkDbHelper(private val context: Context) {
                 response.header("Content-Length")?.toLongOrNull()
             } ?: 0L
 
-            var downloadedSize = resumePosition
+            var downloadedSize = effectiveResume
 
             if (totalSize > 0) {
                 saveDownloadMetadata(
@@ -1196,7 +1236,7 @@ class SmartLinkDbHelper(private val context: Context) {
                 )
             }
 
-            FileOutputStream(tempFile, resumePosition > 0).use { output ->
+            FileOutputStream(tempFile, effectiveResume > 0).use { output ->
                 response.body.byteStream().use { input ->
                     val buffer = ByteArray(BUFFER_SIZE)
                     while (isActive) {

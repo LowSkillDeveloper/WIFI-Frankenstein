@@ -80,6 +80,11 @@ class MegaPublicDownloader(private val client: OkHttpClient) {
                 finalFile.parentFile?.mkdirs()
             }
 
+            if (resumeBytes > 0L && resumeBytes >= fileInfo.size) {
+                Log.w("MegaPublicDownloader", "Resume offset >= file size, file already complete")
+                return Result.success(finalFile)
+            }
+
             downloadWithDecrypt(
                 downloadUrl = fileInfo.downloadUrl,
                 aesKey = parsed.aesKey,
