@@ -177,16 +177,17 @@ class ChrootManager(private val context: Context) {
             val testRoot = "$baseDir/.minimal_root"
             return try {
                 val setup = Shell.cmd(
-                    "$BUSYBOX_PATH mkdir -p $testRoot/bin",
-                    "$BUSYBOX_PATH cp $BUSYBOX_PATH $testRoot/bin/busybox"
+                    "$BUSYBOX_LEGACY mkdir -p $testRoot/bin",
+                    "$BUSYBOX_LEGACY cp $BUSYBOX_LEGACY $testRoot/bin/busybox"
                 ).exec()
                 if (!setup.isSuccess) return false to "setup failed at $baseDir"
 
-                val testCmd = "${chrootBin()} $testRoot /bin/busybox true 2>&1"
+                val testBin = if (checkSystemChroot()) "/system/bin/chroot" else "$BUSYBOX_LEGACY chroot"
+                val testCmd = "$testBin $testRoot /bin/busybox true 2>&1"
                 val result = Shell.cmd(testCmd).exec()
                 val ok = result.isSuccess && result.code == 0
 
-                Shell.cmd("$BUSYBOX_PATH rm -rf $testRoot 2>/dev/null").exec()
+                Shell.cmd("$BUSYBOX_LEGACY rm -rf $testRoot 2>/dev/null").exec()
 
                 if (ok) ok to "chroot OK at $baseDir"
                 else ok to "chroot FAILED at $baseDir (exit=${result.code})"
@@ -236,7 +237,7 @@ class ChrootManager(private val context: Context) {
             val r = Shell.cmd(
                 "test -x /system/bin/chroot && " +
                         "mkdir -p /data/local/tmp/.sc_test/bin && " +
-                        "$BUSYBOX_PATH cp $BUSYBOX_PATH /data/local/tmp/.sc_test/bin/busybox && " +
+                        "$BUSYBOX_LEGACY cp $BUSYBOX_LEGACY /data/local/tmp/.sc_test/bin/busybox && " +
                         "/system/bin/chroot /data/local/tmp/.sc_test /bin/busybox true && " +
                         "rm -rf /data/local/tmp/.sc_test"
             ).exec()
@@ -1496,6 +1497,12 @@ class ChrootManager(private val context: Context) {
 
     fun resetRootCache() {
         _hasRootAccess = null
+    }
+
+    fun resetChrootCaches() {
+        _hasRootAccess = null
+        chrootTypeCache = ChrootType.None
+        chrootTypeCacheTime = 0
     }
 
     fun resetMountFailedCooldown() {
