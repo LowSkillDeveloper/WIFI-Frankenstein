@@ -694,6 +694,7 @@
 <string name="mac_column_required">Предупреждение: не найдены столбцы широты/долготы. Функции, основанные на местоположении, будут недоступны.</string>
 <string name="indexing_no_geo_warning">Необходим столбец MAC для индексации</string>
 <string name="resuming_download">Возобновление загрузки</string>
+<string name="extracting_database_progress">Распаковка базы %1$d/%2$d: %3$s</string>
 <string name="download_resumed">Загрузка возобновлена с %1$d%%</string>
 <string name="version_changed_restarting">Версия изменилась, перезапуск загрузки</string>
 <string name="map_data_refreshed">Данные карты обновлены</string>

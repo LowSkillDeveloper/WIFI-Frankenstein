@@ -29,6 +29,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.json.JSONObject
 import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -76,7 +77,12 @@ data class DownloadMetadata(
 )
 
 private val isLegacyAndroid = Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP_MR1
-private const val LEGACY_BUFFER_SIZE = 2048
+private const val LEGACY_BUFFER_SIZE = 256 * 1024
+
+const val PROGRESS_RESUME = -1
+const val PROGRESS_PART = -2
+const val PROGRESS_MERGE = -3
+const val PROGRESS_EXTRACT = -4
 
 enum class UrlType {
     JSON_API,
@@ -206,7 +212,8 @@ fun interface LegacyDatabaseConflictResolver {
 class SmartLinkDbHelper(private val context: Context) {
     private companion object {
         const val TAG = "SmartLinkDbHelper"
-        private const val BUFFER_SIZE = 8192
+        private const val BUFFER_SIZE = 1024 * 1024
+        private const val EXTRACT_BUFFER_SIZE = 1024 * 1024
     }
 
     var legacyConflictResolver: LegacyDatabaseConflictResolver? = null
@@ -526,7 +533,11 @@ class SmartLinkDbHelper(private val context: Context) {
         }
     }
 
-    private fun extract7zLegacy(archiveFile: File, outputFile: File) {
+    private fun extract7zLegacy(
+        archiveFile: File,
+        outputFile: File,
+        onProgress: ((Long, Long?) -> Unit)? = null
+    ) {
         var sevenZFile: SevenZFile? = null
         var outputStream: FileOutputStream? = null
 
@@ -538,26 +549,27 @@ class SmartLinkDbHelper(private val context: Context) {
             while (entry != null && !extracted) {
                 if (!entry.isDirectory && isDbFileName(entry.name)) {
                     outputStream = FileOutputStream(outputFile)
+                    val bufferedOut = BufferedOutputStream(outputStream, LEGACY_BUFFER_SIZE)
                     val buffer = ByteArray(LEGACY_BUFFER_SIZE)
                     var totalBytesRead = 0L
                     var bytesRead: Int
 
-                    while (sevenZFile.read(buffer).also { bytesRead = it } != -1) {
-                        outputStream.write(buffer, 0, bytesRead)
-                        totalBytesRead += bytesRead
+                    try {
+                        while (sevenZFile.read(buffer).also { bytesRead = it } != -1) {
+                            bufferedOut.write(buffer, 0, bytesRead)
+                            totalBytesRead += bytesRead
+                            onProgress?.invoke(totalBytesRead, entry.size.takeIf { it > 0 })
 
-                        if (totalBytesRead % (LEGACY_BUFFER_SIZE * 100) == 0L) {
-                            outputStream.flush()
-                            outputStream.fd.sync()
+                            if (totalBytesRead > entry.size * 2) {
+                                throw Exception("Extracted size exceeds expected size")
+                            }
                         }
-
-                        if (totalBytesRead > entry.size * 2) {
-                            throw Exception("Extracted size exceeds expected size")
-                        }
+                        bufferedOut.flush()
+                        outputStream.fd.sync()
+                    } finally {
+                        bufferedOut.close()
+                        outputStream = null
                     }
-
-                    outputStream.flush()
-                    outputStream.fd.sync()
                     extracted = true
                 }
                 entry = sevenZFile.nextEntry
@@ -581,7 +593,11 @@ class SmartLinkDbHelper(private val context: Context) {
         }
     }
 
-    private fun extractZipLegacy(archiveFile: File, outputFile: File) {
+    private fun extractZipLegacy(
+        archiveFile: File,
+        outputFile: File,
+        onProgress: ((Long, Long?) -> Unit)? = null
+    ) {
         var zipInput: ZipInputStream? = null
         var outputStream: FileOutputStream? = null
 
@@ -593,26 +609,27 @@ class SmartLinkDbHelper(private val context: Context) {
             while (entry != null && !extracted) {
                 if (!entry.isDirectory && isDbFileName(entry.name)) {
                     outputStream = FileOutputStream(outputFile)
+                    val bufferedOut = BufferedOutputStream(outputStream, LEGACY_BUFFER_SIZE)
                     val buffer = ByteArray(LEGACY_BUFFER_SIZE)
                     var totalBytesRead = 0L
                     var bytesRead: Int
 
-                    while (zipInput.read(buffer).also { bytesRead = it } != -1) {
-                        outputStream.write(buffer, 0, bytesRead)
-                        totalBytesRead += bytesRead
+                    try {
+                        while (zipInput.read(buffer).also { bytesRead = it } != -1) {
+                            bufferedOut.write(buffer, 0, bytesRead)
+                            totalBytesRead += bytesRead
+                            onProgress?.invoke(totalBytesRead, entry.size.takeIf { it > 0 })
 
-                        if (totalBytesRead % (LEGACY_BUFFER_SIZE * 100) == 0L) {
-                            outputStream.flush()
-                            outputStream.fd.sync()
+                            if (entry.size > 0 && totalBytesRead > entry.size * 2) {
+                                throw Exception("Extracted size exceeds expected size")
+                            }
                         }
-
-                        if (entry.size > 0 && totalBytesRead > entry.size * 2) {
-                            throw Exception("Extracted size exceeds expected size")
-                        }
+                        bufferedOut.flush()
+                        outputStream.fd.sync()
+                    } finally {
+                        bufferedOut.close()
+                        outputStream = null
                     }
-
-                    outputStream.flush()
-                    outputStream.fd.sync()
                     extracted = true
                 }
                 entry = zipInput.nextEntry
@@ -797,7 +814,11 @@ class SmartLinkDbHelper(private val context: Context) {
         }
     }
 
-    private suspend fun extractArchiveWithValidation(archiveFile: File, outputFile: File) {
+    private suspend fun extractArchiveWithValidation(
+        archiveFile: File,
+        outputFile: File,
+        onProgress: ((Long, Long?) -> Unit)? = null
+    ) {
         val tempOutputFile = File(outputFile.parent, "${outputFile.name}.extracting")
 
         var attempt = 0
@@ -812,15 +833,15 @@ class SmartLinkDbHelper(private val context: Context) {
                 }
 
                 if (isLegacyAndroid) {
-                    extractArchiveLegacy(archiveFile, tempOutputFile)
+                    extractArchiveLegacy(archiveFile, tempOutputFile, onProgress)
                 } else {
-                    extractArchive(archiveFile, tempOutputFile)
+                    extractArchive(archiveFile, tempOutputFile, onProgress)
                 }
 
                 if (tempOutputFile.exists() && tempOutputFile.length() > 0) {
                     Thread.sleep(if (isLegacyAndroid) 500 else 100)
 
-                    if (containsExpressionIndex(tempOutputFile)) {
+                    if (isLegacyAndroid && containsExpressionIndex(tempOutputFile)) {
                         val shouldPatch =
                             legacyConflictResolver?.onExpressionIndexConflict(tempOutputFile)
                                 ?: false
@@ -862,14 +883,18 @@ class SmartLinkDbHelper(private val context: Context) {
         throw Exception(context.getString(R.string.database_extraction_failed_all_attempts))
     }
 
-    private fun extractArchiveLegacy(archiveFile: File, outputFile: File) {
+    private fun extractArchiveLegacy(
+        archiveFile: File,
+        outputFile: File,
+        onProgress: ((Long, Long?) -> Unit)? = null
+    ) {
         val extension = archiveFile.extension.lowercase()
 
         when (extension) {
-            "7z" -> extract7zLegacy(archiveFile, outputFile)
-            "zip" -> extractZipLegacy(archiveFile, outputFile)
-            "gz" -> extractGzip(archiveFile, outputFile)
-            "tgz", "tar" -> extractTar(archiveFile, outputFile)
+            "7z" -> extract7zLegacy(archiveFile, outputFile, onProgress)
+            "zip" -> extractZipLegacy(archiveFile, outputFile, onProgress)
+            "gz" -> extractGzip(archiveFile, outputFile, onProgress)
+            "tgz", "tar" -> extractTar(archiveFile, outputFile, onProgress)
             else -> throw Exception("Unsupported archive format: $extension")
         }
     }
@@ -899,7 +924,11 @@ class SmartLinkDbHelper(private val context: Context) {
         return read
     }
 
-    private fun extractGzip(archiveFile: File, outputFile: File) {
+    private fun extractGzip(
+        archiveFile: File,
+        outputFile: File,
+        onProgress: ((Long, Long?) -> Unit)? = null
+    ) {
         val gz = GzipCompressorInputStream(BufferedInputStream(FileInputStream(archiveFile)))
         try {
             val first = ByteArray(262)
@@ -915,17 +944,25 @@ class SmartLinkDbHelper(private val context: Context) {
                 pushback.unread(first, 0, read)
                 val tar = TarArchiveInputStream(BufferedInputStream(pushback))
                 try {
-                    extractFirstDbEntry(tar, outputFile)
+                    extractFirstDbEntry(tar, outputFile, onProgress)
                 } finally {
                     tar.close()
                 }
             } else {
                 FileOutputStream(outputFile).use { out ->
-                    out.write(first, 0, read)
-                    val buf = ByteArray(BUFFER_SIZE)
-                    var r: Int
-                    while (gz.read(buf).also { r = it } != -1) {
-                        out.write(buf, 0, r)
+                    val bufferedOut = BufferedOutputStream(out, EXTRACT_BUFFER_SIZE)
+                    try {
+                        bufferedOut.write(first, 0, read)
+                        val buf = ByteArray(EXTRACT_BUFFER_SIZE)
+                        var total = read.toLong()
+                        var r: Int
+                        while (gz.read(buf).also { r = it } != -1) {
+                            bufferedOut.write(buf, 0, r)
+                            total += r
+                            onProgress?.invoke(total, null)
+                        }
+                    } finally {
+                        bufferedOut.flush()
                     }
                 }
             }
@@ -934,7 +971,11 @@ class SmartLinkDbHelper(private val context: Context) {
         }
     }
 
-    private fun extractTar(archiveFile: File, outputFile: File) {
+    private fun extractTar(
+        archiveFile: File,
+        outputFile: File,
+        onProgress: ((Long, Long?) -> Unit)? = null
+    ) {
         val baseInput = BufferedInputStream(FileInputStream(archiveFile))
         val first = ByteArray(2)
         var read = 0
@@ -950,21 +991,34 @@ class SmartLinkDbHelper(private val context: Context) {
             else pushback
         val tar = TarArchiveInputStream(BufferedInputStream(input))
         try {
-            extractFirstDbEntry(tar, outputFile)
+            extractFirstDbEntry(tar, outputFile, onProgress)
         } finally {
             tar.close()
         }
     }
 
-    private fun extractFirstDbEntry(tar: TarArchiveInputStream, outputFile: File) {
+    private fun extractFirstDbEntry(
+        tar: TarArchiveInputStream,
+        outputFile: File,
+        onProgress: ((Long, Long?) -> Unit)? = null
+    ) {
         var entry: TarArchiveEntry? = tar.nextEntry
         while (entry != null) {
             if (!entry.isDirectory && isDbFileName(entry.name)) {
+                val entrySize = entry.size
                 FileOutputStream(outputFile).use { out ->
-                    val buf = ByteArray(BUFFER_SIZE)
-                    var r: Int
-                    while (tar.read(buf).also { r = it } != -1) {
-                        out.write(buf, 0, r)
+                    val bufferedOut = BufferedOutputStream(out, EXTRACT_BUFFER_SIZE)
+                    try {
+                        val buf = ByteArray(EXTRACT_BUFFER_SIZE)
+                        var total = 0L
+                        var r: Int
+                        while (tar.read(buf).also { r = it } != -1) {
+                            bufferedOut.write(buf, 0, r)
+                            total += r
+                            onProgress?.invoke(total, entrySize.takeIf { it > 0 })
+                        }
+                    } finally {
+                        bufferedOut.flush()
                     }
                 }
                 return
@@ -1070,7 +1124,7 @@ class SmartLinkDbHelper(private val context: Context) {
             if (resumeBytes > 0L) {
                 Log.d(TAG, context.getString(R.string.resuming_download))
                 withContext(Dispatchers.Main) {
-                    progressCallback(-1, 0, null)
+                    progressCallback(PROGRESS_RESUME, 0, null)
                 }
             }
 
@@ -1122,7 +1176,14 @@ class SmartLinkDbHelper(private val context: Context) {
                         )
                         downloadedFile.renameTo(tempArchiveFile)
                         try {
-                            extractArchiveWithValidation(tempArchiveFile, outputFile)
+                            extractArchiveWithValidation(tempArchiveFile, outputFile) { bytes, total ->
+                                val pct = if (total != null && total > 0) {
+                                    ((bytes.toDouble() / total.toDouble()) * 100).toInt()
+                                } else 0
+                                mainHandler.post {
+                                    progressCallback(PROGRESS_EXTRACT, pct.toLong(), total)
+                                }
+                            }
                         } finally {
                             tempArchiveFile.delete()
                         }
@@ -1138,7 +1199,7 @@ class SmartLinkDbHelper(private val context: Context) {
                     resumeBytes = tempFile.length()
                     if (attempt < maxAttempts) {
                         withContext(Dispatchers.Main) {
-                            progressCallback(-1, 0, null)
+                            progressCallback(PROGRESS_RESUME, 0, null)
                         }
                         delay(2000L * attempt)
                     }
@@ -1285,6 +1346,7 @@ class SmartLinkDbHelper(private val context: Context) {
                 context.cacheDir,
                 "${outputFile.nameWithoutExtension}_${dbInfo.version}.$archiveExtension"
             )
+            val mainHandler = Handler(Looper.getMainLooper())
 
             if (!tempArchive.exists() || tempArchive.length() == 0L) {
                 downloadDirectFileWithResume(dbInfo, url, tempArchive, progressCallback)
@@ -1293,10 +1355,17 @@ class SmartLinkDbHelper(private val context: Context) {
             }
 
             withContext(Dispatchers.Main) {
-                progressCallback(-1, 0, null)
+                progressCallback(PROGRESS_RESUME, 0, null)
             }
 
-            extractArchiveWithValidation(tempArchive, outputFile)
+            extractArchiveWithValidation(tempArchive, outputFile) { bytes, total ->
+                val pct = if (total != null && total > 0) {
+                    ((bytes.toDouble() / total.toDouble()) * 100).toInt()
+                } else 0
+                mainHandler.post {
+                    progressCallback(PROGRESS_EXTRACT, pct.toLong(), total)
+                }
+            }
             tempArchive.delete()
         }
     }
@@ -1309,6 +1378,7 @@ class SmartLinkDbHelper(private val context: Context) {
     ) {
         withContext(Dispatchers.IO) {
             val partsStatusFile = getPartsStatusFile(dbInfo.id, dbInfo.version)
+            val mainHandler = Handler(Looper.getMainLooper())
             val completedParts = if (partsStatusFile.exists()) {
                 try {
                     json.decodeFromString<List<Boolean>>(partsStatusFile.readText())
@@ -1346,7 +1416,7 @@ class SmartLinkDbHelper(private val context: Context) {
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        progressCallback(-2, index.toLong() + 1, urls.size.toLong())
+                        progressCallback(PROGRESS_PART, index.toLong() + 1, urls.size.toLong())
                     }
 
                     Log.d(TAG, "Downloading part ${index + 1}/${urls.size}")
@@ -1368,7 +1438,7 @@ class SmartLinkDbHelper(private val context: Context) {
 
             Log.d(TAG, "All parts downloaded, merging...")
             withContext(Dispatchers.Main) {
-                progressCallback(-3, 0, null)
+                progressCallback(PROGRESS_MERGE, 0, null)
             }
 
             val firstUrl = urls.firstOrNull() ?: throw Exception("No URLs provided")
@@ -1400,10 +1470,17 @@ class SmartLinkDbHelper(private val context: Context) {
             partsStatusFile.delete()
 
             withContext(Dispatchers.Main) {
-                progressCallback(-1, 0, null)
+                progressCallback(PROGRESS_MERGE, 0, null)
             }
 
-            extractArchiveWithValidation(mergedArchive, outputFile)
+            extractArchiveWithValidation(mergedArchive, outputFile) { bytes, total ->
+                val pct = if (total != null && total > 0) {
+                    ((bytes.toDouble() / total.toDouble()) * 100).toInt()
+                } else 0
+                mainHandler.post {
+                    progressCallback(PROGRESS_EXTRACT, pct.toLong(), total)
+                }
+            }
             mergedArchive.delete()
 
             Log.d(TAG, "Archive extracted to final file: ${outputFile.length()} bytes")
@@ -1520,19 +1597,27 @@ class SmartLinkDbHelper(private val context: Context) {
         }
     }
 
-    private fun extractArchive(archiveFile: File, outputFile: File) {
+    private fun extractArchive(
+        archiveFile: File,
+        outputFile: File,
+        onProgress: ((Long, Long?) -> Unit)? = null
+    ) {
         val extension = archiveFile.extension.lowercase()
 
         when (extension) {
-            "7z" -> extract7z(archiveFile, outputFile)
-            "zip" -> extractZip(archiveFile, outputFile)
-            "gz" -> extractGzip(archiveFile, outputFile)
-            "tgz", "tar" -> extractTar(archiveFile, outputFile)
+            "7z" -> extract7z(archiveFile, outputFile, onProgress)
+            "zip" -> extractZip(archiveFile, outputFile, onProgress)
+            "gz" -> extractGzip(archiveFile, outputFile, onProgress)
+            "tgz", "tar" -> extractTar(archiveFile, outputFile, onProgress)
             else -> throw Exception("Unsupported archive format: $extension")
         }
     }
 
-    private fun extract7z(archiveFile: File, outputFile: File) {
+    private fun extract7z(
+        archiveFile: File,
+        outputFile: File,
+        onProgress: ((Long, Long?) -> Unit)? = null
+    ) {
         var sevenZFile: SevenZFile? = null
         var outputStream: FileOutputStream? = null
 
@@ -1544,22 +1629,29 @@ class SmartLinkDbHelper(private val context: Context) {
             while (entry != null && !extracted) {
                 if (!entry.isDirectory && isDbFileName(entry.name)) {
                     outputStream = FileOutputStream(outputFile)
-                    val buffer = ByteArray(BUFFER_SIZE)
+                    val bufferedOut = BufferedOutputStream(outputStream, EXTRACT_BUFFER_SIZE)
+                    val entrySize = entry.size
+                    val buffer = ByteArray(EXTRACT_BUFFER_SIZE)
                     var totalBytesRead = 0L
                     var bytesRead: Int
 
-                    while (sevenZFile.read(buffer).also { bytesRead = it } != -1) {
-                        outputStream.write(buffer, 0, bytesRead)
-                        totalBytesRead += bytesRead
+                    try {
+                        while (sevenZFile.read(buffer).also { bytesRead = it } != -1) {
+                            bufferedOut.write(buffer, 0, bytesRead)
+                            totalBytesRead += bytesRead
+                            onProgress?.invoke(totalBytesRead, entrySize.takeIf { it > 0 })
 
-                        if (totalBytesRead > entry.size * 2) {
-                            throw Exception("Extracted size exceeds expected size")
+                            if (totalBytesRead > entry.size * 2) {
+                                throw Exception("Extracted size exceeds expected size")
+                            }
                         }
+                        bufferedOut.flush()
+                    } finally {
+                        bufferedOut.close()
+                        outputStream = null
                     }
 
                     extracted = true
-                    outputStream.close()
-                    outputStream = null
                 }
                 entry = sevenZFile.nextEntry
             }
@@ -1585,7 +1677,11 @@ class SmartLinkDbHelper(private val context: Context) {
         }
     }
 
-    private fun extractZip(archiveFile: File, outputFile: File) {
+    private fun extractZip(
+        archiveFile: File,
+        outputFile: File,
+        onProgress: ((Long, Long?) -> Unit)? = null
+    ) {
         var zipInput: ZipInputStream? = null
         var outputStream: FileOutputStream? = null
 
@@ -1597,22 +1693,29 @@ class SmartLinkDbHelper(private val context: Context) {
             while (entry != null && !extracted) {
                 if (!entry.isDirectory && isDbFileName(entry.name)) {
                     outputStream = FileOutputStream(outputFile)
-                    val buffer = ByteArray(BUFFER_SIZE)
+                    val bufferedOut = BufferedOutputStream(outputStream, EXTRACT_BUFFER_SIZE)
+                    val entrySize = entry.size
+                    val buffer = ByteArray(EXTRACT_BUFFER_SIZE)
                     var totalBytesRead = 0L
                     var bytesRead: Int
 
-                    while (zipInput.read(buffer).also { bytesRead = it } != -1) {
-                        outputStream.write(buffer, 0, bytesRead)
-                        totalBytesRead += bytesRead
+                    try {
+                        while (zipInput.read(buffer).also { bytesRead = it } != -1) {
+                            bufferedOut.write(buffer, 0, bytesRead)
+                            totalBytesRead += bytesRead
+                            onProgress?.invoke(totalBytesRead, entrySize.takeIf { it > 0 })
 
-                        if (entry.size > 0 && totalBytesRead > entry.size * 2) {
-                            throw Exception("Extracted size exceeds expected size")
+                            if (entry.size > 0 && totalBytesRead > entry.size * 2) {
+                                throw Exception("Extracted size exceeds expected size")
+                            }
                         }
+                        bufferedOut.flush()
+                    } finally {
+                        bufferedOut.close()
+                        outputStream = null
                     }
 
                     extracted = true
-                    outputStream.close()
-                    outputStream = null
                 }
                 entry = zipInput.nextEntry
             }
@@ -1743,14 +1846,14 @@ class SmartLinkDbHelper(private val context: Context) {
                         dbInfo,
                         downloadUrls,
                         file
-                    ) { progress, _, _ ->
-                        progressCallback(progress)
+                    ) { progress, bytes, _ ->
+                        progressCallback(if (progress == PROGRESS_EXTRACT) bytes.toInt() else progress)
                     }
                 } else {
                     val url = downloadUrls.first()
                     if (url.endsWith(".zip", true) || url.endsWith(".7z", true)) {
-                        downloadAndExtractArchiveWithResume(dbInfo, url, file) { progress, _, _ ->
-                            progressCallback(progress)
+                        downloadAndExtractArchiveWithResume(dbInfo, url, file) { progress, bytes, _ ->
+                            progressCallback(if (progress == PROGRESS_EXTRACT) bytes.toInt() else progress)
                         }
                     } else {
                         downloadDirectFileWithResume(dbInfo, url, file) { progress, _, _ ->
