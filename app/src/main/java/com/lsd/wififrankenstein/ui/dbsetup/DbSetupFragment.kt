@@ -645,10 +645,28 @@ class DbSetupFragment : Fragment() {
                         databases.size,
                         dbInfo.name
                     )
+                    progressBar?.isIndeterminate = false
                     progressBar?.progress = 0
 
-                    val dbItem = viewModel.downloadSmartLinkDatabase(dbInfo) { progress, _, _ ->
-                        progressBar?.progress = progress
+                    val dbItem = viewModel.downloadSmartLinkDatabase(dbInfo) { progress, bytes, total ->
+                        when (progress) {
+                            PROGRESS_EXTRACT -> {
+                                progressText?.text = getString(
+                                    R.string.extracting_database_progress,
+                                    index + 1,
+                                    databases.size,
+                                    dbInfo.name
+                                )
+                                progressBar?.isIndeterminate = total == null || total <= 0
+                                if (progressBar?.isIndeterminate == false) {
+                                    progressBar?.progress = bytes.toInt().coerceIn(0, 100)
+                                }
+                            }
+                            else -> {
+                                progressBar?.isIndeterminate = false
+                                progressBar?.progress = progress
+                            }
+                        }
                     }
                     dbItem?.let { item ->
                         if (item.dbType == DbType.SQLITE_FILE_CUSTOM || item.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM) {
