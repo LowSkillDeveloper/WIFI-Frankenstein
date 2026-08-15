@@ -42,6 +42,7 @@ import com.lsd.wififrankenstein.ui.airodump.InterfaceStatus
 import com.lsd.wififrankenstein.ui.iwwifi.IwWifiManager
 import com.lsd.wififrankenstein.util.ChrootDiagnostics
 import com.lsd.wififrankenstein.util.ChrootManager
+import com.lsd.wififrankenstein.util.ChrootManagerSingleton
 import com.lsd.wififrankenstein.util.RootlessManager
 import com.lsd.wififrankenstein.util.WiFiManagerWrapper
 import com.topjohnwu.superuser.Shell
@@ -775,6 +776,7 @@ class SettingsFragment : Fragment() {
                         viewModel.setEnableRoot(true)
                         Toast.makeText(requireContext(), R.string.root_granted, Toast.LENGTH_SHORT)
                             .show()
+                        ChrootManagerSingleton.get(requireContext()).resetChrootCaches()
                         updateChrootUI(ChrootManager(requireContext()))
                     } else {
                         Toast.makeText(requireContext(), R.string.root_denied, Toast.LENGTH_SHORT)
