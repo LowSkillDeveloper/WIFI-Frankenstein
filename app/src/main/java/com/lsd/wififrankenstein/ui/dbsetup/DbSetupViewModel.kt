@@ -19,6 +19,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.network.MegaQuotaException
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.wifimap.ExternalIndexManager
 import com.lsd.wififrankenstein.util.DatabaseIndices
@@ -541,7 +542,9 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                 }
                 val dbItem = smartLinkDbHelper.downloadDatabase(dbInfo, onProgress)
                 if (dbItem != null && dbItem.directPath != null) {
-                    val warning = smartLinkDbHelper.checkDbFormatWarning(File(dbItem.directPath))
+                    val warning = withContext(Dispatchers.IO) {
+                        smartLinkDbHelper.checkDbFormatWarning(File(dbItem.directPath))
+                    }
                     dbItem.oldFormatWarning = warning
                     if (warning != null) {
                         _oldFormatWarning.postValue(warning)
@@ -550,7 +553,11 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                 dbItem
             } catch (e: Exception) {
                 if (e !is CancellationException) {
-                    _errorEvent.value = e.message
+                    _errorEvent.value = if (e is MegaQuotaException) {
+                        getApplication<Application>().getString(R.string.mega_bandwidth_exceeded)
+                    } else {
+                        e.message
+                    }
                 }
                 null
             } finally {

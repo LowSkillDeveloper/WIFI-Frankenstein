@@ -127,6 +127,9 @@ class MegaPublicDownloader(private val client: OkHttpClient) {
 
         val response = client.newCall(request).execute()
         if (!response.isSuccessful) {
+            if (response.code == 509) {
+                throw MegaQuotaException("MEGA bandwidth quota exceeded (HTTP 509)")
+            }
             throw MegaApiException("HTTP ${response.code} for download URL")
         }
 
