@@ -91,6 +91,8 @@ class MegaPublicDownloader(private val client: OkHttpClient) {
             )
 
             Result.success(finalFile)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -105,11 +107,15 @@ class MegaPublicDownloader(private val client: OkHttpClient) {
         resumeBytes: Long,
         onProgress: (Long, Long?) -> Unit
     ) {
+        var effectiveResume = resumeBytes
+
+        val requestRangeStart = resumeBytes - (resumeBytes % 16L)
+
         val request = Request.Builder()
             .url(downloadUrl)
             .apply {
                 if (resumeBytes > 0L) {
-                    header("Range", "bytes=$resumeBytes-")
+                    header("Range", "bytes=$requestRangeStart-")
                 }
             }
             .build()
@@ -123,44 +129,57 @@ class MegaPublicDownloader(private val client: OkHttpClient) {
 
         val contentLength = body.contentLength()
 
-        val ctrIv = CryptoHelper.forwardIv16(iv, resumeBytes)
+        if (resumeBytes > 0L && response.code == 200) {
+            Log.w("MegaPublicDownloader", "Server ignored Range while resuming, restarting from 0")
+            RandomAccessFile(outputFile, "rw").use { raf ->
+                raf.setLength(0L)
+            }
+            effectiveResume = 0L
+        }
+
+        val offsetInBlock = (effectiveResume % 16L).toInt()
+        val rangeStart = effectiveResume - offsetInBlock
+
+        val ctrIv = CryptoHelper.forwardIv16(iv, rangeStart)
         val cipher = Cipher.getInstance("AES/CTR/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(aesKey, "AES"), IvParameterSpec(ctrIv))
 
-        val offsetInBlock = (resumeBytes % 16L).toInt()
-
         RandomAccessFile(outputFile, "rw").use { raf ->
-            if (resumeBytes > 0L) {
-                raf.seek(resumeBytes)
+            if (effectiveResume > 0L) {
+                raf.seek(effectiveResume)
             }
 
-            val buf = ByteArray(8192)
+            val buf = ByteArray(64 * 1024)
             var totalRead = 0L
             val stream: InputStream = body.byteStream()
 
-            if (offsetInBlock > 0) {
-                if (!currentCoroutineContext().isActive) throw CancellationException()
-                val discardBuf = ByteArray(16)
-                val read = stream.read(discardBuf, 0, 16)
-                if (read > 0) {
-                    val decrypted = cipher.update(discardBuf, 0, read)
-                    val writeLen = read - offsetInBlock
-                    if (writeLen > 0) {
-                        raf.write(decrypted, offsetInBlock, writeLen)
-                        totalRead += writeLen.toLong()
-                    }
-                }
-            }
+            var skip = offsetInBlock
 
             var bytesRead: Int
             while (stream.read(buf).also { bytesRead = it } != -1) {
                 if (!currentCoroutineContext().isActive) throw CancellationException()
                 val decrypted = cipher.update(buf, 0, bytesRead)
-                raf.write(decrypted)
-                totalRead += bytesRead.toLong()
+
+                var offset = 0
+                var len = bytesRead
+                if (skip > 0) {
+                    if (len <= skip) {
+                        skip -= len
+                        len = 0
+                    } else {
+                        offset = skip
+                        len -= skip
+                        skip = 0
+                    }
+                }
+                if (len > 0) {
+                    raf.write(decrypted, offset, len)
+                    totalRead += len.toLong()
+                }
+
                 val total =
                     if (totalSize > 0) totalSize else contentLength.takeIf { it >= 0 } ?: -1L
-                onProgress(resumeBytes + totalRead, if (total > 0) total else null)
+                onProgress(effectiveResume + totalRead, if (total > 0) total else null)
             }
 
             val finalBlock = cipher.doFinal()
@@ -168,7 +187,7 @@ class MegaPublicDownloader(private val client: OkHttpClient) {
                 raf.write(finalBlock)
             }
 
-            onProgress(resumeBytes + totalRead, resumeBytes + totalRead)
+            onProgress(effectiveResume + totalRead, effectiveResume + totalRead)
         }
     }
 

@@ -13,7 +13,9 @@ import com.lsd.wififrankenstein.network.MegaPublicDownloader
 import com.lsd.wififrankenstein.network.MegaUrlParser
 import com.lsd.wififrankenstein.util.DatabaseTypeUtils
 import com.lsd.wififrankenstein.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -28,6 +30,7 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.json.JSONObject
 import java.io.BufferedInputStream
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.io.PushbackInputStream
 import java.io.FileInputStream
@@ -219,7 +222,9 @@ class SmartLinkDbHelper(private val context: Context) {
         }
         OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
             .hostnameVerifier { _, _ -> true }
             .build()
@@ -310,7 +315,8 @@ class SmartLinkDbHelper(private val context: Context) {
                     Pair(null, 0L)
                 }
 
-                tempFile.length() == metadata.downloadedSize -> {
+                tempFile.length() == metadata.downloadedSize ||
+                        (tempFile.length() in (metadata.downloadedSize + 1)..metadata.totalSize) -> {
                     withContext(Dispatchers.Main) {
                         Log.d(
                             TAG,
@@ -320,7 +326,7 @@ class SmartLinkDbHelper(private val context: Context) {
                             )
                         )
                     }
-                    Pair(tempFile, metadata.downloadedSize)
+                    Pair(tempFile, tempFile.length())
                 }
 
                 else -> {
@@ -510,6 +516,8 @@ class SmartLinkDbHelper(private val context: Context) {
                     columnMap = validatedColumnMap,
                     oldFormatWarning = oldFormatWarning
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 clearDownloadMetadata(dbInfo.id)
                 Log.e(TAG, "Download failed", e)
@@ -1021,46 +1029,93 @@ class SmartLinkDbHelper(private val context: Context) {
         progressCallback: (Int, Long, Long?) -> Unit
     ) {
         withContext(Dispatchers.IO) {
-            val tempFile = getTempFile(dbInfo.id, dbInfo.version)
+            val (resumeFile, _) = checkResumeDownload(dbInfo)
+            val tempFile = resumeFile ?: getTempFile(dbInfo.id, dbInfo.version)
             val mainHandler = Handler(Looper.getMainLooper())
 
             val megaDownloader = MegaPublicDownloader(client)
-            val result = megaDownloader.download(
-                megaUrl = url,
-                outputFile = tempFile,
-                onProgress = { downloaded, total ->
-                    val progress = if (total != null && total > 0) {
-                        ((downloaded.toDouble() / total.toDouble()) * 100).toInt()
-                    } else 0
-                    mainHandler.post {
-                        progressCallback(progress, downloaded, total)
-                    }
-                }
-            )
 
-            result.fold(
-                onSuccess = {
-                    if (isArchiveFile(tempFile)) {
-                        val archiveExtension = detectArchiveExtension(tempFile)
+            var resumeBytes = tempFile.length()
+            if (resumeBytes > 0L) {
+                Log.d(TAG, context.getString(R.string.resuming_download))
+                withContext(Dispatchers.Main) {
+                    progressCallback(-1, 0, null)
+                }
+            }
+
+            val maxAttempts = 5
+            var attempt = 0
+            var lastError: Exception? = null
+            var lastMetaSaved = 0L
+
+            while (attempt < maxAttempts) {
+                attempt++
+                ensureActive()
+                try {
+                    val result = megaDownloader.download(
+                        megaUrl = url,
+                        outputFile = tempFile,
+                        resumeBytes = resumeBytes,
+                        onProgress = { downloaded, total ->
+                            val progress = if (total != null && total > 0) {
+                                ((downloaded.toDouble() / total.toDouble()) * 100).toInt()
+                            } else 0
+                            val currentLength = tempFile.length()
+                            if (total != null && total > 0 &&
+                                (currentLength - lastMetaSaved >= 2 * 1024 * 1024)
+                            ) {
+                                lastMetaSaved = currentLength
+                                saveDownloadMetadata(
+                                    dbInfo.id,
+                                    DownloadMetadata(
+                                        version = dbInfo.version,
+                                        totalSize = total,
+                                        downloadedSize = currentLength,
+                                        timestamp = System.currentTimeMillis()
+                                    )
+                                )
+                            }
+                            mainHandler.post {
+                                progressCallback(progress, downloaded, total)
+                            }
+                        }
+                    )
+
+                    val downloadedFile = result.getOrThrow()
+
+                    if (isArchiveFile(downloadedFile)) {
+                        val archiveExtension = detectArchiveExtension(downloadedFile)
                         val tempArchiveFile = File(
                             context.cacheDir,
                             "${outputFile.nameWithoutExtension}_${dbInfo.version}.$archiveExtension"
                         )
-                        tempFile.renameTo(tempArchiveFile)
+                        downloadedFile.renameTo(tempArchiveFile)
                         try {
                             extractArchiveWithValidation(tempArchiveFile, outputFile)
                         } finally {
                             tempArchiveFile.delete()
                         }
                     } else {
-                        tempFile.renameTo(outputFile)
+                        downloadedFile.renameTo(outputFile)
                     }
-                },
-                onFailure = { e ->
-                    tempFile.delete()
+                    return@withContext
+                } catch (e: CancellationException) {
                     throw e
+                } catch (e: IOException) {
+                    lastError = e
+                    Log.e(TAG, "MEGA download attempt $attempt/$maxAttempts failed: ${e.message}", e)
+                    resumeBytes = tempFile.length()
+                    if (attempt < maxAttempts) {
+                        withContext(Dispatchers.Main) {
+                            progressCallback(-1, 0, null)
+                        }
+                        delay(2000L * attempt)
+                    }
                 }
-            )
+            }
+
+            tempFile.delete()
+            throw lastError ?: Exception(context.getString(R.string.ds_failed_fetch_db_info))
         }
     }
 
