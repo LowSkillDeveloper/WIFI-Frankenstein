@@ -524,12 +524,23 @@ class HandshakeCaptureRunner(private val context: Context) {
             return@withContext null
         }
 
-        val tempDir = "/sdcard/WIFI-Frankenstein/temp"
-        chrootManager.executeInChroot("mkdir -p '$tempDir'")
-        val tempFile = "$tempDir/pwlist_${System.nanoTime()}.txt"
-        val content = passwords.joinToString("\n")
-        chrootManager.executeInChroot("echo '${content.replace("'", "'\\''")}' > '$tempFile'")
-        val cmd = "aircrack-ng -w \"$tempFile\" \"$capFilePath\" 2>&1"
+        val tempDirChroot = "/sdcard/WIFI-Frankenstein/temp"
+        val name = "pwlist_${System.nanoTime()}.txt"
+        val hostFile = File(context.cacheDir, name)
+        try {
+            hostFile.writeText(passwords.joinToString("\n"))
+        } catch (e: Exception) {
+            Log.e(TAG, "crackWithPasswords: failed to write wordlist", e)
+            return@withContext null
+        }
+
+        chrootManager.executeInChroot("mkdir -p '$tempDirChroot'")
+        val tempFileChroot = "$tempDirChroot/$name"
+        com.topjohnwu.superuser.Shell.cmd(
+            "mkdir -p '$tempDirChroot' && cp '${hostFile.absolutePath}' '$tempFileChroot'"
+        ).exec()
+
+        val cmd = "aircrack-ng -w \"$tempFileChroot\" \"$capFilePath\" 2>&1"
         var foundPassword: String? = null
         try {
             val result = chrootManager.executeInChroot(cmd)
@@ -542,7 +553,8 @@ class HandshakeCaptureRunner(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Crack list failed", e)
         } finally {
-            chrootManager.executeInChroot("rm -f '$tempFile'")
+            chrootManager.executeInChroot("rm -f '$tempFileChroot'")
+            hostFile.delete()
         }
         foundPassword
     }
