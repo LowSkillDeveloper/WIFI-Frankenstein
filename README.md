@@ -7,7 +7,7 @@
 
 
 - 📱 **Download the application:**  
-  [WIFI-Frankenstein-2.1.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.2/WIFI-Frankenstein-2.2.apk)
+  [WIFI-Frankenstein-2.2.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.2/WIFI-Frankenstein-2.2.apk)
 
 
 
