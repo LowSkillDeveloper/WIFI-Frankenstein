@@ -25,8 +25,8 @@ android {
         applicationId = "com.lsd.wififrankenstein"
         minSdk = 21
         targetSdk = 37
-        versionCode = 4
-        versionName = "2.1"
+        versionCode = 5
+        versionName = "2.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true
