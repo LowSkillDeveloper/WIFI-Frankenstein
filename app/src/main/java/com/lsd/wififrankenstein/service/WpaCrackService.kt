@@ -66,6 +66,7 @@ class WpaCrackService : Service() {
         const val ACTION_STOP_CHROOT_CRACK = "stop_chroot_crack"
 
         const val EXTRA_HANDSHAKE_LINE = "handshake_line"
+        const val EXTRA_HANDSHAKE_LINES = "handshake_lines"
         const val EXTRA_WORDLIST_URI = "wordlist_uri"
         const val EXTRA_OFFSET = "offset"
         const val EXTRA_TOTAL_LINES = "total_lines"
@@ -107,12 +108,14 @@ class WpaCrackService : Service() {
             context: Context,
             handshakeLine: String,
             wordlistUri: String,
+            extraLines: List<String> = emptyList(),
             offset: Long = 0,
             totalLines: Long = 0
         ) {
             val intent = Intent(context, WpaCrackService::class.java).apply {
                 action = ACTION_START_CRACK
                 putExtra(EXTRA_HANDSHAKE_LINE, handshakeLine)
+                putExtra(EXTRA_HANDSHAKE_LINES, extraLines.toTypedArray())
                 putExtra(EXTRA_WORDLIST_URI, wordlistUri)
                 putExtra(EXTRA_OFFSET, offset)
                 putExtra(EXTRA_TOTAL_LINES, totalLines)
@@ -196,6 +199,14 @@ class WpaCrackService : Service() {
             Log.e(TAG, "Failed to parse handshake line")
             return
         }
+        val extraLines = intent.getStringArrayExtra(EXTRA_HANDSHAKE_LINES)?.toList() ?: emptyList()
+        val candidateHashes = (listOf(handshakeLine) + extraLines)
+            .mapNotNull { HandshakeHash.parseAny(it) }
+            .distinctBy { it.dedupKey() }
+        if (candidateHashes.isEmpty()) {
+            Log.e(TAG, "Failed to parse any handshake line")
+            return
+        }
 
         val wordlistUri = android.net.Uri.parse(wordlistUriStr)
 
@@ -215,7 +226,8 @@ class WpaCrackService : Service() {
             try {
                 runner = PskOfflineBruteForceRunner(this@WpaCrackService)
                 val result = runner!!.crackFromWordlist(
-                    handshakeHash = hash,
+                    handshakeHash = candidateHashes.first(),
+                    extraHashes = candidateHashes.drop(1),
                     wordlistUri = wordlistUri,
                     startOffset = offset,
                     onProgress = { progress ->
