@@ -74,6 +74,13 @@
 <string name="error_starting_app_update">Error starting app update: %s</string>
 <string name="app_update_title">WIFI Frankenstein Update</string>
 <string name="downloading_new_version">Downloading new version of the app</string>
+<string name="install_new_version">Install New Version</string>
+<string name="download_apk">Download APK</string>
+<string name="version_check_old_install_message">The version you are installing is outdated.</string>
+<string name="unknown_sources_permission_title">Install unknown apps</string>
+<string name="unknown_sources_permission_message">To install the new version, WiFi Frankenstein needs permission to install apps from unknown sources. If you decline, you can download the APK and install it manually.</string>
+<string name="install_manual_download_message">Install permission was not granted. You can download the APK of the new version and install it manually.</string>
+<string name="apk_downloaded_to_downloads">APK downloaded to the Downloads folder.</string>
 <string name="no_pins_found">No pins found</string>
 <string name="wps_generator_title">WPS Generator</string>
 <string name="error_accessing_database">Error accessing database</string>

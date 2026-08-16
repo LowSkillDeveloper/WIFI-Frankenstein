@@ -72,6 +72,9 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
     private val _appUpdateProgress = MutableStateFlow(0)
     val appUpdateProgress: StateFlow<Int> = _appUpdateProgress.asStateFlow()
 
+    private val _apkDownloadedFile = MutableStateFlow<File?>(null)
+    val apkDownloadedFile: StateFlow<File?> = _apkDownloadedFile.asStateFlow()
+
     private val _smartLinkDbUpdates = MutableStateFlow<List<SmartLinkDbUpdateInfo>>(emptyList())
 
     private val _isLoading = MutableStateFlow(false)
@@ -406,7 +409,7 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
     }
 
     @SuppressLint("Range")
-    fun updateApp() {
+    fun downloadAppApk() {
         val context = getApplication<Application>().applicationContext
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -419,50 +422,66 @@ class UpdatesViewModel(application: Application) : AndroidViewModel(application)
                     )
                 ) {
                     _openUrlInBrowser.value = downloadUrl
-                } else {
-                    val request = DownloadManager.Request(downloadUrl.toUri())
-                        .setTitle(context.getString(R.string.app_update_title))
-                        .setDescription(context.getString(R.string.downloading_new_version))
-                        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                        .setDestinationInExternalPublicDir(
-                            Environment.DIRECTORY_DOWNLOADS,
-                            "app-update.apk"
-                        )
-                        .setAllowedOverMetered(true)
-                        .setAllowedOverRoaming(true)
-
-                    val downloadManager =
-                        context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                    val downloadId = downloadManager.enqueue(request)
-                    _appDownloadId.value = downloadId
-
-                    var downloading = true
-                    while (downloading) {
-                        val q = DownloadManager.Query()
-                        q.setFilterById(downloadId)
-                        val cursor = downloadManager.query(q)
-                        cursor.use {
-                            if (it.moveToFirst()) {
-                                val bytesDownloaded =
-                                    it.getInt(it.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
-                                val bytesTotal =
-                                    it.getInt(it.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
-                                if (it.getInt(it.getColumnIndex(DownloadManager.COLUMN_STATUS)) == DownloadManager.STATUS_SUCCESSFUL) {
-                                    downloading = false
-                                }
-                                val progress =
-                                    if (bytesTotal > 0) (bytesDownloaded * 100L / bytesTotal).toInt() else 0
-                                _appUpdateProgress.value = progress
-                            }
-                        }
-                        delay(500)
-                    }
+                    return@launch
                 }
+
+                val request = DownloadManager.Request(downloadUrl.toUri())
+                    .setTitle(context.getString(R.string.app_update_title))
+                    .setDescription(context.getString(R.string.downloading_new_version))
+                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    .setDestinationInExternalPublicDir(
+                        Environment.DIRECTORY_DOWNLOADS,
+                        "app-update.apk"
+                    )
+                    .setAllowedOverMetered(true)
+                    .setAllowedOverRoaming(true)
+
+                val downloadManager =
+                    context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                val downloadId = downloadManager.enqueue(request)
+                _appDownloadId.value = downloadId
+                _apkDownloadedFile.value = null
+
+                var downloading = true
+                while (downloading) {
+                    val q = DownloadManager.Query()
+                    q.setFilterById(downloadId)
+                    val cursor = downloadManager.query(q)
+                    cursor.use {
+                        if (it.moveToFirst()) {
+                            val bytesDownloaded =
+                                it.getInt(it.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+                            val bytesTotal =
+                                it.getInt(it.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                            if (it.getInt(it.getColumnIndex(DownloadManager.COLUMN_STATUS)) == DownloadManager.STATUS_SUCCESSFUL) {
+                                downloading = false
+                            }
+                            val progress =
+                                if (bytesTotal > 0) (bytesDownloaded * 100L / bytesTotal).toInt() else 0
+                            _appUpdateProgress.value = progress
+                        }
+                    }
+                    delay(500)
+                }
+
+                _appUpdateProgress.value = 0
+                _apkDownloadedFile.value = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    "app-update.apk"
+                )
             } catch (e: Exception) {
                 _errorMessage.value =
                     context.getString(R.string.error_starting_app_update, e.message)
             }
         }
+    }
+
+    fun consumeApkDownloadedFile() {
+        _apkDownloadedFile.value = null
+    }
+
+    fun setAppUpdateInfo(appUpdateInfo: AppUpdateInfo) {
+        _appUpdateInfo.value = appUpdateInfo
     }
 
     fun updateSmartLinkDb(updateInfo: SmartLinkDbUpdateInfo) {
