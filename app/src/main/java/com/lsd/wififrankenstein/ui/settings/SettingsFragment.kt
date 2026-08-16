@@ -28,7 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -57,7 +57,7 @@ class SettingsFragment : Fragment() {
 
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
-    private val viewModel by viewModels<SettingsViewModel>()
+    private val viewModel by activityViewModels<SettingsViewModel>()
     private lateinit var wlanInterfaceViewModel: WlanInterfaceManagerViewModel
     private lateinit var iconAdapter: AppIconAdapter
     private var settingsInterfaceAdapter: SettingsInterfaceAdapter? = null
@@ -777,6 +777,7 @@ class SettingsFragment : Fragment() {
                         Toast.makeText(requireContext(), R.string.root_granted, Toast.LENGTH_SHORT)
                             .show()
                         ChrootManagerSingleton.get(requireContext()).resetChrootCaches()
+                        viewModel.refreshChrootState()
                         updateChrootUI(ChrootManager(requireContext()))
                     } else {
                         Toast.makeText(requireContext(), R.string.root_denied, Toast.LENGTH_SHORT)
@@ -985,6 +986,7 @@ class SettingsFragment : Fragment() {
                         Toast.LENGTH_SHORT
                     ).show()
                 }
+                viewModel.refreshChrootState()
                 updateChrootUI(cm)
             }
         }
@@ -1046,6 +1048,7 @@ class SettingsFragment : Fragment() {
                     } else {
 
                     }
+                    viewModel.refreshChrootState()
                     updateChrootUI(chrootManager)
                 }
             } catch (e: Exception) {
@@ -1071,6 +1074,7 @@ class SettingsFragment : Fragment() {
                         R.string.chroot_uninstalled,
                         Toast.LENGTH_SHORT
                     ).show()
+                    viewModel.refreshChrootState()
                     updateChrootUI(chrootManager)
                 }
             } catch (e: Exception) {
@@ -1089,6 +1093,7 @@ class SettingsFragment : Fragment() {
         try {
             chrootManager.mountChroot()
             Toast.makeText(requireContext(), R.string.chroot_mounted, Toast.LENGTH_SHORT).show()
+            viewModel.refreshChrootState()
             updateChrootUI(chrootManager)
         } catch (e: Exception) {
             Toast.makeText(
@@ -1103,6 +1108,7 @@ class SettingsFragment : Fragment() {
         try {
             chrootManager.unmountChroot()
             Toast.makeText(requireContext(), R.string.chroot_unmounted, Toast.LENGTH_SHORT).show()
+            viewModel.refreshChrootState()
             updateChrootUI(chrootManager)
         } catch (e: Exception) {
             Toast.makeText(

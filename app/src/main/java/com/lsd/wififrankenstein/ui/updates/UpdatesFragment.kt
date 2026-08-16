@@ -343,6 +343,7 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
             } else {
 
             }
+            settingsViewModel.refreshChrootState()
             setupChrootManagement()
         }
     }
@@ -396,6 +397,7 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
                 if (success) {
                     binding.textViewChrootStatus.text = getString(R.string.rootless_setup_completed)
                 }
+                settingsViewModel.refreshChrootState()
                 setupChrootManagement()
             }
         }

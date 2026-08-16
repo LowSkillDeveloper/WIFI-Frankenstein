@@ -133,6 +133,11 @@ class MainActivity : AppCompatActivity() {
             R.string.navigation_drawer_open, R.string.navigation_drawer_close
         )
         drawerLayout.addDrawerListener(drawerToggle)
+        drawerLayout.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+            override fun onDrawerOpened(drawerView: android.view.View) {
+                settingsViewModel.refreshChrootState()
+            }
+        })
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setHomeButtonEnabled(true)
 
@@ -403,6 +408,11 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         Log.d("MainActivity", "onResume called")
         wlanInterfaceViewModel.startPolling()
+        settingsViewModel.refreshChrootState()
+        lifecycleScope.launch {
+            delay(1500)
+            settingsViewModel.refreshChrootState()
+        }
     }
 
     override fun onPause() {
