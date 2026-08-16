@@ -19,19 +19,23 @@ class DatabaseSelectAdapter(
         fun bind(dbInfo: SmartLinkDbInfo, isChecked: Boolean, position: Int) {
             binding.textViewDbName.text = dbInfo.name
             val knownType = dbInfo.type == "3wifi" || dbInfo.type == "custom-auto-mapping"
-            if (knownType) {
-                val typeLabel = when (dbInfo.type) {
+            val typeLabel = if (knownType) {
+                when (dbInfo.type) {
                     "3wifi" -> binding.root.context.getString(R.string.type_3wifi)
                     else -> binding.root.context.getString(R.string.type_custom)
                 }
-                binding.textViewDbType.text = typeLabel
-                binding.textViewDbType.visibility = View.VISIBLE
-                binding.chipType.text = typeLabel
-                binding.chipType.visibility = View.VISIBLE
             } else {
-                binding.textViewDbType.visibility = View.GONE
-                binding.chipType.visibility = View.GONE
+                null
             }
+            val versionLabel =
+                dbInfo.version.takeIf { it.isNotBlank() }?.let { "v$it" }
+            val typeText = listOfNotNull(typeLabel, versionLabel).joinToString(" · ")
+            binding.textViewDbType.text = typeText
+            binding.textViewDbType.visibility =
+                if (typeText.isBlank()) View.GONE else View.VISIBLE
+            binding.textViewDbDescription.text = dbInfo.description
+            binding.textViewDbDescription.visibility =
+                if (dbInfo.description.isNullOrBlank()) View.GONE else View.VISIBLE
             binding.root.setOnClickListener {
                 binding.checkBox.isChecked = !binding.checkBox.isChecked
                 checkedState[position] = binding.checkBox.isChecked

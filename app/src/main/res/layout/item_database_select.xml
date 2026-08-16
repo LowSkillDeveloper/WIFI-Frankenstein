@@ -35,7 +35,7 @@
 
             <TextView
                 android:id="@+id/textViewDbName"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="1"
@@ -49,15 +49,17 @@
                 android:maxLines="1"
                 android:textAppearance="?attr/textAppearanceBody2"
                 android:textColor="?attr/colorOnSurfaceVariant" />
-        </LinearLayout>
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chipType"
-            style="@style/Widget.MaterialComponents.Chip.Action"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceCaption"
-            app:chipMinHeight="24dp" />
+            <TextView
+                android:id="@+id/textViewDbDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone" />
+        </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
 

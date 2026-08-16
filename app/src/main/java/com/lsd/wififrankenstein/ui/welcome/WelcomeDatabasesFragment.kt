@@ -603,7 +603,10 @@ class WelcomeDatabasesFragment : Fragment() {
                 dialog.dismiss()
 
                 if (allDatabases.isNotEmpty()) {
-                    showMultiSelectDialog(allDatabases.distinctBy { it.id })
+                    showMultiSelectDialog(
+                        allDatabases.distinctBy { it.id },
+                        sources.mapNotNull { it.description }.distinct().joinToString("\n")
+                    )
                 } else {
                     showError(getString(R.string.db_step1_no_databases))
                 }
@@ -618,13 +621,22 @@ class WelcomeDatabasesFragment : Fragment() {
         dialog.show()
     }
 
-    private fun showMultiSelectDialog(databases: List<SmartLinkDbInfo>) {
+    private fun showMultiSelectDialog(
+        databases: List<SmartLinkDbInfo>,
+        description: String? = null
+    ) {
         val checkedItems = BooleanArray(databases.size) { false }
         val dialogView = layoutInflater.inflate(R.layout.dialog_database_select, null)
         val recyclerView =
             dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerViewDatabases)
         val selectionCount =
             dialogView.findViewById<TextView>(R.id.textViewSelectionCount)
+        val sourceDescription =
+            dialogView.findViewById<TextView>(R.id.textViewSourceDescription)
+        if (!description.isNullOrBlank()) {
+            sourceDescription.text = description
+            sourceDescription.visibility = View.VISIBLE
+        }
 
         fun updateSelectionCount() {
             val count = checkedItems.count { it }
