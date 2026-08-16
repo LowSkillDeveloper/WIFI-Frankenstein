@@ -263,6 +263,7 @@ class ChrootManager(private val context: Context) {
         @Volatile
         private var mountFailedAt: Long = 0
         private const val CHROOT_TYPE_CACHE_MS = 30000L
+        private const val ROOT_RECHECK_MS = 10000L
         fun mountFailedResult(): Shell.Result = object : Shell.Result() {
             override fun getCode() = 1
             override fun isSuccess() = false
@@ -1482,25 +1483,35 @@ class ChrootManager(private val context: Context) {
     }
 
     private val hasRootAccess: Boolean
-        get() = _hasRootAccess ?: run {
+        get() {
+            val cached = _hasRootAccess
+            if (cached == true) return true
+            val now = System.currentTimeMillis()
+            if (cached != null && now - _hasRootAccessTime < ROOT_RECHECK_MS) return false
             val result = try {
                 Shell.cmd("id").exec().out.any { it.contains("uid=0") }
             } catch (_: Exception) {
                 false
             }
             _hasRootAccess = result
-            result
+            _hasRootAccessTime = now
+            return result
         }
 
     @Volatile
     private var _hasRootAccess: Boolean? = null
 
+    @Volatile
+    private var _hasRootAccessTime: Long = 0L
+
     fun resetRootCache() {
         _hasRootAccess = null
+        _hasRootAccessTime = 0
     }
 
     fun resetChrootCaches() {
         _hasRootAccess = null
+        _hasRootAccessTime = 0
         chrootTypeCache = ChrootType.None
         chrootTypeCacheTime = 0
     }

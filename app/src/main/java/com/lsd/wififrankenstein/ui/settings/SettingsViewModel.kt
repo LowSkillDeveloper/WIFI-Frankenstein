@@ -15,6 +15,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.dbsetup.API3WiFiHelper
+import com.lsd.wififrankenstein.util.ChrootCapabilities
 import com.lsd.wififrankenstein.util.ChrootManagerSingleton
 import com.lsd.wififrankenstein.util.ChrootType
 import com.lsd.wififrankenstein.util.FileLogger
@@ -161,11 +162,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _autoScanInterfaces.value = prefs.getBoolean("auto_scan_interfaces", true)
         _extendedPollInterval.value = prefs.getBoolean("extended_poll_interval", false)
 
+        refreshChrootState()
+    }
+
+    fun refreshChrootState() {
         viewModelScope.launch(Dispatchers.IO) {
             val cm = ChrootManagerSingleton.get(getApplication())
+            cm.resetChrootCaches()
             val ct = cm.getChrootType()
             _hasChroot.postValue(ct is ChrootType.Root)
             _hasProot.postValue(ct is ChrootType.Rootless || ct is ChrootType.RootWithoutChroot)
+            if (ChrootCapabilities.isRootAvailable(getApplication())) {
+                rootPrefs.edit { putBoolean("enable_root", true) }
+                _enableRoot.postValue(true)
+            }
         }
     }
 

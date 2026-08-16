@@ -33,6 +33,7 @@ import com.lsd.wififrankenstein.WelcomeViewModel
 import com.lsd.wififrankenstein.databinding.FragmentChrootInstallBinding
 import com.lsd.wififrankenstein.service.ChrootInstallService
 import com.lsd.wififrankenstein.util.ChrootManager
+import com.lsd.wififrankenstein.util.ChrootManagerSingleton
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.RootlessManager
 import kotlinx.coroutines.Dispatchers
@@ -718,6 +719,7 @@ class ChrootInstallFragment : Fragment() {
         if (success) {
             binding.textViewStatus.text = getString(R.string.chroot_installation_completed)
             Log.d("ChrootInstall", "Installation successful, showing Next")
+            ChrootManagerSingleton.get(requireContext()).resetChrootCaches()
             hideDownloadUI()
             showNextButton()
             (activity as? WelcomeActivity)?.navigateToNextFragment()
