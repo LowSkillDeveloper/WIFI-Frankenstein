@@ -258,6 +258,9 @@
 <string name="type_custom">自定义类型</string>
 <string name="downloading_database_progress">正在下载数据库 %1$d/%2$d：%3$s</string>
 <string name="error_downloading_database">下载数据库时出错：%1$s</string>
+<string name="download_failed_count">有 %1$d/%2$d 个数据库下载失败：</string>
+<string name="download_failed_item">%1$s: %2$s</string>
+<string name="download_completed_with_errors">下载完成，但有错误</string>
 <string name="copying_file_progress">正在复制文件：%1$d%%</string>
 <string name="copying_file_progress_size">正在复制文件：%1$d%%（%2$s/%3$s MB）</string>
 <string name="error_reading_database">读取数据库时出错</string>

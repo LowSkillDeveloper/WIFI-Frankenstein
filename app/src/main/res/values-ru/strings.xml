@@ -236,6 +236,9 @@
 <string name="type_custom">Пользовательский тип</string>
 <string name="downloading_database_progress">Загрузка базы данных %1$d/%2$d: %3$s</string>
 <string name="error_downloading_database">Ошибка загрузки базы данных: %1$s</string>
+<string name="download_failed_count">Не удалось скачать %1$d из %2$d баз:</string>
+<string name="download_failed_item">%1$s: %2$s</string>
+<string name="download_completed_with_errors">Загрузка завершена с ошибками</string>
 <string name="copying_file_progress">Копирование файла: %1$d%%</string>
 <string name="copying_file_progress_size">Копирование файла: %1$d%% (%2$s/%3$s МБ)</string>
 <string name="error_reading_database">Ошибка чтения базы данных</string>

@@ -236,6 +236,9 @@
 <string name="type_custom">Користувацький тип</string>
 <string name="downloading_database_progress">Завантаження бази даних %1$d/%2$d: %3$s</string>
 <string name="error_downloading_database">Помилка завантаження бази даних: %1$s</string>
+<string name="download_failed_count">Не вдалося завантажити %1$d з %2$d баз:</string>
+<string name="download_failed_item">%1$s: %2$s</string>
+<string name="download_completed_with_errors">Завантаження завершено з помилками</string>
 <string name="copying_file_progress">Копіювання файлу: %1$d%%</string>
 <string name="copying_file_progress_size">Копіювання файлу: %1$d%% (%2$s/%3$s МБ)</string>
 <string name="error_reading_database">Помилка читання бази даних</string>

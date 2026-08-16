@@ -42,6 +42,14 @@ import java.io.FileOutputStream
 import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
 
+data class SmartLinkDownloadResult(
+    val dbInfo: SmartLinkDbInfo,
+    val dbItem: DbItem?,
+    val error: String? = null
+) {
+    val isSuccess: Boolean get() = error == null
+}
+
 class DbSetupViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _dbList = MutableLiveData<List<DbItem>>()
@@ -530,7 +538,7 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
     suspend fun downloadSmartLinkDatabase(
         dbInfo: SmartLinkDbInfo,
         onProgress: (Int, Long, Long?) -> Unit
-    ): DbItem? {
+    ): SmartLinkDownloadResult {
         return withContext(viewModelScope.coroutineContext) {
             try {
                 smartLinkDbHelper.legacyConflictResolver = LegacyDatabaseConflictResolver { file ->
@@ -554,18 +562,19 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                         _oldFormatWarning.postValue(warning)
                     }
                 }
-                dbItem
+                SmartLinkDownloadResult(dbInfo, dbItem)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                if (e !is CancellationException) {
-                    _errorEvent.value = when (e) {
-                        is MegaQuotaException ->
-                            getApplication<Application>().getString(R.string.mega_bandwidth_exceeded)
-                        is MegaFileUnavailableException ->
-                            getApplication<Application>().getString(R.string.mega_file_unavailable)
-                        else -> e.message
-                    }
+                val error = when (e) {
+                    is MegaQuotaException ->
+                        getApplication<Application>().getString(R.string.mega_bandwidth_exceeded)
+                    is MegaFileUnavailableException ->
+                        getApplication<Application>().getString(R.string.mega_file_unavailable)
+                    else -> e.message
+                        ?: getApplication<Application>().getString(R.string.operation_failed)
                 }
-                null
+                SmartLinkDownloadResult(dbInfo, null, error)
             } finally {
                 smartLinkDbHelper.legacyConflictResolver = null
             }
