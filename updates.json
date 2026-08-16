@@ -1,8 +1,8 @@
 {
   "app": {
-    "version": "2.1",
+    "version": "2.2",
     "changelog_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/app_changelog.txt",
-    "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.1/WIFI-Frankenstein-2.1.apk"
+    "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.2/WIFI-Frankenstein-2.2.apk"
   },
   "files": [
     {
