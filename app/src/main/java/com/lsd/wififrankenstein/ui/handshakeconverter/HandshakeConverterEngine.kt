@@ -108,7 +108,7 @@ class HandshakeConverterEngine(private val context: Context) {
         baseName: String,
         lines: List<String>
     ): File? {
-        if (!ChrootCapabilities.isAvailable(context)) return null
+        if (!ChrootCapabilities.hasChrootTools(context)) return null
         return withContext(Dispatchers.IO) {
             val tempDir = "/sdcard/WIFI-Frankenstein/temp"
             val safeBase = baseName.replace(Regex("[^a-zA-Z0-9._-]"), "_")

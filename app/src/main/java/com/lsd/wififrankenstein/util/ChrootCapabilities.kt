@@ -24,4 +24,13 @@ object ChrootCapabilities {
             false
         }
     }
+
+    fun hasChrootTools(context: Context): Boolean {
+        return try {
+            val type = ChrootManager.get(context).getChrootType()
+            type is com.lsd.wififrankenstein.util.ChrootType.Root
+        } catch (_: Exception) {
+            false
+        }
+    }
 }

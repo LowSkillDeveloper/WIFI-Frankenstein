@@ -2307,6 +2307,7 @@
 <string name="aird_export_error">[-] Export error: %1$s</string>
 <string name="aird_exporting_22000">[*] Exporting as .22000 (hcxpcapngtool)...</string>
 <string name="aird_export_failed_no_output">[-] Export failed (no output)</string>
+<string name="aird_chroot_tools_required">[-] Chroot tools are not available on this device</string>
 <string name="aird_extracting_pmkid">[*] Extracting PMKID...</string>
 <string name="aird_pmkid_saved_to">[+] PMKID saved to %1$s</string>
 <string name="aird_no_pmkid">[-] No PMKID found</string>
@@ -2417,6 +2418,7 @@
 <string name="svc_starting_chroot_crack">Starting chroot crack...</string>
 <string name="svc_chroot_crack_error">Chroot crack error</string>
 <string name="svc_copy_wordlist_failed">Failed to copy wordlist to chroot</string>
+<string name="svc_chroot_unavailable">Chroot tools are not available on this device</string>
 <string name="svc_generate_cap_failed">Failed to generate .cap file in chroot</string>
 <string name="svc_cracking">Cracking...</string>
 <string name="svc_trying">Trying: %1$s</string>
@@ -3273,6 +3275,8 @@
 <string name="imp_hash_reference_only">Saved as hash reference only. Use hashcat on desktop.</string>
 <string name="imp_archive_error">Archive error: %1$s</string>
 <string name="imp_failed_save_hash">Failed to save hash file</string>
+<string name="imp_storage_access_required">Cannot save to handshake storage: no root/chroot and storage access is not granted. Enable "Allow access to manage all files" for this app.</string>
+<string name="imp_copy_failed">Failed to copy file into handshake storage</string>
 <plurals name="notification_db_update_text">
         <item quantity="one">%1$d database update available</item>
         <item quantity="other">%1$d database updates available</item>

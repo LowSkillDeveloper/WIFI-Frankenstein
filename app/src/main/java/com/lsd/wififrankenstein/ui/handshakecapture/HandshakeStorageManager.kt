@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.handshakecapture
 
 import android.content.Context
+import com.lsd.wififrankenstein.util.ChrootCapabilities
 import com.lsd.wififrankenstein.util.ChrootManager
 import com.lsd.wififrankenstein.util.HandshakeCaptureRunner
 import com.lsd.wififrankenstein.util.Log
@@ -25,14 +26,20 @@ class HandshakeStorageManager(private val context: Context) {
 
 
     private fun chrootOrShell(cmd: String): Shell.Result {
-        val chrootR = chrootManager.executeInChroot(cmd)
-        if (chrootR.isSuccess) return chrootR
-        try {
-            val rootR = Shell.cmd(cmd).exec()
-            if (rootR.isSuccess) return rootR
-        } catch (_: Exception) {
+        if (ChrootCapabilities.hasChrootTools(context)) {
+            val chrootR = chrootManager.executeInChroot(cmd)
+            if (chrootR.isSuccess) return chrootR
         }
-        return chrootR
+        return try {
+            Shell.cmd(cmd).exec()
+        } catch (e: Exception) {
+            object : Shell.Result() {
+                override fun getCode() = 1
+                override fun isSuccess() = false
+                override fun getOut(): MutableList<String> = mutableListOf()
+                override fun getErr(): MutableList<String> = mutableListOf()
+            }
+        }
     }
 
     fun ensureStorageDir() {
@@ -207,14 +214,16 @@ class HandshakeStorageManager(private val context: Context) {
         val lsCmd = "ls -1 '$dir' 2>/dev/null"
 
 
-        try {
-            val result =
-                chrootManager.executeInChroot("$lsCmd | grep -iE '\\.($CAP_EXTENSIONS_GREP)'")
-            if (result.isSuccess && result.out.any { it.isNotBlank() }) {
-                result.out.map { it.trim() }.filter { it.isNotEmpty() }.forEach { names.add(it) }
-                if (names.isNotEmpty()) return@withContext names
+        if (ChrootCapabilities.hasChrootTools(context)) {
+            try {
+                val result =
+                    chrootManager.executeInChroot("$lsCmd | grep -iE '\\.($CAP_EXTENSIONS_GREP)'")
+                if (result.isSuccess && result.out.any { it.isNotBlank() }) {
+                    result.out.map { it.trim() }.filter { it.isNotEmpty() }.forEach { names.add(it) }
+                    if (names.isNotEmpty()) return@withContext names
+                }
+            } catch (_: Exception) {
             }
-        } catch (_: Exception) {
         }
 
 
@@ -299,7 +308,22 @@ class HandshakeStorageManager(private val context: Context) {
         }
 
     fun saveHandshakeMetadata(item: HandshakeItem) {
+        val existed = metadataDb.get(item.fileName) != null
         metadataDb.saveOrUpdate(item)
+        val hashTypes = buildString {
+            if (item.hashPmkid != null) append("PMKID ")
+            if (!item.hash22000.isNullOrBlank()) append("EAPOL ")
+        }.trim().ifBlank { "none" }
+        Log.i(
+            TAG,
+            "Handshake ${if (existed) "UPDATED" else "ADDED"}: " +
+                "file=${item.fileName} path=${item.filePath} essid=${item.essid ?: "?"} " +
+                "bssid=${item.bssid ?: "?"} size=${item.formattedSize} valid=${item.isValid} " +
+                "hashes=${item.handshakeCount} eapol=${item.eapolCount} pmkid=${item.pmkidCount} " +
+                "type=$hashTypes keyver=${item.keyver ?: "?"} " +
+                "format=${item.originalFormat ?: "?"} channel=${item.channel ?: "?"} " +
+                "band=${item.band ?: "?"} akm=${item.akm ?: "?"} cipher=${item.pairwiseCipher ?: "?"}"
+        )
     }
 
     fun listSavedBssids(): Set<String> {
@@ -492,6 +516,10 @@ class HandshakeStorageManager(private val context: Context) {
     }
 
     suspend fun detectPmkid(capFilePath: String): Boolean = withContext(Dispatchers.IO) {
+        if (!ChrootCapabilities.hasChrootTools(context)) {
+            Log.d(TAG, "detectPmkid: skipped (no chroot tools)")
+            return@withContext false
+        }
         try {
             val cmd = "hcxpcapngtool -o /dev/stdout \"$capFilePath\" 2>/dev/null"
             val result = chrootManager.executeInChroot(cmd)
@@ -504,6 +532,10 @@ class HandshakeStorageManager(private val context: Context) {
 
     suspend fun extractPmkidHash(capFilePath: String, outputPath: String): Boolean =
         withContext(Dispatchers.IO) {
+            if (!ChrootCapabilities.hasChrootTools(context)) {
+                Log.d(TAG, "extractPmkidHash: skipped (no chroot tools)")
+                return@withContext false
+            }
             try {
                 val parentDir = outputPath.substringBeforeLast("/")
                 chrootManager.executeInChroot("mkdir -p $parentDir")

@@ -151,7 +151,7 @@ class WpaCrackerFragment : Fragment() {
                     id = View.generateViewId()
                     isChecked = engine == viewModel.selectedEngine.value
                     setOnClickListener {
-                        if (engine == CrackEngine.CHROOT_AIRCRACK && !ChrootCapabilities.isAvailable(
+                        if (engine == CrackEngine.CHROOT_AIRCRACK && !ChrootCapabilities.hasChrootTools(
                                 requireContext()
                             )
                         ) {

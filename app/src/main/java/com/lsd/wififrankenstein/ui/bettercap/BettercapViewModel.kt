@@ -240,7 +240,7 @@ class BettercapViewModel(application: Application) : AndroidViewModel(applicatio
                     allHashes.addAll(parsed)
                 } catch (_: Exception) {
                 }
-                if (ChrootCapabilities.isAvailable(getApplication())) {
+                if (ChrootCapabilities.hasChrootTools(getApplication())) {
                     try {
                         val raw = captureRunner.getHcxpcapngtoolOutput(handshakeFile)
                         val parsed =
@@ -301,7 +301,7 @@ class BettercapViewModel(application: Application) : AndroidViewModel(applicatio
                             allHashes.addAll(parsed)
                         } catch (_: Exception) {
                         }
-                        if (ChrootCapabilities.isAvailable(getApplication())) {
+                        if (ChrootCapabilities.hasChrootTools(getApplication())) {
                             try {
                                 val raw = captureRunner.getHcxpcapngtoolOutput(orphan.filePath)
                                 val parsed = raw.lines()
@@ -604,7 +604,7 @@ class BettercapViewModel(application: Application) : AndroidViewModel(applicatio
                         allHashes.addAll(parsed)
                     } catch (_: Exception) {
                     }
-                    if (ChrootCapabilities.isAvailable(getApplication())) {
+                    if (ChrootCapabilities.hasChrootTools(getApplication())) {
                         try {
                             val raw = captureRunner.getHcxpcapngtoolOutput(handshakeFile)
                             val parsed = raw.lines()
