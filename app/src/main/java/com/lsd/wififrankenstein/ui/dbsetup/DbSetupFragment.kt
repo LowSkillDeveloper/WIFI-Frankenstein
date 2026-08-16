@@ -630,6 +630,8 @@ class DbSetupFragment : Fragment() {
         val progressText = dialog.findViewById<TextView>(R.id.textViewProgress)
         val progressBar = dialog.findViewById<ProgressBar>(R.id.progressBarDownload)
         val cancelButton = dialog.findViewById<Button>(R.id.buttonCancel)
+        val failuresText = dialog.findViewById<TextView>(R.id.textViewFailures)
+        val failures = mutableListOf<Pair<String, String>>()
         var isCancelled = false
         cancelButton?.setOnClickListener {
             isCancelled = true; dialogJob.cancel(); dialog.dismiss()
@@ -651,7 +653,7 @@ class DbSetupFragment : Fragment() {
                     var lastShownExtract = -1
                     var extractingTextSet = false
 
-                    val dbItem = viewModel.downloadSmartLinkDatabase(dbInfo) { progress, bytes, total ->
+                    val result = viewModel.downloadSmartLinkDatabase(dbInfo) { progress, bytes, total ->
                         when (progress) {
                             PROGRESS_EXTRACT -> {
                                 val pct = bytes.toInt().coerceIn(0, 100)
@@ -673,6 +675,7 @@ class DbSetupFragment : Fragment() {
                                     progressBar?.progress = pct
                                 }
                             }
+
                             else -> {
                                 progressBar?.isIndeterminate = false
                                 if (progress >= 0 && progress != lastShownProgress) {
@@ -682,7 +685,8 @@ class DbSetupFragment : Fragment() {
                             }
                         }
                     }
-                    dbItem?.let { item ->
+                    val item = result.dbItem
+                    if (item != null) {
                         if (item.dbType == DbType.SQLITE_FILE_CUSTOM || item.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM) {
                             withContext(Dispatchers.Main) {
                                 dialog.dismiss()
@@ -706,13 +710,37 @@ class DbSetupFragment : Fragment() {
                                 showSnackbar(getString(R.string.db_added_successfully))
                             }
                         }
+                    } else {
+                        val reason = result.error ?: getString(R.string.operation_failed)
+                        failures.add(dbInfo.name to reason)
+                        failuresText?.let { tv ->
+                            tv.visibility = View.VISIBLE
+                            tv.append(getString(R.string.download_failed_item, dbInfo.name, reason) + "\n")
+                        }
+                        progressText?.text =
+                            getString(R.string.download_failed_count, failures.size, databases.size)
                     }
                 }
                 withContext(Dispatchers.Main) {
-                    if (!dialog.isShowing) dialog.show()
-                    dialog.dismiss()
-                    if (!isCancelled) {
-                        showSnackbar(getString(R.string.download_completed))
+                    if (failures.isNotEmpty()) {
+                        progressBar?.visibility = View.GONE
+                        progressText?.text = getString(R.string.download_completed_with_errors)
+                        cancelButton?.text = getString(R.string.close)
+                        cancelButton?.setOnClickListener { dialog.dismiss() }
+                        val toastMessage = failures.joinToString("\n") { (name, reason) ->
+                            getString(R.string.download_failed_item, name, reason)
+                        }
+                        Toast.makeText(
+                            requireContext(),
+                            if (toastMessage.length > 200) toastMessage.take(200) + "…" else toastMessage,
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        if (!dialog.isShowing) dialog.show()
+                        dialog.dismiss()
+                        if (!isCancelled) {
+                            showSnackbar(getString(R.string.download_completed))
+                        }
                     }
                 }
             } catch (e: Exception) {

@@ -17,6 +17,22 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:maxHeight="160dp"
+        android:scrollbars="vertical">
+
+        <TextView
+            android:id="@+id/textViewFailures"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="14sp"
+            android:visibility="gone" />
+    </ScrollView>
+
     <Button
         android:id="@+id/buttonCancel"
         android:layout_width="wrap_content"
