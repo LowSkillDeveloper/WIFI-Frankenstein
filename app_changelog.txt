@@ -1,3 +1,12 @@
+#2.1
+Fixed detection of chroot availability on the device
+Fixed parsing of capture files (`.cap`/`.pcap`), more valid files are now recognized
+Fixed errors when resuming downloads from MEGA and "file not found" issues
+Fixed OutOfMemory errors when working with large databases
+Fixed transition to bruteforce in the Wi-Fi menu
+Adding handshake from phone memory now works correctly on all devices
+Added progress bar for unpacking databases from zip archives
+
 #2.0
 Added WiFi checking against wpa-sec.stanev.org
 Added handshake converter and on-device handshake brute force
