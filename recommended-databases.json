@@ -1,1 +1,10 @@
-
+{
+  "sources": [
+    {
+      "id": "3wifi_dev",
+      "name": "Databases from 3wifi.dev",
+      "description": "Unofficial databases from the 3wifi community",
+      "smartlinkUrl": "https://3wifi.dev/locator_db.json"
+    }
+  ]
+}
