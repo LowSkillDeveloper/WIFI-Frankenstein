@@ -231,14 +231,14 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
     private fun checkChrootAvailability() {
         val ctx = getApplication<Application>()
         val engines = mutableListOf(CrackEngine.NATIVE)
+        val hasChrootTools = ChrootCapabilities.hasChrootTools(ctx)
         val hasRoot = ChrootCapabilities.isRootAvailable(ctx)
-        val hasChroot = ChrootCapabilities.isAvailable(ctx)
-        if (hasRoot) {
+        if (hasChrootTools) {
             engines.add(CrackEngine.CHROOT_AIRCRACK)
         }
         _availableEngines.value = engines
         _chrootStatus.value = when {
-            hasChroot -> getApplication<Application>().getString(R.string.wpa_chroot_available)
+            hasChrootTools -> getApplication<Application>().getString(R.string.wpa_chroot_available)
             hasRoot -> getApplication<Application>().getString(
                 R.string.wpa_chroot_not_installed_use_aircrack
             )
@@ -248,7 +248,9 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun setEngine(engine: CrackEngine) {
-        if (engine == CrackEngine.CHROOT_AIRCRACK && !ChrootCapabilities.isAvailable(getApplication())) {
+        if (engine == CrackEngine.CHROOT_AIRCRACK &&
+            !ChrootCapabilities.hasChrootTools(getApplication())
+        ) {
             return
         }
         _selectedEngine.value = engine
@@ -495,7 +497,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         format: HandshakeFormat
     ): String? {
         if (_selectedEngine.value != CrackEngine.CHROOT_AIRCRACK) return null
-        if (!ChrootCapabilities.isAvailable(getApplication())) return null
+        if (!ChrootCapabilities.hasChrootTools(getApplication())) return null
         val app = getApplication<Application>()
         val capDir = File(app.cacheDir, "wpa_cracker_cap")
         capDir.mkdirs()
@@ -710,7 +712,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private suspend fun copyWordlistToChroot(uri: Uri) {
-        if (!ChrootCapabilities.isAvailable(getApplication())) return
+        if (!ChrootCapabilities.hasChrootTools(getApplication())) return
         try {
             val app = getApplication<Application>()
             val inputStream = app.contentResolver.openInputStream(uri) ?: return

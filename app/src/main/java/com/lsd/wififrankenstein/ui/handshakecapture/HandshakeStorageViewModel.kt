@@ -134,7 +134,8 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
     fun checkStoragePermission() {
         val required = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R &&
                 !android.os.Environment.isExternalStorageManager() &&
-                !ChrootCapabilities.isAvailable(getApplication())
+                !ChrootCapabilities.hasChrootTools(getApplication()) &&
+                !ChrootCapabilities.isRootAvailable(getApplication())
         _manageStoragePermissionRequired.postValue(required)
     }
 
@@ -202,7 +203,7 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
         }
 
 
-        if (ChrootCapabilities.isAvailable(getApplication())) {
+        if (ChrootCapabilities.hasChrootTools(getApplication())) {
             try {
                 val raw = captureRunner.getHcxpcapngtoolOutput(chrootPath)
                 val parsed = raw.lines().mapNotNull { HandshakeHash.parse22000Line(it.trim()) }
@@ -279,7 +280,7 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                     val chrootPathForFile = item.filePath
                     val nativeHashes = captureRunner.readCapBytesAndParse(chrootPathForFile)
 
-                    val hcxHashes = if (ChrootCapabilities.isAvailable(getApplication())) {
+                    val hcxHashes = if (ChrootCapabilities.hasChrootTools(getApplication())) {
                         try {
                             val chrootPath =
                                 storageManager.ensureChrootCopy(item.filePath) ?: return@launch
@@ -576,7 +577,7 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                         try {
                             val nativeHashes = captureRunner.readCapBytesAndParse(item.filePath)
 
-                            val hcxHashes = if (ChrootCapabilities.isAvailable(getApplication())) {
+                            val hcxHashes = if (ChrootCapabilities.hasChrootTools(getApplication())) {
                                 try {
                                     val chrootPath = storageManager.ensureChrootCopy(item.filePath)
                                     if (chrootPath != null) {
@@ -911,7 +912,7 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
 
                 val nativeHashes = captureRunner.readCapBytesAndParse(chrootPath)
 
-                val hcxHashes = if (ChrootCapabilities.isAvailable(getApplication())) {
+                val hcxHashes = if (ChrootCapabilities.hasChrootTools(getApplication())) {
                     try {
                         val raw = captureRunner.getHcxpcapngtoolOutput(chrootPath)
                         raw.lines().mapNotNull { HandshakeHash.parse22000Line(it.trim()) }
@@ -1228,7 +1229,7 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                 }
 
 
-                if (format == "cap") {
+                if (format == "cap" && ChrootCapabilities.hasChrootTools(getApplication())) {
 
                     val chrootPath = storageManager.ensureChrootCopy(item.filePath)
                     if (chrootPath != null) {
@@ -1280,14 +1281,18 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
 
                         "22000" -> {
                             val chrootOut = "$chrootTempDir/$baseName.22000"
-                            chrootManager.executeInChroot("hcxpcapngtool -o \"$chrootOut\" \"$chrootPath\" 2>&1")
+                            if (ChrootCapabilities.hasChrootTools(getApplication())) {
+                                chrootManager.executeInChroot("hcxpcapngtool -o \"$chrootOut\" \"$chrootPath\" 2>&1")
+                            }
                             val jvmDest = "$jvmTempDir/$baseName.22000"
                             resultPath = copyFileFromChroot(chrootOut, jvmDest)
                         }
 
                         "pmkid" -> {
                             val chrootOut = "$chrootTempDir/${baseName}_pmkid.txt"
-                            chrootManager.executeInChroot("hcxpcapngtool --pmkid-only -o \"$chrootOut\" \"$chrootPath\" 2>&1")
+                            if (ChrootCapabilities.hasChrootTools(getApplication())) {
+                                chrootManager.executeInChroot("hcxpcapngtool --pmkid-only -o \"$chrootOut\" \"$chrootPath\" 2>&1")
+                            }
                             val jvmDest = "$jvmTempDir/${baseName}_pmkid.txt"
                             resultPath = copyFileFromChroot(chrootOut, jvmDest)
                         }
@@ -1314,7 +1319,7 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
             hashText = lines.joinToString("\n").takeIf { it.isNotBlank() }
         }
 
-        if (hashText == null && ChrootCapabilities.isAvailable(getApplication())) {
+        if (hashText == null && ChrootCapabilities.hasChrootTools(getApplication())) {
             try {
                 val chrootPath = storageManager.ensureChrootCopy(item.filePath)
                 if (chrootPath != null) {
@@ -1539,7 +1544,7 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                 .joinToString("\n").takeIf { it.isNotBlank() }
         }
 
-        if (hashPmkid == null && ChrootCapabilities.isAvailable(getApplication())) {
+        if (hashPmkid == null && ChrootCapabilities.hasChrootTools(getApplication())) {
             try {
                 val chrootPath = storageManager.ensureChrootCopy(item.filePath)
                 if (chrootPath != null) {
@@ -1571,7 +1576,7 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                 .takeIf { it.isNotBlank() }
         }
 
-        if (hash16800 == null && ChrootCapabilities.isAvailable(getApplication())) {
+        if (hash16800 == null && ChrootCapabilities.hasChrootTools(getApplication())) {
             try {
                 val chrootPath = storageManager.ensureChrootCopy(item.filePath)
                 if (chrootPath != null) {

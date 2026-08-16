@@ -26,6 +26,7 @@ import androidx.appcompat.widget.TooltipCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -51,7 +52,7 @@ class HandshakeStorageFragment : Fragment() {
     private var _binding: FragmentHandshakeStorageBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: HandshakeStorageViewModel by viewModels()
+    private val viewModel: HandshakeStorageViewModel by activityViewModels()
     private val dbSetupViewModel: DbSetupViewModel by viewModels()
     private var storageAdapter: HandshakeStorageAdapter? = null
 
@@ -127,7 +128,7 @@ class HandshakeStorageFragment : Fragment() {
             onUploadOhc = { item -> showOnlineHashCrackDialog(item) },
             onCheckWpaSec = { item -> viewModel.checkOnWpaSec(item) },
             onUploadTo3WiFi = { item -> uploadHandshakeTo3WiFi(listOf(item)) },
-            hasChroot = ChrootCapabilities.isAvailable(requireContext())
+            hasChroot = ChrootCapabilities.hasChrootTools(requireContext())
         )
         binding.recyclerViewStorage.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -783,7 +784,7 @@ class HandshakeStorageFragment : Fragment() {
     private fun onBulkShare() {
         val items = selectedItems()
         if (items.isEmpty()) return
-        val hasChroot = ChrootCapabilities.isAvailable(requireContext())
+        val hasChroot = ChrootCapabilities.hasChrootTools(requireContext())
         val anyFileExists = items.any { it.fileExists }
         val anyHash22000 = items.any { it.hash22000 != null }
         val anyHashPmkid = items.any { it.hashPmkid != null }
@@ -1287,7 +1288,7 @@ class HandshakeStorageFragment : Fragment() {
     }
 
     private fun shareHandshake(item: HandshakeItem) {
-        val hasChroot = ChrootCapabilities.isAvailable(requireContext())
+        val hasChroot = ChrootCapabilities.hasChrootTools(requireContext())
         if (!item.fileExists) {
             ShareHandshakeBottomSheet.newInstance(
                 item = item,

@@ -30,6 +30,15 @@ class HandshakeImportManager(private val context: Context) {
     )
 
     suspend fun importFromUri(uri: Uri): ImportResult = withContext(Dispatchers.IO) {
+        if (!canWriteStorage()) {
+            Log.w(tag, "importFromUri: storage not writable (no root, no manage-all-files permission)")
+            return@withContext ImportResult(
+                0,
+                1,
+                emptyList(),
+                listOf(context.getString(R.string.imp_storage_access_required))
+            )
+        }
         val tempDir = File(context.cacheDir, "import_temp")
         tempDir.mkdirs()
         try {
@@ -41,6 +50,16 @@ class HandshakeImportManager(private val context: Context) {
             processFile(tempFile)
         } finally {
             tempDir.deleteRecursively()
+        }
+    }
+
+    private fun canWriteStorage(): Boolean {
+        return try {
+            ChrootCapabilities.isRootAvailable(context) ||
+                    android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R ||
+                    android.os.Environment.isExternalStorageManager()
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -145,7 +164,7 @@ class HandshakeImportManager(private val context: Context) {
             hashFile.writeText(hashLines.joinToString("\n"))
 
             val capFile = File(tempDir, hashFile.nameWithoutExtension + ".cap")
-            val hasChroot = ChrootCapabilities.isAvailable(context)
+            val hasChroot = ChrootCapabilities.hasChrootTools(context)
             val chrootOutput = "/sdcard/WIFI-Frankenstein/temp/${hashFile.nameWithoutExtension}.cap"
             val warnings = mutableListOf<String>()
 
@@ -260,7 +279,12 @@ class HandshakeImportManager(private val context: Context) {
                 val chrootStored =
                     copyToChrootStorage(file, file.nameWithoutExtension) ?: return null
                 val stat = chrootManager.executeInChroot("stat -c '%s' '$chrootStored' 2>/dev/null")
-                val fileSize = stat.out.firstOrNull()?.trim()?.toLongOrNull() ?: 0L
+                val jvmSize = try {
+                    File(chrootStored.replaceFirst("/sdcard", "/storage/emulated/0")).length()
+                } catch (_: Exception) {
+                    0L
+                }
+                val fileSize = stat.out.firstOrNull()?.trim()?.toLongOrNull() ?: jvmSize
                 val first = parsed.firstOrNull()
                 storageManager.saveHandshakeMetadata(
                     HandshakeItem(
@@ -285,7 +309,7 @@ class HandshakeImportManager(private val context: Context) {
                     "cap",
                     "pcap",
                     "pcapng"
-                ) && ChrootCapabilities.isAvailable(context)
+                ) && ChrootCapabilities.hasChrootTools(context)
             ) {
                 try {
                     val chrootOut = "/sdcard/WIFI-Frankenstein/temp/${file.nameWithoutExtension}.cap"
@@ -325,7 +349,7 @@ class HandshakeImportManager(private val context: Context) {
 
 
                 var hcxCount = 0
-                if (ChrootCapabilities.isAvailable(context)) {
+                if (ChrootCapabilities.hasChrootTools(context)) {
                     try {
                         val rawOutput = captureRunner.getHcxpcapngtoolOutput(chrootStored)
                         val parsed =
@@ -437,6 +461,8 @@ class HandshakeImportManager(private val context: Context) {
             val chrootDest = "${HandshakeStorageManager.STORAGE_DIR}/$destName"
             storageManager.ensureStorageDir()
 
+            val hasRoot = ChrootCapabilities.isRootAvailable(context)
+            val hasChrootTools = ChrootCapabilities.hasChrootTools(context)
             val chrootSource = try {
                 chrootPath(file)
             } catch (e: Exception) {
@@ -444,24 +470,32 @@ class HandshakeImportManager(private val context: Context) {
                 null
             }
 
-            if (chrootSource != null) {
+            if (hasChrootTools && chrootSource != null) {
                 val cp =
                     chrootManager.executeInChroot("cp '$chrootSource' '$chrootDest' 2>&1 && echo CP_OK")
                 if (cp.isSuccess && cp.out.firstOrNull()?.trim() == "CP_OK") {
-                    Log.d(tag, "copyToChrootStorage: OK -> $chrootDest")
+                    Log.d(tag, "copyToChrootStorage: chroot OK -> $chrootDest")
                     return chrootDest
                 }
                 Log.w(tag, "copyToChrootStorage: chroot cp failed: ${cp.out}")
             }
 
+            if (hasRoot && chrootSource != null) {
+                val cp = Shell.cmd("cp '$chrootSource' '$chrootDest' 2>&1 && echo CP_OK").exec()
+                if (cp.isSuccess && cp.out.firstOrNull()?.trim() == "CP_OK") {
+                    Log.d(tag, "copyToChrootStorage: root-shell OK -> $chrootDest")
+                    return chrootDest
+                }
+                Log.w(tag, "copyToChrootStorage: root cp failed: ${cp.out}")
+            }
+
             val jvmSaved = storageManager.copyViaJvm(file, destName)
             if (jvmSaved != null) {
                 Log.d(tag, "copyToChrootStorage: JVM OK -> $jvmSaved")
-                chrootDest
-            } else {
-                Log.e(tag, "copyToChrootStorage failed (chroot + JVM)")
-                null
+                return chrootDest
             }
+            Log.e(tag, "copyToChrootStorage failed (chroot + root + JVM): dest=$chrootDest")
+            null
         } catch (e: Exception) {
             Log.e(tag, "copyToChrootStorage failed", e)
             null

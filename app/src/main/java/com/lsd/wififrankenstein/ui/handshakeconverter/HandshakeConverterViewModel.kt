@@ -87,7 +87,7 @@ class HandshakeConverterViewModel(application: Application) : AndroidViewModel(a
             val hasPmkid = hashes.any {
                 it.type == HandshakeType.PMKID || it.type == HandshakeType.PMKID_EAPOL
             }
-            val chrootAvailable = ChrootCapabilities.isAvailable(app)
+            val chrootAvailable = ChrootCapabilities.hasChrootTools(app)
             val targets = buildList {
                 if (hasEapol || hasPmkid) add(TargetFormat.HASH_22000)
                 if (hasEapol) {

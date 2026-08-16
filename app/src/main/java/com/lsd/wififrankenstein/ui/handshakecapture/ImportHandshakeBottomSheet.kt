@@ -24,13 +24,20 @@ class ImportHandshakeBottomSheet : BottomSheetDialogFragment() {
     private val filePicker = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
-        uri?.let {
-            Toast.makeText(
-                requireContext(),
-                R.string.handshake_share_generating,
-                Toast.LENGTH_SHORT
-            ).show()
-            viewModel.importFromUri(it) { result -> showImportResult(result) }
+        if (uri == null) {
+            com.lsd.wififrankenstein.util.Log.d("ImportHandshake", "file picker cancelled")
+            dismiss()
+            return@registerForActivityResult
+        }
+        com.lsd.wififrankenstein.util.Log.d("ImportHandshake", "file picked: $uri")
+        Toast.makeText(
+            requireContext(),
+            R.string.handshake_share_generating,
+            Toast.LENGTH_SHORT
+        ).show()
+        viewModel.importFromUri(uri) { result ->
+            if (isAdded) showImportResult(result)
+            dismiss()
         }
     }
 
@@ -47,7 +54,6 @@ class ImportHandshakeBottomSheet : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.btnImportFile.setOnClickListener {
-            dismiss()
             filePicker.launch(arrayOf("*/*"))
         }
 

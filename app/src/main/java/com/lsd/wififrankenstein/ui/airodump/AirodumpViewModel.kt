@@ -124,7 +124,7 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     }
 
 
-                    if (allHashes.isEmpty() && !ChrootCapabilities.isAvailable(getApplication())) {
+                    if (allHashes.isEmpty()) {
                         try {
                             val jvmPath =
                                 cap.filePath.replaceFirst("/sdcard", "/storage/emulated/0")
@@ -1792,6 +1792,10 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                 return@launch
             }
             val outputPath = chrootPath.removeSuffix(".cap").removeSuffix(".pcap") + ".22000"
+            if (!ChrootCapabilities.hasChrootTools(getApplication())) {
+                addConsoleLine(getApplication<Application>().getString(R.string.aird_chroot_tools_required))
+                return@launch
+            }
             try {
                 val cmd = "hcxpcapngtool -o \"$outputPath\" \"$chrootPath\" 2>&1"
                 val res = chrootManager.executeInChroot(cmd)
@@ -1825,6 +1829,10 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                 return@launch
             }
             val outputPath = chrootPath.removeSuffix(".cap").removeSuffix(".pcap") + "_pmkid.txt"
+            if (!ChrootCapabilities.hasChrootTools(getApplication())) {
+                addConsoleLine(getApplication<Application>().getString(R.string.aird_chroot_tools_required))
+                return@launch
+            }
             try {
                 val cmd = "hcxpcapngtool --pmkid-only -o \"$outputPath\" \"$chrootPath\" 2>&1"
                 val res = chrootManager.executeInChroot(cmd)

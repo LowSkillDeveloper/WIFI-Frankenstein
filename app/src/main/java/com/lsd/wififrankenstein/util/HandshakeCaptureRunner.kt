@@ -3,6 +3,7 @@ package com.lsd.wififrankenstein.util
 import android.content.Context
 import android.os.Environment
 import com.lsd.wififrankenstein.ui.iwwifi.IwWifiManager
+import com.lsd.wififrankenstein.util.ChrootCapabilities
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,6 +38,9 @@ class HandshakeCaptureRunner(private val context: Context) {
     private val sessionScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var sessionJob: Job? = null
     private val TAG = "HandshakeCaptureRunner"
+
+    private val hasChrootTools: Boolean
+        get() = ChrootCapabilities.hasChrootTools(context)
 
     companion object {
         const val OUTPUT_BASE = "/sdcard/WIFI-Frankenstein/hs"
@@ -268,6 +272,11 @@ class HandshakeCaptureRunner(private val context: Context) {
     ): Boolean = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== VERIFY HANDSHAKE ===")
 
+        if (!hasChrootTools) {
+            Log.d(TAG, "verifyHandshake: skipped (no chroot tools)")
+            return@withContext false
+        }
+
         val cowpattyCmd = "cowpatty -c -r \"$capFilePath\" 2>&1"
         val cowpattyRes = chrootManager.executeInChroot(cowpattyCmd)
         val cowpattyOut = (cowpattyRes.out + cowpattyRes.err).joinToString("\n")
@@ -307,6 +316,12 @@ class HandshakeCaptureRunner(private val context: Context) {
         onProgress: ((String) -> Unit)? = null
     ): Boolean = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== VERIFY HANDSHAKE (hcxpcapngtool) ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "verifyHandshakeWithHcxpcapngtool: skipped (no chroot tools)")
+            return@withContext false
+        }
+
         onProgress?.invoke("[*] hcxpcapngtool: verifying handshake data...")
         val cmd = "hcxpcapngtool -o /dev/stdout \"$capFilePath\" 2>/dev/null"
         val result = chrootManager.executeInChroot(cmd)
@@ -340,6 +355,12 @@ class HandshakeCaptureRunner(private val context: Context) {
         extraArgs: String = ""
     ): String = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== HCXPCAPNGTOOL OUTPUT ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "getHcxpcapngtoolOutput: skipped (no chroot tools)")
+            return@withContext ""
+        }
+
         val cmd = "hcxpcapngtool $extraArgs -o /dev/stdout \"$capFilePath\" 2>&1"
         val result = chrootManager.executeInChroot(cmd)
         (result.out + result.err).joinToString("\n")
@@ -349,7 +370,7 @@ class HandshakeCaptureRunner(private val context: Context) {
         val jvmPath = chrootPath.replaceFirst("/sdcard", "/storage/emulated/0")
 
 
-        if (ChrootCapabilities.isAvailable(context)) {
+        if (hasChrootTools) {
             try {
                 val res = chrootManager.executeInChroot("base64 '$chrootPath' 2>/dev/null")
                 if (res.isSuccess && res.out.any { it.isNotEmpty() }) {
@@ -433,6 +454,12 @@ class HandshakeCaptureRunner(private val context: Context) {
         onProgress: ((String) -> Unit)? = null
     ): String? = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== CRACK START ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "crackWithWordlist: skipped (no chroot tools)")
+            return@withContext null
+        }
+
         val cmd = "aircrack-ng -w \"$wordlistPath\" \"$capFilePath\" 2>&1"
         var foundPassword: String? = null
 
@@ -463,6 +490,12 @@ class HandshakeCaptureRunner(private val context: Context) {
         onProgress: ((String) -> Unit)? = null
     ): String? = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== CRACK SINGLE PASSWORD ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "crackSinglePassword: skipped (no chroot tools)")
+            return@withContext null
+        }
+
         val cmd = "echo \"$password\" | aircrack-ng -w - \"$capFilePath\" 2>&1"
         var foundPassword: String? = null
         try {
@@ -485,6 +518,12 @@ class HandshakeCaptureRunner(private val context: Context) {
         onProgress: ((String) -> Unit)? = null
     ): String? = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== CRACK WITH PASSWORD LIST ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "crackWithPasswords: skipped (no chroot tools)")
+            return@withContext null
+        }
+
         val tempDir = "/sdcard/WIFI-Frankenstein/temp"
         chrootManager.executeInChroot("mkdir -p '$tempDir'")
         val tempFile = "$tempDir/pwlist_${System.nanoTime()}.txt"
@@ -515,6 +554,12 @@ class HandshakeCaptureRunner(private val context: Context) {
         onProgress: ((String) -> Unit)? = null
     ): Boolean = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== COMBINE CAPTURES ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "combineCaptures: skipped (no chroot tools)")
+            return@withContext false
+        }
+
         val args = capFilePaths.joinToString(" ") { "\"$it\"" }
         val cmd = when (outputFormat) {
             "hccapx" -> "aircrack-ng -j \"${outputPath.removeSuffix(".hccapx")}\" $args 2>&1"
@@ -531,6 +576,12 @@ class HandshakeCaptureRunner(private val context: Context) {
 
     suspend fun getAircrackVersion(): String? = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== GET AIRCRACK VERSION ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "getAircrackVersion: skipped (no chroot tools)")
+            return@withContext null
+        }
+
         val cmd = "aircrack-ng --help 2>&1 | grep -i 'aircrack-ng' | head -1"
         val result = chrootManager.executeInChroot(cmd)
         val version = result.out.firstOrNull()?.trim()?.takeIf { it.isNotBlank() }
@@ -544,6 +595,12 @@ class HandshakeCaptureRunner(private val context: Context) {
         onProgress: ((String) -> Unit)? = null
     ): Boolean = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== EXPORT TO HCCAPX ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "exportToHccapx: skipped (no chroot tools)")
+            return@withContext false
+        }
+
         chrootManager.executeInChroot("mkdir -p ${outputPath.substringBeforeLast("/")}")
 
         val cmd = "aircrack-ng -j \"$outputPath\" \"$capFilePath\" 2>&1"
@@ -563,6 +620,12 @@ class HandshakeCaptureRunner(private val context: Context) {
         onProgress: ((String) -> Unit)? = null
     ): Boolean = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== EXPORT TO 22000 ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "exportTo22000: skipped (no chroot tools)")
+            return@withContext false
+        }
+
         chrootManager.executeInChroot("mkdir -p ${outputPath.substringBeforeLast("/")}")
         val cmd = "hcxpcapngtool -o \"$outputPath\" \"$capFilePath\" 2>&1"
         val result = chrootManager.executeInChroot(cmd)
@@ -579,6 +642,12 @@ class HandshakeCaptureRunner(private val context: Context) {
         onProgress: ((String) -> Unit)? = null
     ): Boolean = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== EXTRACT PMKID HASH ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "extractPmkidHash: skipped (no chroot tools)")
+            return@withContext false
+        }
+
         chrootManager.executeInChroot("mkdir -p ${outputPath.substringBeforeLast("/")}")
 
         val cmd = "hcxpcapngtool -o \"$outputPath\" \"$capFilePath\" 2>&1"
@@ -595,6 +664,12 @@ class HandshakeCaptureRunner(private val context: Context) {
         onProgress: ((String) -> Unit)? = null
     ): Boolean = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== DETECT PMKID ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "detectPmkid: skipped (no chroot tools)")
+            return@withContext false
+        }
+
         val cmd = "hcxpcapngtool --pmkid-only -o /dev/stdout \"$capFilePath\" 2>/dev/null"
         val result = chrootManager.executeInChroot(cmd)
         val hasPmkid = result.out.any { it.startsWith("WPA*03\t") || it.startsWith("WPA03\t") }
@@ -608,6 +683,11 @@ class HandshakeCaptureRunner(private val context: Context) {
         onProgress: ((String) -> Unit)? = null
     ): Boolean = withContext(Dispatchers.IO) {
         Log.d(TAG, "=== DETECT PMKID ===")
+
+        if (!hasChrootTools) {
+            Log.d(TAG, "hasPmkidViaAircrack: skipped (no chroot tools)")
+            return@withContext false
+        }
 
         val aircrackCmd = "aircrack-ng \"$capFilePath\" 2>&1"
         val aircrackRes = chrootManager.executeInChroot(aircrackCmd)

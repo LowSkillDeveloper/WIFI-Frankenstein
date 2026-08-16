@@ -15,6 +15,7 @@ import com.lsd.wififrankenstein.MainActivity
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.wpacracker.CrackSessionData
 import com.lsd.wififrankenstein.ui.wpacracker.CrackSessionManager
+import com.lsd.wififrankenstein.util.ChrootCapabilities
 import com.lsd.wififrankenstein.util.ChrootManager
 import com.lsd.wififrankenstein.util.HandshakeHash
 import com.lsd.wififrankenstein.util.Log
@@ -339,6 +340,11 @@ class WpaCrackService : Service() {
 
     private suspend fun runChrootCrack(handshakeLine: String, wordlistUriStr: String) {
         val cm = ChrootManager.get(this)
+        if (!ChrootCapabilities.hasChrootTools(this)) {
+            Log.w(TAG, "runChrootCrack: no chroot tools available, aborting")
+            broadcastError(getString(R.string.svc_chroot_unavailable))
+            return
+        }
         cm.mountChroot()
 
         val wordlistUri = android.net.Uri.parse(wordlistUriStr)
