@@ -74,6 +74,13 @@
 <string name="error_starting_app_update">启动应用更新时出错：%s</string>
 <string name="app_update_title">WIFI Frankenstein 更新</string>
 <string name="downloading_new_version">正在下载应用的新版本</string>
+<string name="install_new_version">安装新版本</string>
+<string name="download_apk">下载 APK</string>
+<string name="version_check_old_install_message">您正在安装的版本已过时。</string>
+<string name="unknown_sources_permission_title">安装未知应用</string>
+<string name="unknown_sources_permission_message">要安装新版本，WiFi Frankenstein 需要允许安装来自未知来源的应用。如果您拒绝，您可以下载 APK 并手动安装。</string>
+<string name="install_manual_download_message">未授予安装权限。您可以下载新版本的 APK 并手动安装。</string>
+<string name="apk_downloaded_to_downloads">APK 已下载到「下载」文件夹。</string>
 <string name="no_pins_found">未找到 PIN</string>
 <string name="wps_generator_title">WPS 生成器</string>
 <string name="error_accessing_database">访问数据库时出错</string>

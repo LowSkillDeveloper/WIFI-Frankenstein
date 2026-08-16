@@ -82,7 +82,7 @@
 
                     <LinearLayout
                         android:id="@+id/layoutButtons"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:orientation="horizontal"
@@ -92,16 +92,28 @@
 
                         <Button
                             android:id="@+id/buttonUpdateApp"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:text="@string/update_app"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:text="@string/install_new_version"
+                            android:visibility="gone" />
+
+                        <Button
+                            android:id="@+id/buttonDownloadApk"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:text="@string/download_apk"
                             android:visibility="gone" />
 
                         <Button
                             android:id="@+id/buttonShowChangelog"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
                             android:text="@string/show_changelog"
                             android:visibility="gone" />
                     </LinearLayout>

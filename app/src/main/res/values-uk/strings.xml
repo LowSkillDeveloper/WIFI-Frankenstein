@@ -67,6 +67,13 @@
 <string name="error_starting_app_update">Помилка запуску оновлення додатку: %s</string>
 <string name="app_update_title">Оновлення WIFI Франкенштейн</string>
 <string name="downloading_new_version">Завантаження нової версії додатку</string>
+<string name="install_new_version">Встановити нову версію</string>
+<string name="download_apk">Завантажити APK</string>
+<string name="version_check_old_install_message">Версія, яку ви встановлюєте, є застарілою.</string>
+<string name="unknown_sources_permission_title">Встановлення з невідомих джерел</string>
+<string name="unknown_sources_permission_message">Для встановлення нової версії додатку WiFi Frankenstein потрібен дозвіл на встановлення додатків із невідомих джерел. Якщо ви відмовитеся, ви можете завантажити APK і встановити його вручну.</string>
+<string name="install_manual_download_message">Дозвіл на встановлення не надано. Ви можете завантажити APK нової версії та встановити його вручну.</string>
+<string name="apk_downloaded_to_downloads">APK завантажено в папку «Завантаження».</string>
 <string name="no_pins_found">Пін-коди не знайдено</string>
 <string name="wps_generator_title">Генератор WPS</string>
 <string name="error_accessing_database">Помилка доступу до бази даних</string>

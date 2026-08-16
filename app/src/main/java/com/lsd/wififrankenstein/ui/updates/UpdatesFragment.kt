@@ -1,24 +1,20 @@
 package com.lsd.wififrankenstein.ui.updates
 
-import android.app.DownloadManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.provider.Settings
 import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -27,10 +23,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentUpdatesBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.util.AnimatedLoadingBar
+import com.lsd.wififrankenstein.util.AppApkInstaller
 import com.lsd.wififrankenstein.util.ChrootType
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.RootlessManager
@@ -38,7 +36,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 
 private const val POST_NOTIFICATIONS_PERMISSION = "android.permission.POST_NOTIFICATIONS"
@@ -59,8 +56,8 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
     private lateinit var adapter: UpdatesAdapter
     private lateinit var smartLinkDbAdapter: SmartLinkDbUpdateAdapter
 
-    private var downloadId: Long = -1
     private var pendingFileInfo: FileUpdateInfo? = null
+    private var shouldInstallAfterDownload = false
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -77,45 +74,25 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
         }
     }
 
+    private val installPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (!AppApkInstaller.needsUnknownSourcesPermission(requireContext())) {
+            startDownloadAndInstall()
+        } else {
+            showManualInstallMessage()
+        }
+    }
+
     private val onBackPressedCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
             showExitConfirmationDialog()
         }
     }
 
-    private val downloadCompleteReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-            if (id == downloadId) {
-                installUpdate()
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requireActivity().onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            requireContext().registerReceiver(
-                downloadCompleteReceiver,
-                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                Context.RECEIVER_NOT_EXPORTED
-            )
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requireContext().registerReceiver(
-                downloadCompleteReceiver,
-                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                Context.RECEIVER_EXPORTED
-            )
-        } else {
-            ContextCompat.registerReceiver(
-                requireContext(),
-                downloadCompleteReceiver,
-                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
-        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -165,7 +142,15 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
 
     private fun setupButtons() {
         binding.buttonUpdateApp.setOnClickListener {
-            viewModel.updateApp()
+            if (AppApkInstaller.needsUnknownSourcesPermission(requireContext())) {
+                showUnknownSourcesRationaleDialog()
+            } else {
+                startDownloadAndInstall()
+            }
+        }
+
+        binding.buttonDownloadApk.setOnClickListener {
+            startDownloadOnly()
         }
 
         binding.buttonShowChangelog.setOnClickListener {
@@ -474,11 +459,13 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
                                 binding.textViewNewAppVersion.text =
                                     getString(R.string.new_version_available, it.newVersion)
                                 binding.buttonUpdateApp.visibility = View.VISIBLE
+                                binding.buttonDownloadApk.visibility = View.VISIBLE
                                 binding.buttonShowChangelog.visibility = View.VISIBLE
                             } else {
                                 binding.textViewNewAppVersion.text =
                                     getString(R.string.app_up_to_date)
                                 binding.buttonUpdateApp.visibility = View.GONE
+                                binding.buttonDownloadApk.visibility = View.GONE
                                 binding.buttonShowChangelog.visibility = View.GONE
                             }
                             binding.textViewErrorMessage.visibility = View.GONE
@@ -505,8 +492,15 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
                 }
 
                 launch {
-                    viewModel.appDownloadId.collectLatest { id ->
-                        downloadId = id
+                    viewModel.apkDownloadedFile.collectLatest { file ->
+                        if (file != null) {
+                            viewModel.consumeApkDownloadedFile()
+                            if (shouldInstallAfterDownload) {
+                                AppApkInstaller.installApk(requireContext(), file)
+                            } else {
+                                showApkDownloadedMessage()
+                            }
+                        }
                     }
                 }
 
@@ -716,55 +710,55 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
             .show()
     }
 
-    private fun installUpdate() {
-        val file = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "app-update.apk"
-        )
-        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            FileProvider.getUriForFile(
-                requireContext(),
-                "${requireContext().packageName}.fileprovider",
-                file
-            )
-        } else {
-            Uri.fromFile(file)
-        }
-
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !requireContext().packageManager.canRequestPackageInstalls()) {
-            startActivityForResult(
-                Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).setData(Uri.parse("package:${requireContext().packageName}")),
-                REQUEST_INSTALL_PERMISSION
-            )
-        } else {
-            startActivity(intent)
-        }
+    private fun showUnknownSourcesRationaleDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.unknown_sources_permission_title)
+            .setMessage(R.string.unknown_sources_permission_message)
+            .setPositiveButton(R.string.grant_permission) { _, _ ->
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    "package:${requireContext().packageName}".toUri()
+                )
+                installPermissionLauncher.launch(intent)
+            }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                showManualInstallMessage()
+            }
+            .show()
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_INSTALL_PERMISSION && resultCode == android.app.Activity.RESULT_OK) {
-            installUpdate()
-        }
+    private fun showManualInstallMessage() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.unknown_sources_permission_title)
+            .setMessage(R.string.install_manual_download_message)
+            .setPositiveButton(R.string.download_apk) { _, _ ->
+                startDownloadOnly()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun startDownloadAndInstall() {
+        shouldInstallAfterDownload = true
+        viewModel.downloadAppApk()
+    }
+
+    private fun startDownloadOnly() {
+        shouldInstallAfterDownload = false
+        viewModel.downloadAppApk()
+    }
+
+    private fun showApkDownloadedMessage() {
+        if (_binding == null) return
+        Snackbar.make(
+            binding.root,
+            getString(R.string.apk_downloaded_to_downloads),
+            Snackbar.LENGTH_LONG
+        ).show()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            context?.unregisterReceiver(downloadCompleteReceiver)
-        } catch (e: Exception) {
-            Log.e("UpdatesFragment", "Error unregistering receiver", e)
-        }
         _binding = null
-    }
-
-    companion object {
-        private const val REQUEST_INSTALL_PERMISSION = 1001
     }
 }
