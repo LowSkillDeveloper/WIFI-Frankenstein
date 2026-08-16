@@ -317,11 +317,11 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
             )
         }
             ?.let { Regex("""(\d+)""").find(it)?.groupValues?.get(1)?.toIntOrNull() } ?: 0
-        val hasValidData = lines.any {
-            it.contains("WPA01", ignoreCase = true) || it.contains(
-                "WPA02",
-                ignoreCase = true
-            )
+        val hasValidData = lines.any { line ->
+            val t = line.trim()
+            t.startsWith("WPA*01\t") || t.startsWith("WPA*02\t") || t.startsWith("WPA*03\t") ||
+                    t.startsWith("WPA01\t") || t.startsWith("WPA02\t") || t.startsWith("WPA03\t") ||
+                    t.contains("WPA*01*") || t.contains("WPA*02*") || t.contains("WPA*03*")
         }
 
         return HcxpcapngtoolResult(
