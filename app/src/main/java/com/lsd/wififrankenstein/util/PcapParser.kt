@@ -58,11 +58,17 @@ class PcapParser {
         private const val TAG = "PcapParser"
         private const val PCAP_MAGIC = 0xa1b2c3d4L
         private const val PCAP_MAGIC_SWAPPED = 0xd4c3b2a1L
+        private const val PCAP_MAGIC_NANO = 0x1a2b3c4dL
+        private const val PCAP_MAGIC_NANO_SWAPPED = 0x4d3c2b1aL
         private const val PCAPNG_MAGIC = 0x0a0d0d0aL
 
         private const val DLT_IEEE802_11 = 105
+        private const val DLT_PRISM_HEADER = 119
         private const val DLT_IEEE802_11_RADIO = 127
+        private const val DLT_IEEE802_11_RADIO_AVS = 163
         private const val DLT_PPI = 192
+
+        private const val MAX_PCAP_INCL_LEN = 1 shl 20
 
         private const val BLOCK_SHB = 0x0a0d0d0a
         private const val BLOCK_IDB = 0x00000001
@@ -110,6 +116,45 @@ class PcapParser {
         private val FORMATS = setOf("cap", "pcap", "pcapng")
     }
 
+    private class PcapRecordReader(
+        private val data: ByteArray,
+        private val i32: (Int) -> Int
+    ) {
+        private var offset = 24
+
+        private fun isPlausibleRecord(off: Int): Boolean {
+            if (off < 0 || off + 16 > data.size) return false
+            val incl = i32(off + 8)
+            return incl > 0 && incl <= MAX_PCAP_INCL_LEN && off + 16 + incl <= data.size
+        }
+
+        fun nextPacket(): ByteArray? {
+            while (offset + 16 <= data.size) {
+                val incl = i32(offset + 8)
+                if (incl > 0 && incl <= MAX_PCAP_INCL_LEN && offset + 16 + incl <= data.size) {
+                    val packet = data.copyOfRange(offset + 16, offset + 16 + incl)
+                    val rawNext = offset + 16 + incl
+                    val paddedNext = (rawNext + 3) / 4 * 4
+                    offset = if (paddedNext != rawNext &&
+                        !isPlausibleRecord(rawNext) && isPlausibleRecord(paddedNext)
+                    ) {
+                        paddedNext
+                    } else {
+                        rawNext
+                    }
+                    return packet
+                }
+                val padded = (offset + 3) / 4 * 4
+                if (padded != offset && isPlausibleRecord(padded)) {
+                    offset = padded
+                    continue
+                }
+                offset++
+            }
+            return null
+        }
+    }
+
     private data class EapolMessage(
         val messageNum: Int,
         val bssid: String,
@@ -141,7 +186,9 @@ class PcapParser {
             Log.w(TAG, "canParse: read error", e); return false
         }
         val ok =
-            magic == PCAP_MAGIC.toInt() || magic == PCAP_MAGIC_SWAPPED.toInt() || magic == PCAPNG_MAGIC.toInt()
+            magic == PCAP_MAGIC.toInt() || magic == PCAP_MAGIC_SWAPPED.toInt() ||
+            magic == PCAP_MAGIC_NANO.toInt() || magic == PCAP_MAGIC_NANO_SWAPPED.toInt() ||
+            magic == PCAPNG_MAGIC.toInt()
         Log.d(TAG, "canParse: $file magic=0x%08x result=$ok".format(magic))
         return ok
     }
@@ -169,8 +216,10 @@ class PcapParser {
         if (data.size < 4) return emptyList()
         val magic = data.toInt32LE(0)
         return when {
-            magic == PCAP_MAGIC.toInt() -> parsePcap(data, false)
-            magic == PCAP_MAGIC_SWAPPED.toInt() -> parsePcap(data, true)
+            magic == PCAP_MAGIC.toInt() || magic == PCAP_MAGIC_NANO.toInt() -> parsePcap(data, false)
+            magic == PCAP_MAGIC_SWAPPED.toInt() || magic == PCAP_MAGIC_NANO_SWAPPED.toInt() ->
+                parsePcap(data, true)
+
             magic == PCAPNG_MAGIC.toInt() -> parsePcapng(data)
             else -> {
                 Log.w(TAG, "  unknown magic")
@@ -192,19 +241,17 @@ class PcapParser {
         if (data.size < 4) return emptyMap()
         val magic = data.toInt32LE(0)
         val handshakes = when {
-            magic == PCAP_MAGIC.toInt() || magic == PCAP_MAGIC_SWAPPED.toInt() -> {
-                val swapped = magic != PCAP_MAGIC.toInt()
-                val linktype = data.toInt32LE(20)
-                var offset = 24
-                while (offset + 16 <= data.size) {
-                    val inclLen = data.toInt32LE(offset + 8)
-                    if (inclLen <= 0 || offset + 16 + inclLen > data.size) break
-                    processPacket(
-                        data.copyOfRange(offset + 16, offset + 16 + inclLen),
-                        linktype,
-                        ctx
-                    )
-                    offset += 16 + inclLen; offset = (offset + 3) / 4 * 4
+            magic == PCAP_MAGIC.toInt() || magic == PCAP_MAGIC_SWAPPED.toInt() ||
+            magic == PCAP_MAGIC_NANO.toInt() || magic == PCAP_MAGIC_NANO_SWAPPED.toInt() -> {
+                val swapped = magic == PCAP_MAGIC_SWAPPED.toInt() ||
+                        magic == PCAP_MAGIC_NANO_SWAPPED.toInt()
+                val i32 =
+                    if (swapped) { o: Int -> data.toInt32BE(o) } else { o: Int -> data.toInt32LE(o) }
+                val linktype = i32(20)
+                val reader = PcapRecordReader(data, i32)
+                while (true) {
+                    val packetData = reader.nextPacket() ?: break
+                    processPacket(packetData, linktype, ctx)
                 }
                 ctx.records
             }
@@ -330,15 +377,11 @@ class PcapParser {
             frameCounts = mutableMapOf()
         )
 
-        var offset = 24
         var packetCount = 0
-        while (offset + 16 <= data.size) {
-            val inclLen = i32(offset + 8)
-            if (inclLen <= 0 || offset + 16 + inclLen > data.size) break
-            val packetData = data.copyOfRange(offset + 16, offset + 16 + inclLen)
+        val reader = PcapRecordReader(data, i32)
+        while (true) {
+            val packetData = reader.nextPacket() ?: break
             processPacket(packetData, linktype, ctx)
-            offset += 16 + inclLen
-            offset = (offset + 3) / 4 * 4
             packetCount++
         }
         pairMessages(ctx.eapolMessages, ctx.records, ctx.essidMap)
@@ -478,22 +521,65 @@ class PcapParser {
         var radiotapRssi: Int? = null
         var radiotapChannel: Int? = null
 
-        if (linktype == DLT_IEEE802_11_RADIO) {
-            if (offset + 8 > packet.size) {
-                Log.w(TAG, "  processPacket: radiotap header truncated (${packet.size}B)")
-                return
+        when (linktype) {
+            DLT_IEEE802_11_RADIO -> {
+                if (offset + 8 > packet.size) {
+                    Log.w(TAG, "  processPacket: radiotap header truncated (${packet.size}B)")
+                    return
+                }
+                val radiotapLen =
+                    ((packet[offset + 3].toInt() and 0xFF) shl 8) or (packet[offset + 2].toInt() and 0xFF)
+                if (radiotapLen < 8 || offset + radiotapLen > packet.size) {
+                    Log.w(TAG, "  processPacket: bad radiotapLen=$radiotapLen (packet=${packet.size})")
+                    return
+                }
+                val (flags, channel, rssi) = parseRadiotap(packet, offset)
+                fcsPresent = (flags and 0x10) != 0
+                radiotapChannel = channel
+                radiotapRssi = rssi
+                offset += radiotapLen
             }
-            val radiotapLen =
-                ((packet[offset + 3].toInt() and 0xFF) shl 8) or (packet[offset + 2].toInt() and 0xFF)
-            if (radiotapLen < 8 || offset + radiotapLen > packet.size) {
-                Log.w(TAG, "  processPacket: bad radiotapLen=$radiotapLen (packet=${packet.size})")
-                return
+
+            DLT_PPI -> {
+                if (offset + 8 > packet.size) {
+                    Log.w(TAG, "  processPacket: PPI header truncated (${packet.size}B)")
+                    return
+                }
+                val ppiLen =
+                    ((packet[offset + 3].toInt() and 0xFF) shl 8) or (packet[offset + 2].toInt() and 0xFF)
+                if (ppiLen < 8 || offset + ppiLen > packet.size) {
+                    Log.w(TAG, "  processPacket: bad PPI len=$ppiLen (packet=${packet.size})")
+                    return
+                }
+                offset += ppiLen
             }
-            val (flags, channel, rssi) = parseRadiotap(packet, offset)
-            fcsPresent = (flags and 0x10) != 0
-            radiotapChannel = channel
-            radiotapRssi = rssi
-            offset += radiotapLen
+
+            DLT_IEEE802_11_RADIO_AVS -> {
+                if (offset + 8 > packet.size) {
+                    Log.w(TAG, "  processPacket: AVS header truncated (${packet.size}B)")
+                    return
+                }
+                val avsLen = packet.toInt32LE(offset + 4)
+                if (avsLen < 8 || offset + avsLen > packet.size) {
+                    Log.w(TAG, "  processPacket: bad AVS len=$avsLen (packet=${packet.size})")
+                    return
+                }
+                offset += avsLen
+            }
+
+            DLT_PRISM_HEADER -> {
+                if (offset + 8 > packet.size) {
+                    Log.w(TAG, "  processPacket: Prism header truncated (${packet.size}B)")
+                    return
+                }
+                var prismLen = packet.toInt32LE(offset + 4)
+                if (prismLen < 8 || offset + prismLen > packet.size) prismLen = 144
+                if (offset + prismLen > packet.size) {
+                    Log.w(TAG, "  processPacket: bad Prism len=$prismLen (packet=${packet.size})")
+                    return
+                }
+                offset += prismLen
+            }
         }
 
         var frameEnd = packet.size
@@ -737,7 +823,8 @@ class PcapParser {
         } else null
 
         val keyDataEnd = (off + wpaDataLen).coerceAtMost(packet.size)
-        val eapolKeyData = packet.copyOfRange(eapolStart, keyDataEnd).copyOf()
+        val fullEapolEnd = (eapolStart + 4 + eapolLen).coerceAtMost(packet.size)
+        val eapolKeyData = packet.copyOfRange(eapolStart, maxOf(fullEapolEnd, keyDataEnd)).copyOf()
         val micOffInEapol = 4 + 77
         if (micOffInEapol + 16 <= eapolKeyData.size) {
             java.util.Arrays.fill(eapolKeyData, micOffInEapol, micOffInEapol + 16, 0.toByte())
@@ -787,8 +874,12 @@ class PcapParser {
             for ((rc, msgs) in replayGroups) {
                 val m1 = msgs.firstOrNull { it.messageNum == 1 }
                 val m2 = msgs.firstOrNull { it.messageNum == 2 }
-                val m3 = msgs.firstOrNull { it.messageNum == 3 }
-                val m4 = msgs.firstOrNull { it.messageNum == 4 }
+                val m3 = msgs.firstOrNull { it.messageNum == 3 } ?: replayGroups[rc + 1]
+                    ?.firstOrNull { it.messageNum == 3 } ?: replayGroups[rc - 1]
+                    ?.firstOrNull { it.messageNum == 3 }
+                val m4 = msgs.firstOrNull { it.messageNum == 4 } ?: replayGroups[rc + 1]
+                    ?.firstOrNull { it.messageNum == 4 } ?: replayGroups[rc - 1]
+                    ?.firstOrNull { it.messageNum == 4 }
                 Log.d(
                     TAG,
                     "  replay=0x%x msg=[m1=${m1 != null} m2=${m2 != null} m3=${m3 != null} m4=${m4 != null}] $bssid <-> $clientMac".format(
@@ -808,11 +899,11 @@ class PcapParser {
                 }
 
                 if (m1 != null && m2 != null) {
-                    val m1Eapol = bytesToHex(m1.eapolKeyData)
+                    val m2Eapol = bytesToHex(m2.eapolKeyData)
                     Log.d(
                         TAG,
                         "    → M1+M2 pair (0x80) anonce=${m1.nonce.take(16)}... eapol=${
-                            m1Eapol.take(32)
+                            m2Eapol.take(32)
                         }... keyver=${m1.keyver} pmkid=${m1.pmkid != null}"
                     )
                     m12++
@@ -821,7 +912,7 @@ class PcapParser {
                             bssid = bssid, clientMac = clientMac, essid = essid,
                             anonce = m1.nonce, snonce = m2.nonce,
                             keymic = m2.keymic ?: "00".repeat(16),
-                            eapol = m1Eapol, messagePair = 0x80,
+                            eapol = m2Eapol, messagePair = 0x80,
                             keyver = m1.keyver, hasBeacon = essidMap.containsKey(bssid),
                             pmkid = m1.pmkid
                         )
@@ -829,11 +920,11 @@ class PcapParser {
                 }
 
                 if (m3 != null && m4 != null) {
-                    val m3Eapol = bytesToHex(m3.eapolKeyData)
+                    val m4Eapol = bytesToHex(m4.eapolKeyData)
                     Log.d(
                         TAG,
                         "    → M3+M4 pair (0x85) anonce=${m3.nonce.take(16)}... eapol=${
-                            m3Eapol.take(32)
+                            m4Eapol.take(32)
                         }... keyver=${m3.keyver}"
                     )
                     m34++
@@ -842,18 +933,18 @@ class PcapParser {
                             bssid = bssid, clientMac = clientMac, essid = essid,
                             anonce = m3.nonce, snonce = m4.nonce,
                             keymic = m4.keymic ?: "00".repeat(16),
-                            eapol = m3Eapol, messagePair = 0x85,
+                            eapol = m4Eapol, messagePair = 0x85,
                             keyver = m3.keyver, hasBeacon = essidMap.containsKey(bssid)
                         )
                     )
                 }
 
                 if (m1 != null && m4 != null && m2 == null) {
-                    val m1Eapol = bytesToHex(m1.eapolKeyData)
+                    val m4Eapol = bytesToHex(m4.eapolKeyData)
                     Log.d(
                         TAG,
                         "    → M1+M4 pair (0x81) anonce=${m1.nonce.take(16)}... eapol=${
-                            m1Eapol.take(32)
+                            m4Eapol.take(32)
                         }..."
                     )
                     m14++
@@ -862,7 +953,7 @@ class PcapParser {
                             bssid = bssid, clientMac = clientMac, essid = essid,
                             anonce = m1.nonce, snonce = m4.nonce,
                             keymic = m4.keymic ?: "00".repeat(16),
-                            eapol = m1Eapol, messagePair = 0x81,
+                            eapol = m4Eapol, messagePair = 0x81,
                             keyver = m1.keyver, hasBeacon = essidMap.containsKey(bssid)
                         )
                     )

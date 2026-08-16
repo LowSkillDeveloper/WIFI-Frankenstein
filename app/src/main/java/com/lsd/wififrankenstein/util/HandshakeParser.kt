@@ -442,12 +442,12 @@ data class HandshakeHash(
                     HandshakeFormat.PCAPNG
                 }
 
-                bytes.contentEquals(pcapMagic) -> {
+                bytes.contentEquals(pcapMagic) || bytes.contentEquals(pcapNanoMagic) -> {
                     Log.d(TAG, "detectFileFormat: PCAP ($magicHex)")
                     HandshakeFormat.PCAP
                 }
 
-                bytes.contentEquals(pcapBigEndianMagic) -> {
+                bytes.contentEquals(pcapBigEndianMagic) || bytes.contentEquals(pcapNanoBigEndianMagic) -> {
                     Log.d(TAG, "detectFileFormat: PCAP big-endian ($magicHex)")
                     HandshakeFormat.PCAP
                 }
@@ -516,6 +516,9 @@ enum class HandshakeFormat {
 private val pcapMagic = byteArrayOf(0xa1.toByte(), 0xb2.toByte(), 0xc3.toByte(), 0xd4.toByte())
 private val pcapBigEndianMagic =
     byteArrayOf(0xd4.toByte(), 0xc3.toByte(), 0xb2.toByte(), 0xa1.toByte())
+private val pcapNanoMagic = byteArrayOf(0x4d.toByte(), 0x3c.toByte(), 0x2b.toByte(), 0x1a.toByte())
+private val pcapNanoBigEndianMagic =
+    byteArrayOf(0x1a.toByte(), 0x2b.toByte(), 0x3c.toByte(), 0x4d.toByte())
 private val pcapNgMagic = byteArrayOf(0x0a.toByte(), 0x0d.toByte(), 0x0d.toByte(), 0x0a.toByte())
 
 private fun formatMac(mac: String): String {
