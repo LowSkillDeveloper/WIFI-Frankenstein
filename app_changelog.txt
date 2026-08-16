@@ -1,3 +1,12 @@
+#2.2
+Fixed handshake parsing
+Fixed adding database via SmartLinkDb
+Fixed menu display when changing root or chroot availability status
+Fixed the application update system on first launch
+Fixed display data on the map and database search when using databases downloaded via SmartLinkDb
+Added error display when downloading via SmartLinkDb
+Recommended user databases feature is now available!
+
 #2.1
 Fixed detection of chroot availability on the device
 Fixed parsing of capture files (`.cap`/`.pcap`), more valid files are now recognized
