@@ -54,6 +54,7 @@ import javax.net.ssl.X509TrustManager
 data class SmartLinkDbInfo(
     val id: String,
     val name: String,
+    val description: String? = null,
     val downloadUrls: List<String> = emptyList(),
     val version: String,
     val type: String? = null,
@@ -192,6 +193,7 @@ fun parseSmartLinkDbObject(jsonObject: JSONObject): SmartLinkDbInfo {
     return SmartLinkDbInfo(
         id = jsonObject.getString("id"),
         name = jsonObject.getString("name"),
+        description = jsonObject.optString("description", null)?.takeIf { it.isNotBlank() },
         downloadUrls = parseDownloadUrls(jsonObject),
         version = jsonObject.getString("version"),
         type = jsonObject.optString("type", null)?.takeIf { it.isNotBlank() },
