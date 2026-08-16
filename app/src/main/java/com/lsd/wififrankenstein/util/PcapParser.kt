@@ -872,58 +872,71 @@ class PcapParser {
             val essid = essidMap[bssid]
 
             for ((rc, msgs) in replayGroups) {
-                val m1 = msgs.firstOrNull { it.messageNum == 1 }
-                val m2 = msgs.firstOrNull { it.messageNum == 2 }
-                val m3 = msgs.firstOrNull { it.messageNum == 3 } ?: replayGroups[rc + 1]
-                    ?.firstOrNull { it.messageNum == 3 } ?: replayGroups[rc - 1]
-                    ?.firstOrNull { it.messageNum == 3 }
-                val m4 = msgs.firstOrNull { it.messageNum == 4 } ?: replayGroups[rc + 1]
-                    ?.firstOrNull { it.messageNum == 4 } ?: replayGroups[rc - 1]
-                    ?.firstOrNull { it.messageNum == 4 }
+                val m1s = msgs.filter { it.messageNum == 1 }
+                val m2s = msgs.filter { it.messageNum == 2 }
+                val m3 = msgs.firstOrNull { it.messageNum == 3 }
+                    ?: replayGroups[rc + 1]?.firstOrNull { it.messageNum == 3 }
+                    ?: replayGroups[rc - 1]?.firstOrNull { it.messageNum == 3 }
+                val m4 = msgs.firstOrNull { it.messageNum == 4 }
+                    ?: replayGroups[rc + 1]?.firstOrNull { it.messageNum == 4 }
+                    ?: replayGroups[rc - 1]?.firstOrNull { it.messageNum == 4 }
                 Log.d(
                     TAG,
-                    "  replay=0x%x msg=[m1=${m1 != null} m2=${m2 != null} m3=${m3 != null} m4=${m4 != null}] $bssid <-> $clientMac".format(
+                    "  replay=0x%x msg=[m1=${m1s.isNotEmpty()} m2=${m2s.isNotEmpty()} m3=${m3 != null} m4=${m4 != null}] $bssid <-> $clientMac".format(
                         rc
                     )
                 )
 
-                if (m1?.pmkid != null && !records.any { it.bssid == bssid && it.clientMac == clientMac && it.pmkid == m1.pmkid }) {
-                    Log.d(TAG, "    → PMKID standalone: ${m1.pmkid}")
+                val m1WithPmkid = m1s.firstOrNull { it.pmkid != null }
+                if (m1WithPmkid?.pmkid != null &&
+                    !records.any { it.bssid == bssid && it.clientMac == clientMac && it.pmkid == m1WithPmkid.pmkid }
+                ) {
+                    Log.d(TAG, "    → PMKID standalone: ${m1WithPmkid.pmkid}")
                     pmkidStandalone++
                     records.add(
                         ParsedHandshake(
                             bssid = bssid, clientMac = clientMac, essid = essid,
-                            pmkid = m1.pmkid, hasBeacon = essidMap.containsKey(bssid)
+                            pmkid = m1WithPmkid.pmkid, hasBeacon = essidMap.containsKey(bssid)
                         )
                     )
                 }
 
-                if (m1 != null && m2 != null) {
-                    val m2Eapol = bytesToHex(m2.eapolKeyData)
-                    Log.d(
-                        TAG,
-                        "    → M1+M2 pair (0x80) anonce=${m1.nonce.take(16)}... eapol=${
-                            m2Eapol.take(32)
-                        }... keyver=${m1.keyver} pmkid=${m1.pmkid != null}"
-                    )
-                    m12++
-                    records.add(
-                        ParsedHandshake(
-                            bssid = bssid, clientMac = clientMac, essid = essid,
-                            anonce = m1.nonce, snonce = m2.nonce,
-                            keymic = m2.keymic ?: "00".repeat(16),
-                            eapol = m2Eapol, messagePair = 0x80,
-                            keyver = m1.keyver, hasBeacon = essidMap.containsKey(bssid),
-                            pmkid = m1.pmkid
+                val m1Positions = msgs.mapIndexedNotNull { i, m ->
+                    if (m.messageNum == 1) i to m else null
+                }
+                for ((i, msg) in msgs.withIndex()) {
+                    if (msg.messageNum != 2) continue
+                    val lastM1 = m1Positions.lastOrNull { it.first < i }?.second
+                    val nextM1 = m1Positions.firstOrNull { it.first > i }?.second
+                    val partners = listOfNotNull(lastM1, nextM1).distinctBy { it.nonce }
+                    for (m1 in partners) {
+                        val m2Eapol = bytesToHex(msg.eapolKeyData)
+                        Log.d(
+                            TAG,
+                            "    → M1+M2 pair (0x00) anonce=${m1.nonce.take(16)}... eapol=${
+                                m2Eapol.take(32)
+                            }... keyver=${m1.keyver} pmkid=${m1.pmkid != null}"
                         )
-                    )
+                        m12++
+                        records.add(
+                            ParsedHandshake(
+                                bssid = bssid, clientMac = clientMac, essid = essid,
+                                anonce = m1.nonce, snonce = msg.nonce,
+                                keymic = msg.keymic ?: "00".repeat(16),
+                                eapol = m2Eapol, messagePair = 0x00,
+                                keyver = m1.keyver, hasBeacon = essidMap.containsKey(bssid),
+                                pmkid = m1.pmkid
+                            )
+                        )
+                    }
                 }
 
-                if (m3 != null && m4 != null) {
+                val m4HasNonce = m4 != null && m4.nonce.any { it != '0' }
+                if (m3 != null && m4HasNonce) {
                     val m4Eapol = bytesToHex(m4.eapolKeyData)
                     Log.d(
                         TAG,
-                        "    → M3+M4 pair (0x85) anonce=${m3.nonce.take(16)}... eapol=${
+                        "    → M3+M4 pair (0x05) anonce=${m3.nonce.take(16)}... eapol=${
                             m4Eapol.take(32)
                         }... keyver=${m3.keyver}"
                     )
@@ -933,17 +946,18 @@ class PcapParser {
                             bssid = bssid, clientMac = clientMac, essid = essid,
                             anonce = m3.nonce, snonce = m4.nonce,
                             keymic = m4.keymic ?: "00".repeat(16),
-                            eapol = m4Eapol, messagePair = 0x85,
+                            eapol = m4Eapol, messagePair = 0x05,
                             keyver = m3.keyver, hasBeacon = essidMap.containsKey(bssid)
                         )
                     )
                 }
 
-                if (m1 != null && m4 != null && m2 == null) {
+                val m1First = m1s.firstOrNull()
+                if (m1First != null && m4HasNonce && m2s.isEmpty()) {
                     val m4Eapol = bytesToHex(m4.eapolKeyData)
                     Log.d(
                         TAG,
-                        "    → M1+M4 pair (0x81) anonce=${m1.nonce.take(16)}... eapol=${
+                        "    → M1+M4 pair (0x01) anonce=${m1First.nonce.take(16)}... eapol=${
                             m4Eapol.take(32)
                         }..."
                     )
@@ -951,30 +965,31 @@ class PcapParser {
                     records.add(
                         ParsedHandshake(
                             bssid = bssid, clientMac = clientMac, essid = essid,
-                            anonce = m1.nonce, snonce = m4.nonce,
+                            anonce = m1First.nonce, snonce = m4.nonce,
                             keymic = m4.keymic ?: "00".repeat(16),
-                            eapol = m4Eapol, messagePair = 0x81,
-                            keyver = m1.keyver, hasBeacon = essidMap.containsKey(bssid)
+                            eapol = m4Eapol, messagePair = 0x01,
+                            keyver = m1First.keyver, hasBeacon = essidMap.containsKey(bssid)
                         )
                     )
                 }
 
-                if (m2 != null && m3 != null && m1 == null && m4 == null) {
-                    val m2Eapol = bytesToHex(m2.eapolKeyData)
+                val m2First = m2s.firstOrNull()
+                if (m2First != null && m3 != null && m1s.isEmpty() && m4 == null) {
+                    val m2Eapol = bytesToHex(m2First.eapolKeyData)
                     Log.d(
                         TAG,
-                        "    → M2+M3 pair (0x82) anonce=${m3.nonce.take(16)}... snonce=${
-                            m2.nonce.take(16)
+                        "    → M2+M3 pair (0x02) anonce=${m3.nonce.take(16)}... snonce=${
+                            m2First.nonce.take(16)
                         }..."
                     )
                     m23++
                     records.add(
                         ParsedHandshake(
                             bssid = bssid, clientMac = clientMac, essid = essid,
-                            anonce = m3.nonce, snonce = m2.nonce,
-                            keymic = m2.keymic ?: "00".repeat(16),
-                            eapol = m2Eapol, messagePair = 0x82,
-                            keyver = m2.keyver, hasBeacon = essidMap.containsKey(bssid)
+                            anonce = m3.nonce, snonce = m2First.nonce,
+                            keymic = m2First.keymic ?: "00".repeat(16),
+                            eapol = m2Eapol, messagePair = 0x02,
+                            keyver = m2First.keyver, hasBeacon = essidMap.containsKey(bssid)
                         )
                     )
                 }

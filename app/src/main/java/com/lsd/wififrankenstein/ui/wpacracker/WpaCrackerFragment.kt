@@ -91,11 +91,12 @@ class WpaCrackerFragment : Fragment() {
         setupObservers()
 
         val hash22000 = arguments?.getString("hash22000") ?: ""
+        val fileName = arguments?.getString("fileName")
         val wordlistType = arguments?.getInt("wordlistType", -1) ?: -1
         val wordlistValue = arguments?.getString("wordlistValue") ?: ""
 
         if (hash22000.isNotBlank()) {
-            viewModel.setHandshakeLine(hash22000)
+            viewModel.setHandshakeLine(hash22000, fileName)
             if (wordlistType >= 0) {
                 handleAutoWordlist(wordlistType, wordlistValue)
             }
@@ -590,7 +591,10 @@ class WpaCrackerFragment : Fragment() {
         if (hashText != null) {
             val lines = hashText.lines().map { it.trim() }.filter { it.isNotBlank() }
             val parsed = lines.mapNotNull { HandshakeHash.parse22000Line(it) }
-            if (parsed.isNotEmpty()) return parsed
+            val hasLegacyMp = parsed.any {
+                it.type == HandshakeType.EAPOL && it.messagePair in setOf(0x80, 0x81, 0x82, 0x85)
+            }
+            if (!hasLegacyMp && parsed.isNotEmpty()) return parsed
         }
 
         if (!item.fileExists) return emptyList()
@@ -600,7 +604,9 @@ class WpaCrackerFragment : Fragment() {
             val file = File(hostPath, item.fileName)
             if (file.exists()) {
                 Log.d("WpaCrackerFrag", "Parsing handshake file: ${file.absolutePath}")
-                return HandshakeParser.parseFile(file)
+                return HandshakeParser.parseFile(file).filterNot {
+                    it.type == HandshakeType.EAPOL && it.messagePair in setOf(0x80, 0x81, 0x82, 0x85)
+                }
             }
         } catch (e: Exception) {
             Log.e("WpaCrackerFrag", "Failed to parse handshake file: ${item.fileName}", e)

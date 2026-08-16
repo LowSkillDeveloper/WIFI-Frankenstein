@@ -61,6 +61,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
 
     suspend fun crackFromWordlist(
         handshakeHash: HandshakeHash,
+        extraHashes: List<HandshakeHash> = emptyList(),
         wordlistUri: Uri,
         threadCount: Int = Runtime.getRuntime().availableProcessors().coerceAtLeast(1),
         startOffset: Long = 0,
@@ -70,6 +71,8 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         paused = false
         val startTime = System.currentTimeMillis()
 
+        val allHashes = (listOf(handshakeHash) + extraHashes).distinctBy { it.dedupKey() }
+
         val totalPasswords = countLines(wordlistUri)
         var totalAttempts = 0L
         var foundPassword: String? = null
@@ -77,7 +80,10 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         val speedWindow = mutableListOf<Pair<Long, Long>>()
 
         Log.d(TAG, "=== OFFLINE BRUTE FORCE START ===")
-        Log.d(TAG, "Handshake: ${handshakeHash.essid} / ${handshakeHash.macAp}")
+        Log.d(
+            TAG,
+            "Handshake: ${handshakeHash.essid} / ${handshakeHash.macAp} (${allHashes.size} candidate hash(es))"
+        )
         Log.d(TAG, "Type: ${handshakeHash.type}, Keyver: ${handshakeHash.keyver}")
         Log.d(
             TAG,
@@ -126,7 +132,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                                 launch {
                                     crackChunk(
                                         chunk,
-                                        handshakeHash,
+                                        allHashes,
                                         progressChannel,
                                         resultChannel,
                                         fileOffset
@@ -140,7 +146,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                         launch {
                             crackChunk(
                                 batch,
-                                handshakeHash,
+                                allHashes,
                                 progressChannel,
                                 resultChannel,
                                 fileOffset
@@ -245,111 +251,106 @@ class PskOfflineBruteForceRunner(private val context: Context) {
 
     private suspend fun crackChunk(
         passwords: List<String>,
-        hash: HandshakeHash,
+        hashes: List<HandshakeHash>,
         progressChannel: Channel<OfflineProgress>,
         resultChannel: Channel<String?>,
         chunkOffset: Long
     ) {
         try {
+            if (hashes.isEmpty() || passwords.isEmpty()) {
+                progressChannel.send(
+                    OfflineProgress(
+                        passwords.firstOrNull() ?: "?",
+                        0,
+                        0,
+                        0.0,
+                        0,
+                        0,
+                        chunkOffset
+                    )
+                )
+                return
+            }
+
             Log.d(
                 TAG,
                 "chunk start: size=${passwords.size}, first=${passwords.firstOrNull()?.take(20)}"
             )
-            if (hash.anonce == null) Log.w(
-                TAG,
-                "  WARN: anonce is null, tryPassword will skip PBKDF2!"
-            )
-            if (hash.eapol == null) Log.w(
-                TAG,
-                "  WARN: eapol is null, tryPassword will skip PBKDF2!"
-            )
 
-            val useNative = NativeCracker.isAvailable && hash.anonce != null && hash.eapol != null
+            val nativeHashes = hashes.filter { h ->
+                NativeCracker.isAvailable && h.anonce != null && h.eapol != null &&
+                    (h.keyver ?: WpaCracker.extractKeyver(WpaCrypto.hexToBytes(h.eapol))) in 1..3
+            }
+            val fallbackHashes = hashes.filter { h -> nativeHashes.none { it === h } }
             val miniBatchSize = NativeCracker.BATCH_SIZE
+
             var chunkAttempts = 0
             var lastPassword = ""
 
-            if (useNative) {
-                val typeCode = when (hash.type) {
-                    HandshakeType.PMKID -> 1
-                    HandshakeType.EAPOL -> 2
-                    HandshakeType.PMKID_EAPOL -> 3
-                }
-                val kv = hash.keyver ?: WpaCracker.extractKeyver(
-                    WpaCrypto.hexToBytes(hash.eapol)
-                )
-                if (kv in 1..3) {
-                    val macApHex = hash.macAp.replace(":", "").lowercase()
-                    val macStaHex = hash.macSta.replace(":", "").lowercase()
-                    val anonceHex = hash.anonce.lowercase()
-                    val eapolHex = hash.eapol.lowercase()
-                    val micHex = hash.pmkidOrMic.lowercase()
-
-                    for (i in passwords.indices step miniBatchSize) {
-                        if (cancelled) break
-                        while (paused && !cancelled) {
-                            delay(PAUSE_POLL_MS)
-                        }
-                        if (cancelled) break
-                        val end = minOf(i + miniBatchSize, passwords.size)
-                        val batch = passwords.subList(i, end).toTypedArray()
-                        val idx = NativeCracker.crackBatchHex(
-                            batch, hash.essid,
-                            macApHex, macStaHex, anonceHex, eapolHex, micHex, kv, typeCode
-                        )
-                        val batchSize = end - i
-                        chunkAttempts += batchSize
-                        lastPassword = batch.last()
-                        if (idx >= 0) {
-                            val found = batch[idx]
-                            Log.d(TAG, "!!! FOUND PASSWORD (native): $found !!!")
-                            resultChannel.send(found)
-                            cancelled = true
-                            return@crackChunk
-                        }
-                        progressChannel.send(
-                            OfflineProgress(
-                                lastPassword,
-                                batchSize.toLong(),
-                                0,
-                                0.0,
-                                0,
-                                0,
-                                chunkOffset
-                            )
-                        )
-                    }
-                    Log.d(TAG, "chunk done: $chunkAttempts attempts, last=${lastPassword.take(20)}")
-                    return@crackChunk
-                } else {
-                    for (password in passwords) {
-                        if (cancelled) break
-                        while (paused && !cancelled) {
-                            delay(PAUSE_POLL_MS)
-                        }
-                        if (cancelled) break
-                        lastPassword = password
-                        chunkAttempts++
-                        val found = WpaCracker.tryPasswordAny(password, hash)
-                        if (found) {
-                            Log.d(TAG, "!!! FOUND PASSWORD: $found !!!")
-                            resultChannel.send(password)
-                            cancelled = true
-                            return@crackChunk
-                        }
-                    }
-                }
-            } else {
-                for (password in passwords) {
+            if (nativeHashes.isNotEmpty()) {
+                for (i in passwords.indices step miniBatchSize) {
                     if (cancelled) break
                     while (paused && !cancelled) {
                         delay(PAUSE_POLL_MS)
                     }
                     if (cancelled) break
-                    lastPassword = password
-                    chunkAttempts++
-                    val found = WpaCracker.tryPasswordAny(password, hash)
-                    if (found) {
+                    val end = minOf(i + miniBatchSize, passwords.size)
+                    val batch = passwords.subList(i, end).toTypedArray()
+                    var found: String? = null
+                    for (h in nativeHashes) {
+                        val typeCode = when (h.type) {
+                            HandshakeType.PMKID -> 1
+                            HandshakeType.EAPOL -> 2
+                            HandshakeType.PMKID_EAPOL -> 3
+                        }
+                        val kv = h.keyver ?: WpaCracker.extractKeyver(
+                            WpaCrypto.hexToBytes(h.eapol!!)
+                        )
+                        val idx = NativeCracker.crackBatchHex(
+                            batch, h.essid,
+                            h.macAp.replace(":", "").lowercase(),
+                            h.macSta.replace(":", "").lowercase(),
+                            h.anonce!!.lowercase(), h.eapol!!.lowercase(),
+                            h.pmkidOrMic.lowercase(), kv, typeCode
+                        )
+                        if (idx >= 0) {
+                            found = batch[idx]
+                            break
+                        }
+                    }
+                    val batchSize = end - i
+                    chunkAttempts += batchSize
+                    lastPassword = batch.last()
+                    if (found != null) {
+                        Log.d(TAG, "!!! FOUND PASSWORD (native): $found !!!")
+                        resultChannel.send(found)
+                        cancelled = true
+                        return@crackChunk
+                    }
+                    progressChannel.send(
+                        OfflineProgress(
+                            lastPassword,
+                            batchSize.toLong(),
+                            0,
+                            0.0,
+                            0,
+                            0,
+                            chunkOffset
+                        )
+                    )
+                }
+            }
+
+            for (password in passwords) {
+                if (cancelled) break
+                while (paused && !cancelled) {
+                    delay(PAUSE_POLL_MS)
+                }
+                if (cancelled) break
+                lastPassword = password
+                chunkAttempts++
+                for (h in fallbackHashes) {
+                    if (WpaCracker.tryPasswordAny(password, h)) {
                         Log.d(TAG, "!!! FOUND PASSWORD: $password !!!")
                         resultChannel.send(password)
                         cancelled = true
