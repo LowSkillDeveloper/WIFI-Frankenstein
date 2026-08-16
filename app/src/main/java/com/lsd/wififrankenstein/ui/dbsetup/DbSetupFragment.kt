@@ -211,10 +211,9 @@ class DbSetupFragment : Fragment() {
     }
 
     private fun processFileAsCustom(uri: Uri, directPath: String?) {
-        val cachedPath = viewModel.getCached3WiFiDbPath()
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             try {
-                viewModel.initializeSQLiteCustomHelper(uri, cachedPath ?: directPath)
+                viewModel.initializeSQLiteCustomHelper(uri, directPath)
                 val tableNames = viewModel.getCustomTableNames()
                 if (tableNames != null && tableNames.isNotEmpty()) {
                     val dbItem = DbItem(

@@ -690,20 +690,22 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
             DbType.SQLITE_FILE_P3WIFI, DbType.SMARTLINK_SQLITE_FILE_P3WIFI -> {
                 if (sqlite3WiFiHelper?.database?.isOpen != true) {
                     initializeSQLite3WiFiHelper(newItem.path.toUri(), newItem.directPath)
-                }
-                sqlite3WiFiHelper?.getCachedDbPath()?.let { cachedPath ->
-                    val updatedItem = newItem.copy(directPath = cachedPath)
-                    updateDbItem(updatedItem)
+                    sqlite3WiFiHelper?.getCachedDbPath()?.let { cachedPath ->
+                        if (cachedPath != newItem.directPath) {
+                            updateDbItem(newItem.copy(directPath = cachedPath))
+                        }
+                    }
                 }
             }
 
             DbType.SQLITE_FILE_CUSTOM, DbType.SMARTLINK_SQLITE_FILE_CUSTOM -> {
                 if (sqliteCustomHelper?.database?.isOpen != true) {
                     initializeSQLiteCustomHelper(newItem.path.toUri(), newItem.directPath)
-                }
-                sqliteCustomHelper?.getCachedDbPath()?.let { cachedPath ->
-                    val updatedItem = newItem.copy(directPath = cachedPath)
-                    updateDbItem(updatedItem)
+                    sqliteCustomHelper?.getCachedDbPath()?.let { cachedPath ->
+                        if (cachedPath != newItem.directPath) {
+                            updateDbItem(newItem.copy(directPath = cachedPath))
+                        }
+                    }
                 }
             }
 
@@ -1070,10 +1072,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         return sqlite3WiFiHelper?.getTableNames()
     }
 
-    fun getCached3WiFiDbPath(): String? {
-        return sqlite3WiFiHelper?.getCachedDbPath()
-    }
-
     @RequiresApi(Build.VERSION_CODES.R)
     fun hasStoragePermissions(): Boolean {
         val context = getApplication<Application>()
@@ -1327,6 +1325,22 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                 )
             ) continue
 
+            if (dbItem.dbType == DbType.SMARTLINK_SQLITE_FILE_P3WIFI ||
+                dbItem.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM
+            ) {
+                val expectedPath = getSmartLinkDbFilePath(dbItem)
+                if (expectedPath != null) {
+                    if (dbItem.directPath != expectedPath && File(expectedPath).exists()) {
+                        Log.d(
+                            "DbSetupViewModel",
+                            "Repairing directPath for ${dbItem.id}: ${dbItem.directPath} -> $expectedPath"
+                        )
+                        updatedList[i] = dbItem.copy(directPath = expectedPath)
+                    }
+                    continue
+                }
+            }
+
             if (!dbItem.directPath.isNullOrEmpty()) continue
 
             val cachedFile = getCachedDbFile(dbItem)
@@ -1343,6 +1357,12 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
             _dbList.value = updatedList
             saveDbList()
         }
+    }
+
+    private fun getSmartLinkDbFilePath(dbItem: DbItem): String? {
+        if (dbItem.idJson.isNullOrBlank() || dbItem.version.isNullOrBlank()) return null
+        return File(getApplication<Application>().filesDir, "${dbItem.idJson}_${dbItem.version}.db")
+            .absolutePath
     }
 
     private fun getCachedDbFile(dbItem: DbItem): File {
