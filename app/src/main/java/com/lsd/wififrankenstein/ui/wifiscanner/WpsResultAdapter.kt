@@ -34,7 +34,7 @@ class WpsResultAdapter : RecyclerView.Adapter<WpsResultAdapter.WpsResultViewHold
 
     override fun getItemCount() = results.size
 
-    inner class WpsResultViewHolder(private val binding: ItemWpsResultBinding) :
+    class WpsResultViewHolder(private val binding: ItemWpsResultBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(result: NetworkDatabaseResult) {

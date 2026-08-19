@@ -32,7 +32,7 @@ class WpaResultAdapter : RecyclerView.Adapter<WpaResultAdapter.WpaResultViewHold
 
     override fun getItemCount() = results.size
 
-    inner class WpaResultViewHolder(private val binding: ItemWpaResultBinding) :
+    class WpaResultViewHolder(private val binding: ItemWpaResultBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(result: NetworkDatabaseResult) {

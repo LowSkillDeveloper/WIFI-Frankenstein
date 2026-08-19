@@ -206,7 +206,7 @@ class BettercapMainFragment : Fragment() {
 
     private fun showSingleChannelDialog() {
         val names = ALL_CHANNELS.map { channelLabel(it) }.toTypedArray()
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.bc_select_channel_single)
             .setSingleChoiceItems(names, -1) { dialog, which ->
                 val ch = ALL_CHANNELS[which]
@@ -220,7 +220,7 @@ class BettercapMainFragment : Fragment() {
     private fun showMultiChannelDialog() {
         val names = ALL_CHANNELS.map { channelLabel(it) }.toTypedArray()
         val checked = BooleanArray(ALL_CHANNELS.size)
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.bc_select_channels_multi)
             .setMultiChoiceItems(names, checked) { _, which, isChecked ->
                 checked[which] = isChecked
@@ -246,7 +246,7 @@ class BettercapMainFragment : Fragment() {
             textSize = 14f
         }
         val msg = getString(R.string.bc_custom_channels_message)
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.bc_channel_custom)
             .setMessage(msg)
             .setView(input)

@@ -165,7 +165,7 @@ class DrawerMenuAdapter(
             if (modText != null) {
                 modificationView.text = modText
                 modificationView.setTextColor(
-                    androidx.core.content.ContextCompat.getColor(ctx, R.color.error_red)
+                    ContextCompat.getColor(ctx, R.color.error_red)
                 )
                 modificationView.visibility = View.VISIBLE
             } else {

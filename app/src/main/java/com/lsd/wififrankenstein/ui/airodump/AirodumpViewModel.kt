@@ -723,7 +723,7 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         }
         _isScanning.value = true
         _statusText.value = getApplication<Application>().getString(
-            com.lsd.wififrankenstein.R.string.airodump_scanning
+            R.string.airodump_scanning
         )
 
         viewModelScope.launch {
@@ -758,11 +758,11 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                 _networks.postValue(nets)
                 _statusText.value = if (nets.isEmpty()) {
                     getApplication<Application>().getString(
-                        com.lsd.wififrankenstein.R.string.airodump_no_networks
+                        R.string.airodump_no_networks
                     )
                 } else {
                     getApplication<Application>().getString(
-                        com.lsd.wififrankenstein.R.string.networks_found,
+                        R.string.networks_found,
                         nets.size
                     )
                 }
@@ -867,7 +867,7 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         addConsoleLine(
             "[*] ${
                 getApplication<Application>().getString(
-                    com.lsd.wififrankenstein.R.string.airodump_started,
+                    R.string.airodump_started,
                     bssid,
                     channel
                 )
@@ -1007,7 +1007,7 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                 _state.postValue(CaptureState.CAPTURING)
                 _statusText.postValue(
                     getApplication<Application>().getString(
-                        com.lsd.wififrankenstein.R.string.airodump_capturing
+                        R.string.airodump_capturing
                     )
                 )
 
@@ -1485,7 +1485,7 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun stopCapture() {
-        addConsoleLine("[!] ${getApplication<Application>().getString(com.lsd.wififrankenstein.R.string.airodump_stopped)}")
+        addConsoleLine("[!] ${getApplication<Application>().getString(R.string.airodump_stopped)}")
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val capFile = currentOutputDir?.let { captureRunner.findCapFile(it) }
@@ -1705,9 +1705,9 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                 _hcxpcapngtoolResult.postValue(result)
                 _verifyResult.postValue(result.valid)
                 if (result.valid) {
-                    addConsoleLine("[+] ${getApplication<Application>().getString(com.lsd.wififrankenstein.R.string.airodump_valid)}")
+                    addConsoleLine("[+] ${getApplication<Application>().getString(R.string.airodump_valid)}")
                 } else {
-                    addConsoleLine("[-] ${getApplication<Application>().getString(com.lsd.wififrankenstein.R.string.airodump_invalid)}")
+                    addConsoleLine("[-] ${getApplication<Application>().getString(R.string.airodump_invalid)}")
                 }
             } catch (e: Exception) {
                 addConsoleLine(getApplication<Application>().getString(R.string.aird_verify_error, e.message))
@@ -1717,7 +1717,7 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
 
     fun crackWithWordlist(capFilePath: String?, wordlistPath: String) {
         _crackResult.value = null
-        addConsoleLine("[*] ${getApplication<Application>().getString(com.lsd.wififrankenstein.R.string.airodump_crack_started)}")
+        addConsoleLine("[*] ${getApplication<Application>().getString(R.string.airodump_crack_started)}")
 
         viewModelScope.launch(Dispatchers.IO) {
             val chrootPath = resolveChrootPath(capFilePath)
@@ -1737,13 +1737,13 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     addConsoleLine(
                         "[+] ${
                             getApplication<Application>().getString(
-                                com.lsd.wififrankenstein.R.string.airodump_key_found,
+                                R.string.airodump_key_found,
                                 password
                             )
                         }"
                     )
                 } else {
-                    addConsoleLine("[-] ${getApplication<Application>().getString(com.lsd.wififrankenstein.R.string.airodump_key_not_found)}")
+                    addConsoleLine("[-] ${getApplication<Application>().getString(R.string.airodump_key_not_found)}")
                 }
             } catch (e: Exception) {
                 addConsoleLine(getApplication<Application>().getString(R.string.aird_crack_error, e.message))
@@ -1769,7 +1769,7 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     addConsoleLine(
                         "[+] ${
                             getApplication<Application>().getString(
-                                com.lsd.wififrankenstein.R.string.airodump_exported_to,
+                                R.string.airodump_exported_to,
                                 "${outputPath}.hccapx"
                             )
                         }"
@@ -1806,7 +1806,7 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     addConsoleLine(
                         "[+] ${
                             getApplication<Application>().getString(
-                                com.lsd.wififrankenstein.R.string.airodump_exported_to,
+                                R.string.airodump_exported_to,
                                 outputPath
                             )
                         }"

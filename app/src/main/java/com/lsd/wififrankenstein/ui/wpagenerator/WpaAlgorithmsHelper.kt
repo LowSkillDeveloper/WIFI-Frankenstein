@@ -3412,7 +3412,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
         }
     }
 
-    inner class TelseyAlgorithm : WpaAlgorithm() {
+    class TelseyAlgorithm : WpaAlgorithm() {
         override fun getName() = "Telsey"
 
         override fun getSupportState(ssid: String, mac: String): Int = UNLIKELY_SUPPORTED

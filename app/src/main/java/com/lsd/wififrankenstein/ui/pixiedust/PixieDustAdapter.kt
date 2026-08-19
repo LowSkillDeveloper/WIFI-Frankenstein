@@ -158,15 +158,13 @@ class PixieDustAdapter(
                     iconPixieDust.visibility = View.VISIBLE
                     textPixieDust.visibility = View.VISIBLE
                     textPixieDust.text = root.context.getString(R.string.pixie_dust_vulnerable)
-                    (root as? MaterialCardView)?.setStrokeColor(
+                    (root as? MaterialCardView)?.strokeColor =
                         ContextCompat.getColor(root.context, R.color.error_red)
-                    )
                 } else {
                     iconPixieDust.visibility = View.GONE
                     textPixieDust.visibility = View.GONE
-                    (root as? MaterialCardView)?.setStrokeColor(
+                    (root as? MaterialCardView)?.strokeColor =
                         ContextCompat.getColor(root.context, android.R.color.transparent)
-                    )
                 }
             }
         }

@@ -348,7 +348,7 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         }
         _isScanning.value = true
         _statusText.value = getApplication<Application>().getString(
-            com.lsd.wififrankenstein.R.string.pixiedust_scanning
+            R.string.pixiedust_scanning
         )
 
         viewModelScope.launch {
@@ -357,7 +357,7 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                 _networks.postValue(nets)
                 _statusText.value = if (nets.isEmpty()) {
                     getApplication<Application>().getString(
-                        com.lsd.wififrankenstein.R.string.pixiedust_no_networks
+                        R.string.pixiedust_no_networks
                     )
                 } else {
                     getApplication<Application>().getString(R.string.pixie_networks_found, nets.size)
@@ -366,7 +366,7 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                 Log.e(tag, "Scan failed: location permission required", e)
                 _needsLocationPermission.postValue(true)
                 _statusText.value = getApplication<Application>().getString(
-                    com.lsd.wififrankenstein.R.string.location_permission_required
+                    R.string.location_permission_required
                 )
             } catch (e: CancellationException) {
                 throw e

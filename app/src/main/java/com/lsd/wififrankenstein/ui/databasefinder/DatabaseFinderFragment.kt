@@ -322,7 +322,7 @@ class DatabaseFinderFragment : Fragment() {
         val cardView = com.google.android.material.card.MaterialCardView(context).apply {
             radius = dp(12).toFloat()
             cardElevation = dp(2).toFloat()
-            setStrokeColor(primaryColor)
+            strokeColor = primaryColor
             strokeWidth = dp(1)
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,

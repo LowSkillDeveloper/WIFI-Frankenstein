@@ -58,21 +58,19 @@ class HandshakeConverterAdapter(
                 item.availableTargets.indexOf(item.selectedTarget).coerceAtLeast(0),
                 false
             )
-            binding.spinnerTarget.setOnItemSelectedListener(
-                object : android.widget.AdapterView.OnItemSelectedListener {
-                    override fun onItemSelected(
-                        parent: android.widget.AdapterView<*>?,
-                        view: View?,
-                        position: Int,
-                        id: Long
-                    ) {
-                        val target = item.availableTargets.getOrNull(position) ?: return
-                        if (target != item.selectedTarget) onTargetSelected(item.id, target)
-                    }
-
-                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            binding.spinnerTarget.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: android.widget.AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    val target = item.availableTargets.getOrNull(position) ?: return
+                    if (target != item.selectedTarget) onTargetSelected(item.id, target)
                 }
-            )
+
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            }
 
             binding.btnRemove.setOnClickListener { onRemove(item.id) }
         }

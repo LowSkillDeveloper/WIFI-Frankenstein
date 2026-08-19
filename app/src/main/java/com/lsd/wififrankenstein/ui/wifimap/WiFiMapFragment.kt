@@ -1486,7 +1486,7 @@ class WiFiMapFragment : Fragment() {
                     helper.close()
                 }
             } catch (e: Exception) {
-                com.lsd.wififrankenstein.util.Log.e("WiFiMapFragment", "Failed to save record", e)
+                Log.e("WiFiMapFragment", "Failed to save record", e)
                 false
             }
 

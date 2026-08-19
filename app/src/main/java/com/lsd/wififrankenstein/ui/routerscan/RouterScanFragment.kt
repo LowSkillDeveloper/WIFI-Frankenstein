@@ -665,7 +665,7 @@ class RouterScanFragment : Fragment() {
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
         }
-        val textView = android.widget.TextView(requireContext()).apply {
+        val textView = TextView(requireContext()).apply {
             textSize = 11f
             setTextColor(ContextCompat.getColor(context, R.color.text_primary))
             setPadding(16, 16, 16, 16)

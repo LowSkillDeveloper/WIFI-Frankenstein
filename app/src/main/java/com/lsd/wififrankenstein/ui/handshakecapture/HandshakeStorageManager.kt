@@ -54,7 +54,7 @@ class HandshakeStorageManager(private val context: Context) {
 
     private fun migrateOldJvmFiles() {
         try {
-            val oldDir = java.io.File(context.filesDir, "handshakes")
+            val oldDir = File(context.filesDir, "handshakes")
             if (!oldDir.exists()) return
             val olds = oldDir.listFiles { f ->
                 f.isFile && (f.extension == "cap" || f.extension == "pcap" || f.extension == "hccapx")

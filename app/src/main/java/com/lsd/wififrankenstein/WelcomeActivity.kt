@@ -73,7 +73,7 @@ class WelcomeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         applyTheme()
         super.onCreate(savedInstanceState)
-        com.lsd.wififrankenstein.util.Log.d("WelcomeActivity", "Welcome activity started")
+        Log.d("WelcomeActivity", "Welcome activity started")
         onBackPressedDispatcher.addCallback(this, backCallback)
         lifecycleScope.launch {
             val isFirstLaunch = withContext(Dispatchers.IO) {
@@ -133,8 +133,7 @@ class WelcomeActivity : AppCompatActivity() {
     }
 
     private fun handlePageChange(position: Int) {
-        val currentFragment = fragments[position]
-        when (currentFragment) {
+        when (val currentFragment = fragments[position]) {
             is WelcomeVersionCheckFragment -> currentFragment.checkVersion()
         }
     }
@@ -142,8 +141,7 @@ class WelcomeActivity : AppCompatActivity() {
     private fun setupButtons() {
         binding.buttonNext.setOnClickListener {
             if (viewPager.currentItem < fragments.size - 1) {
-                val currentFragment = fragments[viewPager.currentItem]
-                when (currentFragment) {
+                when (val currentFragment = fragments[viewPager.currentItem]) {
                     is WelcomeRootFragment -> currentFragment.goNext()
                     is WelcomeThemePermissionsFragment -> currentFragment.goNext()
                     else -> viewPager.currentItem++
@@ -234,7 +232,7 @@ class WelcomeActivity : AppCompatActivity() {
             startActivity(intent)
             finish()
         } catch (e: Exception) {
-            com.lsd.wififrankenstein.util.Log.e("WelcomeActivity", "Error starting MainActivity", e)
+            Log.e("WelcomeActivity", "Error starting MainActivity", e)
 
             val packageManager = packageManager
             val launchIntent = packageManager.getLaunchIntentForPackage(packageName)

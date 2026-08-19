@@ -6,9 +6,9 @@ object ChrootCapabilities {
     fun isAvailable(context: Context): Boolean {
         return try {
             val type = ChrootManager.get(context).getChrootType()
-            type is com.lsd.wififrankenstein.util.ChrootType.Root ||
-                    type is com.lsd.wififrankenstein.util.ChrootType.RootWithoutChroot ||
-                    type is com.lsd.wififrankenstein.util.ChrootType.Rootless
+            type is ChrootType.Root ||
+                    type is ChrootType.RootWithoutChroot ||
+                    type is ChrootType.Rootless
         } catch (_: Exception) {
             false
         }
@@ -17,9 +17,9 @@ object ChrootCapabilities {
     fun isRootAvailable(context: Context): Boolean {
         return try {
             val type = ChrootManager.get(context).getChrootType()
-            type is com.lsd.wififrankenstein.util.ChrootType.Root ||
-                    type is com.lsd.wififrankenstein.util.ChrootType.RootMissing ||
-                    type is com.lsd.wififrankenstein.util.ChrootType.RootWithoutChroot
+            type is ChrootType.Root ||
+                    type is ChrootType.RootMissing ||
+                    type is ChrootType.RootWithoutChroot
         } catch (_: Exception) {
             false
         }
@@ -28,7 +28,7 @@ object ChrootCapabilities {
     fun hasChrootTools(context: Context): Boolean {
         return try {
             val type = ChrootManager.get(context).getChrootType()
-            type is com.lsd.wififrankenstein.util.ChrootType.Root
+            type is ChrootType.Root
         } catch (_: Exception) {
             false
         }

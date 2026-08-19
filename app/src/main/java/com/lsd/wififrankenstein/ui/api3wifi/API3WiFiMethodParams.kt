@@ -731,7 +731,7 @@ sealed class API3WiFiMethodParams {
             queryInputLayout = view.findViewById(R.id.queryInputLayout)
 
             val chipGroup =
-                view.findViewById<com.google.android.material.chip.ChipGroup>(R.id.searchTypeChipGroup)
+                view.findViewById<ChipGroup>(R.id.searchTypeChipGroup)
             chipGroup.setOnCheckedStateChangeListener { _, _ ->
                 isBssidMode = chipSearchByBssid.isChecked
                 updateHint()

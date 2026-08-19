@@ -352,29 +352,23 @@ class WelcomeDatabasesFragment : Fragment() {
                 val url = s?.toString() ?: ""
                 when {
                     url.isBlank() -> {
-                        textInputApiUrl.setEndIconDrawable(
-                            androidx.appcompat.content.res.AppCompatResources.getDrawable(
-                                requireContext(),
-                                R.drawable.ic_web
-                            )
+                        textInputApiUrl.endIconDrawable = androidx.appcompat.content.res.AppCompatResources.getDrawable(
+                            requireContext(),
+                            R.drawable.ic_web
                         )
                     }
 
                     url.startsWith("http://") || url.startsWith("https://") -> {
-                        textInputApiUrl.setEndIconDrawable(
-                            androidx.appcompat.content.res.AppCompatResources.getDrawable(
-                                requireContext(),
-                                R.drawable.ic_check
-                            )
+                        textInputApiUrl.endIconDrawable = androidx.appcompat.content.res.AppCompatResources.getDrawable(
+                            requireContext(),
+                            R.drawable.ic_check
                         )
                     }
 
                     else -> {
-                        textInputApiUrl.setEndIconDrawable(
-                            androidx.appcompat.content.res.AppCompatResources.getDrawable(
-                                requireContext(),
-                                R.drawable.ic_close
-                            )
+                        textInputApiUrl.endIconDrawable = androidx.appcompat.content.res.AppCompatResources.getDrawable(
+                            requireContext(),
+                            R.drawable.ic_close
                         )
                     }
                 }

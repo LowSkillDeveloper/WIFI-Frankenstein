@@ -502,7 +502,7 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
         return uri?.let { resolver.openOutputStream(it) }
     }
 
-    private fun createFileWithFileApi(fileName: String): OutputStream? {
+    private fun createFileWithFileApi(fileName: String): OutputStream {
         val logDir = logDirHost
 
         if (!logDir.exists()) {

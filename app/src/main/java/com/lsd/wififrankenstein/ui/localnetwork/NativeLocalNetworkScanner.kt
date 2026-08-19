@@ -879,7 +879,7 @@ class NativeLocalNetworkScanner(private val context: Context) {
                     }
                 }
                 process.errorStream.bufferedReader().readText()
-                process.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)
+                process.waitFor(3, TimeUnit.SECONDS)
             } finally {
                 process.destroy()
             }

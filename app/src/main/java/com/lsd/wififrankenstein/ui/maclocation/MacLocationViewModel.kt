@@ -762,7 +762,7 @@ class MacLocationViewModel(application: Application) : AndroidViewModel(applicat
                     setRequestProperty("Content-Type", "text/xml")
                 }
 
-                val postData = "xml=" + java.net.URLEncoder.encode(xmlRequest, "UTF-8")
+                val postData = "xml=" + URLEncoder.encode(xmlRequest, "UTF-8")
                 connection.outputStream.use {
                     it.write(postData.toByteArray())
                 }
