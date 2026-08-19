@@ -37,6 +37,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 class BettercapViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -99,7 +100,7 @@ class BettercapViewModel(application: Application) : AndroidViewModel(applicatio
     private val eventBuffer = mutableListOf<BettercapEvent>()
     private val maxEvents = 500
     private val eventDedupKeys = HashSet<String>()
-    private val handshakeFiles = mutableMapOf<String, String>()
+    private val handshakeFiles = ConcurrentHashMap<String, String>()
     private val dismissedLeftoverBssids = mutableSetOf<String>()
 
     private var pollingJob: Job? = null

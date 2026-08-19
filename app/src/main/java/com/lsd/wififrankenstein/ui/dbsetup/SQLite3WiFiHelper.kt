@@ -331,12 +331,13 @@ class SQLite3WiFiHelper(
             }
 
             databaseLock.withLock {
+                val db = database ?: return@withContext null
                 try {
-                    val tableName = DatabaseTypeUtils.getMainTableName(database!!)
-                    val hasGeo = DatabaseTypeUtils.hasColumn(database!!, "geo", "latitude")
-                    val hasComments = DatabaseTypeUtils.hasColumn(database!!, "comments", "comment")
-                    val hasGeoSource = DatabaseTypeUtils.hasColumn(database!!, "geo", "source")
-                    val hasGeoTime = DatabaseTypeUtils.hasColumn(database!!, "geo", "time")
+                    val tableName = DatabaseTypeUtils.getMainTableName(db)
+                    val hasGeo = DatabaseTypeUtils.hasColumn(db, "geo", "latitude")
+                    val hasComments = DatabaseTypeUtils.hasColumn(db, "comments", "comment")
+                    val hasGeoSource = DatabaseTypeUtils.hasColumn(db, "geo", "source")
+                    val hasGeoTime = DatabaseTypeUtils.hasColumn(db, "geo", "time")
                     val geoCols = buildString {
                         append("g.latitude, g.longitude")
                         if (hasGeoSource) append(", g.source as geo_source")
@@ -405,12 +406,13 @@ class SQLite3WiFiHelper(
             val allRecords = mutableListOf<Map<String, Any?>>()
 
             databaseLock.withLock {
+                val db = database ?: return@withContext emptyList()
                 try {
-                    val tableName = DatabaseTypeUtils.getMainTableName(database!!)
-                    val hasGeo = DatabaseTypeUtils.hasColumn(database!!, "geo", "latitude")
-                    val hasComments = DatabaseTypeUtils.hasColumn(database!!, "comments", "comment")
-                    val hasGeoSource = DatabaseTypeUtils.hasColumn(database!!, "geo", "source")
-                    val hasGeoTime = DatabaseTypeUtils.hasColumn(database!!, "geo", "time")
+                    val tableName = DatabaseTypeUtils.getMainTableName(db)
+                    val hasGeo = DatabaseTypeUtils.hasColumn(db, "geo", "latitude")
+                    val hasComments = DatabaseTypeUtils.hasColumn(db, "comments", "comment")
+                    val hasGeoSource = DatabaseTypeUtils.hasColumn(db, "geo", "source")
+                    val hasGeoTime = DatabaseTypeUtils.hasColumn(db, "geo", "time")
                     val geoCols = buildString {
                         append("g.latitude, g.longitude")
                         if (hasGeoSource) append(", g.source as geo_source")
@@ -638,7 +640,7 @@ class SQLite3WiFiHelper(
                 return@withContext emptyList()
             }
             databaseLock.withLock {
-                val db = database!!
+                val db = database ?: return@withContext emptyList()
                 val maxZoom = 23.0
                 val isHighZoom = zoom >= maxZoom - 1
                 val effectiveScatterMode = scatterMode || isHighZoom
@@ -1131,7 +1133,8 @@ class SQLite3WiFiHelper(
 
                 if (decimalBSSIDs.isEmpty()) return@withContext emptyList()
 
-                val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+                val db = database ?: return@withContext emptyList()
+                val tableName = DatabaseTypeUtils.getMainTableName(db)
 
                 chunkedBssids.flatMap { chunk ->
                     val chunkDecimals = chunk.mapNotNull { bssid -> decimalBSSIDs[bssid] }
@@ -1202,7 +1205,8 @@ class SQLite3WiFiHelper(
                 }
                 val chunkedDecimals = bssidDecimals.chunked(maxBssids)
 
-                val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+                val db = database ?: return@withContext emptyList()
+                val tableName = DatabaseTypeUtils.getMainTableName(db)
 
                 chunkedDecimals.flatMap { chunk ->
                     if (chunk.isEmpty()) return@flatMap emptyList()
@@ -1294,7 +1298,8 @@ class SQLite3WiFiHelper(
                 val validEssids = essids.filter { it.isNotBlank() }
                 if (validEssids.isEmpty()) return@withContext emptyList()
 
-                val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+                val db = database ?: return@withContext emptyList()
+                val tableName = DatabaseTypeUtils.getMainTableName(db)
                 val chunkedEssids = validEssids.chunked(50)
                 Log.d(
                     TAG,
@@ -1350,7 +1355,8 @@ class SQLite3WiFiHelper(
         limit: Int
     ): List<Map<String, Any?>> {
         searchCancelled = false
-        val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+        val db = database ?: return emptyList()
+        val tableName = DatabaseTypeUtils.getMainTableName(db)
         val hexRange = computeBssidHexRange(query)
         val useRange = hexRange != null && hasBssidRangeMatches(tableName, hexRange)
         return runPaginatedSearch(
@@ -1829,7 +1835,8 @@ class SQLite3WiFiHelper(
         filters: Set<String>,
         searchMode: SearchMode
     ): List<Map<String, Any?>> {
-        val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+        val db = database ?: return emptyList()
+        val tableName = DatabaseTypeUtils.getMainTableName(db)
 
         val allResults = mutableSetOf<Map<String, Any?>>()
 
@@ -1980,7 +1987,8 @@ class SQLite3WiFiHelper(
         filters: Set<String>,
         searchMode: SearchMode
     ): List<Map<String, Any?>> {
-        val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+        val db = database ?: return emptyList()
+        val tableName = DatabaseTypeUtils.getMainTableName(db)
 
         val allResults = mutableSetOf<Map<String, Any?>>()
 
@@ -2151,7 +2159,8 @@ class SQLite3WiFiHelper(
             Log.d(TAG, "Getting IP ranges for lat=$latitude, lon=$longitude, radius=$radius")
             try {
                 databaseLock.withLock {
-                    val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+                    val db = database ?: return@withContext emptyList()
+                    val tableName = DatabaseTypeUtils.getMainTableName(db)
                     if (tableName == "unknown") {
                         Log.e(TAG, "Unknown database type for IP ranges")
                         return@withLock emptyList()
@@ -2359,7 +2368,8 @@ class SQLite3WiFiHelper(
             )
             try {
                 databaseLock.withLock {
-                    val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+                    val db = database ?: return@withContext emptyList()
+                    val tableName = DatabaseTypeUtils.getMainTableName(db)
                     if (tableName == "unknown") {
                         Log.e(TAG, "Unknown database type for IP ranges")
                         return@withLock emptyList()
@@ -2423,7 +2433,8 @@ class SQLite3WiFiHelper(
         )
         try {
             databaseLock.withLock {
-                val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+                val db = database ?: return@withContext emptyList()
+                val tableName = DatabaseTypeUtils.getMainTableName(db)
                 if (tableName == "unknown") {
                     Log.e(TAG, "Unknown database type for tile-based IP ranges")
                     return@withLock emptyList()
@@ -2538,7 +2549,8 @@ class SQLite3WiFiHelper(
         offset: Int,
         limit: Int
     ): List<Map<String, Any?>> {
-        val tableName = DatabaseTypeUtils.getMainTableName(database!!)
+        val db = database ?: return emptyList()
+        val tableName = DatabaseTypeUtils.getMainTableName(db)
 
         val conditions = mutableListOf<String>()
         val args = mutableListOf<String>()

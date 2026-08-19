@@ -38,6 +38,8 @@ class WifiApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        com.lsd.wififrankenstein.util.PerformanceManager.initialize(this)
+
         createStorageDir()
 
         Shell.enableVerboseLogging = BuildConfig.DEBUG

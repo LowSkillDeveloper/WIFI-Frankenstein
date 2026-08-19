@@ -1924,12 +1924,16 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                                 val helper = SQLite3WiFiHelper(
                                     getApplication(), Uri.parse(dbItem.path), dbItem.directPath
                                 )
-                                if (helper.database?.isOpen == true) {
-                                    val results = helper.searchNetworksByBSSIDsAsync(listOf(bssid))
-                                    results.mapNotNull { r ->
-                                        r["WiFiKey"]?.toString()?.takeIf { it.isNotBlank() }
+                                try {
+                                    if (helper.database?.isOpen == true) {
+                                        val results = helper.searchNetworksByBSSIDsAsync(listOf(bssid))
+                                        results.mapNotNull { r ->
+                                            r["WiFiKey"]?.toString()?.takeIf { it.isNotBlank() }
+                                        }
+                                            .forEach { bssidPasswords.add(it) }
                                     }
-                                        .forEach { bssidPasswords.add(it) }
+                                } finally {
+                                    helper.close()
                                 }
                             }
 
@@ -1977,14 +1981,18 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                                     val helper = SQLite3WiFiHelper(
                                         getApplication(), Uri.parse(dbItem.path), dbItem.directPath
                                     )
-                                    if (helper.database?.isOpen == true) {
-                                        val results =
-                                            helper.searchNetworksByESSIDsAsync(listOf(essid))
-                                        results
-                                            .mapNotNull { r ->
-                                                r["WiFiKey"]?.toString()?.takeIf { it.isNotBlank() }
-                                            }
-                                            .forEach { essidPasswords.add(it) }
+                                    try {
+                                        if (helper.database?.isOpen == true) {
+                                            val results =
+                                                helper.searchNetworksByESSIDsAsync(listOf(essid))
+                                            results
+                                                .mapNotNull { r ->
+                                                    r["WiFiKey"]?.toString()?.takeIf { it.isNotBlank() }
+                                                }
+                                                .forEach { essidPasswords.add(it) }
+                                        }
+                                    } finally {
+                                        helper.close()
                                     }
                                 }
 

@@ -919,6 +919,19 @@ class WpsGeneratorActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        try {
+            contentBinding.webView.apply {
+                stopLoading()
+                loadUrl("about:blank")
+                removeAllViews()
+                destroy()
+            }
+        } catch (_: Exception) {
+        }
+        super.onDestroy()
+    }
+
     inner class MyJavascriptInterface {
 
 

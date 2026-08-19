@@ -16,6 +16,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.cert.X509Certificate
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
@@ -27,7 +28,8 @@ class API3WiFiHelper(
     private val apiReadKey: String,
     private val apiWriteKey: String? = null
 ) {
-    private val cachedResults = mutableMapOf<String, List<Map<String, Any?>>>()
+    private val cachedResults = ConcurrentHashMap<String, List<Map<String, Any?>>>()
+    @Volatile
     private var lastRequestTime = 0L
     private val sharedPreferences by lazy {
         context.getSharedPreferences("API3WiFiSettings", Context.MODE_PRIVATE)
@@ -145,7 +147,7 @@ class API3WiFiHelper(
 
     suspend fun searchNetworksByBSSIDs(bssids: List<String>): Map<String, List<Map<String, Any?>>> {
         return withContext(Dispatchers.IO) {
-            val result = mutableMapOf<String, List<Map<String, Any?>>>()
+            val result = ConcurrentHashMap<String, List<Map<String, Any?>>>()
             val uncachedBssids = if (cacheResults) {
                 bssids.filter { !cachedResults.containsKey(it) }
             } else {
