@@ -1,5 +1,6 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -647,31 +648,25 @@ class WiFiMapFragment : Fragment() {
         when (requestCode) {
             LOCATION_PERMISSION_REQUEST_CODE -> {
                 if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    userLocationManager.resetPermissionState()
                     userLocationManager.startLocationUpdates()
                 } else {
-                    showLocationPermissionDialog()
+                    userLocationManager.resetPermissionState()
+                    Snackbar.make(binding.root, getString(R.string.location_permission_denied), Snackbar.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
-    private fun showLocationPermissionDialog() {
-        val ctx = context ?: return
-        MaterialAlertDialogBuilder(ctx)
-            .setTitle(R.string.location_permission_required)
-            .setMessage(R.string.location_permission_explanation)
-            .setPositiveButton(R.string.settings) { _, _ ->
-                openAppSettings()
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
-    }
-
-    private fun openAppSettings() {
-        val ctx = context ?: return
-        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-        intent.data = android.net.Uri.fromParts("package", ctx.packageName, null)
-        startActivity(intent)
+    private fun hasLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun updateUserLocationMarker(location: GeoPoint) {
@@ -1620,7 +1615,10 @@ class WiFiMapFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         binding.map.onResume()
-        userLocationManager.startLocationUpdates()
+
+        if (hasLocationPermission()) {
+            userLocationManager.startLocationUpdates()
+        }
 
         Log.d(TAG, "onResume: Resetting interaction state")
         isUserInteracting = false

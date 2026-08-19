@@ -44,6 +44,7 @@ class UserLocationManager(private val context: Context) : LocationListener {
     val permissionRequired = _permissionRequired
 
     private var isLocationRequested = false
+    private var permissionRequestActive = false
     private var singleUpdateCancellation: CancellationTokenSource? = null
     private val timeoutHandler = Handler(Looper.getMainLooper())
     private var timeoutRunnable: Runnable? = null
@@ -388,6 +389,8 @@ class UserLocationManager(private val context: Context) : LocationListener {
     }
 
     private fun checkAndRequestPermissions(): Boolean {
+        if (permissionRequestActive) return false
+
         val requiredPermissions = getRequiredPermissions()
         val missingPermissions = requiredPermissions.filter { permission ->
             ActivityCompat.checkSelfPermission(
@@ -399,10 +402,15 @@ class UserLocationManager(private val context: Context) : LocationListener {
         if (missingPermissions.isNotEmpty()) {
             Log.d(TAG, "Missing permissions: $missingPermissions")
             _permissionRequired.postValue(missingPermissions.toTypedArray())
+            permissionRequestActive = true
             return false
         }
 
         return true
+    }
+
+    fun resetPermissionState() {
+        permissionRequestActive = false
     }
 
     private fun getRequiredPermissions(): List<String> {
