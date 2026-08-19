@@ -232,7 +232,7 @@ class IwWifiScannerAdapter(
                 val ssidRaw = network.ssid
                 val isHidden = ssidRaw.isNullOrBlank() || ssidRaw == "<unknown ssid>"
                 if (isHidden && !ssidRaw.isNullOrBlank()) {
-                    com.lsd.wififrankenstein.util.Log.d(
+                    Log.d(
                         "IwWifiScannerAdapter",
                         "Marked as hidden: BSSID=${network.bssid}, SSID='$ssidRaw' (len=${ssidRaw.length})"
                     )
@@ -514,7 +514,7 @@ class IwWifiScannerAdapter(
         }
     }
 
-    private inner class CredentialsAdapter :
+    private class CredentialsAdapter :
         ListAdapter<NetworkDatabaseResult, RecyclerView.ViewHolder>(
             CredentialsDiffCallback()
         ) {

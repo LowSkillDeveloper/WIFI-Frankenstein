@@ -78,7 +78,7 @@ object QuadkeyUtils {
         return (Math.PI * (2.0 * tileX.toDouble() / (1 shl zoom) - 1.0)) * 180.0 / Math.PI
     }
 
-    fun getQuadkeyBounds(minQk: Long, maxQk: Long): BoundingBox? {
+    fun getQuadkeyBounds(minQk: Long, maxQk: Long): BoundingBox {
         val (minTileX, minTileY) = quadkeyToTileXY(minQk, MAX_ZOOM)
         val (maxTileX, maxTileY) = quadkeyToTileXY(maxQk, MAX_ZOOM)
 

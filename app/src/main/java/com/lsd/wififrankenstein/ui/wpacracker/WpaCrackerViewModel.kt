@@ -615,7 +615,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         return try {
             val hostPath = HandshakeStorageManager.STORAGE_DIR
                 .replaceFirst("/sdcard", "/storage/emulated/0")
-            val file = java.io.File(hostPath, fileName)
+            val file = File(hostPath, fileName)
             if (file.exists()) {
                 HandshakeParser.parseFile(file).filterNot {
                     it.type == HandshakeType.EAPOL && it.messagePair in LEGACY_MESSAGE_PAIRS

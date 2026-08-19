@@ -7,7 +7,7 @@ class GlobalExceptionHandler(private val defaultHandler: Thread.UncaughtExceptio
         try {
             FileLogger.e("UncaughtException", "Fatal exception in thread ${thread.name}", exception)
         } catch (e: Exception) {
-            com.lsd.wififrankenstein.util.Log.e(
+            Log.e(
                 "GlobalExceptionHandler",
                 "Error logging fatal exception",
                 e
@@ -16,7 +16,7 @@ class GlobalExceptionHandler(private val defaultHandler: Thread.UncaughtExceptio
             try {
                 Thread.sleep(1000)
             } catch (e: Exception) {
-                com.lsd.wififrankenstein.util.Log.w(
+                Log.w(
                     "GlobalExceptionHandler",
                     "Interrupted during sleep",
                     e

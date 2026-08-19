@@ -175,15 +175,15 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
         binding.cardViewChroot.visibility = View.VISIBLE
 
         binding.buttonCheckChrootUpdate.visibility = when (chrootType) {
-            is com.lsd.wififrankenstein.util.ChrootType.Root -> View.VISIBLE
-            is com.lsd.wififrankenstein.util.ChrootType.RootMissing -> View.VISIBLE
-            com.lsd.wififrankenstein.util.ChrootType.None -> View.GONE
-            is com.lsd.wififrankenstein.util.ChrootType.RootWithoutChroot -> View.GONE
-            is com.lsd.wififrankenstein.util.ChrootType.Rootless -> View.GONE
+            is ChrootType.Root -> View.VISIBLE
+            is ChrootType.RootMissing -> View.VISIBLE
+            ChrootType.None -> View.GONE
+            is ChrootType.RootWithoutChroot -> View.GONE
+            is ChrootType.Rootless -> View.GONE
         }
 
         when (chrootType) {
-            is com.lsd.wififrankenstein.util.ChrootType.Root -> {
+            is ChrootType.Root -> {
                 val currentVersion = chrootManager.getCurrentVersion()
                 binding.textViewChrootVersion.text =
                     getString(R.string.chroot_version, currentVersion ?: "unknown")
@@ -193,7 +193,7 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
                 binding.buttonCheckChrootUpdate.isEnabled = true
             }
 
-            is com.lsd.wififrankenstein.util.ChrootType.RootMissing -> {
+            is ChrootType.RootMissing -> {
                 binding.textViewChrootVersion.text = getString(R.string.chroot_not_installed)
                 binding.textViewChrootStatus.text =
                     getString(R.string.chroot_update_available_for_install)
@@ -202,7 +202,7 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
                 binding.buttonCheckChrootUpdate.isEnabled = false
             }
 
-            com.lsd.wififrankenstein.util.ChrootType.None -> {
+            ChrootType.None -> {
                 binding.textViewChrootVersion.text = getString(R.string.chroot_not_installed)
                 binding.textViewChrootStatus.text = getString(R.string.root_required)
                 binding.buttonInstallChroot.visibility = View.GONE
@@ -210,7 +210,7 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
                 binding.buttonCheckChrootUpdate.isEnabled = false
             }
 
-            is com.lsd.wififrankenstein.util.ChrootType.RootWithoutChroot -> {
+            is ChrootType.RootWithoutChroot -> {
                 binding.textViewChrootVersion.text = getString(R.string.chroot_not_installed)
                 binding.textViewChrootStatus.text = getString(R.string.chroot_not_supported_proot)
                 binding.buttonInstallChroot.visibility = View.VISIBLE
@@ -218,7 +218,7 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
                 binding.buttonCheckChrootUpdate.isEnabled = false
             }
 
-            is com.lsd.wififrankenstein.util.ChrootType.Rootless -> {
+            is ChrootType.Rootless -> {
                 binding.textViewChrootVersion.text = getString(R.string.chroot_not_installed)
                 binding.textViewChrootStatus.text = getString(R.string.rootless_mode)
                 binding.buttonInstallChroot.visibility = View.VISIBLE
@@ -340,7 +340,7 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
         }
         val rootlessManager = RootlessManager(requireContext())
         if (!rootlessManager.isSupportedArchitecture()) {
-            com.lsd.wififrankenstein.util.Log.e(
+            Log.e(
                 "UpdatesFragment",
                 "Rootless requires arm64 or x86_64"
             )

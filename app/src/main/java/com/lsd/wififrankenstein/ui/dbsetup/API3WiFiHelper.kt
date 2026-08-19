@@ -141,7 +141,7 @@ class API3WiFiHelper(
 
             HttpsURLConnection.setDefaultHostnameVerifier { _, _ -> true }
         } catch (e: Exception) {
-            com.lsd.wififrankenstein.util.Log.e("API3WiFiHelper", "Error setting up SSL", e)
+            Log.e("API3WiFiHelper", "Error setting up SSL", e)
         }
     }
 

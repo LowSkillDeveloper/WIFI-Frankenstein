@@ -99,9 +99,9 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
                 binding.jsonMoreInfo.visibility = android.view.View.VISIBLE
                 binding.jsonMoreInfo.setOnClickListener {
                     val dialogView = LayoutInflater.from(binding.root.context)
-                        .inflate(com.lsd.wififrankenstein.R.layout.dialog_dns_json, null)
+                        .inflate(R.layout.dialog_dns_json, null)
                     val textView =
-                        dialogView.findViewById<TextView>(com.lsd.wififrankenstein.R.id.jsonText)
+                        dialogView.findViewById<TextView>(R.id.jsonText)
                     val formattedJson = try {
                         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
                             .parseToJsonElement(result.jsonRawResponse)

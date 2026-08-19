@@ -1262,7 +1262,7 @@ class IwWifiManager(private val context: Context) {
 
             line.startsWith("TIM:") -> {
                 val d = Regex("""DTIM Period\s*(\d+)""").find(line); if (d != null) s.dtimPeriod =
-                    d.groupValues[1];
+                    d.groupValues[1]
                 val c = Regex("""DTIM Count\s*(\d+)""").find(line); if (c != null) s.dtimCount =
                     c.groupValues[1]; true
             }
@@ -2064,7 +2064,7 @@ class IwWifiManager(private val context: Context) {
     private fun parseBssWmm(line: String, s: ParsedBss): Boolean {
         return when {
             line.startsWith("WMM:") -> {
-                s.currentSection = "WMM"; s.currentSubSection = ""; s.wmmPresent = true;
+                s.currentSection = "WMM"; s.currentSubSection = ""; s.wmmPresent = true
                 val v =
                     Regex("""Parameter version\s*(\d+)""").find(line); if (v != null) s.wmmParams =
                     "Version " + v.groupValues[1]; true

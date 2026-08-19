@@ -895,9 +895,7 @@ class SmartLinkDbHelper(private val context: Context) {
         outputFile: File,
         onProgress: ((Long, Long?) -> Unit)? = null
     ) {
-        val extension = archiveFile.extension.lowercase()
-
-        when (extension) {
+        when (val extension = archiveFile.extension.lowercase()) {
             "7z" -> extract7zLegacy(archiveFile, outputFile, onProgress)
             "zip" -> extractZipLegacy(archiveFile, outputFile, onProgress)
             "gz" -> extractGzip(archiveFile, outputFile, onProgress)
@@ -1595,7 +1593,7 @@ class SmartLinkDbHelper(private val context: Context) {
     }
 
     private fun extractZipAll(archiveFile: File, destDir: File, results: MutableList<File>) {
-        java.util.zip.ZipInputStream(archiveFile.inputStream()).use { zis ->
+        ZipInputStream(archiveFile.inputStream()).use { zis ->
             var entry = zis.nextEntry
             while (entry != null) {
                 if (!entry.isDirectory) {
@@ -1635,9 +1633,7 @@ class SmartLinkDbHelper(private val context: Context) {
         outputFile: File,
         onProgress: ((Long, Long?) -> Unit)? = null
     ) {
-        val extension = archiveFile.extension.lowercase()
-
-        when (extension) {
+        when (val extension = archiveFile.extension.lowercase()) {
             "7z" -> extract7z(archiveFile, outputFile, onProgress)
             "zip" -> extractZip(archiveFile, outputFile, onProgress)
             "gz" -> extractGzip(archiveFile, outputFile, onProgress)

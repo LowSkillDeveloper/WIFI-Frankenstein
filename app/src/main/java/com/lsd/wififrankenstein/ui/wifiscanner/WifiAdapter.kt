@@ -504,7 +504,7 @@ class WifiAdapter(
         }
     }
 
-    private inner class CredentialsAdapter :
+    private class CredentialsAdapter :
         ListAdapter<NetworkDatabaseResult, RecyclerView.ViewHolder>(
             CredentialsDiffCallback()
         ) {

@@ -257,10 +257,10 @@ class PcapParser {
             }
 
             magic == PCAPNG_MAGIC.toInt() -> {
-                var offset = 0;
+                var offset = 0
                 var linktype = DLT_IEEE802_11_RADIO
                 while (offset + 8 <= data.size) {
-                    val blockType = data.toInt32LE(offset);
+                    val blockType = data.toInt32LE(offset)
                     val totalLen = data.toInt32LE(offset + 4)
                     if (totalLen < 12) break
                     when {
@@ -859,10 +859,10 @@ class PcapParser {
         records: MutableList<ParsedHandshake>,
         essidMap: Map<String, String>
     ) {
-        var pmkidStandalone = 0;
-        var m12 = 0;
-        var m34 = 0;
-        var m14 = 0;
+        var pmkidStandalone = 0
+        var m12 = 0
+        var m34 = 0
+        var m14 = 0
         var m23 = 0
         for ((key, replayGroups) in eapolMessages) {
             val parts = key.split("|")

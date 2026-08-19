@@ -21,7 +21,7 @@ class MapDatabaseAdapter(
 ) : RecyclerView.Adapter<MapDatabaseAdapter.ViewHolder>() {
 
     private val TAG = "MapDatabaseAdapter"
-    private val colorDrawableCache = mutableMapOf<Int, android.graphics.drawable.GradientDrawable>()
+    private val colorDrawableCache = mutableMapOf<Int, GradientDrawable>()
 
     init {
         setHasStableIds(true)
