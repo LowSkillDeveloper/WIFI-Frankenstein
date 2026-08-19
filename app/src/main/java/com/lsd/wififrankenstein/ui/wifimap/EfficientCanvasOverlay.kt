@@ -88,7 +88,6 @@ class EfficientCanvasOverlay(
         points = newPoints
         clusterRadiusCache.clear()
         clusterTextSizeCache.clear()
-        Log.d(TAG, "[Overlay] Loaded points: ${newPoints.size}")
     }
 
     override fun draw(canvas: Canvas, mapView: MapView, shadow: Boolean) {
@@ -122,8 +121,6 @@ class EfficientCanvasOverlay(
                     pointCount++
                 }
             }
-
-            Log.d(TAG, "[Render] Drawing ${clusterCount} clusters + ${pointCount} points")
         } catch (e: OutOfMemoryError) {
             Log.e(TAG, "OOM during canvas rendering, clearing points")
             points = emptyList()

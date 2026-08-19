@@ -367,26 +367,15 @@ class WiFiMapFragment : Fragment() {
         val currentZoom = binding.map.zoomLevelDouble
         val currentCenter = binding.map.mapCenter as? GeoPoint
 
-        Log.d(
-            TAG,
-            "scheduleMapUpdate called: forceUpdate=$forceUpdate, isUserInteracting=$isUserInteracting"
-        )
-
         if (!forceUpdate && isUserInteracting) {
-            Log.d(TAG, "User is still interacting, skipping update")
             return
         }
 
         if (!forceUpdate && (currentTime - lastInteractionTime < MIN_UPDATE_DELAY)) {
-            Log.d(
-                TAG,
-                "Too soon after interaction: ${currentTime - lastInteractionTime}ms < ${MIN_UPDATE_DELAY}ms"
-            )
             return
         }
 
         if (!forceUpdate && !shouldUpdateClusters(currentZoom, currentCenter)) {
-            Log.d(TAG, "Skipping update - insufficient zoom/position change")
             return
         }
 
@@ -399,32 +388,25 @@ class WiFiMapFragment : Fragment() {
             }
 
             if (!isUserInteracting || forceUpdate) {
-                Log.d(TAG, "Executing map update")
                 updateVisiblePoints()
-            } else {
-                Log.d(TAG, "Map update cancelled: user still interacting")
             }
         }
     }
 
     private fun shouldUpdateClusters(currentZoom: Double, currentCenter: GeoPoint?): Boolean {
         if (currentCenter == null) {
-            Log.d(TAG, "No current center, allowing update")
             return true
         }
 
         if (lastClusterUpdateZoom < 0) {
-            Log.d(TAG, "First cluster update, allowing")
             lastClusterUpdateZoom = currentZoom
             lastClusterUpdateCenter = currentCenter
             return true
         }
 
         val zoomDiff = kotlin.math.abs(currentZoom - lastClusterUpdateZoom)
-        Log.d(TAG, "Zoom diff: $zoomDiff (current: $currentZoom, last: $lastClusterUpdateZoom)")
 
         if (zoomDiff >= 0.1) {
-            Log.d(TAG, "Zoom changed significantly ($zoomDiff), allowing update")
             lastClusterUpdateZoom = currentZoom
             lastClusterUpdateCenter = currentCenter
             return true
@@ -452,11 +434,6 @@ class WiFiMapFragment : Fragment() {
         }
 
         val shouldUpdate = centerDistance > movementThreshold
-
-        Log.d(
-            TAG,
-            "Movement check: distance=$centerDistance, threshold=$movementThreshold, shouldUpdate=$shouldUpdate"
-        )
 
         if (shouldUpdate) {
             lastClusterUpdateZoom = currentZoom
@@ -573,16 +550,10 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun setupLocationButton() {
-        Log.d(TAG, "Setting up location button")
-
         binding.fabLocation.setOnClickListener {
-            Log.d(TAG, "Location button clicked")
-
             userLocationMarker?.let { marker ->
-                Log.d(TAG, "Moving to existing location marker")
                 binding.map.controller.animateTo(marker.position, 18.0, 400L)
             } ?: run {
-                Log.d(TAG, "No existing location marker, requesting new location")
                 Snackbar.make(
                     binding.root,
                     getString(R.string.location_requested),
@@ -591,29 +562,22 @@ class WiFiMapFragment : Fragment() {
                 userLocationManager.requestSingleLocationUpdate()
             }
         }
-
-        Log.d(TAG, "Location button setup complete")
     }
 
     private fun setupUserLocation() {
-        Log.d(TAG, "Setting up user location manager")
-
         userLocationManager = UserLocationManager(requireContext())
 
         userLocationManager.userLocation.observe(viewLifecycleOwner) { location ->
-            Log.d(TAG, "User location received: $location")
             location?.let {
                 updateUserLocationMarker(it)
 
                 if (userLocationMarker == null) {
-                    Log.d(TAG, "First location received, animating to position")
                     binding.map.controller.animateTo(it, 18.0, 400L)
                 }
             }
         }
 
         userLocationManager.locationError.observe(viewLifecycleOwner) { errorKey ->
-            Log.e(TAG, "Location error: $errorKey")
             val errorMessage = when (errorKey) {
                 "location_services_disabled" -> getString(R.string.location_services_disabled)
                 "location_permission_denied" -> getString(R.string.location_permission_denied)
@@ -628,8 +592,6 @@ class WiFiMapFragment : Fragment() {
         userLocationManager.permissionRequired.observe(viewLifecycleOwner) { permissions ->
             requestLocationPermissions(permissions)
         }
-
-        Log.d(TAG, "User location manager setup complete")
     }
 
     private fun requestLocationPermissions(permissions: Array<String>) {
@@ -690,7 +652,6 @@ class WiFiMapFragment : Fragment() {
 
     private fun showCreateIndexesDialog(dbItem: DbItem) {
         val ctx = context ?: return
-        Log.d(TAG, "Showing create indexes dialog for ${dbItem.id}")
         currentIndexingDb = dbItem
 
         val indexLevels = arrayOf(
@@ -727,7 +688,6 @@ class WiFiMapFragment : Fragment() {
                     }
 
                 if (level == "NONE") {
-                    Log.d(TAG, "User chose no indexing for ${dbItem.id}")
                     selectedDatabases.remove(dbItem)
                     syncSelectedDatabaseIds()
                     databaseAdapter.notifyDataSetChanged()
@@ -735,7 +695,6 @@ class WiFiMapFragment : Fragment() {
                     return@setPositiveButton
                 }
 
-                Log.d(TAG, "User chose to create $level indexes for ${dbItem.id}")
                 showIndexingProgress()
                 lifecycleScope.launch {
                     if (dbItem.dbType == DbType.LOCAL_APP_DB) {
@@ -760,7 +719,6 @@ class WiFiMapFragment : Fragment() {
 
     private fun showIndexingProgress() {
         val ctx = context ?: return
-        Log.d(TAG, "Showing indexing progress dialog")
         indexingDialog = MaterialAlertDialogBuilder(ctx)
             .setTitle(R.string.creating_indexes)
             .setView(R.layout.dialog_indexing_progress)
@@ -769,21 +727,15 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun updateIndexingProgress(progress: Int) {
-        Log.d(TAG, "Updating indexing progress: $progress%")
         val progressBar = indexingDialog?.findViewById<ProgressBar>(R.id.progressBar)
         if (progressBar != null) {
             progressBar.progress = progress
-            Log.d(TAG, "Updated progress bar to $progress%")
-        } else {
-            Log.e(TAG, "Could not find progress bar in dialog")
         }
 
         if (progress >= 100) {
-            Log.d(TAG, "Indexing complete, dismissing dialog")
             indexingDialog?.dismiss()
 
             currentIndexingDb?.let { dbItem ->
-                Log.d(TAG, "Adding indexed database ${dbItem.id} to selected databases")
                 selectedDatabases.add(dbItem)
                 syncSelectedDatabaseIds()
                 databaseAdapter.notifyDataSetChanged()
@@ -815,7 +767,6 @@ class WiFiMapFragment : Fragment() {
 
     private fun showCorruptionDialog(event: WiFiMapViewModel.CorruptionEvent) {
         val ctx = context ?: return
-        Log.d(TAG, "Showing corruption dialog for ${event.dbItem.id}")
 
         MaterialAlertDialogBuilder(ctx)
             .setTitle(R.string.db_corrupted_title)
@@ -842,10 +793,6 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        viewModel.databaseColors.observe(viewLifecycleOwner) { colors ->
-            updateDatabaseLegend()
-        }
-
         viewModel.loadingProgress.observe(viewLifecycleOwner) { progress ->
             if (progress > 0 && progress < 100) {
                 binding.loadingIndicator.startAnimation()
@@ -856,16 +803,12 @@ class WiFiMapFragment : Fragment() {
 
         viewModel.selectedPoint.observe(viewLifecycleOwner) { point ->
             if (point != null && point.isDataLoaded) {
-                Log.d(TAG, "Selected point received: ${point.essid}, showing dialog")
                 showNetworkInfo(point)
             }
         }
 
         viewModel.points.observe(viewLifecycleOwner) { points ->
-            Log.d(TAG, "Received ${points.size} points from ViewModel")
-            Log.d(TAG, "Loaded bounds: ${viewModel.currentBoundingBox}")
             updateMarkers(points)
-            updateDatabaseLegend()
         }
 
         viewModel.ipRanges.observe(viewLifecycleOwner) { ranges ->
@@ -881,7 +824,6 @@ class WiFiMapFragment : Fragment() {
         }
 
         viewModel.addReadOnlyDb.observe(viewLifecycleOwner) { dbItem ->
-            Log.d(TAG, "Add read-only database: ${dbItem.id}, type=${dbItem.dbType}")
             if (!selectedDatabases.any { it.id == dbItem.id }) {
                 selectedDatabases.add(dbItem)
                 syncSelectedDatabaseIds()
@@ -915,10 +857,7 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun updateVisiblePoints() {
-        Log.d(TAG, "updateVisiblePoints called")
-
         if (isUserInteracting) {
-            Log.d(TAG, "User is interacting, skipping update")
             return
         }
 
@@ -928,29 +867,17 @@ class WiFiMapFragment : Fragment() {
         val minZoom = viewModel.getMinZoomForMarkers()
         val boundingBox = binding.map.boundingBox
 
-        Log.d(TAG, "=== MAP UPDATE DEBUG ===")
-        Log.d(TAG, "Current zoom: $zoom")
-        Log.d(TAG, "Min zoom for markers: $minZoom")
-        Log.d(TAG, "Bounding box: $boundingBox")
-        Log.d(TAG, "Selected databases: ${selectedDatabases.size}")
-        Log.d(TAG, "Interaction state: isUserInteracting=$isUserInteracting")
-
         if (selectedDatabases.isEmpty()) {
-            Log.d(TAG, "No databases selected, clearing everything")
             clearMarkers()
             return
         }
 
         if (zoom < minZoom) {
-            Log.d(TAG, "Zoom too low: $zoom < $minZoom")
             clearMarkers()
             return
         }
 
-        Log.d(TAG, "Zoom check passed, proceeding with update")
-
         if (boundingBox == null) {
-            Log.d(TAG, "Bounding box is null")
             return
         }
 
@@ -972,13 +899,11 @@ class WiFiMapFragment : Fragment() {
     }
 
     private fun updateMarkers(visiblePoints: List<MapPoint>) {
-        Log.d(TAG, "Updating canvas overlay with ${visiblePoints.size} visible points")
         viewModel.updatePointCounts(visiblePoints)
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             canvasOverlay.updatePoints(visiblePoints)
             binding.map.postInvalidate()
-            updateDatabaseLegend()
         }
     }
 
@@ -1067,6 +992,7 @@ class WiFiMapFragment : Fragment() {
 
     private var offlineZonesList = mutableListOf<OfflineMapManager.OfflineZone>()
     private var offlineZonesAdapter: OfflineZoneAdapter? = null
+    private var offlineEstimateJob: Job? = null
 
     private fun setupOfflineMaps() {
         offlineZonesAdapter = OfflineZoneAdapter(
@@ -1088,12 +1014,20 @@ class WiFiMapFragment : Fragment() {
 
         binding.map.addMapListener(object : MapListener {
             override fun onScroll(event: ScrollEvent): Boolean {
-                updateOfflineEstimate()
+                offlineEstimateJob?.cancel()
+                offlineEstimateJob = viewLifecycleOwner.lifecycleScope.launch {
+                    delay(500)
+                    updateOfflineEstimate()
+                }
                 return false
             }
 
             override fun onZoom(event: ZoomEvent): Boolean {
-                updateOfflineEstimate()
+                offlineEstimateJob?.cancel()
+                offlineEstimateJob = viewLifecycleOwner.lifecycleScope.launch {
+                    delay(500)
+                    updateOfflineEstimate()
+                }
                 return false
             }
         })
@@ -1127,10 +1061,6 @@ class WiFiMapFragment : Fragment() {
             val zoom = binding.map.zoomLevelDouble.toInt()
             val (minZoom, maxZoom) = getOfflineZoomRange(zoom)
             val count = offlineMapManager.estimateTileCount(bounds, minZoom, maxZoom)
-            Log.d(
-                TAG,
-                "updateOfflineEstimate: zoom=$zoom, range=$minZoom-$maxZoom, count=$count, bounds=$bounds"
-            )
 
             if (count > OfflineMapManager.MAX_TILES) {
                 binding.offlineEstimateText.text =
@@ -1313,11 +1243,6 @@ class WiFiMapFragment : Fragment() {
                 if (hasApiSelected) getString(R.string.radius_limited_for_api) else getString(R.string.max_radius_40km)
             Snackbar.make(binding.root, msg, Snackbar.LENGTH_SHORT).show()
         }
-
-        Log.d(
-            TAG,
-            "searchIpRanges: center=(${center.latitude}, ${center.longitude}), radius=${finalRadius}km, selectedDbs=${selectedDatabases.size}"
-        )
 
         try {
             viewModel.searchIpRangesByCenter(
@@ -1607,7 +1532,6 @@ class WiFiMapFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        Log.d(TAG, "onStart: Checking databases and resetting interaction state")
         isUserInteracting = false
         lastInteractionTime = 0L
     }
@@ -1620,7 +1544,6 @@ class WiFiMapFragment : Fragment() {
             userLocationManager.startLocationUpdates()
         }
 
-        Log.d(TAG, "onResume: Resetting interaction state")
         isUserInteracting = false
         lastInteractionTime = 0L
         lastMapUpdateTime = 0L
@@ -1646,7 +1569,6 @@ class WiFiMapFragment : Fragment() {
         }
 
         if (DbSetupViewModel.needDataRefresh) {
-            Log.d(TAG, "Data refresh needed, reloading available databases")
             lifecycleScope.launch {
                 DbSetupViewModel.needDataRefresh = false
 
@@ -1669,10 +1591,6 @@ class WiFiMapFragment : Fragment() {
         val invalidDatabases = selectedDatabases.filterNot { availableIds.contains(it.id) }
 
         if (invalidDatabases.isNotEmpty()) {
-            Log.d(
-                TAG,
-                "Removing invalid databases from selection: ${invalidDatabases.map { it.id }}"
-            )
             selectedDatabases.removeAll(invalidDatabases)
             syncSelectedDatabaseIds()
             databaseAdapter.notifyDataSetChanged()
@@ -1703,6 +1621,8 @@ class WiFiMapFragment : Fragment() {
         interactionTimer = null
         restoreJob?.cancel()
         restoreJob = null
+        offlineEstimateJob?.cancel()
+        offlineEstimateJob = null
         isUserInteracting = false
 
         radiusCircleOverlay?.let { overlay ->
