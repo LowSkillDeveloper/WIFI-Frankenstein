@@ -285,14 +285,13 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
 
     fun getAll(): List<HandshakeItem> {
         return lock.withLock {
-            val db = readableDatabase
-            val cursor = db.rawQuery("SELECT * FROM $TABLE_HANDSHAKES", null)
-            val items = mutableListOf<HandshakeItem>()
-            while (cursor.moveToNext()) {
-                items.add(cursorToItem(cursor))
+            readableDatabase.rawQuery("SELECT * FROM $TABLE_HANDSHAKES", null).use { cursor ->
+                val items = mutableListOf<HandshakeItem>()
+                while (cursor.moveToNext()) {
+                    items.add(cursorToItem(cursor))
+                }
+                items
             }
-            cursor.close()
-            items
         }
     }
 
@@ -305,65 +304,60 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
     ): List<HandshakeItem> {
         val limitClause = if (limit != Int.MAX_VALUE) " LIMIT $limit" else ""
         return lock.withLock {
-            val db = readableDatabase
-            val cursor = db.rawQuery(
+            readableDatabase.rawQuery(
                 "SELECT * FROM $TABLE_HANDSHAKES " +
                         "WHERE $COL_LATITUDE IS NOT NULL AND $COL_LONGITUDE IS NOT NULL " +
                         "AND $COL_LATITUDE BETWEEN ? AND ? " +
                         "AND $COL_LONGITUDE BETWEEN ? AND ?$limitClause",
                 arrayOf(minLat.toString(), maxLat.toString(), minLon.toString(), maxLon.toString())
-            )
-            val items = mutableListOf<HandshakeItem>()
-            while (cursor.moveToNext()) {
-                items.add(cursorToItem(cursor))
+            ).use { cursor ->
+                val items = mutableListOf<HandshakeItem>()
+                while (cursor.moveToNext()) {
+                    items.add(cursorToItem(cursor))
+                }
+                items
             }
-            cursor.close()
-            items
         }
     }
 
     fun getAllSortedByDateDesc(): List<HandshakeItem> {
         return lock.withLock {
-            val db = readableDatabase
-            val cursor = db.rawQuery(
+            readableDatabase.rawQuery(
                 "SELECT * FROM $TABLE_HANDSHAKES ORDER BY $COL_LAST_MODIFIED DESC",
                 null
-            )
-            val items = mutableListOf<HandshakeItem>()
-            while (cursor.moveToNext()) {
-                items.add(cursorToItem(cursor))
+            ).use { cursor ->
+                val items = mutableListOf<HandshakeItem>()
+                while (cursor.moveToNext()) {
+                    items.add(cursorToItem(cursor))
+                }
+                items
             }
-            cursor.close()
-            items
         }
     }
 
     fun getByBssid(bssid: String): List<HandshakeItem> {
         return lock.withLock {
-            val db = readableDatabase
-            val cursor = db.rawQuery(
+            readableDatabase.rawQuery(
                 "SELECT * FROM $TABLE_HANDSHAKES WHERE $COL_BSSID = ?",
                 arrayOf(bssid)
-            )
-            val items = mutableListOf<HandshakeItem>()
-            while (cursor.moveToNext()) {
-                items.add(cursorToItem(cursor))
+            ).use { cursor ->
+                val items = mutableListOf<HandshakeItem>()
+                while (cursor.moveToNext()) {
+                    items.add(cursorToItem(cursor))
+                }
+                items
             }
-            cursor.close()
-            items
         }
     }
 
     fun get(fileName: String): HandshakeItem? {
         return lock.withLock {
-            val db = readableDatabase
-            val cursor = db.rawQuery(
+            readableDatabase.rawQuery(
                 "SELECT * FROM $TABLE_HANDSHAKES WHERE $COL_FILE_NAME = ?",
                 arrayOf(fileName)
-            )
-            val item = if (cursor.moveToFirst()) cursorToItem(cursor) else null
-            cursor.close()
-            item
+            ).use { cursor ->
+                if (cursor.moveToFirst()) cursorToItem(cursor) else null
+            }
         }
     }
 
@@ -624,17 +618,16 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
 
     fun getNotUploadedToWpaSec(): List<HandshakeItem> {
         return lock.withLock {
-            val db = readableDatabase
-            val cursor = db.rawQuery(
+            readableDatabase.rawQuery(
                 "SELECT * FROM $TABLE_HANDSHAKES WHERE $COL_UPLOADED_TO_WPASEC = 0 AND $COL_HASH_22000 IS NOT NULL",
                 null
-            )
-            val items = mutableListOf<HandshakeItem>()
-            while (cursor.moveToNext()) {
-                items.add(cursorToItem(cursor))
+            ).use { cursor ->
+                val items = mutableListOf<HandshakeItem>()
+                while (cursor.moveToNext()) {
+                    items.add(cursorToItem(cursor))
+                }
+                items
             }
-            cursor.close()
-            items
         }
     }
 

@@ -261,8 +261,8 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         }
         Log.d("DbSetupViewModel", "check3WiFiIndexes: starting for ${dbItem.id}")
 
+        val helper = SQLite3WiFiHelper(getApplication(), dbItem.path.toUri(), dbItem.directPath)
         try {
-            val helper = SQLite3WiFiHelper(getApplication(), dbItem.path.toUri(), dbItem.directPath)
             val database = helper.database
                 ?: run {
                     Log.e(
@@ -277,13 +277,14 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                 DatabaseIndices.IndexLevel.BASIC -> DbIndexLevel.PARTIAL
                 else -> DbIndexLevel.NONE
             }
-            helper.close()
 
             Log.d("DbSetupViewModel", "check3WiFiIndexes for ${dbItem.id}: $indexLevel")
             return indexLevel
         } catch (e: Exception) {
             Log.e("DbSetupViewModel", "Error checking 3WiFi indexes", e)
             return DbIndexLevel.NONE
+        } finally {
+            helper.close()
         }
     }
 
@@ -403,26 +404,24 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun check3WiFiIndexesDirectlyLevel(dbItem: DbItem): DbIndexLevel {
+        val helper = SQLite3WiFiHelper(getApplication(), dbItem.path.toUri(), dbItem.directPath)
         return try {
-            val helper = SQLite3WiFiHelper(getApplication(), dbItem.path.toUri(), dbItem.directPath)
             val database = helper.database
                 ?: run {
                     Log.e("DbSetupViewModel", "Database is null for ${dbItem.id}")
                     return DbIndexLevel.NONE
                 }
 
-            val level = when (DatabaseIndices.determineIndexLevel(database)) {
+            when (DatabaseIndices.determineIndexLevel(database)) {
                 DatabaseIndices.IndexLevel.FULL -> DbIndexLevel.FULL
                 DatabaseIndices.IndexLevel.BASIC -> DbIndexLevel.PARTIAL
                 else -> DbIndexLevel.NONE
             }
-            helper.close()
-
-            Log.d("DbSetupViewModel", "Index check for ${dbItem.id}: $level")
-            level
         } catch (e: Exception) {
             Log.e("DbSetupViewModel", "Error checking 3WiFi indexes directly", e)
             DbIndexLevel.NONE
+        } finally {
+            helper.close()
         }
     }
 
@@ -931,9 +930,10 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                             )
                             _errorEvent.postValue("missing_file_removed")
                         } else if (originalSize != dbItem.originalSizeInMB) {
-                            val uri = dbItem.path.toUri()
-                            SQLite3WiFiHelper.deleteCachedDatabase(getApplication(), uri)
-                            val helper = SQLite3WiFiHelper(getApplication(), uri, dbItem.directPath)
+                        val uri = dbItem.path.toUri()
+                        SQLite3WiFiHelper.deleteCachedDatabase(getApplication(), uri)
+                        val helper = SQLite3WiFiHelper(getApplication(), uri, dbItem.directPath)
+                        try {
                             val cachedSize = helper.getSelectedFileSize()
                             updatedList.add(
                                 dbItem.copy(
@@ -941,6 +941,9 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                                     cachedSizeInMB = cachedSize
                                 )
                             )
+                        } finally {
+                            helper.close()
+                        }
                         } else {
                             updatedList.add(dbItem)
                         }

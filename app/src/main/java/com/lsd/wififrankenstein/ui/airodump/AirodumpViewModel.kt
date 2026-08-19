@@ -416,7 +416,7 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         val secondsLeft: Int
     )
 
-    private val reportedClients = mutableSetOf<String>()
+    private val reportedClients = ConcurrentHashMap.newKeySet<String>()
 
     fun updateCaptureStats(stats: CaptureStats) {
         for (client in stats.clients) {

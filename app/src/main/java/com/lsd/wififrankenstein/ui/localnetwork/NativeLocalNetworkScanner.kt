@@ -847,35 +847,42 @@ class NativeLocalNetworkScanner(private val context: Context) {
 
         try {
             val process = Runtime.getRuntime().exec(arrayOf("ip", "neigh", "show"))
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            for (line in reader.readLines()) {
-                val parts = line.trim().split("\\s+".toRegex())
+            try {
+                val reader = BufferedReader(InputStreamReader(process.inputStream))
+                for (line in reader.readLines()) {
+                    val parts = line.trim().split("\\s+".toRegex())
 
-                if (parts.size >= 5 && parts.contains("lladdr")) {
-                    val lladdrIdx = parts.indexOf("lladdr")
-                    val ip = parts[0].trimEnd(',').trimEnd('/')
-                    val mac = parts[lladdrIdx + 1].uppercase()
-                    val stateIdx = parts.indexOfFirst {
-                        it in listOf(
-                            "REACHABLE",
-                            "STALE",
-                            "DELAY",
-                            "PROBE",
-                            "PERMANENT"
-                        )
-                    }
-                    val state = if (stateIdx >= 0) parts[stateIdx] else ""
-                    if (mac.isNotEmpty() && mac != "00:00:00:00:00:00" && state != "FAILED" && state != "INCOMPLETE") {
-                        val iface =
-                            if (parts.size > 1 && parts[1] == "dev" && parts.size > 2) parts[2] else ""
+                    if (parts.size >= 5 && parts.contains("lladdr")) {
+                        val lladdrIdx = parts.indexOf("lladdr")
+                        val macIdx = lladdrIdx + 1
+                        if (macIdx >= parts.size) continue
+                        val ip = parts[0].trimEnd(',').trimEnd('/')
+                        val mac = parts[macIdx].uppercase()
+                        val stateIdx = parts.indexOfFirst {
+                            it in listOf(
+                                "REACHABLE",
+                                "STALE",
+                                "DELAY",
+                                "PROBE",
+                                "PERMANENT"
+                            )
+                        }
+                        val state = if (stateIdx >= 0) parts[stateIdx] else ""
+                        if (mac.isNotEmpty() && mac != "00:00:00:00:00:00" && state != "FAILED" && state != "INCOMPLETE") {
+                            val iface =
+                                if (parts.size > 1 && parts[1] == "dev" && parts.size > 2) parts[2] else ""
 
-                        if (entries.none { it.ip == ip }) {
-                            entries.add(ArpEntry(ip, mac, iface, state == "REACHABLE"))
+                            if (entries.none { it.ip == ip }) {
+                                entries.add(ArpEntry(ip, mac, iface, state == "REACHABLE"))
+                            }
                         }
                     }
                 }
+                process.errorStream.bufferedReader().readText()
+                process.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)
+            } finally {
+                process.destroy()
             }
-            process.waitFor()
         } catch (_: Exception) {
         }
 
