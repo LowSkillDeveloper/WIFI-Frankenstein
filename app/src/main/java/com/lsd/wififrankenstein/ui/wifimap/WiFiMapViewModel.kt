@@ -578,7 +578,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     ) {
         val filterBounds = expandedBounds ?: boundingBox
         currentBoundingBox = filterBounds
-        Log.d(TAG, "Stored loaded bounding box: $filterBounds (expanded: $expandedBounds != null)")
         val pruneBounds = expandedBounds ?: padBoundingBox(boundingBox)
 
         val previousZoom = currentZoom
@@ -594,36 +593,19 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         }
 
         val zoomLevelChanged = previousZoom.toInt() != tileZoom
-        if (zoomLevelChanged) {
-            Log.d(TAG, "Zoom level changed from ${previousZoom.toInt()} to $tileZoom")
-        }
-
-        val overallStart = System.currentTimeMillis()
-        Log.d(TAG, "========== LOAD POINTS START ==========")
-        Log.d(
-            TAG,
-            "loadPointsInBoundingBox called: zoom=$zoom, databases=${selectedDatabases.size}, bounds=[$boundingBox]"
-        )
 
         if (isLoadingPoints) {
-            Log.d(TAG, "Skipping update - already loading points")
             return
         }
 
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
-            Log.d(
-                TAG,
-                "Skipping update - too soon (${currentTime - lastUpdateTime}ms < ${MIN_UPDATE_INTERVAL}ms)"
-            )
             return
         }
         lastUpdateTime = currentTime
 
         val minZoom = getMinZoomForMarkers()
-        Log.d(TAG, "Min zoom for markers: $minZoom, Current zoom: $zoom")
         if (zoom < minZoom) {
-            Log.d(TAG, "Zoom level too low: $zoom < $minZoom - returning empty list")
             _points.value = emptyList()
             return
         }
@@ -637,10 +619,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             isLoadingPoints = true
             try {
                 _loadingProgress.postValue(1)
-                Log.d(TAG, "[Stage 1] Starting database loading phase")
 
                 val allPoints = withContext(MapOperationExecutor.databaseDispatcher) {
-                    Log.d(TAG, "[Stage 2] Entering database dispatcher")
                     val pointsLock = Mutex()
                     val points = mutableListOf<MapPoint>()
 
@@ -648,16 +628,11 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     val databaseJobs = selectedDatabases.mapIndexed { index, database ->
                         async {
                             if (!isActive) return@async
-                            Log.d(
-                                TAG,
-                                "[DB Load] Starting database: ${database.id}, type=${database.dbType}"
-                            )
 
                             try {
                                 val startTime = System.currentTimeMillis()
 
                                 if (database.supportsMapApi && database.dbType == DbType.WIFI_API) {
-                                    Log.d(TAG, "[DB API] Loading via Map API for ${database.id}")
                                     val networkPoints =
                                         loadMapApiPoints(database, boundingBox, zoom)
                                     if (!isActive) return@async
@@ -674,10 +649,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                     }
                                     pointsLock.withLock { points.addAll(mapPoints) }
                                 } else if (queryTileRange == null) {
-                                    Log.d(
-                                        TAG,
-                                        "[DB SQL] No tile range (zoom too low), loading by bounds for ${database.id}"
-                                    )
                                     val boundsPoints = loadClusteredPointsFromDatabase(
                                         database,
                                         boundingBox,
@@ -710,11 +681,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                     }
 
                                     if (missedGroups.isNotEmpty()) {
-                                        Log.d(
-                                            TAG,
-                                            "[DB SQL] Loading ${missedGroups.size} missing tile groups from ${database.id}"
-                                        )
-
                                         val groupJobs = missedGroups.map { group ->
                                             async {
                                                 val groupBounds =
@@ -752,12 +718,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                     }
                                 }
 
-                                val loadTime = System.currentTimeMillis() - startTime
-                                Log.d(
-                                    TAG,
-                                    "[DB Load] COMPLETED for ${database.id}: ${points.size} points in ${loadTime}ms"
-                                )
-
                                 val progress = ((index + 1) * 60) / selectedDatabases.size
                                 _loadingProgress.postValue(progress)
                             } catch (e: Exception) {
@@ -767,44 +727,23 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     }
 
                     databaseJobs.awaitAll()
-                    val dbLoadTotalTime = System.currentTimeMillis() - dbLoadStart
-                    Log.d(
-                        TAG,
-                        "[Stage 2] Database loading COMPLETE. Total time: ${dbLoadTotalTime}ms, Total points: ${points.size}"
-                    )
-
                     points.toList()
                 }
 
                 if (!isActive) return@launch
                 _loadingProgress.postValue(70)
 
-                Log.d(TAG, "[Stage 3] Processing ${allPoints.size} points for display")
-
                 val displayPoints = if (zoomLevelChanged) {
-                    Log.d(TAG, "[Stage 3] Zoom changed - using new points only (${allPoints.size})")
                     deduplicatePoints(allPoints)
                 } else {
                     val existingPoints = _points.value ?: emptyList()
                     val prunedExisting = prunePointsToBounds(existingPoints, pruneBounds)
-                    val mergedPoints = mergePoints(prunedExisting, allPoints)
-                    Log.d(
-                        TAG,
-                        "[Stage 3] Merged ${existingPoints.size} existing + ${allPoints.size} new = ${mergedPoints.size} total points (pruned ${existingPoints.size - prunedExisting.size} stale)"
-                    )
-                    mergedPoints
+                    mergePoints(prunedExisting, allPoints)
                 }
 
-                Log.d(TAG, "[Stage 4] Posting to UI thread...")
                 withContext(MapOperationExecutor.uiUpdateDispatcher) {
                     _points.postValue(displayPoints)
                     _pointsLoaded.postValue(true)
-                    val postTime = System.currentTimeMillis()
-                    Log.d(
-                        TAG,
-                        "[Stage 4] Points posted to LiveData. Total pipeline time: ${postTime - overallStart}ms"
-                    )
-                    Log.d(TAG, "========== LOAD POINTS END ==========")
                     _loadingProgress.postValue(100)
                 }
             } catch (e: CancellationException) {
@@ -1103,18 +1042,11 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         zoom: Double,
         scatterMode: Boolean
     ): List<ClusteredMapPoint> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Loading clustered data for ${database.id}, tileRange=$tileRange")
-
-        Log.d(
-            TAG,
-            "loadClusteredPointsFromDatabase: database=${database.id}, dbType=${database.dbType}"
-        )
         val points = when (database.dbType) {
             DbType.LOCAL_APP_DB -> {
                 val dbHelper = LocalAppDbHelper(getApplication())
                 val result = try {
                     if (tileRange != null) {
-                        Log.d(TAG, "[TileQuery] Using quadkey-based query for local DB")
                         dbHelper.getClusteredPointsByTileRange(
                             tileRange.minX, tileRange.minY,
                             tileRange.maxX, tileRange.maxY,
@@ -1128,11 +1060,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             boundsToUse.lonWest,
                             boundsToUse.lonEast,
                             getMaxPointsForZoom(zoom)
-                        )
-
-                        Log.d(
-                            TAG,
-                            "Local DB returned ${localPoints.size} points for ${database.id}"
                         )
 
                         localPoints.mapNotNull { network ->
@@ -1203,7 +1130,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 if (database.supportsMapApi) {
                     val mapHelper = mapHelpers[database.id]
                     if (mapHelper != null) {
-                        Log.d(TAG, "Loading unlimited points via map API for ${database.id}")
                         val mapPoints = mapHelper.getPointsInBoundingBox(
                             boundingBox,
                             zoom,
@@ -1220,23 +1146,18 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             )
                         }
                     } else {
-                        Log.w(TAG, "Map helper not found for ${database.id}")
                         emptyList()
                     }
                 } else {
-                    Log.w(TAG, "WIFI_API without map support - skipping")
                     emptyList()
                 }
             }
 
             DbType.SQLITE_FILE_CUSTOM, DbType.SMARTLINK_SQLITE_FILE_CUSTOM -> {
                 if (database.directPath.isNullOrEmpty()) {
-                    Log.e(TAG, "Direct path is null for database ${database.id}")
                     emptyList()
                 } else {
-                    Log.d(TAG, "Using external indexes for database: ${database.id}")
                     if (tileRange != null) {
-                        Log.d(TAG, "[TileQuery] Using tile-based query for external index")
                         externalIndexManager.getClusteredPointsByTileRange(
                             database.id,
                             database.directPath,
@@ -1264,26 +1185,13 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             else -> {
                 val helper = getHelper(database)
                 if (helper == null) {
-                    Log.w(TAG, "Helper is null for ${database.id} (likely corruption), skipping")
                     emptyList()
                 } else when (helper) {
                     is SQLite3WiFiHelper -> {
                         if (helper.corruptionDetected || helper.database == null) {
-                            Log.w(
-                                TAG,
-                                "SQLite3WiFiHelper for ${database.id} is corrupted or unopened, skipping"
-                            )
                             emptyList()
                         } else {
-                            Log.d(
-                                TAG,
-                                "Using SQLite3WiFiHelper for clustered data from ${database.id}, scatterMode=$scatterMode"
-                            )
                             val clusteredPoints = if (tileRange != null) {
-                                Log.d(
-                                    TAG,
-                                    "[TileQuery] Using tile-based query for SQLite3WiFiHelper"
-                                )
                                 helper.getClusteredPointsByTileRange(
                                     tileRange.minX, tileRange.minY,
                                     tileRange.maxX, tileRange.maxY,
@@ -1297,10 +1205,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                     scatterMode
                                 )
                             }
-                            Log.d(
-                                TAG,
-                                "SQLite3WiFiHelper returned ${clusteredPoints.size} clustered points"
-                            )
 
                             clusteredPoints
                         }
@@ -1308,13 +1212,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                     is SQLiteCustomHelper -> {
                         if (database.tableName == null || database.columnMap == null) {
-                            Log.e(
-                                TAG,
-                                "Table name or column map is null for database ${database.id}"
-                            )
                             emptyList<ClusteredMapPoint>()
                         } else {
-                            Log.d(TAG, "Using SQLiteCustomHelper for data from ${database.id}")
                             helper.getPointsInBoundingBoxLegacy(
                                 boundingBox,
                                 database.tableName,
@@ -1324,7 +1223,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     }
 
                     else -> {
-                        Log.e(TAG, "Unknown helper type: ${helper.javaClass.name}")
                         emptyList()
                     }
                 }
