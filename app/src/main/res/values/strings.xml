@@ -2713,6 +2713,10 @@
 <string name="ln_detailed_scan_complete">[+] Detailed scan complete: %1$d devices, %2$d open ports, %3$dms total</string>
 <string name="ln_detailed_scan_failed">Detailed scan failed: %1$s</string>
 <string name="ln_scan_cancelled">[-] Scan cancelled</string>
+<string name="ln_phase_detect_subnet">Detecting subnet…</string>
+<string name="ln_phase_ping_sweep">Scanning hosts…</string>
+<string name="ln_phase_port_scan">Port scanning…</string>
+<string name="ln_phase_scanning">Scanning…</string>
 <string name="ln_cut_requires_root">[-] Cut Internet requires root access</string>
 <string name="ln_cutting_internet">[*] Cutting internet for %1$s...</string>
 <string name="ln_internet_restored">[+] Internet restored for %1$s</string>

@@ -65,5 +65,11 @@
     <color name="drawer_badge_root_bg">#E65100</color>
     <color name="drawer_badge_chroot_bg">#B71C1C</color>
     <color name="drawer_badge_proot_bg">#F9A825</color>
+    <color name="phase_orange">#FF9800</color>
+    <color name="phase_blue">#2196F3</color>
+    <color name="phase_purple">#9C27B0</color>
+    <color name="phase_green">#4CAF50</color>
+    <color name="console_text_dark_theme">#00FF00</color>
+    <color name="console_text_light_theme">#1B5E20</color>
 </resources>
 

@@ -2015,6 +2015,10 @@
 <string name="ln_detailed_scan_complete">[+] Подробное сканирование завершено: %1$d устройств, %2$d открытых портов, %3$dмс всего</string>
 <string name="ln_detailed_scan_failed">Подробное сканирование не удалось: %1$s</string>
 <string name="ln_scan_cancelled">[-] Сканирование отменено</string>
+<string name="ln_phase_detect_subnet">Определение подсети…</string>
+<string name="ln_phase_ping_sweep">Сканирование хостов…</string>
+<string name="ln_phase_port_scan">Сканирование портов…</string>
+<string name="ln_phase_scanning">Сканирование…</string>
 <string name="ln_cut_requires_root">[-] Для отключения интернета требуются root-права</string>
 <string name="ln_cutting_internet">[*] Отключение интернета для %1$s...</string>
 <string name="ln_internet_restored">[+] Интернет восстановлен для %1$s</string>
