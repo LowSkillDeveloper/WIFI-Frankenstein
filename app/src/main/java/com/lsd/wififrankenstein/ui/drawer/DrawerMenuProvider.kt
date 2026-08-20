@@ -196,6 +196,12 @@ object DrawerMenuProvider {
             R.id.nav_saved_passwords,
             Requirement.ROOT
         ),
+        DrawerItem.MenuItem(
+            804,
+            R.drawable.ic_net_protection,
+            R.string.menu_net_protection,
+            R.id.nav_net_protection
+        ),
 
         DrawerItem.Category(
             9,
