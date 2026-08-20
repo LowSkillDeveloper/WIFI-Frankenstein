@@ -5,6 +5,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <com.lsd.wififrankenstein.util.AnimatedLoadingBar
+        android:id="@+id/animatedProgressBar"
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:layout_gravity="top"
+        android:elevation="8dp"
+        android:visibility="gone" />
+
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollContent"
         android:layout_width="match_parent"
@@ -17,11 +25,6 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <com.lsd.wififrankenstein.util.AnimatedLoadingBar
-                android:id="@+id/animatedProgressBar"
-                android:layout_width="match_parent"
-                android:layout_height="5dp"
-                android:layout_marginBottom="8dp" />
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -349,6 +352,32 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <LinearLayout
+                android:id="@+id/phaseIndicatorRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:id="@+id/phaseIndicatorDot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/bg_phase_dot" />
+
+                <TextView
+                    android:id="@+id/textPhaseIndicator"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/ln_detecting_subnet"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <ProgressBar
                 android:id="@+id/progressScan"
                 style="@style/Widget.AppCompat.ProgressBar.Horizontal"
@@ -386,4 +415,3 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-

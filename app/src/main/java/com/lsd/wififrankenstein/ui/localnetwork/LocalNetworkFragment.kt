@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.localnetwork
 
 import android.content.Intent
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -203,7 +204,10 @@ class LocalNetworkFragment : Fragment() {
         if (isScanning) {
             binding.animatedProgressBar.startAnimation()
             binding.progressCard.visibility = View.VISIBLE
+            binding.phaseIndicatorRow.visibility = View.VISIBLE
             binding.textDeviceCount.text = getString(R.string.ln_devices, deviceCount)
+
+            updatePhaseIndicator(state.phase)
 
             if (state.totalFound > 0) {
                 binding.progressScan.isIndeterminate = false
@@ -224,6 +228,7 @@ class LocalNetworkFragment : Fragment() {
                 }
             }
         } else {
+            binding.phaseIndicatorRow.visibility = View.GONE
             binding.animatedProgressBar.stopAnimation()
             binding.progressCard.visibility = View.GONE
             binding.progressScan.isIndeterminate = false
@@ -247,6 +252,23 @@ class LocalNetworkFragment : Fragment() {
                     .show()
             }
         }
+    }
+
+    private fun updatePhaseIndicator(phase: String) {
+        val (labelRes, colorRes) = when (phase) {
+            "detect_subnet" -> R.string.ln_phase_detect_subnet to R.color.phase_orange
+            "ping_sweep" -> R.string.ln_phase_ping_sweep to R.color.phase_blue
+            "port_scan" -> R.string.ln_phase_port_scan to R.color.phase_purple
+            else -> R.string.ln_phase_scanning to R.color.phase_green
+        }
+        binding.textPhaseIndicator.text = getString(labelRes)
+        val dot = binding.phaseIndicatorDot.background
+        if (dot is GradientDrawable) {
+            dot.setColor(ContextCompat.getColor(requireContext(), colorRes))
+        }
+        binding.textPhaseIndicator.setTextColor(
+            ContextCompat.getColor(requireContext(), colorRes)
+        )
     }
 
     private fun showDeviceDetails(device: LocalDevice) {
