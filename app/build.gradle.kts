@@ -74,8 +74,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_25
-        targetCompatibility = JavaVersion.VERSION_25
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {
@@ -98,7 +98,7 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget("25"))
+        jvmTarget.set(JvmTarget.fromTarget("17"))
         languageVersion.set(KotlinVersion.fromVersion("2.4"))
         apiVersion.set(KotlinVersion.fromVersion("2.4"))
     }

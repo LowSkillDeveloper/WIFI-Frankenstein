@@ -20,5 +20,6 @@ enum class FeatureCategory {
     GENERATORS,
     UTILITIES,
     NETWORK_DIAGNOSTICS,
+    NET_PROTECTION,
     OTHER
 }

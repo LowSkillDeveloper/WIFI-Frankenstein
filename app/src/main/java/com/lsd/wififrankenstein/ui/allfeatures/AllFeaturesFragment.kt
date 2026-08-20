@@ -322,6 +322,13 @@ class AllFeaturesFragment : Fragment() {
                 FeatureCategory.NETWORK_DIAGNOSTICS
             ),
             FeatureItem(
+                R.string.menu_net_protection,
+                R.string.feature_desc_net_protection,
+                R.drawable.ic_net_protection,
+                R.id.nav_net_protection,
+                FeatureCategory.UTILITIES
+            ),
+            FeatureItem(
                 R.string.menu_in_app_database,
                 R.string.feature_desc_in_app_database,
                 R.drawable.ic_database,

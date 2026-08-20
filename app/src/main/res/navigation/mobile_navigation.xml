@@ -271,5 +271,11 @@
         android:label="@string/handshake_converter_title"
         app:route="nav_handshake_converter"
         tools:layout="@layout/fragment_handshake_converter" />
+    <fragment
+        android:id="@+id/nav_net_protection"
+        android:name="com.lsd.wififrankenstein.ui.netprotection.NetProtectionFragment"
+        android:label="@string/menu_net_protection"
+        app:route="nav_net_protection"
+        tools:layout="@layout/fragment_net_protection" />
 </navigation>
 

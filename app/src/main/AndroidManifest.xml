@@ -115,6 +115,13 @@
             android:foregroundServiceType="dataSync"
             tools:targetApi="29" />
 
+        <service
+            android:name=".service.NetProtectionService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            tools:targetApi="29" />
+
 
         <activity
             android:name=".WelcomeActivity"
