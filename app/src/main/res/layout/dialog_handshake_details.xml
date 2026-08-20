@@ -743,6 +743,13 @@
                         tools:text="wpa-sec: uploaded, not found" />
 
                     <TextView
+                        android:id="@+id/detailPwncrackStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="12sp"
+                        tools:text="PWNcrack: uploaded, not found" />
+
+                    <TextView
                         android:id="@+id/detailOhcStatus"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

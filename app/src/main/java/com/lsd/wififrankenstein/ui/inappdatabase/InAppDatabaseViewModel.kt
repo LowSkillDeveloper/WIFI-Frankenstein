@@ -15,6 +15,7 @@ import com.lsd.wififrankenstein.network.WpaSecClient
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
 import com.lsd.wififrankenstein.util.Log
+import com.lsd.wififrankenstein.util.PwncrackImporter
 import com.lsd.wififrankenstein.util.WpaSecImporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -688,6 +689,54 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
                 updateStats()
             } catch (e: Exception) {
                 Log.e("InAppDatabaseViewModel", "wpa-sec import error", e)
+                withContext(Dispatchers.Main) {
+                    onError(
+                        e.message
+                            ?: getApplication<Application>().getString(R.string.unknown_error)
+                    )
+                }
+            } finally {
+                withContext(Dispatchers.Main) { onProgress(false) }
+            }
+        }
+    }
+
+    fun importFromPwncrack(
+        apiKey: String,
+        onProgress: (Boolean) -> Unit,
+        onResult: (inserted: Int, duplicates: Int) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                withContext(Dispatchers.Main) { onProgress(true) }
+                val entries = PwncrackImporter.download(apiKey)
+
+                val networks = entries.map { entry ->
+                    WifiNetwork(
+                        id = 0,
+                        wifiName = entry.ssid,
+                        macAddress = entry.bssid,
+                        wifiPassword = entry.password.takeIf { it.isNotEmpty() }
+                    )
+                }
+
+                if (networks.isEmpty()) {
+                    withContext(Dispatchers.Main) { onResult(0, 0) }
+                    return@launch
+                }
+
+                val localDbHelper = LocalAppDbHelper(getApplication())
+                try {
+                    val result = localDbHelper.bulkInsertOptimized(networks, true)
+                    withContext(Dispatchers.Main) { onResult(result.first, result.second) }
+                } finally {
+                    localDbHelper.close()
+                }
+
+                updateStats()
+            } catch (e: Exception) {
+                Log.e("InAppDatabaseViewModel", "pwncrack import error", e)
                 withContext(Dispatchers.Main) {
                     onError(
                         e.message

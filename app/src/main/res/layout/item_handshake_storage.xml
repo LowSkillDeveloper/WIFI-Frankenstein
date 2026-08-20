@@ -259,6 +259,19 @@
             tools:text="Uploaded to wpa-sec"
             tools:visibility="visible" />
 
+        <TextView
+            android:id="@+id/text_hs_pwncrack_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="11sp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_hs_wpasec_status"
+            tools:text="Uploaded to PWNcrack"
+            tools:visibility="visible" />
+
         <LinearLayout
             android:id="@+id/layout_hs_actions"
             android:layout_width="0dp"
@@ -268,7 +281,7 @@
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/text_hs_wpasec_status">
+            app:layout_constraintTop_toBottomOf="@id/text_hs_pwncrack_status">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_hs_verify"

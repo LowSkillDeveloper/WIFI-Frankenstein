@@ -28,6 +28,8 @@
     <item name="action_copy_hash_16800" type="id" />
     <item name="action_copy_pin" type="id" />
     <item name="action_upload_3wifi" type="id" />
+    <item name="action_upload_pwncrack" type="id" />
+    <item name="action_check_pwncrack" type="id" />
     <item name="action_psk_backend_native" type="id" />
     <item name="action_psk_backend_chroot" type="id" />
 </resources>

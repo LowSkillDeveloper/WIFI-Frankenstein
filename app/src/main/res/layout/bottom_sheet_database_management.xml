@@ -104,6 +104,15 @@
             android:text="@string/import_wpa_sec"
             app:icon="@drawable/ic_file_download" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonImportPwncrack"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/import_pwncrack"
+            app:icon="@drawable/ic_file_download" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"

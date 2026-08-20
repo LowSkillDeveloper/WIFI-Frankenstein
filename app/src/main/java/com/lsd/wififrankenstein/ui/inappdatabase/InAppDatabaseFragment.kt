@@ -355,6 +355,11 @@ class InAppDatabaseFragment : Fragment() {
             showWpaSecImportDialog()
         }
 
+        bottomSheetBinding.buttonImportPwncrack.setOnClickListener {
+            bottomSheetDialog.dismiss()
+            showPwncrackImportDialog()
+        }
+
         bottomSheetBinding.buttonClearDatabase.setOnClickListener {
             bottomSheetDialog.dismiss()
             showClearDatabaseDialog()
@@ -412,6 +417,53 @@ class InAppDatabaseFragment : Fragment() {
             },
             onError = { error ->
                 showSnackbar(getString(R.string.wpa_sec_import_failed, error))
+            }
+        )
+    }
+
+    private fun showPwncrackImportDialog() {
+        val input =
+            TextInputEditText(requireContext()).apply {
+                hint = getString(R.string.pwncrack_api_key_hint)
+                inputType = android.text.InputType.TYPE_CLASS_TEXT
+                isSingleLine = true
+            }
+
+        val container = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), dp(8))
+            addView(input)
+        }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.pwncrack_api_key)
+            .setView(container)
+            .setPositiveButton(R.string.import_pwncrack) { _, _ ->
+                val key = input.text?.toString()?.trim() ?: ""
+                if (key.isNotEmpty()) {
+                    startPwncrackImport(key)
+                } else {
+                    showSnackbar(getString(R.string.pwncrack_import_failed, getString(R.string.pwncrack_invalid_key)))
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun startPwncrackImport(apiKey: String) {
+        showProgressDialog(getString(R.string.pwncrack_import_progress))
+        viewModel.importFromPwncrack(
+            apiKey = apiKey,
+            onProgress = { loading ->
+                if (!loading) hideProgressDialog()
+            },
+            onResult = { inserted, duplicates ->
+                showSnackbar(getString(R.string.pwncrack_import_result, inserted, duplicates))
+                adapter.refresh()
+                updateStats()
+            },
+            onError = { error ->
+                showSnackbar(getString(R.string.pwncrack_import_failed, error))
             }
         )
     }

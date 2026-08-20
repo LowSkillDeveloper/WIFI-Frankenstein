@@ -589,6 +589,23 @@ class HandshakeStorageManager(private val context: Context) {
         return metadataDb.getNotUploadedToWpaSec()
     }
 
+    fun updatePwncrackUploadStatus(fileName: String, uploaded: Boolean, key: String?) {
+        metadataDb.updatePwncrackUploadStatus(fileName, uploaded, key)
+    }
+
+    fun updatePwncrackCheckResult(
+        fileName: String,
+        checked: Boolean,
+        found: Boolean,
+        password: String?
+    ) {
+        metadataDb.updatePwncrackCheckResult(fileName, checked, found, password)
+    }
+
+    fun getHandshakesNotUploadedToPwncrack(): List<HandshakeItem> {
+        return metadataDb.getNotUploadedToPwncrack()
+    }
+
     data class OrphanFile(
         val fileName: String,
         val filePath: String
