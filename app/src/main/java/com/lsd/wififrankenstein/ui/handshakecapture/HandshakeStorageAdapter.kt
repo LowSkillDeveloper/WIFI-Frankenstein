@@ -36,6 +36,8 @@ class HandshakeStorageAdapter(
     private val onUploadWpaSec: ((HandshakeItem) -> Unit)? = null,
     private val onUploadOhc: ((HandshakeItem) -> Unit)? = null,
     private val onCheckWpaSec: ((HandshakeItem) -> Unit)? = null,
+    private val onUploadPwncrack: ((HandshakeItem) -> Unit)? = null,
+    private val onCheckPwncrack: ((HandshakeItem) -> Unit)? = null,
     private val hasChroot: Boolean = true
 ) : ListAdapter<HandshakeItem, HandshakeStorageAdapter.ViewHolder>(DIFF_CALLBACK) {
 
@@ -144,6 +146,7 @@ class HandshakeStorageAdapter(
         private val textHashPmkid: TextView = itemView.findViewById(R.id.text_hs_hash_pmkid)
         private val iconCopyPmkid: ImageView = itemView.findViewById(R.id.icon_hs_copy_pmkid)
         private val textWpaSecStatus: TextView = itemView.findViewById(R.id.text_hs_wpasec_status)
+        private val textPwncrackStatus: TextView = itemView.findViewById(R.id.text_hs_pwncrack_status)
         private val btnMore: MaterialButton = itemView.findViewById(R.id.btn_hs_more)
 
         fun bind(item: HandshakeItem) {
@@ -260,6 +263,36 @@ class HandshakeStorageAdapter(
                 )
             }
 
+            textPwncrackStatus.visibility = View.GONE
+            if (item.pwncrackPasswordFound) {
+                textPwncrackStatus.visibility = View.VISIBLE
+                textPwncrackStatus.text = itemView.context.getString(R.string.pwncrack_password_found)
+                textPwncrackStatus.setTextColor(
+                    ContextCompat.getColor(
+                        itemView.context,
+                        R.color.success_green
+                    )
+                )
+            } else if (item.uploadedToPwncrack && item.pwncrackChecked) {
+                textPwncrackStatus.visibility = View.VISIBLE
+                textPwncrackStatus.text = itemView.context.getString(R.string.pwncrack_not_found)
+                textPwncrackStatus.setTextColor(
+                    ContextCompat.getColor(
+                        itemView.context,
+                        R.color.text_secondary
+                    )
+                )
+            } else if (item.uploadedToPwncrack) {
+                textPwncrackStatus.visibility = View.VISIBLE
+                textPwncrackStatus.text = itemView.context.getString(R.string.pwncrack_uploaded)
+                textPwncrackStatus.setTextColor(
+                    ContextCompat.getColor(
+                        itemView.context,
+                        R.color.success_green
+                    )
+                )
+            }
+
             val actionsVisible = !isMultiSelectMode
             btnVerify.visibility = if (actionsVisible && hasChroot) View.VISIBLE else View.GONE
             btnVerify.isEnabled = item.fileExists
@@ -287,6 +320,13 @@ class HandshakeStorageAdapter(
                     val wpasecEnabled = item.hash22000 != null
 
                     val hasCrackedPassword = item.crackedPassword != null
+                    val pwncrackTitle = when {
+                        item.hash22000 == null -> context.getString(R.string.pwncrack_upload)
+                        item.uploadedToPwncrack && !item.pwncrackChecked -> context.getString(R.string.pwncrack_check)
+                        else -> context.getString(R.string.pwncrack_upload)
+                    }
+                    val pwncrackEnabled = item.hash22000 != null
+
                     val items = mutableListOf(
                         BottomSheetMenuItem(
                             R.id.action_upload_wpasec,
@@ -297,6 +337,18 @@ class HandshakeStorageAdapter(
                         BottomSheetMenuItem(
                             R.id.action_check_wpasec,
                             context.getString(R.string.wpasec_check),
+                            R.drawable.cloud_24px,
+                            enabled = !item.bssid.isNullOrBlank() && !item.essid.isNullOrBlank()
+                        ),
+                        BottomSheetMenuItem(
+                            R.id.action_upload_pwncrack,
+                            pwncrackTitle,
+                            R.drawable.ic_cloud_upload,
+                            enabled = pwncrackEnabled
+                        ),
+                        BottomSheetMenuItem(
+                            R.id.action_check_pwncrack,
+                            context.getString(R.string.pwncrack_check),
                             R.drawable.cloud_24px,
                             enabled = !item.bssid.isNullOrBlank() && !item.essid.isNullOrBlank()
                         ),
@@ -357,6 +409,15 @@ class HandshakeStorageAdapter(
                             }
 
                             R.id.action_check_wpasec -> onCheckWpaSec?.invoke(item)
+                            R.id.action_upload_pwncrack -> {
+                                if (item.hash22000 != null && !item.uploadedToPwncrack) onUploadPwncrack?.invoke(
+                                    item
+                                )
+                                else if (item.uploadedToPwncrack && !item.pwncrackChecked) onCheckPwncrack?.invoke(
+                                    item
+                                )
+                            }
+                            R.id.action_check_pwncrack -> onCheckPwncrack?.invoke(item)
                             R.id.action_upload_ohc -> onUploadOhc?.invoke(item)
                             R.id.action_upload_3wifi -> onUploadTo3WiFi?.invoke(item)
                             R.id.action_copy_ssid -> onCopySsid?.invoke(item)

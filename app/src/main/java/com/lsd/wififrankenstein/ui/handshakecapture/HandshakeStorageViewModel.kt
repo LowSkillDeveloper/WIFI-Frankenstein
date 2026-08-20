@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.network.NetworkException
 import com.lsd.wififrankenstein.network.OhcClient
+import com.lsd.wififrankenstein.network.PwncrackClient
 import com.lsd.wififrankenstein.network.WpaSecClient
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
@@ -66,6 +67,7 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
     private val captureRunner = HandshakeCaptureRunner(application)
     private val chrootManager = ChrootManager.get(application)
     private val wpaSecClient = WpaSecClient(application)
+    private val pwncrackClient = PwncrackClient(application)
     private val wpaSecDictManager = WpaSecDictManager(application)
     private val importManager = HandshakeImportManager(application)
     private val ohcClient = OhcClient(application)
@@ -92,11 +94,22 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
         wpaSecClient.saveKey(key)
     }
 
+    fun getSavedPwncrackKey(): String? = pwncrackClient.getSavedKey()
+    fun savePwncrackKey(key: String) {
+        pwncrackClient.saveKey(key)
+    }
+
     private val _wpaSecResult = MutableLiveData<Pair<String, String>?>(null)
     val wpaSecResult: LiveData<Pair<String, String>?> = _wpaSecResult
 
     private val _wpaSecCheckDone = MutableLiveData(false)
     val wpaSecCheckDone: LiveData<Boolean> = _wpaSecCheckDone
+
+    private val _pwncrackResult = MutableLiveData<Pair<String, String>?>(null)
+    val pwncrackResult: LiveData<Pair<String, String>?> = _pwncrackResult
+
+    private val _pwncrackCheckDone = MutableLiveData(false)
+    val pwncrackCheckDone: LiveData<Boolean> = _pwncrackCheckDone
 
     private val _storageItems = MutableLiveData<List<HandshakeItem>>(emptyList())
     val storageItems: LiveData<List<HandshakeItem>> = _storageItems
@@ -1822,6 +1835,113 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
 
     fun clearWpaSecCheckDone() {
         _wpaSecCheckDone.value = false
+    }
+
+    fun uploadToPwncrack(item: HandshakeItem, apiKey: String? = null) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val hash = item.hash22000 ?: return@launch
+                val key = apiKey ?: pwncrackClient.getSavedKey()
+                if (key.isNullOrBlank()) {
+                    _pwncrackResult.postValue(item.fileName to "__NEED_KEY__")
+                    return@launch
+                }
+
+                val response = pwncrackClient.uploadHandshake(hash, key)
+                if (response.success) {
+                    storageManager.updatePwncrackUploadStatus(item.fileName, true, key)
+
+                    val results = pwncrackClient.checkResults(key)
+                    val matching = results.find {
+                        it.ssid == item.essid || it.bssid.equals(item.bssid, ignoreCase = true)
+                    }
+                    if (matching != null) {
+                        val verified = verifyPasswordAgainstHash(matching.password, hash)
+                        if (verified) {
+                            storageManager.updateHandshakeCracked(item.fileName, matching.password)
+                            storageManager.updatePwncrackCheckResult(
+                                item.fileName, true, true, matching.password
+                            )
+                            item.bssid?.let {
+                                savePasswordToLocalDb(it, item.essid, matching.password)
+                            }
+                            _pwncrackResult.postValue(item.fileName to matching.password)
+                        } else {
+                            storageManager.updatePwncrackCheckResult(
+                                item.fileName, true, false, null
+                            )
+                            _pwncrackResult.postValue(item.fileName to "not_found")
+                        }
+                    } else {
+                        storageManager.updatePwncrackCheckResult(item.fileName, true, false, null)
+                        _pwncrackResult.postValue(item.fileName to "not_found")
+                    }
+                    loadStorage()
+                } else {
+                    _pwncrackResult.postValue(item.fileName to "__UPLOAD_FAILED__")
+                }
+            } catch (e: Exception) {
+                Log.e(tag, "uploadToPwncrack failed", e)
+            }
+        }
+    }
+
+    private suspend fun checkOnPwncrackSuspend(item: HandshakeItem) {
+        try {
+            val key = pwncrackClient.getSavedKey()
+            if (key.isNullOrBlank()) return
+
+            val results = withContext(Dispatchers.IO) {
+                pwncrackClient.checkResults(key)
+            }
+            val matching = results.find {
+                it.ssid == item.essid || it.bssid.equals(item.bssid, ignoreCase = true)
+            }
+            val found = matching != null
+            val password = matching?.password
+            storageManager.updatePwncrackCheckResult(item.fileName, true, found, password)
+
+            if (found && password != null && item.crackedPassword == null) {
+                val hash = item.hash22000
+                if (hash != null) {
+                    val verified = verifyPasswordAgainstHash(password, hash)
+                    if (verified) {
+                        storageManager.updateHandshakeCracked(item.fileName, password)
+                        item.bssid?.let { savePasswordToLocalDb(it, item.essid, password) }
+                    }
+                }
+            }
+
+            _pwncrackResult.postValue(
+                item.fileName to if (found) "password_known" else "not_found"
+            )
+            loadStorage()
+        } catch (e: Exception) {
+            Log.e(tag, "checkOnPwncrackSuspend failed", e)
+        }
+    }
+
+    fun checkOnPwncrack(item: HandshakeItem) {
+        viewModelScope.launch(Dispatchers.IO) {
+            checkOnPwncrackSuspend(item)
+        }
+    }
+
+    fun checkAllOnPwncrack() {
+        viewModelScope.launch(Dispatchers.IO) {
+            for (item in allItems.filter { it.bssid != null && it.essid != null && it.uploadedToPwncrack }) {
+                checkOnPwncrackSuspend(item)
+            }
+            _pwncrackCheckDone.postValue(true)
+        }
+    }
+
+    fun clearPwncrackResult() {
+        _pwncrackResult.value = null
+    }
+
+    fun clearPwncrackCheckDone() {
+        _pwncrackCheckDone.value = false
     }
 
     private suspend fun getUploadFile(item: HandshakeItem): File? = withContext(Dispatchers.IO) {

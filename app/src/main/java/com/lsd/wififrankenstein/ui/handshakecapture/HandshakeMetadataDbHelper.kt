@@ -15,7 +15,7 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
 ) {
     companion object {
         private const val DATABASE_NAME = "handshakes_meta.db"
-        private const val DATABASE_VERSION = 9
+        private const val DATABASE_VERSION = 10
         private const val TABLE_HANDSHAKES = "handshakes"
 
         private const val COL_FILE_NAME = "file_name"
@@ -63,6 +63,11 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
         private const val COL_PROBE_REQ_COUNT = "probe_req_count"
         private const val COL_HASH_16800 = "hash_16800"
         private const val COL_APS_IN_FILE = "aps_in_file"
+        private const val COL_UPLOADED_TO_PWNCRACK = "uploaded_to_pwncrack"
+        private const val COL_PWNCRACK_KEY = "pwncrack_key"
+        private const val COL_PWNCRACK_CHECKED = "pwncrack_checked"
+        private const val COL_PWNCRACK_PASSWORD_FOUND = "pwncrack_password_found"
+        private const val COL_PWNCRACK_PASSWORD = "pwncrack_password"
 
         private const val IDX_ESSID =
             "CREATE INDEX IF NOT EXISTS idx_handshakes_essid ON $TABLE_HANDSHAKES ($COL_ESSID)"
@@ -129,6 +134,11 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
             $COL_PROBE_REQ_COUNT INTEGER DEFAULT 0,
             $COL_HASH_16800 TEXT,
             $COL_APS_IN_FILE TEXT,
+            $COL_UPLOADED_TO_PWNCRACK INTEGER DEFAULT 0,
+            $COL_PWNCRACK_KEY TEXT,
+            $COL_PWNCRACK_CHECKED INTEGER DEFAULT 0,
+            $COL_PWNCRACK_PASSWORD_FOUND INTEGER DEFAULT 0,
+            $COL_PWNCRACK_PASSWORD TEXT,
             $COL_CREATED_AT INTEGER DEFAULT (strftime('%s','now'))
         )
     """.trimIndent()
@@ -224,6 +234,16 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
             } catch (_: Exception) {
             }
         }
+        if (oldVersion < 10) {
+            try {
+                db?.execSQL("ALTER TABLE $TABLE_HANDSHAKES ADD COLUMN $COL_UPLOADED_TO_PWNCRACK INTEGER DEFAULT 0")
+                db?.execSQL("ALTER TABLE $TABLE_HANDSHAKES ADD COLUMN $COL_PWNCRACK_KEY TEXT")
+                db?.execSQL("ALTER TABLE $TABLE_HANDSHAKES ADD COLUMN $COL_PWNCRACK_CHECKED INTEGER DEFAULT 0")
+                db?.execSQL("ALTER TABLE $TABLE_HANDSHAKES ADD COLUMN $COL_PWNCRACK_PASSWORD_FOUND INTEGER DEFAULT 0")
+                db?.execSQL("ALTER TABLE $TABLE_HANDSHAKES ADD COLUMN $COL_PWNCRACK_PASSWORD TEXT")
+            } catch (_: Exception) {
+            }
+        }
     }
 
     fun saveOrUpdate(item: HandshakeItem) {
@@ -278,6 +298,11 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
                 put(COL_PROBE_REQ_COUNT, item.probeReqCount)
                 put(COL_HASH_16800, item.hash16800)
                 put(COL_APS_IN_FILE, item.apsInFile)
+                put(COL_UPLOADED_TO_PWNCRACK, if (item.uploadedToPwncrack) 1 else 0)
+                put(COL_PWNCRACK_KEY, item.pwncrackKey)
+                put(COL_PWNCRACK_CHECKED, if (item.pwncrackChecked) 1 else 0)
+                put(COL_PWNCRACK_PASSWORD_FOUND, if (item.pwncrackPasswordFound) 1 else 0)
+                put(COL_PWNCRACK_PASSWORD, item.pwncrackPassword)
             }
             db.insertWithOnConflict(TABLE_HANDSHAKES, null, values, SQLiteDatabase.CONFLICT_REPLACE)
         }
@@ -631,6 +656,57 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
         }
     }
 
+    fun updatePwncrackUploadStatus(fileName: String, uploaded: Boolean, key: String?) {
+        lock.withLock {
+            val values = ContentValues().apply {
+                put(COL_UPLOADED_TO_PWNCRACK, if (uploaded) 1 else 0)
+                put(COL_PWNCRACK_KEY, key)
+            }
+            writableDatabase.update(
+                TABLE_HANDSHAKES,
+                values,
+                "$COL_FILE_NAME = ?",
+                arrayOf(fileName)
+            )
+        }
+    }
+
+    fun updatePwncrackCheckResult(
+        fileName: String,
+        checked: Boolean,
+        found: Boolean,
+        password: String?
+    ) {
+        lock.withLock {
+            val values = ContentValues().apply {
+                put(COL_PWNCRACK_CHECKED, if (checked) 1 else 0)
+                put(COL_PWNCRACK_PASSWORD_FOUND, if (found) 1 else 0)
+                put(COL_PWNCRACK_PASSWORD, password)
+            }
+            writableDatabase.update(
+                TABLE_HANDSHAKES,
+                values,
+                "$COL_FILE_NAME = ?",
+                arrayOf(fileName)
+            )
+        }
+    }
+
+    fun getNotUploadedToPwncrack(): List<HandshakeItem> {
+        return lock.withLock {
+            readableDatabase.rawQuery(
+                "SELECT * FROM $TABLE_HANDSHAKES WHERE $COL_UPLOADED_TO_PWNCRACK = 0 AND $COL_HASH_22000 IS NOT NULL",
+                null
+            ).use { cursor ->
+                val items = mutableListOf<HandshakeItem>()
+                while (cursor.moveToNext()) {
+                    items.add(cursorToItem(cursor))
+                }
+                items
+            }
+        }
+    }
+
     fun clearAll() {
         lock.withLock {
             writableDatabase.delete(TABLE_HANDSHAKES, null, null)
@@ -757,6 +833,27 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
             },
             apsInFile = try {
                 cursor.getString(cursor.getColumnIndexOrThrow(COL_APS_IN_FILE))
+            } catch (_: Exception) {
+                null
+            },
+            uploadedToPwncrack = getOptionalInt(cursor, COL_UPLOADED_TO_PWNCRACK) == 1,
+            pwncrackKey = try {
+                cursor.getString(cursor.getColumnIndexOrThrow(COL_PWNCRACK_KEY))
+            } catch (_: Exception) {
+                null
+            },
+            pwncrackChecked = try {
+                getOptionalInt(cursor, COL_PWNCRACK_CHECKED) == 1
+            } catch (_: Exception) {
+                false
+            },
+            pwncrackPasswordFound = try {
+                getOptionalInt(cursor, COL_PWNCRACK_PASSWORD_FOUND) == 1
+            } catch (_: Exception) {
+                false
+            },
+            pwncrackPassword = try {
+                cursor.getString(cursor.getColumnIndexOrThrow(COL_PWNCRACK_PASSWORD))
             } catch (_: Exception) {
                 null
             }

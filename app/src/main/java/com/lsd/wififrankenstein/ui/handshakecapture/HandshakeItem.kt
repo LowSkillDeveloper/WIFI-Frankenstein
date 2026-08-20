@@ -46,7 +46,12 @@ data class HandshakeItem(
     val authCount: Int = 0,
     val probeReqCount: Int = 0,
     val hash16800: String? = null,
-    val apsInFile: String? = null
+    val apsInFile: String? = null,
+    val uploadedToPwncrack: Boolean = false,
+    val pwncrackKey: String? = null,
+    val pwncrackChecked: Boolean = false,
+    val pwncrackPasswordFound: Boolean = false,
+    val pwncrackPassword: String? = null
 ) {
     val hasPmkid: Boolean
         get() = hashPmkid != null

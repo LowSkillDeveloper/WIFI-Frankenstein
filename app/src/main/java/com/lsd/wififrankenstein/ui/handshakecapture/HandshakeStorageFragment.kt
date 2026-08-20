@@ -127,6 +127,8 @@ class HandshakeStorageFragment : Fragment() {
             onUploadWpaSec = { item -> showWpaSecUploadDialog(item) },
             onUploadOhc = { item -> showOnlineHashCrackDialog(item) },
             onCheckWpaSec = { item -> viewModel.checkOnWpaSec(item) },
+            onUploadPwncrack = { item -> showPwncrackUploadDialog(item) },
+            onCheckPwncrack = { item -> viewModel.checkOnPwncrack(item) },
             onUploadTo3WiFi = { item -> uploadHandshakeTo3WiFi(listOf(item)) },
             hasChroot = ChrootCapabilities.hasChrootTools(requireContext())
         )
@@ -360,6 +362,35 @@ class HandshakeStorageFragment : Fragment() {
                 Toast.makeText(requireContext(), getString(R.string.hsc_wpasec_check_complete), Toast.LENGTH_SHORT)
                     .show()
                 viewModel.clearWpaSecCheckDone()
+            }
+        }
+
+        viewModel.pwncrackResult.observe(viewLifecycleOwner) { result ->
+            if (result != null) {
+                val (fileName, status) = result
+                val msg = when (status) {
+                    "__NEED_KEY__" -> null
+                    "__UPLOAD_FAILED__" -> getString(R.string.hsc_pwncrack_upload_failed)
+                    "password_known" -> getString(R.string.hsc_pwncrack_password_known, fileName)
+                    "not_found" -> getString(R.string.hsc_pwncrack_password_not_found, fileName)
+                    else -> getString(R.string.handshake_key_found, status)
+                }
+                if (msg != null && status != "__NEED_KEY__") {
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle(if (status.startsWith("password_")) R.string.pwncrack_check else R.string.handshake_crack)
+                        .setMessage(msg)
+                        .setPositiveButton(R.string.close, null)
+                        .show()
+                }
+                viewModel.clearPwncrackResult()
+            }
+        }
+
+        viewModel.pwncrackCheckDone.observe(viewLifecycleOwner) { done ->
+            if (done) {
+                Toast.makeText(requireContext(), getString(R.string.hsc_pwncrack_check_complete), Toast.LENGTH_SHORT)
+                    .show()
+                viewModel.clearPwncrackCheckDone()
             }
         }
 
@@ -1066,12 +1097,14 @@ class HandshakeStorageFragment : Fragment() {
             .setItems(
                 arrayOf(
                     getString(R.string.handshake_upload_wpasec),
-                    getString(R.string.handshake_upload_onlinehashcrack)
+                    getString(R.string.handshake_upload_onlinehashcrack),
+                    getString(R.string.handshake_upload_pwncrack)
                 )
             ) { _, which ->
                 when (which) {
                     0 -> onBulkUploadToWpaSec(items)
                     1 -> onBulkUploadToOhc(items)
+                    2 -> onBulkUploadToPwncrack(items)
                 }
             }
             .setNegativeButton(R.string.close, null)
@@ -1247,6 +1280,72 @@ class HandshakeStorageFragment : Fragment() {
                 val key = input.text.toString().trim()
                 if (key.isNotBlank()) {
                     viewModel.saveWpaSecKey(key)
+                    onKeySet()
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.handshake_upload_key_required,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
+    private fun onBulkUploadToPwncrack(items: List<HandshakeItem>) {
+        val withHash = items.filter { it.hash22000 != null }
+        if (withHash.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.handshake_no_hash, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val savedKey = viewModel.getSavedPwncrackKey()
+        if (savedKey.isNullOrBlank()) {
+            showPwncrackKeyDialog {
+                withHash.forEach { viewModel.uploadToPwncrack(it) }
+                exitMultiSelect()
+            }
+        } else {
+            Toast.makeText(requireContext(), R.string.pwncrack_uploading, Toast.LENGTH_SHORT).show()
+            withHash.forEach { viewModel.uploadToPwncrack(it) }
+            exitMultiSelect()
+        }
+    }
+
+    private fun showPwncrackUploadDialog(item: HandshakeItem) {
+        val savedKey = viewModel.getSavedPwncrackKey()
+        if (savedKey.isNullOrBlank()) {
+            showPwncrackKeyDialog { viewModel.uploadToPwncrack(item) }
+        } else {
+            Toast.makeText(requireContext(), R.string.pwncrack_uploading, Toast.LENGTH_SHORT).show()
+            viewModel.uploadToPwncrack(item)
+        }
+    }
+
+    private fun showPwncrackKeyDialog(onKeySet: () -> Unit) {
+        val savedKey = viewModel.getSavedPwncrackKey().orEmpty()
+        val input = android.widget.EditText(requireContext()).apply {
+            hint = getString(R.string.pwncrack_api_key_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            setText(savedKey)
+            setPadding(48, 32, 48, 32)
+        }
+        val messageLayout = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(TextView(requireContext()).apply {
+                text = getString(R.string.pwncrack_key_message)
+                textSize = 12f
+                setPadding(24, 8, 24, 8)
+            })
+            addView(input)
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.pwncrack_key_title)
+            .setView(messageLayout)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                val key = input.text.toString().trim()
+                if (key.isNotBlank()) {
+                    viewModel.savePwncrackKey(key)
                     onKeySet()
                 } else {
                     Toast.makeText(
@@ -1590,6 +1689,29 @@ class HandshakeStorageFragment : Fragment() {
                 when {
                     item.wpasecPasswordFound -> R.color.success_green
                     item.uploadedToWpaSec -> R.color.text_secondary
+                    else -> R.color.text_secondary
+                }
+            )
+        )
+
+        val pwncrackText = buildString {
+            if (item.uploadedToPwncrack) {
+                append(getString(R.string.hsc_pwncrack_uploaded))
+                if (item.pwncrackChecked) {
+                    append(if (item.pwncrackPasswordFound) getString(R.string.hsc_pwncrack_password_found) else getString(R.string.hsc_pwncrack_not_found))
+                }
+            } else {
+                append(getString(R.string.hsc_pwncrack_not_uploaded))
+            }
+        }
+        val pwncrackView = dialogView.findViewById<TextView>(R.id.detailPwncrackStatus)
+        pwncrackView.text = pwncrackText
+        pwncrackView.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                when {
+                    item.pwncrackPasswordFound -> R.color.success_green
+                    item.uploadedToPwncrack -> R.color.text_secondary
                     else -> R.color.text_secondary
                 }
             )
