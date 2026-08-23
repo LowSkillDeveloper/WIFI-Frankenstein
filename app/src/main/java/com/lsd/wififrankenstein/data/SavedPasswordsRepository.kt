@@ -103,7 +103,14 @@ class SavedPasswordsRepository(private val context: Context) {
         }
     }
 
-    private fun parseXmlConfig(lines: List<String>): List<SavedWifiPassword> {
+    private fun parseXmlConfig(lines: List<String>): List<SavedWifiPassword> =
+        Companion.parseXmlConfigLines(lines)
+
+    private fun parseSupplicantConfig(lines: List<String>): List<SavedWifiPassword> =
+        Companion.parseSupplicantConfigLines(lines)
+
+    companion object {
+        internal fun parseXmlConfigLines(lines: List<String>): List<SavedWifiPassword> {
         val passwords = mutableListOf<SavedWifiPassword>()
         var currentSsid = ""
         var currentPassword = ""
@@ -171,9 +178,9 @@ class SavedPasswordsRepository(private val context: Context) {
         }
 
         return passwords
-    }
+        }
 
-    private fun parseSupplicantConfig(lines: List<String>): List<SavedWifiPassword> {
+        internal fun parseSupplicantConfigLines(lines: List<String>): List<SavedWifiPassword> {
         val passwords = mutableListOf<SavedWifiPassword>()
         var currentSsid = ""
         var currentPassword = ""
@@ -228,7 +235,7 @@ class SavedPasswordsRepository(private val context: Context) {
         return passwords
     }
 
-    private fun extractXmlValue(line: String, nextLine: String?): String {
+        internal fun extractXmlValue(line: String, nextLine: String?): String {
         val patterns = listOf(
             "&quot;(.+?)&quot;",
             "value=\"(.+?)\"",
@@ -246,7 +253,7 @@ class SavedPasswordsRepository(private val context: Context) {
         return ""
     }
 
-    private fun determineSecurityFromConfigKey(configKey: String): String {
+        internal fun determineSecurityFromConfigKey(configKey: String): String {
         return when {
             configKey.contains("WEP", ignoreCase = true) -> SavedWifiPassword.SECURITY_WEP
             configKey.contains("WPA3", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA3
@@ -257,7 +264,7 @@ class SavedPasswordsRepository(private val context: Context) {
         }
     }
 
-    private fun determineSecurityFromKeyMgmt(keyMgmt: String): String {
+        internal fun determineSecurityFromKeyMgmt(keyMgmt: String): String {
         return when {
             keyMgmt.contains("WPA2", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA2
             keyMgmt.contains("WPA3", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA3
@@ -265,6 +272,7 @@ class SavedPasswordsRepository(private val context: Context) {
             keyMgmt.contains("NONE", ignoreCase = true) -> SavedWifiPassword.SECURITY_OPEN
             else -> SavedWifiPassword.SECURITY_WPA2
         }
+    }
     }
 
     @SuppressLint("LongLogTag")

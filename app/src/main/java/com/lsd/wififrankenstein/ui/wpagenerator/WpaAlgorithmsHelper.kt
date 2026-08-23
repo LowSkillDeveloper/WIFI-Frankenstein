@@ -549,7 +549,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
             return when {
                 ssid.matches(SERCOMM_REGEX) -> SUPPORTED
                 ssid.startsWith("SerComm") -> UNLIKELY_SUPPORTED
-                mac.startsWith("00:13:33") || mac.startsWith("00:1C:A2") -> UNLIKELY_SUPPORTED
+                mac.startsWith("001333") || mac.startsWith("001CA2") -> UNLIKELY_SUPPORTED
                 else -> UNSUPPORTED
             }
         }
@@ -586,7 +586,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
             return when {
                 ssid.matches(ACTIONTEC_REGEX) -> SUPPORTED
                 ssid.startsWith("Actiontec") -> UNLIKELY_SUPPORTED
-                mac.startsWith("00:26:62") || mac.startsWith("64:87:88") -> UNLIKELY_SUPPORTED
+                mac.startsWith("002662") || mac.startsWith("648788") -> UNLIKELY_SUPPORTED
                 else -> UNSUPPORTED
             }
         }
@@ -617,7 +617,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
             return when {
                 ssid.matches(NETCOMM_REGEX) -> SUPPORTED
                 ssid.startsWith("NetComm") -> UNLIKELY_SUPPORTED
-                mac.startsWith("00:21:91") || mac.startsWith("A0:18:28") -> UNLIKELY_SUPPORTED
+                mac.startsWith("002191") || mac.startsWith("A01828") -> UNLIKELY_SUPPORTED
                 else -> UNSUPPORTED
             }
         }
@@ -653,7 +653,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
             return when {
                 ssid.matches(BILLION_REGEX) -> SUPPORTED
                 ssid.startsWith("Billion") -> UNLIKELY_SUPPORTED
-                mac.startsWith("00:08:A1") -> UNLIKELY_SUPPORTED
+                mac.startsWith("0008A1") -> UNLIKELY_SUPPORTED
                 else -> UNSUPPORTED
             }
         }
@@ -682,7 +682,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
             return when {
                 ssid.matches(SMC_REGEX) -> SUPPORTED
                 ssid.startsWith("SMC") -> UNLIKELY_SUPPORTED
-                mac.startsWith("00:13:F7") || mac.startsWith("00:30:4F") -> UNLIKELY_SUPPORTED
+                mac.startsWith("0013F7") || mac.startsWith("00304F") -> UNLIKELY_SUPPORTED
                 else -> UNSUPPORTED
             }
         }
@@ -719,7 +719,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
             return when {
                 ssid.matches(MOTOROLA_REGEX) -> SUPPORTED
                 ssid.startsWith("Motorola") -> UNLIKELY_SUPPORTED
-                mac.startsWith("00:90:9C") || mac.startsWith("C8:FB:26") -> UNLIKELY_SUPPORTED
+                mac.startsWith("00909C") || mac.startsWith("C8FB26") -> UNLIKELY_SUPPORTED
                 else -> UNSUPPORTED
             }
         }
@@ -756,7 +756,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
             return when {
                 ssid.matches(ARRIS_REGEX) -> SUPPORTED
                 ssid.startsWith("ARRIS") -> UNLIKELY_SUPPORTED
-                mac.startsWith("00:1D:D3") || mac.startsWith("2C:30:33") -> UNLIKELY_SUPPORTED
+                mac.startsWith("001DD3") || mac.startsWith("2C3033") -> UNLIKELY_SUPPORTED
                 else -> UNSUPPORTED
             }
         }
@@ -786,7 +786,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
 
         override fun getSupportState(ssid: String, mac: String): Int {
             return when {
-                mac.startsWith("00:90:4B") || mac.startsWith("64:16:F0") -> LIKELY_SUPPORTED
+                mac.startsWith("00904B") || mac.startsWith("6416F0") -> LIKELY_SUPPORTED
                 ssid.contains("Gemtek") -> UNLIKELY_SUPPORTED
                 else -> UNSUPPORTED
             }
@@ -810,10 +810,11 @@ class WpaAlgorithmsHelper(private val context: Context) {
     }
 
     fun getSupportState(ssid: String, bssid: String): Int {
+        val cleanBssid = bssid.replace(":", "").replace("-", "").uppercase()
         var maxSupportState = 0
 
         for (algorithm in cachedAlgorithms) {
-            val supportState = algorithm.getSupportState(ssid, bssid)
+            val supportState = algorithm.getSupportState(ssid, cleanBssid)
             if (supportState > maxSupportState) {
                 maxSupportState = supportState
             }
@@ -829,7 +830,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
         override fun getSupportState(ssid: String, mac: String): Int {
             return when {
                 ssid.matches(BROADCOM_REGEX) -> SUPPORTED
-                mac.startsWith("00:10:18") || mac.startsWith("B8:AE:6E") -> UNLIKELY_SUPPORTED
+                mac.startsWith("001018") || mac.startsWith("B8AE6E") -> UNLIKELY_SUPPORTED
                 else -> UNSUPPORTED
             }
         }
@@ -864,7 +865,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
 
         override fun getSupportState(ssid: String, mac: String): Int {
             return when {
-                mac.startsWith("00:E0:4C") || mac.startsWith("1C:39:47") -> LIKELY_SUPPORTED
+                mac.startsWith("00E04C") || mac.startsWith("1C3947") -> LIKELY_SUPPORTED
                 ssid.contains("Realtek") -> UNLIKELY_SUPPORTED
                 else -> UNSUPPORTED
             }
@@ -2237,8 +2238,7 @@ class WpaAlgorithmsHelper(private val context: Context) {
                 trimmedSsid.matches(UPC_7_REGEX) -> SUPPORTED
                 trimmedSsid.matches(UPC_56_REGEX) -> UNLIKELY_SUPPORTED
                 trimmedSsid.matches(UPC_8_REGEX) -> UNLIKELY_SUPPORTED
-                mac.startsWith("64:7C:34") || mac.uppercase()
-                    .startsWith("647C34") -> UNLIKELY_SUPPORTED
+                mac.startsWith("647C34") -> UNLIKELY_SUPPORTED
 
                 else -> UNSUPPORTED
             }

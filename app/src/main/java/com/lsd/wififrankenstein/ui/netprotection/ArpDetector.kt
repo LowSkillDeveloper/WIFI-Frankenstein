@@ -8,10 +8,6 @@ import java.io.FileReader
 
 class ArpDetector {
 
-    private companion object {
-        const val TAG = "ArpDetector"
-    }
-
     data class ArpEntry(
         val ip: String,
         val mac: String,
@@ -23,6 +19,14 @@ class ArpDetector {
 
     fun getGatewayMac(): String? = knownGatewayMac
     fun getLastGateway(): String? = lastGateway
+
+    internal fun evaluateGatewayChange(previous: String?, current: String?): ArpChangeResult {
+        return if (previous != null && current != null && previous != current) {
+            ArpChangeResult(true, previous, current)
+        } else {
+            ArpChangeResult(false, null, null)
+        }
+    }
 
     fun checkForSpoof(gatewayIp: String): ArpChangeResult {
         if (gatewayIp.isEmpty()) {
@@ -44,14 +48,12 @@ class ArpDetector {
 
         Log.d(TAG, "ARP check: gateway=$gatewayIp currentMAC=$currentMac knownMAC=$previous")
 
-        return if (previous != null && previous != currentMac) {
-            Log.w(TAG, "ARP SPOOF DETECTED! $gatewayIp: $previous -> $currentMac")
-            ArpChangeResult(true, previous, currentMac)
-        } else {
-            if (previous == null) {
+        return evaluateGatewayChange(previous, currentMac).also { result ->
+            if (result.changed) {
+                Log.w(TAG, "ARP SPOOF DETECTED! $gatewayIp: ${result.oldMac} -> ${result.newMac}")
+            } else if (previous == null) {
                 Log.i(TAG, "First ARP read: $gatewayIp -> $currentMac (baseline set)")
             }
-            ArpChangeResult(false, null, null)
         }
     }
 
@@ -62,10 +64,7 @@ class ArpDetector {
                 var result: String? = null
                 var line = reader.readLine()
                 while (line != null && result == null) {
-                    val parts = line.split("\\s+".toRegex())
-                    if (parts.size >= 4 && parts[0] == gatewayIp && parts[3] != "00:00:00:00:00:00") {
-                        result = parts[3].uppercase()
-                    }
+                    result = parseProcArpEntry(line, gatewayIp)
                     line = reader.readLine()
                 }
                 result
@@ -73,6 +72,49 @@ class ArpDetector {
         } catch (e: Exception) {
             Log.d(TAG, "Cannot read /proc/net/arp: ${e.message}")
             null
+        }
+    }
+
+    companion object {
+        private const val TAG = "ArpDetector"
+
+        internal fun parseProcArpEntry(line: String, gatewayIp: String): String? {
+            val parts = line.split("\\s+".toRegex())
+            return if (parts.size >= 4 && parts[0] == gatewayIp &&
+                parts[3] != "00:00:00:00:00:00"
+            ) {
+                parts[3].uppercase()
+            } else {
+                null
+            }
+        }
+
+        internal fun parseProcArpTable(content: String): List<ArpEntry> {
+            val entries = mutableListOf<ArpEntry>()
+            content.lines().drop(1).forEach { line ->
+                if (line.isBlank()) return@forEach
+                val parts = line.split("\\s+".toRegex())
+                if (parts.size >= 4 && parts[3] != "00:00:00:00:00:00") {
+                    entries.add(ArpEntry(parts[0], parts[3].uppercase(), parts.getOrNull(5) ?: ""))
+                }
+            }
+            return entries
+        }
+
+        internal fun parseIpNeighOutput(output: String): List<ArpEntry> {
+            val entries = mutableListOf<ArpEntry>()
+            for (line in output.split("\n")) {
+                if (line.isBlank()) continue
+                val parts = line.split("\\s+".toRegex())
+                if (parts.size >= 5) {
+                    val ip = parts[0]
+                    val mac = parts[4]
+                    if (mac.length == 17 && mac.contains(":")) {
+                        entries.add(ArpEntry(ip, mac.uppercase(), parts[2]))
+                    }
+                }
+            }
+            return entries
         }
     }
 
@@ -126,19 +168,11 @@ class ArpDetector {
 
     private fun tryReadArpTableFromProc(): List<ArpEntry> {
         return try {
-            val entries = mutableListOf<ArpEntry>()
+            val sb = StringBuilder()
             BufferedReader(FileReader("/proc/net/arp")).use { reader ->
-                reader.readLine()
-                var line = reader.readLine()
-                while (line != null) {
-                    val parts = line.split("\\s+".toRegex())
-                    if (parts.size >= 4 && parts[3] != "00:00:00:00:00:00") {
-                        entries.add(ArpEntry(parts[0], parts[3].uppercase(), parts[5] ?: ""))
-                    }
-                    line = reader.readLine()
-                }
+                reader.forEachLine { line -> sb.appendLine(line) }
             }
-            entries
+            parseProcArpTable(sb.toString())
         } catch (_: Exception) {
             emptyList()
         }
@@ -165,22 +199,6 @@ class ArpDetector {
         } catch (_: Exception) {
             emptyList()
         }
-    }
-
-    private fun parseIpNeighOutput(output: String): List<ArpEntry> {
-        val entries = mutableListOf<ArpEntry>()
-        for (line in output.split("\n")) {
-            if (line.isBlank()) continue
-            val parts = line.split("\\s+".toRegex())
-            if (parts.size >= 5) {
-                val ip = parts[0]
-                val mac = parts[4]
-                if (mac.length == 17 && mac.contains(":")) {
-                    entries.add(ArpEntry(ip, mac.uppercase(), parts[2]))
-                }
-            }
-        }
-        return entries
     }
 
     data class ArpChangeResult(
