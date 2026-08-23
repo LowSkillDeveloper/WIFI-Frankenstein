@@ -14,28 +14,37 @@ object WakeOnLan {
     private const val PORT = 9
     private const val MAGIC_PACKET_LENGTH = 102
 
+    internal fun normalizeMac(macAddress: String): String =
+        macAddress.replace(":", "").replace("-", "").replace(".", "")
+
+    internal fun buildMagicPacket(cleanMac: String): ByteArray? {
+        if (cleanMac.length != 12) return null
+        val macBytes = ByteArray(6)
+        for (i in 0..5) {
+            val byteValue = cleanMac.substring(i * 2, i * 2 + 2).toIntOrNull(16) ?: return null
+            macBytes[i] = byteValue.toByte()
+        }
+
+        val magicPacket = ByteArray(MAGIC_PACKET_LENGTH)
+        for (i in 0..5) {
+            magicPacket[i] = 0xFF.toByte()
+        }
+        for (i in 6 until MAGIC_PACKET_LENGTH) {
+            magicPacket[i] = macBytes[i % 6]
+        }
+        return magicPacket
+    }
+
     fun send(
         context: Context,
         macAddress: String,
         broadcastIp: String = "255.255.255.255"
     ): Pair<Boolean, String> {
         try {
-            val cleanMac = macAddress.replace(":", "").replace("-", "").replace(".", "")
-            if (cleanMac.length != 12) {
+            val cleanMac = normalizeMac(macAddress)
+            val magicPacket = buildMagicPacket(cleanMac)
+            if (magicPacket == null) {
                 return Pair(false, context.getString(R.string.nat_invalid_mac, cleanMac.length))
-            }
-
-            val macBytes = ByteArray(6)
-            for (i in 0..5) {
-                macBytes[i] = cleanMac.substring(i * 2, i * 2 + 2).toInt(16).toByte()
-            }
-
-            val magicPacket = ByteArray(MAGIC_PACKET_LENGTH)
-            for (i in 0..5) {
-                magicPacket[i] = 0xFF.toByte()
-            }
-            for (i in 6 until MAGIC_PACKET_LENGTH) {
-                magicPacket[i] = macBytes[i % 6]
             }
 
             val wakeLock = (context.getSystemService(Context.POWER_SERVICE) as PowerManager)

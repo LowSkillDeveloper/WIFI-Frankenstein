@@ -103,17 +103,11 @@ class IwWifiManager(private val context: Context) {
 
             val output = result.out.joinToString("\n")
             val monIface = "${interfaceName}mon"
-            val block = extractInterfaceBlock(output, interfaceName)
-                ?: extractInterfaceBlock(output, monIface)
+            val block = IwOutputParser.extractInterfaceBlock(output, interfaceName)
+                ?: IwOutputParser.extractInterfaceBlock(output, monIface)
                 ?: return@withContext MODE_UNKNOWN
 
-            when {
-                block.contains("type monitor", ignoreCase = true) -> MODE_MONITOR
-                block.contains("type managed", ignoreCase = true) -> MODE_MANAGED
-                block.contains("type IBSS", ignoreCase = true) -> "ibss"
-                block.contains("type AP", ignoreCase = true) -> "ap"
-                else -> MODE_UNKNOWN
-            }
+            IwOutputParser.modeFromTypeText(block)
         } catch (e: Exception) {
             Log.e(TAG, "Error getting interface mode", e)
             MODE_UNKNOWN
@@ -130,35 +124,7 @@ class IwWifiManager(private val context: Context) {
             if (!result.isSuccess || result.out.isEmpty()) return@withContext emptyMap()
 
             val output = result.out.joinToString("\n")
-            val modes = mutableMapOf<String, String>()
-            val lines = output.lines()
-            var currentName: String? = null
-
-            for (line in lines) {
-                val trimmed = line.trim()
-                when {
-                    trimmed.startsWith("Interface ") -> {
-                        currentName?.let { name ->
-                            if (name !in modes) modes[name] = MODE_UNKNOWN
-                        }
-                        currentName = trimmed.substring(10).trim()
-                    }
-
-                    trimmed.startsWith("type ") && currentName != null -> {
-                        val name = currentName
-                        val type = trimmed.substring(5).trim()
-                        modes[name] = when {
-                            type.contains("monitor", ignoreCase = true) -> MODE_MONITOR
-                            type.contains("managed", ignoreCase = true) -> MODE_MANAGED
-                            type.contains("IBSS", ignoreCase = true) -> "ibss"
-                            type.contains("AP", ignoreCase = true) -> "ap"
-                            else -> MODE_UNKNOWN
-                        }
-                    }
-                }
-            }
-            currentName?.let { if (it !in modes) modes[it] = MODE_UNKNOWN }
-            val modeMap = modes.toMap()
+            val modeMap = IwOutputParser.parseAllInterfaceModes(output)
             cachedModes = modeMap
             cachedModesTime = System.currentTimeMillis()
             modeMap
@@ -166,27 +132,6 @@ class IwWifiManager(private val context: Context) {
             Log.e(TAG, "Error getting all interface modes", e)
             emptyMap()
         }
-    }
-
-    private fun extractInterfaceBlock(output: String, ifaceName: String): String? {
-        val lines = output.lines()
-        var inBlock = false
-        val sb = StringBuilder()
-        for (line in lines) {
-            if (line.trim().startsWith("Interface $ifaceName")) {
-                inBlock = true
-                sb.append(line).append('\n')
-                continue
-            }
-            if (inBlock) {
-                val trimmed = line.trim()
-                if (trimmed.startsWith("Interface ") || trimmed.startsWith("phy#")) {
-                    break
-                }
-                sb.append(line).append('\n')
-            }
-        }
-        return if (sb.isNotEmpty()) sb.toString() else null
     }
 
     suspend fun findMonitorInterface(baseInterface: String): String? = withContext(Dispatchers.IO) {
@@ -208,11 +153,11 @@ class IwWifiManager(private val context: Context) {
             if (!result.isSuccess || result.out.isEmpty()) return@withContext null
             val output = result.out.joinToString("\n")
 
-            val block = extractInterfaceBlock(output, baseName)
+            val block = IwOutputParser.extractInterfaceBlock(output, baseName)
                 ?.takeIf { it.contains("type monitor", ignoreCase = true) }
             if (block != null) return@withContext baseName
 
-            val monBlock = extractInterfaceBlock(output, monIface)
+            val monBlock = IwOutputParser.extractInterfaceBlock(output, monIface)
                 ?.takeIf { it.contains("type monitor", ignoreCase = true) }
             if (monBlock != null) return@withContext monIface
 
@@ -609,45 +554,7 @@ class IwWifiManager(private val context: Context) {
     }
 
     internal fun parseInterfacesList(output: String): List<IwInterface> {
-        val interfaces = mutableListOf<IwInterface>()
-        val lines = output.lines()
-
-        var currentInterface: String? = null
-        var currentType = ""
-        var currentAddr = ""
-
-        lines.forEach { line ->
-            val trimmed = line.trim()
-
-            when {
-                trimmed.startsWith("Interface ") -> {
-                    currentInterface?.let {
-                        interfaces.add(IwInterface(it, currentType, currentAddr))
-                    }
-                    currentInterface = trimmed.substring(10).trim()
-                    currentType = ""
-                    currentAddr = ""
-                }
-
-                trimmed.startsWith("type ") -> {
-                    currentType = trimmed.substring(5).trim()
-                }
-
-                trimmed.startsWith("addr ") -> {
-                    currentAddr = trimmed.substring(5).trim()
-                }
-            }
-        }
-
-        currentInterface?.let {
-            interfaces.add(IwInterface(it, currentType, currentAddr))
-        }
-
-        return if (interfaces.isEmpty()) {
-            listOf(IwInterface("wlan0"))
-        } else {
-            interfaces
-        }
+        return IwOutputParser.parseInterfacesList(output)
     }
 
     private fun buildHtFeaturesString(

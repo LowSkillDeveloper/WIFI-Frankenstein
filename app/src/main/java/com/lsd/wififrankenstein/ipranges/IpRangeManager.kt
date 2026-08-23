@@ -125,23 +125,27 @@ class IpRangeManager(context: Context) : SQLiteOpenHelper(context, "ip_ranges.db
         )
     }
 
-    private fun createPrivateRange(ip: Long): IpRange {
-        val networkAddress = ip and 0xFFFF0000L
-        return IpRange(
-            startIP = networkAddress,
-            endIP = networkAddress or 0xFFFFL,
-            netname = "Private Network",
-            description = "Local IP range - Private network address space",
-            country = ""
-        )
-    }
+    private fun createPrivateRange(ip: Long): IpRange = buildPrivateRange(ip)
 
-    private fun isPrivateIP(ip: Long): Boolean {
-        return (ip >= 0x0A000000L && ip < 0x0B000000L) ||
-                (ip >= 0xAC100000L && ip < 0xAC200000L) ||
-                (ip >= 0xC0A80000L && ip < 0xC0A90000L) ||
-                (ip >= 0x7F000000L && ip < 0x80000000L) ||
-                (ip >= 0xA9FE0000L && ip < 0xA9FF0000L)
+    companion object {
+        internal fun isPrivateIP(ip: Long): Boolean {
+            return (ip >= 0x0A000000L && ip < 0x0B000000L) ||
+                    (ip >= 0xAC100000L && ip < 0xAC200000L) ||
+                    (ip >= 0xC0A80000L && ip < 0xC0A90000L) ||
+                    (ip >= 0x7F000000L && ip < 0x80000000L) ||
+                    (ip >= 0xA9FE0000L && ip < 0xA9FF0000L)
+        }
+
+        internal fun buildPrivateRange(ip: Long): IpRange {
+            val networkAddress = ip and 0xFFFF0000L
+            return IpRange(
+                startIP = networkAddress,
+                endIP = networkAddress or 0xFFFFL,
+                netname = "Private Network",
+                description = "Local IP range - Private network address space",
+                country = ""
+            )
+        }
     }
 
     private fun longToIp(ip: Long): String {

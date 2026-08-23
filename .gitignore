@@ -12,3 +12,4 @@ local.properties
 gha-creds-*.json
 gradle/gradle-daemon-jvm.properties
 /app/release
+/app/src/test/

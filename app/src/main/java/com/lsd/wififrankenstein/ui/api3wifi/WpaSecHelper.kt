@@ -14,6 +14,22 @@ class WpaSecHelper {
         private const val BASE_URL = "https://wpa-sec.stanev.org"
         private const val ENDPOINT_MACSSID = "$BASE_URL/bmacssid"
         private const val TIMEOUT = 10000
+
+        internal fun cleanBssid(bssid: String): String =
+            bssid.replace(":", "").replace("-", "").lowercase()
+
+        internal fun ssidToHex(ssid: String): String =
+            ssid.encodeToByteArray().joinToString("") { "%02x".format(it) }.lowercase()
+
+        internal fun computeClidAndSuffix(bssid: String, ssid: String): Pair<String, String> {
+            val hash = sha1Hex("${cleanBssid(bssid)}${ssidToHex(ssid)}")
+            return hash.substring(0, 4) to hash.substring(24)
+        }
+
+        internal fun sha1Hex(input: String): String {
+            val digest = MessageDigest.getInstance("SHA-1")
+            return digest.digest(input.encodeToByteArray()).joinToString("") { "%02x".format(it) }
+        }
     }
 
     data class WpaSecResult(
@@ -26,13 +42,8 @@ class WpaSecHelper {
     suspend fun checkBssidSsid(bssid: String, ssid: String): WpaSecResult {
         return withContext(Dispatchers.IO) {
             try {
-                val cleanBssid = bssid.replace(":", "").replace("-", "").lowercase()
-                val ssidHex =
-                    ssid.encodeToByteArray().joinToString("") { "%02x".format(it) }.lowercase()
-                val hashInput = "$cleanBssid$ssidHex"
-                val hash = sha1Hex(hashInput)
-                val clid = hash.substring(0, 4)
-                val suffix = hash.substring(24)
+                val cleanBssid = cleanBssid(bssid)
+                val (clid, suffix) = computeClidAndSuffix(bssid, ssid)
 
                 val requestBody = JSONArray(listOf(clid)).toString()
                 val response = postJson(ENDPOINT_MACSSID, requestBody)
@@ -52,11 +63,6 @@ class WpaSecHelper {
                 WpaSecResult(bssid, ssid, false, e.message)
             }
         }
-    }
-
-    private fun sha1Hex(input: String): String {
-        val digest = MessageDigest.getInstance("SHA-1")
-        return digest.digest(input.encodeToByteArray()).joinToString("") { "%02x".format(it) }
     }
 
     private fun postJson(urlString: String, jsonBody: String): String {

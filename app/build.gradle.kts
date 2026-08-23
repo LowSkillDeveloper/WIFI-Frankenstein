@@ -87,6 +87,7 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true
     }
 
     sourceSets {
@@ -151,6 +152,7 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.androidx.documentfile)
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
