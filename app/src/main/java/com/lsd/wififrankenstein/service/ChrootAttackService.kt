@@ -213,7 +213,10 @@ class ChrootAttackService : Service() {
         val result: PixieDustResult = if (useNative) {
             val nativeRunner = NativePixieDustRunner(this)
             runner = nativeRunner
-            updateNotification(getString(R.string.svc_pixie_title), getString(R.string.svc_attacking_native, bssid))
+            updateNotification(
+                getString(R.string.svc_pixie_title),
+                getString(R.string.svc_attacking_native, bssid)
+            )
             nativeRunner.runAttack(
                 bssid = bssid,
                 interfaceName = iface,
@@ -232,7 +235,10 @@ class ChrootAttackService : Service() {
             val pixieRunner = PixieDustRunner(this)
             runner = pixieRunner
 
-            updateNotification(getString(R.string.svc_pixie_title), getString(R.string.svc_attacking, bssid))
+            updateNotification(
+                getString(R.string.svc_pixie_title),
+                getString(R.string.svc_attacking, bssid)
+            )
 
             pixieRunner.runAttack(
                 bssid = bssid,
@@ -258,13 +264,22 @@ class ChrootAttackService : Service() {
             putExtra(EXTRA_RESULT_SUCCESS, result.success)
             putExtra(EXTRA_RESULT_RAW, result.rawOutput)
             putExtra(EXTRA_RESULT_REASON, result.reason)
-            putExtra(EXTRA_PROGRESS_TEXT, if (result.success) getString(R.string.svc_pin, result.wpsPin) else getString(R.string.svc_failed_short))
+            putExtra(
+                EXTRA_PROGRESS_TEXT,
+                if (result.success) getString(
+                    R.string.svc_pin,
+                    result.wpsPin
+                ) else getString(R.string.svc_failed_short)
+            )
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(successIntent)
 
         updateNotification(
             getString(R.string.svc_pixie_title),
-            if (result.success) getString(R.string.svc_pin, result.wpsPin) else getString(R.string.svc_not_found)
+            if (result.success) getString(
+                R.string.svc_pin,
+                result.wpsPin
+            ) else getString(R.string.svc_not_found)
         )
     }
 
@@ -289,7 +304,10 @@ class ChrootAttackService : Service() {
             ports.map { port -> Pair(ip, port) }
         }
         val total = ipPortCombinations.size
-        updateNotification(getString(R.string.svc_router_scan_title), getString(R.string.svc_scanning_targets, total))
+        updateNotification(
+            getString(R.string.svc_router_scan_title),
+            getString(R.string.svc_scanning_targets, total)
+        )
 
         val allResults = mutableListOf<RouterScanResult>()
         var completedCount = 0
@@ -313,7 +331,11 @@ class ChrootAttackService : Service() {
                 val percent = if (total > 0) completedCount.toFloat() / total else 0f
                 updateNotification(
                     getString(R.string.svc_router_scan_title),
-                    getString(R.string.svc_scan_progress, completedCount, total, allResults.count { it.success })
+                    getString(
+                        R.string.svc_scan_progress,
+                        completedCount,
+                        total,
+                        allResults.count { it.success })
                 )
                 broadcastProgressPercent(percent)
 

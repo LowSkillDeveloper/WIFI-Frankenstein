@@ -36,7 +36,8 @@ class MegaApiException(message: String, cause: Throwable? = null) : IOException(
 
 class MegaQuotaException(message: String, cause: Throwable? = null) : IOException(message, cause)
 
-class MegaFileUnavailableException(message: String, cause: Throwable? = null) : IOException(message, cause)
+class MegaFileUnavailableException(message: String, cause: Throwable? = null) :
+    IOException(message, cause)
 
 class MegaApiClient(private val client: OkHttpClient) {
 

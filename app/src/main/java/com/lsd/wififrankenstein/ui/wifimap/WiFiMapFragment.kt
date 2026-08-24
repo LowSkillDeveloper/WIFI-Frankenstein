@@ -614,7 +614,11 @@ class WiFiMapFragment : Fragment() {
                     userLocationManager.startLocationUpdates()
                 } else {
                     userLocationManager.resetPermissionState()
-                    Snackbar.make(binding.root, getString(R.string.location_permission_denied), Snackbar.LENGTH_SHORT).show()
+                    Snackbar.make(
+                        binding.root,
+                        getString(R.string.location_permission_denied),
+                        Snackbar.LENGTH_SHORT
+                    ).show()
                 }
             }
         }

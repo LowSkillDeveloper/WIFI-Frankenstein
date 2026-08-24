@@ -718,7 +718,12 @@ class RootlessManager(private val context: Context) {
             val response = httpClient.newCall(request).execute()
 
             if (!response.isSuccessful) {
-                onStatusUpdate(context.getString(R.string.rootless_download_failed_http, response.code))
+                onStatusUpdate(
+                    context.getString(
+                        R.string.rootless_download_failed_http,
+                        response.code
+                    )
+                )
                 Log.e(TAG, "Download failed: HTTP ${response.code}")
                 return@withContext false
             }

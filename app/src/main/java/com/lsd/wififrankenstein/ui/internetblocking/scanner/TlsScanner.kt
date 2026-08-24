@@ -15,13 +15,6 @@ import kotlinx.coroutines.withContext
 import java.net.InetAddress
 
 
-
-
-
-
-
-
-
 class TlsScanner(
     private val context: android.content.Context,
     private val callTracker: ((okhttp3.Call) -> Unit)? = null
@@ -114,10 +107,6 @@ class TlsScanner(
     }
 
 
-
-
-
-
     suspend fun checkSniDifferential(resolvedIp: String): DpiResult = withContext(Dispatchers.IO) {
         Log.d(TAG, "SNI differential probe to $resolvedIp with benign SNI")
         differentialClient.checkHttpsWithPinnedIp("www.google.com", resolvedIp)
@@ -198,7 +187,12 @@ class TlsScanner(
                         throw e
                     } catch (e: Exception) {
                         Log.e(TAG, "TLS 1.3 probe failed for ${dnsResult.domain}: ${e.message}")
-                        DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
+                        DpiResult(
+                            CheckStatus.Error,
+                            context.getString(R.string.ib_tls_probe_failed, e.message),
+                            0,
+                            0.0
+                        )
                     } finally {
                         semaphore.release()
                     }
@@ -224,7 +218,12 @@ class TlsScanner(
                         throw e
                     } catch (e: Exception) {
                         Log.e(TAG, "TLS 1.2 probe failed for ${dnsResult.domain}: ${e.message}")
-                        DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
+                        DpiResult(
+                            CheckStatus.Error,
+                            context.getString(R.string.ib_tls_probe_failed, e.message),
+                            0,
+                            0.0
+                        )
                     } finally {
                         semaphore.release()
                     }
@@ -245,7 +244,12 @@ class TlsScanner(
                         throw e
                     } catch (e: Exception) {
                         Log.e(TAG, "HTTP probe failed for ${dnsResult.domain}: ${e.message}")
-                        DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
+                        DpiResult(
+                            CheckStatus.Error,
+                            context.getString(R.string.ib_tls_probe_failed, e.message),
+                            0,
+                            0.0
+                        )
                     } finally {
                         semaphore.release()
                     }
@@ -300,10 +304,6 @@ class TlsScanner(
     }
 
 
-
-
-
-
     suspend fun checkDomainParallel(
         domain: String,
         stubIps: Set<String> = emptySet(),
@@ -335,7 +335,12 @@ class TlsScanner(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
+                    DpiResult(
+                        CheckStatus.Error,
+                        context.getString(R.string.ib_tls_probe_failed, e.message),
+                        0,
+                        0.0
+                    )
                 }
             }
             val d2 = async(Dispatchers.IO) {
@@ -344,7 +349,12 @@ class TlsScanner(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
+                    DpiResult(
+                        CheckStatus.Error,
+                        context.getString(R.string.ib_tls_probe_failed, e.message),
+                        0,
+                        0.0
+                    )
                 }
             }
             val d3 = async(Dispatchers.IO) {
@@ -353,7 +363,12 @@ class TlsScanner(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    DpiResult(CheckStatus.Error, context.getString(R.string.ib_tls_probe_failed, e.message), 0, 0.0)
+                    DpiResult(
+                        CheckStatus.Error,
+                        context.getString(R.string.ib_tls_probe_failed, e.message),
+                        0,
+                        0.0
+                    )
                 }
             }
             Triple(d1.await(), d2.await(), d3.await())

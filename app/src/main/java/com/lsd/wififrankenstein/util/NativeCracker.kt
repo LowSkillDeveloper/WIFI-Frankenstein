@@ -33,7 +33,6 @@ object NativeCracker {
     }
 
 
-
     external fun tryPasswordHex(
         password: String,
         ssid: String,

@@ -10,19 +10,11 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 
-
-
-
-
 class WpsPskConnectHelper(private val context: Context) {
 
     companion object {
         private const val TAG = "WpsPskConnectHelper"
     }
-
-
-
-
 
 
     suspend fun extractPskFromSupplicant(
@@ -65,10 +57,6 @@ class WpsPskConnectHelper(private val context: Context) {
     }
 
 
-
-
-
-
     suspend fun extractPskFromSystem(
         ctrlDir: String,
         wpaCliPath: String,
@@ -105,10 +93,6 @@ class WpsPskConnectHelper(private val context: Context) {
         }
         psk
     }
-
-
-
-
 
 
     suspend fun connectWithPsk(

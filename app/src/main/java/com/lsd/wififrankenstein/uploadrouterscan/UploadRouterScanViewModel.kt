@@ -79,7 +79,8 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
             } catch (e: Exception) {
                 onResult(
                     false,
-                    e.message ?: getApplication<Application>().getString(R.string.upl_failed_add_server)
+                    e.message
+                        ?: getApplication<Application>().getString(R.string.upl_failed_add_server)
                 )
             }
         }
@@ -119,7 +120,8 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
                 )
                 val csv = ThreeWiFiUploader.convertToCsv(rows)
                 _uploadProgress.value = 50
-                val result = ThreeWiFiUploader.uploadCsv(getApplication<Application>(), server, csv, comment)
+                val result =
+                    ThreeWiFiUploader.uploadCsv(getApplication<Application>(), server, csv, comment)
                 _uploadProgress.value = 100
                 _uploadResult.value = UploadResult(
                     success = result.success,
@@ -128,7 +130,8 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
             } catch (e: Exception) {
                 _uploadResult.value = UploadResult(
                     success = false,
-                    message = e.message ?: getApplication<Application>().getString(R.string.upl_upload_failed)
+                    message = e.message
+                        ?: getApplication<Application>().getString(R.string.upl_upload_failed)
                 )
             } finally {
                 _isUploading.value = false
@@ -201,7 +204,8 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
             } catch (e: Exception) {
                 _uploadResult.value = UploadResult(
                     success = false,
-                    message = e.message ?: getApplication<Application>().getString(R.string.upl_upload_failed)
+                    message = e.message
+                        ?: getApplication<Application>().getString(R.string.upl_upload_failed)
                 )
             } finally {
                 _isUploading.value = false
@@ -316,13 +320,19 @@ class UploadRouterScanViewModel(application: Application) : AndroidViewModel(app
                     )
                     UploadResult(
                         success = false,
-                        message = getApplication<Application>().getString(R.string.upl_server_error, error)
+                        message = getApplication<Application>().getString(
+                            R.string.upl_server_error,
+                            error
+                        )
                     )
                 }
             } else {
                 UploadResult(
                     success = false,
-                    message = getApplication<Application>().getString(R.string.upl_http_error, responseCode)
+                    message = getApplication<Application>().getString(
+                        R.string.upl_http_error,
+                        responseCode
+                    )
                 )
             }
         } finally {

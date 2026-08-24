@@ -47,7 +47,10 @@ class StoragePickerAdapter(
             infoParts.add(item.formattedSize)
             if (item.handshakeCount > 1) {
                 infoParts.add(
-                    binding.root.context.getString(R.string.wpa_handshake_count, item.handshakeCount)
+                    binding.root.context.getString(
+                        R.string.wpa_handshake_count,
+                        item.handshakeCount
+                    )
                 )
             }
             binding.pickerFileInfo.text = infoParts.joinToString(" · ")

@@ -774,7 +774,11 @@ class SearchResultsAdapter(
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newPlainText(label, text)
             clipboard.setPrimaryClip(clip)
-            Toast.makeText(context, context.getString(R.string.df_copied, label), Toast.LENGTH_SHORT)
+            Toast.makeText(
+                context,
+                context.getString(R.string.df_copied, label),
+                Toast.LENGTH_SHORT
+            )
                 .show()
         }
     }

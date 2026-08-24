@@ -447,7 +447,9 @@ data class HandshakeHash(
                     HandshakeFormat.PCAP
                 }
 
-                bytes.contentEquals(pcapBigEndianMagic) || bytes.contentEquals(pcapNanoBigEndianMagic) -> {
+                bytes.contentEquals(pcapBigEndianMagic) || bytes.contentEquals(
+                    pcapNanoBigEndianMagic
+                ) -> {
                     Log.d(TAG, "detectFileFormat: PCAP big-endian ($magicHex)")
                     HandshakeFormat.PCAP
                 }

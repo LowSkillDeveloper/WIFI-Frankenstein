@@ -245,7 +245,11 @@ class WpaCrackerFragment : Fragment() {
                 val clipboard =
                     requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("WPA Password", password))
-                Toast.makeText(requireContext(), getString(R.string.wpa_password_copied), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.wpa_password_copied),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
 
@@ -348,7 +352,10 @@ class WpaCrackerFragment : Fragment() {
             SourceOption(R.drawable.ic_content_copy, getString(R.string.wpa_source_paste_hashes)),
             SourceOption(R.drawable.ic_database, getString(R.string.wpa_source_handshake_storage))
         )
-        showSourcePickerBottomSheet(getString(R.string.wpa_select_handshake_source), options) { which ->
+        showSourcePickerBottomSheet(
+            getString(R.string.wpa_select_handshake_source),
+            options
+        ) { which ->
             when (which) {
                 0 -> handshakeFilePicker.launch(arrayOf("*/*"))
                 1 -> showHandshakeUrlDialog()
@@ -409,10 +416,16 @@ class WpaCrackerFragment : Fragment() {
             SourceOption(R.drawable.ic_folder_open, getString(R.string.wpa_source_file_txt)),
             SourceOption(R.drawable.ic_file_download, getString(R.string.wpa_source_url_archive)),
             SourceOption(R.drawable.ic_content_copy, getString(R.string.wpa_source_paste_wordlist)),
-            SourceOption(R.drawable.cloud_download_24px, getString(R.string.wpa_source_wpasec_dict)),
+            SourceOption(
+                R.drawable.cloud_download_24px,
+                getString(R.string.wpa_source_wpasec_dict)
+            ),
             SourceOption(R.drawable.ic_key, getString(R.string.wpa_source_single_password))
         )
-        showSourcePickerBottomSheet(getString(R.string.wpa_select_wordlist_source), options) { which ->
+        showSourcePickerBottomSheet(
+            getString(R.string.wpa_select_wordlist_source),
+            options
+        ) { which ->
             when (which) {
                 0 -> wordlistFilePicker.launch(
                     arrayOf(
@@ -472,7 +485,11 @@ class WpaCrackerFragment : Fragment() {
                 if (text.isBlank()) return@setPositiveButton
                 val passwords = text.lines().map { it.trim() }.filter { it.isNotBlank() }
                 if (passwords.isEmpty()) {
-                    Toast.makeText(requireContext(), getString(R.string.wpa_no_passwords_found), Toast.LENGTH_SHORT)
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.wpa_no_passwords_found),
+                        Toast.LENGTH_SHORT
+                    )
                         .show()
                     return@setPositiveButton
                 }
@@ -605,7 +622,12 @@ class WpaCrackerFragment : Fragment() {
             if (file.exists()) {
                 Log.d("WpaCrackerFrag", "Parsing handshake file: ${file.absolutePath}")
                 return HandshakeParser.parseFile(file).filterNot {
-                    it.type == HandshakeType.EAPOL && it.messagePair in setOf(0x80, 0x81, 0x82, 0x85)
+                    it.type == HandshakeType.EAPOL && it.messagePair in setOf(
+                        0x80,
+                        0x81,
+                        0x82,
+                        0x85
+                    )
                 }
             }
         } catch (e: Exception) {
@@ -976,7 +998,8 @@ class WpaCrackerFragment : Fragment() {
 
     private fun updateStartButton() {
         val hasHandshake = viewModel.state.value is WpaCrackerState.Loaded
-        val hasWordlist = binding.textWordlistInfo.text != getString(R.string.wpa_tap_select_wordlist)
+        val hasWordlist =
+            binding.textWordlistInfo.text != getString(R.string.wpa_tap_select_wordlist)
         val isPreparing = viewModel.isPreparingWordlist.value ?: false
         binding.buttonStartCrack.isEnabled = hasHandshake && hasWordlist && !isPreparing
     }
@@ -1031,14 +1054,18 @@ class WpaCrackerFragment : Fragment() {
 
         val multiResults = mutableListOf<String>()
         for (r in report.results) {
-            val text = getString(R.string.wpa_benchmark_line, r.name, r.speedFormatted, r.elapsedFormatted)
+            val text =
+                getString(R.string.wpa_benchmark_line, r.name, r.speedFormatted, r.elapsedFormatted)
             when {
                 r.name == "PMKID (PBKDF2+HMAC) native" -> binding.textBenchmarkPbkdf2.text = text
                 r.name == "PMKID (Kotlin fallback)" -> binding.textBenchmarkPmkid.text = text
                 r.name == "EAPOL keyver 1 (HMAC-MD5)" -> binding.textBenchmarkEapol1.text = text
                 r.name == "EAPOL keyver 2 (HMAC-SHA1)" -> binding.textBenchmarkEapol2.text = text
                 r.name == "EAPOL keyver 3 (AES-CMAC)" -> binding.textBenchmarkEapol3.text = text
-                r.name.startsWith(getString(R.string.benchmark_multi_thread_prefix)) -> multiResults.add(text)
+                r.name.startsWith(getString(R.string.benchmark_multi_thread_prefix)) -> multiResults.add(
+                    text
+                )
+
                 r.name.startsWith("Chroot") -> {
                     binding.textBenchmarkChroot.text = text
                     if (r.speed <= 0) {

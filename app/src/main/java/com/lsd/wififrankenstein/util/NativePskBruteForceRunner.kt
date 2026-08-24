@@ -20,17 +20,6 @@ import java.io.InputStreamReader
 import kotlin.coroutines.resume
 
 
-
-
-
-
-
-
-
-
-
-
-
 class NativePskBruteForceRunner(private val context: Context) {
 
     companion object {
@@ -98,7 +87,10 @@ class NativePskBruteForceRunner(private val context: Context) {
                                     currentPassword = password,
                                     attemptNumber = attempts,
                                     totalPasswords = totalLines,
-                                    statusMessage = context.getString(R.string.brute_found, password)
+                                    statusMessage = context.getString(
+                                        R.string.brute_found,
+                                        password
+                                    )
                                 )
                             )
                             return@withContext PskBruteForceResult(password, true, attempts)
@@ -170,8 +162,6 @@ class NativePskBruteForceRunner(private val context: Context) {
                 return Outcome.FAILED
             }
             wifiManager.disconnect()
-
-
 
 
             val outcome = waitForOutcome(ssid, bssid, netId) {

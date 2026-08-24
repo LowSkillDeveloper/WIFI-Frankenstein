@@ -105,7 +105,12 @@ class WpsRootConnectHelperMethod3(
 
             } catch (e: Exception) {
                 Log.e(TAG, "connectToNetworkWps: error", e)
-                callbacks.onConnectionFailed(context.getString(R.string.wps_connect_recommended_error, e.message))
+                callbacks.onConnectionFailed(
+                    context.getString(
+                        R.string.wps_connect_recommended_error,
+                        e.message
+                    )
+                )
             } finally {
                 connectionJob = null
             }

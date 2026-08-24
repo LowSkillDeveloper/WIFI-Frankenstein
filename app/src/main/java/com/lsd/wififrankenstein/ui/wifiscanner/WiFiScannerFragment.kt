@@ -731,7 +731,11 @@ class WiFiScannerFragment : Fragment() {
                         withContext(Dispatchers.Main) {
                             if (_binding == null) return@withContext
                             hideProgressBar()
-                            Toast.makeText(requireContext(), getString(R.string.ws_error), Toast.LENGTH_SHORT)
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.ws_error),
+                                Toast.LENGTH_SHORT
+                            )
                                 .show()
                         }
                     }
@@ -1647,7 +1651,11 @@ class WiFiScannerFragment : Fragment() {
                 val ssid = selectedWifi?.SSID ?: selectedIwNetwork?.ssid ?: ""
                 val bssid = currentBssid ?: return@setOnClickListener
                 if (ssid.isEmpty()) {
-                    Toast.makeText(requireContext(), getString(R.string.ws_ssid_not_available), Toast.LENGTH_SHORT)
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.ws_ssid_not_available),
+                        Toast.LENGTH_SHORT
+                    )
                         .show()
                     return@setOnClickListener
                 }
@@ -2532,7 +2540,12 @@ class WiFiScannerFragment : Fragment() {
             onlineVendor1TextView,
             onlineVendor2TextView
         ).forEach { textView ->
-            textView.setOnClickListener { copyToClipboard(getString(R.string.ws_vendor), textView.text.toString()) }
+            textView.setOnClickListener {
+                copyToClipboard(
+                    getString(R.string.ws_vendor),
+                    textView.text.toString()
+                )
+            }
         }
     }
 

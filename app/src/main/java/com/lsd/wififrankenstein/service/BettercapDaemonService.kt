@@ -191,9 +191,9 @@ class BettercapDaemonService : Service() {
                         Log.e(TAG, "Bettercap not responding — reporting error")
                         broadcastStatus("error")
                         updateNotification(
-                    getString(R.string.ws_error),
-                    getString(R.string.svc_healthcheck_failed)
-                )
+                            getString(R.string.ws_error),
+                            getString(R.string.svc_healthcheck_failed)
+                        )
                         bettercapManager.stopDaemon()
                         stopForegroundCompat()
                         stopSelf()
@@ -207,9 +207,9 @@ class BettercapDaemonService : Service() {
                     Log.e(TAG, "Bettercap not responding — reporting error")
                     broadcastStatus("error")
                     updateNotification(
-                    getString(R.string.ws_error),
-                    getString(R.string.svc_healthcheck_failed)
-                )
+                        getString(R.string.ws_error),
+                        getString(R.string.svc_healthcheck_failed)
+                    )
                     bettercapManager.stopDaemon()
                     stopForegroundCompat()
                     stopSelf()

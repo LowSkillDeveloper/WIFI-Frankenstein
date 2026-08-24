@@ -16,8 +16,10 @@ class SweepResultAdapter : ListAdapter<SweepResult, SweepResultAdapter.ViewHolde
         RecyclerView.ViewHolder(binding.root) {
         fun bind(result: SweepResult) {
             val ctx = binding.root.context
-            binding.provider.text = ctx.getString(R.string.ib_tcp_provider, result.targetProvider, result.targetId)
-            binding.ipPort.text = ctx.getString(R.string.ib_sweep_ipport, result.targetIp, result.targetPort)
+            binding.provider.text =
+                ctx.getString(R.string.ib_tcp_provider, result.targetProvider, result.targetId)
+            binding.ipPort.text =
+                ctx.getString(R.string.ib_sweep_ipport, result.targetIp, result.targetPort)
             binding.status.text = result.status.label(ctx)
             binding.status.setTextColor(
                 ContextCompat.getColor(ctx, result.status.colorRes())

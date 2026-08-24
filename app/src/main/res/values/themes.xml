@@ -1,10 +1,12 @@
 <resources>
+
     <style name="Theme.WIFIFrankenstein.Base" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="colorErrorContainer">@color/error_container_light</item>
         <item name="colorOnErrorContainer">@color/on_error_container_light</item>
     </style>
+
     <style name="Theme.WIFIFrankenstein.Purple" parent="Theme.WIFIFrankenstein.Base">
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorPrimaryVariant">@color/purple_700</item>
@@ -23,6 +25,7 @@
         <item name="colorOnSecondaryContainer">@color/black</item>
         <item name="android:textColor">@color/text_color_light</item>
     </style>
+
     <style name="Theme.WIFIFrankenstein.Purple.Night">
         <item name="colorPrimary">@color/purple_200_dark</item>
         <item name="colorPrimaryVariant">@color/purple_700_dark</item>
@@ -39,6 +42,7 @@
         <item name="colorOnErrorContainer">@color/on_error_container_dark</item>
         <item name="android:textColor">@color/text_color_dark</item>
     </style>
+
     <style name="Theme.WIFIFrankenstein.Green" parent="Theme.WIFIFrankenstein.Base">
         <item name="colorPrimary">@color/green_500</item>
         <item name="colorPrimaryVariant">@color/green_700</item>
@@ -57,6 +61,7 @@
         <item name="colorOnSecondaryContainer">@color/black</item>
         <item name="android:textColor">@color/text_color_light</item>
     </style>
+
     <style name="Theme.WIFIFrankenstein.Green.Night">
         <item name="colorPrimary">@color/green_200_dark</item>
         <item name="colorPrimaryVariant">@color/green_700_dark</item>
@@ -73,6 +78,7 @@
         <item name="colorOnErrorContainer">@color/on_error_container_dark</item>
         <item name="android:textColor">@color/text_color_dark</item>
     </style>
+
     <style name="Theme.WIFIFrankenstein.Blue" parent="Theme.WIFIFrankenstein.Base">
         <item name="colorPrimary">@color/blue_500</item>
         <item name="colorPrimaryVariant">@color/blue_700</item>
@@ -91,6 +97,7 @@
         <item name="colorOnSecondaryContainer">@color/black</item>
         <item name="android:textColor">@color/text_color_light</item>
     </style>
+
     <style name="Theme.WIFIFrankenstein.Blue.Night">
         <item name="colorPrimary">@color/blue_200_dark</item>
         <item name="colorPrimaryVariant">@color/blue_700_dark</item>
@@ -107,6 +114,7 @@
         <item name="colorOnErrorContainer">@color/on_error_container_dark</item>
         <item name="android:textColor">@color/text_color_dark</item>
     </style>
+
     <style name="Theme.WIFIFrankenstein.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <style name="Theme.WIFIFrankenstein.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />

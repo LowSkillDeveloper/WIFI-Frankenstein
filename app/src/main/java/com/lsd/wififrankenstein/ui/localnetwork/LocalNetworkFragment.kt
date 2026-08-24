@@ -191,7 +191,8 @@ class LocalNetworkFragment : Fragment() {
                 }
         }
 
-        binding.buttonScan.text = if (isScanning) getString(R.string.cancel) else getString(R.string.ln_quick_scan)
+        binding.buttonScan.text =
+            if (isScanning) getString(R.string.cancel) else getString(R.string.ln_quick_scan)
         binding.buttonDetailedScan.isEnabled = !isScanning
 
         if (state.subnet.isNotEmpty()) {
@@ -292,7 +293,8 @@ class LocalNetworkFragment : Fragment() {
         dialogBinding.detailMac.text = device.mac.ifEmpty { getString(R.string.not_available) }
         dialogBinding.detailVendor.text = device.vendor.ifEmpty { getString(R.string.unknown) }
         dialogBinding.detailHostname.text = device.hostname.ifEmpty { getString(R.string.unknown) }
-        dialogBinding.detailNetbios.text = device.netbiosName.ifEmpty { getString(R.string.not_available) }
+        dialogBinding.detailNetbios.text =
+            device.netbiosName.ifEmpty { getString(R.string.not_available) }
         dialogBinding.detailStatus.text =
             if (device.isAlive) getString(R.string.ln_online) else getString(R.string.ln_offline)
         dialogBinding.detailStatus.setTextColor(
@@ -484,7 +486,11 @@ class LocalNetworkFragment : Fragment() {
             startActivity(intent)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to open browser for $ip:$port", e)
-            Snackbar.make(binding.root, getString(R.string.ln_cannot_open_browser), Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(
+                binding.root,
+                getString(R.string.ln_cannot_open_browser),
+                Snackbar.LENGTH_SHORT
+            ).show()
         }
     }
 

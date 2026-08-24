@@ -279,7 +279,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
 
             val nativeHashes = hashes.filter { h ->
                 NativeCracker.isAvailable && h.anonce != null && h.eapol != null &&
-                    (h.keyver ?: WpaCracker.extractKeyver(WpaCrypto.hexToBytes(h.eapol))) == 2
+                        (h.keyver ?: WpaCracker.extractKeyver(WpaCrypto.hexToBytes(h.eapol))) == 2
             }
             val fallbackHashes = hashes.filter { h -> nativeHashes.none { it === h } }
             val miniBatchSize = NativeCracker.BATCH_SIZE

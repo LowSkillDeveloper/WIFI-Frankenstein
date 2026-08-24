@@ -663,38 +663,39 @@ class DbSetupFragment : Fragment() {
                     var lastShownExtract = -1
                     var extractingTextSet = false
 
-                    val result = viewModel.downloadSmartLinkDatabase(dbInfo) { progress, bytes, total ->
-                        when (progress) {
-                            PROGRESS_EXTRACT -> {
-                                val pct = bytes.toInt().coerceIn(0, 100)
-                                if (!extractingTextSet) {
-                                    extractingTextSet = true
-                                    progressText?.text = getString(
-                                        R.string.extracting_database_progress,
-                                        index + 1,
-                                        databases.size,
-                                        dbInfo.name
-                                    )
+                    val result =
+                        viewModel.downloadSmartLinkDatabase(dbInfo) { progress, bytes, total ->
+                            when (progress) {
+                                PROGRESS_EXTRACT -> {
+                                    val pct = bytes.toInt().coerceIn(0, 100)
+                                    if (!extractingTextSet) {
+                                        extractingTextSet = true
+                                        progressText?.text = getString(
+                                            R.string.extracting_database_progress,
+                                            index + 1,
+                                            databases.size,
+                                            dbInfo.name
+                                        )
+                                    }
+                                    val indeterminate = total == null || total <= 0
+                                    if (progressBar?.isIndeterminate != indeterminate) {
+                                        progressBar?.isIndeterminate = indeterminate
+                                    }
+                                    if (!indeterminate && pct != lastShownExtract) {
+                                        lastShownExtract = pct
+                                        progressBar?.progress = pct
+                                    }
                                 }
-                                val indeterminate = total == null || total <= 0
-                                if (progressBar?.isIndeterminate != indeterminate) {
-                                    progressBar?.isIndeterminate = indeterminate
-                                }
-                                if (!indeterminate && pct != lastShownExtract) {
-                                    lastShownExtract = pct
-                                    progressBar?.progress = pct
-                                }
-                            }
 
-                            else -> {
-                                progressBar?.isIndeterminate = false
-                                if (progress >= 0 && progress != lastShownProgress) {
-                                    lastShownProgress = progress
-                                    progressBar?.progress = progress
+                                else -> {
+                                    progressBar?.isIndeterminate = false
+                                    if (progress >= 0 && progress != lastShownProgress) {
+                                        lastShownProgress = progress
+                                        progressBar?.progress = progress
+                                    }
                                 }
                             }
                         }
-                    }
                     val item = result.dbItem
                     if (item != null) {
                         if (item.dbType == DbType.SQLITE_FILE_CUSTOM || item.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM) {
@@ -725,7 +726,13 @@ class DbSetupFragment : Fragment() {
                         failures.add(dbInfo.name to reason)
                         failuresText?.let { tv ->
                             tv.visibility = View.VISIBLE
-                            tv.append(getString(R.string.download_failed_item, dbInfo.name, reason) + "\n")
+                            tv.append(
+                                getString(
+                                    R.string.download_failed_item,
+                                    dbInfo.name,
+                                    reason
+                                ) + "\n"
+                            )
                         }
                         progressText?.text =
                             getString(R.string.download_failed_count, failures.size, databases.size)
@@ -1351,7 +1358,8 @@ class DbSetupFragment : Fragment() {
 
                 withContext(Dispatchers.Main) {
                     progressBar?.progress = 15
-                    progressText?.text = getString(R.string.ds_found_records_for_import, networksToAdd.size)
+                    progressText?.text =
+                        getString(R.string.ds_found_records_for_import, networksToAdd.size)
                 }
 
                 val helper3 = LocalAppDbHelper(requireContext().applicationContext)
@@ -1373,7 +1381,11 @@ class DbSetupFragment : Fragment() {
                                 stats.totalProcessed, stats.inserted, stats.duplicates
                             )
 
-                            "replace" -> getString(R.string.database_replaced_imported, stats.inserted)
+                            "replace" -> getString(
+                                R.string.database_replaced_imported,
+                                stats.inserted
+                            )
+
                             else -> getString(R.string.import_completed_added, stats.inserted)
                         }
                         showSnackbar(message)

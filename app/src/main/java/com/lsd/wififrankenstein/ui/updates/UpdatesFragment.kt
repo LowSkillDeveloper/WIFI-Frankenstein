@@ -354,7 +354,8 @@ class UpdatesFragment : Fragment(R.layout.fragment_updates) {
             }
             if (archive == null) {
                 withContext(Dispatchers.Main) {
-                    binding.textViewChrootStatus.text = getString(R.string.rootless_failed_rootfs_url)
+                    binding.textViewChrootStatus.text =
+                        getString(R.string.rootless_failed_rootfs_url)
                 }
                 return@launch
             }

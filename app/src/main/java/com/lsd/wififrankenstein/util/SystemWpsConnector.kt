@@ -18,18 +18,6 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.WpsMethodSelector.Companion.NULL_PIN_IDENTIFIER
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 class SystemWpsConnector(private val context: Context) {
 
     interface WpsCallbacks {
@@ -149,11 +137,6 @@ class SystemWpsConnector(private val context: Context) {
 
     companion object {
         private const val TAG = "SystemWpsConnector"
-
-
-
-
-
 
 
         fun showModeSelection(

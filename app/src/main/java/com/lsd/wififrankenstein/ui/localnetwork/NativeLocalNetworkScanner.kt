@@ -161,7 +161,10 @@ class NativeLocalNetworkScanner(private val context: Context) {
         try {
             Log.d(TAG, "Starting native ping sweep on $subnet")
             onProgress(
-                ScanProgress(phase = "ping_sweep", line = context.getString(R.string.nat_scanning_subnet, subnet))
+                ScanProgress(
+                    phase = "ping_sweep",
+                    line = context.getString(R.string.nat_scanning_subnet, subnet)
+                )
             )
 
             val ipList = expandCidr(subnet)
@@ -171,7 +174,10 @@ class NativeLocalNetworkScanner(private val context: Context) {
             val progressLock = Any()
 
             onProgress(
-                ScanProgress(phase = "ping_sweep", line = context.getString(R.string.nat_targets, targetIps.size))
+                ScanProgress(
+                    phase = "ping_sweep",
+                    line = context.getString(R.string.nat_targets, targetIps.size)
+                )
             )
 
             fun addDevice(ip: String, mac: String, source: String, ttl: Int = 0) {
@@ -180,7 +186,10 @@ class NativeLocalNetworkScanner(private val context: Context) {
                 val vendorStr = if (vendor.isNotEmpty()) " - $vendor" else ""
                 Log.d(TAG, "Found ($source): $ip $cleanMac$vendorStr")
                 onProgress(
-                    ScanProgress(phase = "parsing", line = context.getString(R.string.nat_found_source, source, ip))
+                    ScanProgress(
+                        phase = "parsing",
+                        line = context.getString(R.string.nat_found_source, source, ip)
+                    )
                 )
                 devices.add(
                     LocalDevice(
@@ -405,12 +414,18 @@ class NativeLocalNetworkScanner(private val context: Context) {
                 "Native ping sweep complete: ${devices.size} devices found in ${totalTime}ms"
             )
             onProgress(
-                ScanProgress(phase = "done", line = context.getString(R.string.nat_found_devices, devices.size))
+                ScanProgress(
+                    phase = "done",
+                    line = context.getString(R.string.nat_found_devices, devices.size)
+                )
             )
         } catch (e: Exception) {
             Log.e(TAG, "Native ping sweep failed", e)
             onProgress(
-                ScanProgress(phase = "error", line = context.getString(R.string.nat_ping_sweep_failed, e.message))
+                ScanProgress(
+                    phase = "error",
+                    line = context.getString(R.string.nat_ping_sweep_failed, e.message)
+                )
             )
         }
 
@@ -453,7 +468,10 @@ class NativeLocalNetworkScanner(private val context: Context) {
         try {
             Log.d(TAG, "Scanning ports on ${device.ip} (fast=$fastScan)")
             onProgress(
-                ScanProgress(phase = "port_scan", line = context.getString(R.string.nat_scanning_device, device.ip))
+                ScanProgress(
+                    phase = "port_scan",
+                    line = context.getString(R.string.nat_scanning_device, device.ip)
+                )
             )
 
             val portsToScan = if (fastScan) TOP_PORTS else MID_PORTS

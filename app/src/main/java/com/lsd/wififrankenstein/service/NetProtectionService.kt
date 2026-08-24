@@ -169,7 +169,8 @@ class NetProtectionService : Service() {
             broadcastStatus()
         }
 
-        val isFull = detectionResult?.overallLevel == com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.FULL
+        val isFull =
+            detectionResult?.overallLevel == com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.FULL
         arpIntervalMs = if (isFull) ARP_INTERVAL else ARP_INTERVAL_LIMITED
         portScanIntervalMs = if (isFull) PORT_SCAN_INTERVAL else PORT_SCAN_INTERVAL_LIMITED
 
@@ -197,7 +198,8 @@ class NetProtectionService : Service() {
         portScanEnabled = intent.getBooleanExtra(EXTRA_PORT_SCAN_ENABLED, true)
         connectionMonitorEnabled = intent.getBooleanExtra(EXTRA_CONNECTION_MONITOR_ENABLED, true)
         notificationHidden = intent.getBooleanExtra(EXTRA_NOTIFICATION_HIDDEN, false)
-        notificationPriority = intent.getIntExtra(EXTRA_NOTIFICATION_PRIORITY, NotificationManager.IMPORTANCE_LOW)
+        notificationPriority =
+            intent.getIntExtra(EXTRA_NOTIFICATION_PRIORITY, NotificationManager.IMPORTANCE_LOW)
 
         updateNotificationChannel(notificationPriority)
 

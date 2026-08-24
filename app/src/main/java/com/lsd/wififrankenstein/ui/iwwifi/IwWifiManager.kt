@@ -412,9 +412,6 @@ class IwWifiManager(private val context: Context) {
         }
 
 
-
-
-
     suspend fun scanWifiNetworksNative(): List<IwWifiNetwork> = withContext(Dispatchers.IO) {
         try {
             val wifiManager =

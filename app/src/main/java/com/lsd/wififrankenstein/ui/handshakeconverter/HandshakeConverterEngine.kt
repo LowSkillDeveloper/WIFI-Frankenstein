@@ -24,7 +24,11 @@ class HandshakeConverterEngine(private val context: Context) {
             try {
                 val lines = item.hash22000Lines
                 if (lines.isEmpty()) {
-                    return@withContext fail(item, target, context.getString(R.string.hc_no_hashes_to_convert))
+                    return@withContext fail(
+                        item,
+                        target,
+                        context.getString(R.string.hc_no_hashes_to_convert)
+                    )
                 }
                 val baseName = item.fileName.substringBeforeLast('.')
                 val hashes = lines.mapNotNull { HandshakeHash.parse22000Line(it) }

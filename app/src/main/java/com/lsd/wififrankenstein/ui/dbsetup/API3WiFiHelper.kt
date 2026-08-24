@@ -29,6 +29,7 @@ class API3WiFiHelper(
     private val apiWriteKey: String? = null
 ) {
     private val cachedResults = ConcurrentHashMap<String, List<Map<String, Any?>>>()
+
     @Volatile
     private var lastRequestTime = 0L
     private val sharedPreferences by lazy {

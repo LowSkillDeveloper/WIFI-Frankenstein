@@ -219,7 +219,8 @@ class HandshakeStorageManager(private val context: Context) {
                 val result =
                     chrootManager.executeInChroot("$lsCmd | grep -iE '\\.($CAP_EXTENSIONS_GREP)'")
                 if (result.isSuccess && result.out.any { it.isNotBlank() }) {
-                    result.out.map { it.trim() }.filter { it.isNotEmpty() }.forEach { names.add(it) }
+                    result.out.map { it.trim() }.filter { it.isNotEmpty() }
+                        .forEach { names.add(it) }
                     if (names.isNotEmpty()) return@withContext names
                 }
             } catch (_: Exception) {
@@ -317,12 +318,12 @@ class HandshakeStorageManager(private val context: Context) {
         Log.i(
             TAG,
             "Handshake ${if (existed) "UPDATED" else "ADDED"}: " +
-                "file=${item.fileName} path=${item.filePath} essid=${item.essid ?: "?"} " +
-                "bssid=${item.bssid ?: "?"} size=${item.formattedSize} valid=${item.isValid} " +
-                "hashes=${item.handshakeCount} eapol=${item.eapolCount} pmkid=${item.pmkidCount} " +
-                "type=$hashTypes keyver=${item.keyver ?: "?"} " +
-                "format=${item.originalFormat ?: "?"} channel=${item.channel ?: "?"} " +
-                "band=${item.band ?: "?"} akm=${item.akm ?: "?"} cipher=${item.pairwiseCipher ?: "?"}"
+                    "file=${item.fileName} path=${item.filePath} essid=${item.essid ?: "?"} " +
+                    "bssid=${item.bssid ?: "?"} size=${item.formattedSize} valid=${item.isValid} " +
+                    "hashes=${item.handshakeCount} eapol=${item.eapolCount} pmkid=${item.pmkidCount} " +
+                    "type=$hashTypes keyver=${item.keyver ?: "?"} " +
+                    "format=${item.originalFormat ?: "?"} channel=${item.channel ?: "?"} " +
+                    "band=${item.band ?: "?"} akm=${item.akm ?: "?"} cipher=${item.pairwiseCipher ?: "?"}"
         )
     }
 

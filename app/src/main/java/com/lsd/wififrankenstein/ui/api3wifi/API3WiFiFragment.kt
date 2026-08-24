@@ -102,9 +102,17 @@ class API3WiFiFragment : Fragment() {
             if (text.isNotEmpty()) {
                 val clipboard =
                     requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                val clip = android.content.ClipData.newPlainText(getString(R.string.api3_clip_response), text)
+                val clip = android.content.ClipData.newPlainText(
+                    getString(R.string.api3_clip_response),
+                    text
+                )
                 clipboard.setPrimaryClip(clip)
-                showError(getString(R.string.copied_to_clipboard, getString(R.string.api3_clip_response)))
+                showError(
+                    getString(
+                        R.string.copied_to_clipboard,
+                        getString(R.string.api3_clip_response)
+                    )
+                )
             }
         }
 
@@ -113,9 +121,17 @@ class API3WiFiFragment : Fragment() {
             if (text.isNotEmpty()) {
                 val clipboard =
                     requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                val clip = android.content.ClipData.newPlainText(getString(R.string.api3_clip_request), text)
+                val clip = android.content.ClipData.newPlainText(
+                    getString(R.string.api3_clip_request),
+                    text
+                )
                 clipboard.setPrimaryClip(clip)
-                showError(getString(R.string.copied_to_clipboard, getString(R.string.api3_clip_request)))
+                showError(
+                    getString(
+                        R.string.copied_to_clipboard,
+                        getString(R.string.api3_clip_request)
+                    )
+                )
             }
         }
 

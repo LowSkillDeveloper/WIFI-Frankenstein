@@ -10,6 +10,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
+
         <com.google.android.material.button.MaterialButtonToggleGroup
             android:id="@+id/toggleMode"
             android:layout_width="match_parent"
@@ -36,6 +37,7 @@
                 android:layout_weight="1"
                 android:text="@string/manual_data_entry" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
+
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -99,11 +101,13 @@
                     app:icon="@drawable/ic_add" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <LinearLayout
             android:id="@+id/layoutFileMode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -175,6 +179,7 @@
                         android:visibility="gone" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -276,12 +281,14 @@
                 android:text="@string/upload_file"
                 app:icon="@drawable/ic_file_upload" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/layoutManualMode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone">
+
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -502,6 +509,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
+
         <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/progressUpload"
             android:layout_width="match_parent"

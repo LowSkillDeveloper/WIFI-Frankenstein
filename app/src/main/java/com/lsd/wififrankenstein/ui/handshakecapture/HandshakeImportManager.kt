@@ -31,7 +31,10 @@ class HandshakeImportManager(private val context: Context) {
 
     suspend fun importFromUri(uri: Uri): ImportResult = withContext(Dispatchers.IO) {
         if (!canWriteStorage()) {
-            Log.w(tag, "importFromUri: storage not writable (no root, no manage-all-files permission)")
+            Log.w(
+                tag,
+                "importFromUri: storage not writable (no root, no manage-all-files permission)"
+            )
             return@withContext ImportResult(
                 0,
                 1,
@@ -46,7 +49,12 @@ class HandshakeImportManager(private val context: Context) {
             val tempFile = File(tempDir, fileName)
             context.contentResolver.openInputStream(uri)?.use { input ->
                 tempFile.outputStream().use { input.copyTo(it) }
-            } ?: return@withContext ImportResult(0, 0, emptyList(), listOf(context.getString(R.string.imp_cannot_open_file)))
+            } ?: return@withContext ImportResult(
+                0,
+                0,
+                emptyList(),
+                listOf(context.getString(R.string.imp_cannot_open_file))
+            )
             processFile(tempFile)
         } finally {
             tempDir.deleteRecursively()
@@ -101,7 +109,12 @@ class HandshakeImportManager(private val context: Context) {
                             0,
                             0,
                             emptyList(),
-                            listOf(context.getString(R.string.imp_mega_failed, result.exceptionOrNull()?.message))
+                            listOf(
+                                context.getString(
+                                    R.string.imp_mega_failed,
+                                    result.exceptionOrNull()?.message
+                                )
+                            )
                         )
                 } else {
                     onProgress(context.getString(R.string.imp_downloading))
@@ -185,7 +198,10 @@ class HandshakeImportManager(private val context: Context) {
                         }
                     }
                 } catch (e: Exception) {
-                    Log.w(tag, "importFromText: hcxhash2cap unavailable, falling back: ${e.message}")
+                    Log.w(
+                        tag,
+                        "importFromText: hcxhash2cap unavailable, falling back: ${e.message}"
+                    )
                 }
                 warnings.add(context.getString(R.string.imp_hcx_failed))
             } else {
@@ -213,7 +229,12 @@ class HandshakeImportManager(private val context: Context) {
                 )
                 ImportResult(1, 0, emptyList(), warnings)
             } else {
-                ImportResult(0, 0, emptyList(), warnings + listOf(context.getString(R.string.imp_failed_save_hash)))
+                ImportResult(
+                    0,
+                    0,
+                    emptyList(),
+                    warnings + listOf(context.getString(R.string.imp_failed_save_hash))
+                )
             }
         } finally {
             tempDir.deleteRecursively()
@@ -312,19 +333,26 @@ class HandshakeImportManager(private val context: Context) {
                 ) && ChrootCapabilities.hasChrootTools(context)
             ) {
                 try {
-                    val chrootOut = "/sdcard/WIFI-Frankenstein/temp/${file.nameWithoutExtension}.cap"
+                    val chrootOut =
+                        "/sdcard/WIFI-Frankenstein/temp/${file.nameWithoutExtension}.cap"
                     chrootManager.executeInChroot("mkdir -p /sdcard/WIFI-Frankenstein/temp")
                     val conv = chrootManager.executeInChroot(
                         "hcxhash2cap -o '$chrootOut' '${chrootPath(file)}' 2>&1"
                     )
                     if (conv.isSuccess && chrootManager.executeInChroot("test -s '$chrootOut'").isSuccess) {
                         capFile =
-                            File(context.cacheDir, "import_converted/${file.nameWithoutExtension}.cap")
+                            File(
+                                context.cacheDir,
+                                "import_converted/${file.nameWithoutExtension}.cap"
+                            )
                         capFile.parentFile?.mkdirs()
                         Shell.cmd("cp '$chrootOut' '${capFile.absolutePath}'").exec()
                     }
                 } catch (e: Exception) {
-                    Log.w(tag, "processSingleFile: hcxhash2cap unavailable for ${file.name}: ${e.message}")
+                    Log.w(
+                        tag,
+                        "processSingleFile: hcxhash2cap unavailable for ${file.name}: ${e.message}"
+                    )
                 }
             }
 

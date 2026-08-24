@@ -170,7 +170,11 @@ class HandshakeStorageFragment : Fragment() {
             try {
                 findNavController().navigate(R.id.nav_airodump)
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), getString(R.string.hsc_cannot_open_capture), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.hsc_cannot_open_capture),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
         binding.buttonImportHandshakeEmpty.setOnClickListener {
@@ -359,7 +363,11 @@ class HandshakeStorageFragment : Fragment() {
 
         viewModel.wpaSecCheckDone.observe(viewLifecycleOwner) { done ->
             if (done) {
-                Toast.makeText(requireContext(), getString(R.string.hsc_wpasec_check_complete), Toast.LENGTH_SHORT)
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.hsc_wpasec_check_complete),
+                    Toast.LENGTH_SHORT
+                )
                     .show()
                 viewModel.clearWpaSecCheckDone()
             }
@@ -388,7 +396,11 @@ class HandshakeStorageFragment : Fragment() {
 
         viewModel.pwncrackCheckDone.observe(viewLifecycleOwner) { done ->
             if (done) {
-                Toast.makeText(requireContext(), getString(R.string.hsc_pwncrack_check_complete), Toast.LENGTH_SHORT)
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.hsc_pwncrack_check_complete),
+                    Toast.LENGTH_SHORT
+                )
                     .show()
                 viewModel.clearPwncrackCheckDone()
             }
@@ -708,7 +720,11 @@ class HandshakeStorageFragment : Fragment() {
         try {
             findNavController().navigate(R.id.action_handshake_storage_to_wpa_cracker, bundle)
         } catch (e: Exception) {
-                Toast.makeText(requireContext(), getString(R.string.hsc_navigation_failed, e.message), Toast.LENGTH_SHORT)
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.hsc_navigation_failed, e.message),
+                Toast.LENGTH_SHORT
+            )
                 .show()
         }
     }
@@ -1404,7 +1420,11 @@ class HandshakeStorageFragment : Fragment() {
         }
         viewModel.ensureFileAccessible(item.filePath) { resolvedPath ->
             if (resolvedPath == null) {
-                Toast.makeText(requireContext(), getString(R.string.hsc_file_not_accessible), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.hsc_file_not_accessible),
+                    Toast.LENGTH_SHORT
+                ).show()
                 return@ensureFileAccessible
             }
             val accessibleItem = item.copy(filePath = resolvedPath)
@@ -1458,7 +1478,11 @@ class HandshakeStorageFragment : Fragment() {
             }
             startActivity(Intent.createChooser(intent, getString(R.string.handshake_share)))
         } else {
-            Toast.makeText(requireContext(), getString(R.string.hsc_cannot_share_file), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.hsc_cannot_share_file),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -1474,7 +1498,11 @@ class HandshakeStorageFragment : Fragment() {
                 }
                 shareTempFile(tempPath, mimeType)
             } else {
-                Toast.makeText(requireContext(), getString(R.string.hsc_export_failed), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.hsc_export_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -1539,18 +1567,21 @@ class HandshakeStorageFragment : Fragment() {
             dialogView.findViewById<View>(R.id.detailChannel).visibility = View.GONE
         }
         if (item.akm != null) {
-            dialogView.findViewById<TextView>(R.id.detailAkm).text = getString(R.string.hsc_akm, item.akm)
+            dialogView.findViewById<TextView>(R.id.detailAkm).text =
+                getString(R.string.hsc_akm, item.akm)
         } else {
             dialogView.findViewById<View>(R.id.detailAkm).visibility = View.GONE
         }
         val cipherText = listOfNotNull(item.groupCipher, item.pairwiseCipher).joinToString(" / ")
         if (cipherText.isNotBlank()) {
-            dialogView.findViewById<TextView>(R.id.detailCipher).text = getString(R.string.hsc_cipher, cipherText)
+            dialogView.findViewById<TextView>(R.id.detailCipher).text =
+                getString(R.string.hsc_cipher, cipherText)
         } else {
             dialogView.findViewById<View>(R.id.detailCipher).visibility = View.GONE
         }
         if (item.rssi != null) {
-            dialogView.findViewById<TextView>(R.id.detailRssi).text = getString(R.string.hsc_rssi, item.rssi)
+            dialogView.findViewById<TextView>(R.id.detailRssi).text =
+                getString(R.string.hsc_rssi, item.rssi)
         } else {
             dialogView.findViewById<View>(R.id.detailRssi).visibility = View.GONE
         }
@@ -1564,7 +1595,10 @@ class HandshakeStorageFragment : Fragment() {
         val validityView = dialogView.findViewById<TextView>(R.id.detailValidity)
         if (item.isValid != null) {
             validityView.text =
-                getString(R.string.hsc_validity, if (item.isValid) getString(R.string.handshake_valid) else getString(R.string.handshake_invalid))
+                getString(
+                    R.string.hsc_validity,
+                    if (item.isValid) getString(R.string.handshake_valid) else getString(R.string.handshake_invalid)
+                )
             validityView.setTextColor(
                 ContextCompat.getColor(
                     requireContext(),
@@ -1597,10 +1631,14 @@ class HandshakeStorageFragment : Fragment() {
         dialogView.findViewById<TextView>(R.id.detailM2).text = item.eapolM2Count.toString()
         dialogView.findViewById<TextView>(R.id.detailM3).text = item.eapolM3Count.toString()
         dialogView.findViewById<TextView>(R.id.detailM4).text = item.eapolM4Count.toString()
-        dialogView.findViewById<TextView>(R.id.detailBeacon).text = getString(R.string.hsc_beacon, item.beaconCount)
-        dialogView.findViewById<TextView>(R.id.detailAssocReq).text = getString(R.string.hsc_assoc, item.assocReqCount)
-        dialogView.findViewById<TextView>(R.id.detailAuth).text = getString(R.string.hsc_auth, item.authCount)
-        dialogView.findViewById<TextView>(R.id.detailProbeReq).text = getString(R.string.hsc_probe, item.probeReqCount)
+        dialogView.findViewById<TextView>(R.id.detailBeacon).text =
+            getString(R.string.hsc_beacon, item.beaconCount)
+        dialogView.findViewById<TextView>(R.id.detailAssocReq).text =
+            getString(R.string.hsc_assoc, item.assocReqCount)
+        dialogView.findViewById<TextView>(R.id.detailAuth).text =
+            getString(R.string.hsc_auth, item.authCount)
+        dialogView.findViewById<TextView>(R.id.detailProbeReq).text =
+            getString(R.string.hsc_probe, item.probeReqCount)
         val clientsFormatted = item.clients?.replace(",", ", ")?.trim()
         val clientsView = dialogView.findViewById<TextView>(R.id.detailClients)
         if (clientsFormatted.isNullOrBlank()) {
@@ -1675,7 +1713,11 @@ class HandshakeStorageFragment : Fragment() {
             if (item.uploadedToWpaSec) {
                 append(getString(R.string.hsc_wpasec_uploaded))
                 if (item.wpasecChecked) {
-                    append(if (item.wpasecPasswordFound) getString(R.string.hsc_wpasec_password_found) else getString(R.string.hsc_wpasec_not_found))
+                    append(
+                        if (item.wpasecPasswordFound) getString(R.string.hsc_wpasec_password_found) else getString(
+                            R.string.hsc_wpasec_not_found
+                        )
+                    )
                 }
             } else {
                 append(getString(R.string.hsc_wpasec_not_uploaded))
@@ -1698,7 +1740,11 @@ class HandshakeStorageFragment : Fragment() {
             if (item.uploadedToPwncrack) {
                 append(getString(R.string.hsc_pwncrack_uploaded))
                 if (item.pwncrackChecked) {
-                    append(if (item.pwncrackPasswordFound) getString(R.string.hsc_pwncrack_password_found) else getString(R.string.hsc_pwncrack_not_found))
+                    append(
+                        if (item.pwncrackPasswordFound) getString(R.string.hsc_pwncrack_password_found) else getString(
+                            R.string.hsc_pwncrack_not_found
+                        )
+                    )
                 }
             } else {
                 append(getString(R.string.hsc_pwncrack_not_uploaded))
@@ -1720,7 +1766,8 @@ class HandshakeStorageFragment : Fragment() {
         val ohcRequestView = dialogView.findViewById<TextView>(R.id.detailOhcRequestId)
         if (item.uploadedToOhc) {
             val email = item.ohcEmail ?: viewModel.getSavedEmail()
-            ohcView.text = getString(R.string.hsc_ohc_uploaded, email ?: getString(R.string.hsc_no_email))
+            ohcView.text =
+                getString(R.string.hsc_ohc_uploaded, email ?: getString(R.string.hsc_no_email))
             ohcView.setTextColor(ContextCompat.getColor(requireContext(), R.color.success_green))
             ohcView.visibility = View.VISIBLE
             if (item.requestIdOhc != null) {
@@ -1828,7 +1875,8 @@ class HandshakeStorageFragment : Fragment() {
         val clipboard =
             requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
-        Toast.makeText(requireContext(), getString(R.string.hsc_copied, label), Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.hsc_copied, label), Toast.LENGTH_SHORT)
+            .show()
     }
 
     private fun openOnMap(lat: Double, lon: Double) {
@@ -1839,7 +1887,11 @@ class HandshakeStorageFragment : Fragment() {
             }
             findNavController().navigate(R.id.nav_wifi_map, bundle)
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), getString(R.string.hsc_cannot_open_map, e.message), Toast.LENGTH_SHORT)
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.hsc_cannot_open_map, e.message),
+                Toast.LENGTH_SHORT
+            )
                 .show()
         }
     }

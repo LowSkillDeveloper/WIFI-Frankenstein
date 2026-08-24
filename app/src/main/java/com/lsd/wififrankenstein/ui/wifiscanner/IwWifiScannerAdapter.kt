@@ -251,7 +251,8 @@ class IwWifiScannerAdapter(
                 val modelText = if (network.wpsModel.isNotBlank()) {
                     itemView.context.getString(R.string.iw_model_suffix, network.wpsModel)
                 } else ""
-                bssidTextView.text = itemView.context.getString(R.string.iw_bssid_model, network.bssid, modelText)
+                bssidTextView.text =
+                    itemView.context.getString(R.string.iw_bssid_model, network.bssid, modelText)
 
                 levelTextView.text = itemView.context.getString(R.string.iw_signal_dbm, signalInt)
                 distanceTextView.text = distance

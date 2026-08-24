@@ -386,7 +386,10 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
             }
 
             progressCallback(
-                getApplication<Application>().getString(R.string.ia_found_records, networksToAdd.size),
+                getApplication<Application>().getString(
+                    R.string.ia_found_records,
+                    networksToAdd.size
+                ),
                 15
             )
 
@@ -419,19 +422,28 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
             val shouldOptimize = records.size > 5000
 
             if (shouldOptimize) {
-                progressCallback(getApplication<Application>().getString(R.string.ia_optimizing_db), 20)
+                progressCallback(
+                    getApplication<Application>().getString(R.string.ia_optimizing_db),
+                    20
+                )
                 localDbHelper.temporaryDropIndexes()
             }
 
             val result = if (checkDuplicates && records.size > 1000) {
                 processLargeImportWithDuplicateCheckLocal(records, progressCallback, localDbHelper)
             } else {
-                progressCallback(getApplication<Application>().getString(R.string.ia_importing_records), 50)
+                progressCallback(
+                    getApplication<Application>().getString(R.string.ia_importing_records),
+                    50
+                )
                 localDbHelper.bulkInsertOptimized(records, checkDuplicates)
             }
 
             if (shouldOptimize) {
-                progressCallback(getApplication<Application>().getString(R.string.ia_restoring_indexes), 90)
+                progressCallback(
+                    getApplication<Application>().getString(R.string.ia_restoring_indexes),
+                    90
+                )
                 localDbHelper.recreateIndexes()
             }
 

@@ -110,15 +110,31 @@ class NetworkInChannelAdapter :
 
                 FrequencyBand.GHZ_5, FrequencyBand.GHZ_6 -> {
                     when (bandwidth) {
-                        ChannelBandwidth.WIDTH_40 -> context.getString(R.string.wa_channel_plus, channel)
-                        ChannelBandwidth.WIDTH_80 -> context.getString(R.string.wa_channel_plus3, channel)
+                        ChannelBandwidth.WIDTH_40 -> context.getString(
+                            R.string.wa_channel_plus,
+                            channel
+                        )
+
+                        ChannelBandwidth.WIDTH_80 -> context.getString(
+                            R.string.wa_channel_plus3,
+                            channel
+                        )
+
                         ChannelBandwidth.WIDTH_80_PLUS_80 -> context.getString(
                             R.string.wa_channel_plus3_80,
                             channel
                         )
 
-                        ChannelBandwidth.WIDTH_160 -> context.getString(R.string.wa_channel_plus7, channel)
-                        ChannelBandwidth.WIDTH_320 -> context.getString(R.string.wa_channel_plus15, channel)
+                        ChannelBandwidth.WIDTH_160 -> context.getString(
+                            R.string.wa_channel_plus7,
+                            channel
+                        )
+
+                        ChannelBandwidth.WIDTH_320 -> context.getString(
+                            R.string.wa_channel_plus15,
+                            channel
+                        )
+
                         else -> context.getString(R.string.wa_channel, channel)
                     }
                 }

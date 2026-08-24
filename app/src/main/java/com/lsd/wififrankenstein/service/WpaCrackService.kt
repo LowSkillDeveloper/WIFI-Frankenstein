@@ -212,7 +212,10 @@ class WpaCrackService : Service() {
 
         val notification = buildNotification(
             getString(R.string.wpa_crack_notif_title),
-            if (offset > 0) getString(R.string.svc_resuming_crack, offset) else getString(R.string.svc_starting),
+            if (offset > 0) getString(
+                R.string.svc_resuming_crack,
+                offset
+            ) else getString(R.string.svc_starting),
             isPaused = false,
             currentPassword = "",
             attempts = 0,

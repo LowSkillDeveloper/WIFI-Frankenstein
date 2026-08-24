@@ -168,7 +168,13 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                     onProgress = { percent, text ->
                         _progress.postValue(percent)
                         _progressText.postValue(text)
-                        addConsole(appContext.getString(R.string.ib_console_progress, text, percent))
+                        addConsole(
+                            appContext.getString(
+                                R.string.ib_console_progress,
+                                text,
+                                percent
+                            )
+                        )
                     }
                 )
 
@@ -194,9 +200,25 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 val stubIps = ipCount.filterValues { it >= 2 }.keys
                 lastStubIps = stubIps
 
-                addConsole(appContext.getString(R.string.ib_console_dns_complete, ok, spoofed, intercepted, fakeNxdomain, fakeEmpty, fakeIp, dohBlocked))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_dns_complete,
+                        ok,
+                        spoofed,
+                        intercepted,
+                        fakeNxdomain,
+                        fakeEmpty,
+                        fakeIp,
+                        dohBlocked
+                    )
+                )
                 if (stubIps.isNotEmpty()) {
-                    addConsole(appContext.getString(R.string.ib_console_stub_ips, stubIps.joinToString(", ")))
+                    addConsole(
+                        appContext.getString(
+                            R.string.ib_console_stub_ips,
+                            stubIps.joinToString(", ")
+                        )
+                    )
                 }
                 Log.d(TAG, "DNS check complete: $ok OK, $spoofed spoofed out of ${results.size}")
             } catch (e: CancellationException) {
@@ -204,7 +226,13 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
             } catch (e: Exception) {
                 Log.e(TAG, "DNS check failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole(appContext.getString(R.string.ib_console_dns_error, e.javaClass.simpleName, e.message))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_dns_error,
+                        e.javaClass.simpleName,
+                        e.message
+                    )
+                )
             }
         }
     }
@@ -228,7 +256,13 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                     onProgress = { percent, text ->
                         _progress.postValue(percent)
                         _progressText.postValue(text)
-                        addConsole(appContext.getString(R.string.ib_console_progress, text, percent))
+                        addConsole(
+                            appContext.getString(
+                                R.string.ib_console_progress,
+                                text,
+                                percent
+                            )
+                        )
                     }
                 )
 
@@ -243,14 +277,26 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                         it.tls12Status == CheckStatus.Ok || it.tls12Status == CheckStatus.NotBlocked || it.tls12Status == CheckStatus.Redirect
                     !ok13 || !ok12
                 }
-                addConsole(appContext.getString(R.string.ib_console_domains_complete, blocked, results.size))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_domains_complete,
+                        blocked,
+                        results.size
+                    )
+                )
                 Log.d(TAG, "Domain check complete: $blocked blocked out of ${results.size}")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Domain check failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole(appContext.getString(R.string.ib_console_domains_error, e.javaClass.simpleName, e.message))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_domains_error,
+                        e.javaClass.simpleName,
+                        e.message
+                    )
+                )
             }
         }
     }
@@ -280,14 +326,26 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 _progress.value = 100
 
                 val failed = results.count { it.status != CheckStatus.Ok }
-                addConsole(appContext.getString(R.string.ib_console_tcp16_complete, failed, results.size))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_tcp16_complete,
+                        failed,
+                        results.size
+                    )
+                )
                 Log.d(TAG, "TCP 16-20KB check complete: $failed failed out of ${results.size}")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "TCP 16-20KB check failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole(appContext.getString(R.string.ib_console_tcp16_error, e.javaClass.simpleName, e.message))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_tcp16_error,
+                        e.javaClass.simpleName,
+                        e.message
+                    )
+                )
             }
         }
     }
@@ -341,7 +399,8 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                     return@launch
                 }
 
-                val startMsg = appContext.getString(R.string.ib_msg_sweeping, failedTargets.size, sniList.size)
+                val startMsg =
+                    appContext.getString(R.string.ib_msg_sweeping, failedTargets.size, sniList.size)
                 addConsole("[*] $startMsg")
                 _sweepStatus.postValue(startMsg)
                 updateProgress(15, startMsg)
@@ -364,8 +423,19 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
             } catch (e: Exception) {
                 Log.e(TAG, "SNI sweep failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole(appContext.getString(R.string.ib_console_sni_error, e.javaClass.simpleName, e.message))
-                _sweepStatus.postValue(appContext.getString(R.string.ib_sweep_status_error, e.message))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_sni_error,
+                        e.javaClass.simpleName,
+                        e.message
+                    )
+                )
+                _sweepStatus.postValue(
+                    appContext.getString(
+                        R.string.ib_sweep_status_error,
+                        e.message
+                    )
+                )
             }
         }
     }
@@ -385,7 +455,14 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 _isChecking.value = false
 
                 val r = result
-                addConsole(appContext.getString(R.string.ib_console_telegram_complete, r.status.label(appContext), r.dcReachableCount, r.dcTotal))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_telegram_complete,
+                        r.status.label(appContext),
+                        r.dcReachableCount,
+                        r.dcTotal
+                    )
+                )
                 val dcParts = r.dcResults.map { "${it.label}=${if (it.reachable) "+" else "-"}" }
                 addConsole(appContext.getString(R.string.ib_console_dc, dcParts.joinToString(" ")))
                 if (r.downloadSpeedKbps != null) {
@@ -410,14 +487,25 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 } else {
                     addConsole(appContext.getString(R.string.ib_console_upload_na))
                 }
-                addConsole(appContext.getString(R.string.ib_console_duration, r.totalDurationMs / 1000f))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_duration,
+                        r.totalDurationMs / 1000f
+                    )
+                )
                 Log.d(TAG, "Telegram check complete: ${r.status.label()}")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Telegram check failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole(appContext.getString(R.string.ib_console_telegram_error, e.javaClass.simpleName, e.message))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_telegram_error,
+                        e.javaClass.simpleName,
+                        e.message
+                    )
+                )
             }
         }
     }
@@ -437,10 +525,22 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 _isChecking.value = false
 
                 val r = result
-                addConsole(appContext.getString(R.string.ib_console_youtube_complete, r.status.label(appContext), r.endpointReachableCount, r.endpointTotal))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_youtube_complete,
+                        r.status.label(appContext),
+                        r.endpointReachableCount,
+                        r.endpointTotal
+                    )
+                )
                 val epParts =
                     r.endpointResults.map { "${it.label}=${if (it.reachable) "+" else "-"}" }
-                addConsole(appContext.getString(R.string.ib_console_endpoints, epParts.joinToString(" ")))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_endpoints,
+                        epParts.joinToString(" ")
+                    )
+                )
                 if (r.downloadSpeedKbps != null) {
                     addConsole(
                         appContext.getString(
@@ -452,14 +552,25 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 } else {
                     addConsole(appContext.getString(R.string.ib_console_download_na))
                 }
-                addConsole(appContext.getString(R.string.ib_console_duration, r.totalDurationMs / 1000f))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_duration,
+                        r.totalDurationMs / 1000f
+                    )
+                )
                 Log.d(TAG, "YouTube check complete: ${r.status.label()}")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "YouTube check failed: ${e.javaClass.simpleName}: ${e.message}", e)
                 _isChecking.value = false
-                addConsole(appContext.getString(R.string.ib_console_youtube_error, e.javaClass.simpleName, e.message))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_youtube_error,
+                        e.javaClass.simpleName,
+                        e.message
+                    )
+                )
             }
         }
     }
@@ -605,7 +716,12 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 Log.e(TAG, "Main check timed out for $domain after ${MAIN_CHECK_TIMEOUT_MS}ms")
                 _isChecking.postValue(false)
                 updateProgress(100, appContext.getString(R.string.ib_progress_timed_out))
-                addConsole(appContext.getString(R.string.ib_console_main_timeout, MAIN_CHECK_TIMEOUT_MS / 1000))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_main_timeout,
+                        MAIN_CHECK_TIMEOUT_MS / 1000
+                    )
+                )
                 _mainTabResult.value = errorResult(
                     domain,
                     appContext.getString(R.string.ib_error_timeout, MAIN_CHECK_TIMEOUT_MS / 1000)
@@ -619,7 +735,13 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                     e
                 )
                 _isChecking.postValue(false)
-                addConsole(appContext.getString(R.string.ib_console_main_error, e.javaClass.simpleName, e.message))
+                addConsole(
+                    appContext.getString(
+                        R.string.ib_console_main_error,
+                        e.javaClass.simpleName,
+                        e.message
+                    )
+                )
                 _mainTabResult.value = errorResult(domain, e.message ?: e.javaClass.simpleName)
             }
         }
@@ -633,12 +755,23 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
         updateProgress(5, appContext.getString(R.string.ib_progress_dns))
         val dnsVerdict = dnsScanner.quickCheckDns(domain)
         ensureActive()
-        addConsole(appContext.getString(R.string.ib_console_dns_line, dnsVerdict.status.label(appContext), dnsVerdict.details))
+        addConsole(
+            appContext.getString(
+                R.string.ib_console_dns_line,
+                dnsVerdict.status.label(appContext),
+                dnsVerdict.details
+            )
+        )
         val dnsStatus = dnsVerdict.status
 
         val resolvedIp = dnsVerdict.udpIps.firstOrNull() ?: tlsScanner.resolveDomain(domain)
         ensureActive()
-        addConsole(appContext.getString(R.string.ib_console_ip_line, resolvedIp ?: appContext.getString(R.string.ib_unresolvable)))
+        addConsole(
+            appContext.getString(
+                R.string.ib_console_ip_line,
+                resolvedIp ?: appContext.getString(R.string.ib_unresolvable)
+            )
+        )
 
 
         updateProgress(8, appContext.getString(R.string.ib_progress_baseline))
@@ -650,7 +783,9 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
         addConsole(
             appContext.getString(
                 R.string.ib_console_baseline,
-                if (baselineReachable) appContext.getString(R.string.ib_status_ok) else appContext.getString(R.string.ib_baseline_unreachable),
+                if (baselineReachable) appContext.getString(R.string.ib_status_ok) else appContext.getString(
+                    R.string.ib_baseline_unreachable
+                ),
                 baselineResults.filter { it.reachable }.size,
                 baselineResults.size
             )
@@ -675,7 +810,10 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 domain = domain,
                 stubIps = lastStubIps,
                 onProgress = { percent, text ->
-                    updateProgress(12 + (percent * 58 / 100), appContext.getString(R.string.ib_progress_tls, text))
+                    updateProgress(
+                        12 + (percent * 58 / 100),
+                        appContext.getString(R.string.ib_progress_tls, text)
+                    )
                 }
             )
         }
@@ -694,15 +832,18 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
             72,
             appContext.getString(
                 R.string.ib_progress_tcp_status,
-                if (tcpReachable) appContext.getString(R.string.ib_tcp_open) else appContext.getString(R.string.ib_tcp_blocked),
-                if (port80Reachable) appContext.getString(R.string.ib_tcp_open) else appContext.getString(R.string.ib_tcp_blocked)
+                if (tcpReachable) appContext.getString(R.string.ib_tcp_open) else appContext.getString(
+                    R.string.ib_tcp_blocked
+                ),
+                if (port80Reachable) appContext.getString(R.string.ib_tcp_open) else appContext.getString(
+                    R.string.ib_tcp_blocked
+                )
             )
         )
 
         val tls13Status = domainResult?.tls13Status ?: CheckStatus.Error
         val tls12Status = domainResult?.tls12Status ?: CheckStatus.Error
         val httpStatus = domainResult?.httpStatus ?: CheckStatus.Error
-
 
 
         val isThrottle = listOf(tls13Status, tls12Status, httpStatus).any {

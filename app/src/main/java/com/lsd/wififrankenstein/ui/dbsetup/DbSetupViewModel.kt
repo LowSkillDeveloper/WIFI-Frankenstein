@@ -101,7 +101,8 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
             smartLinkDbHelper.sources.value
         } catch (e: Exception) {
             _errorEvent.value =
-                e.message ?: getApplication<Application>().getString(R.string.ds_failed_fetch_sources)
+                e.message
+                    ?: getApplication<Application>().getString(R.string.ds_failed_fetch_sources)
             null
         }
     }
@@ -353,10 +354,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
     }
 
 
-
-
-
-
     fun refreshLight() {
         updateAllDbIndexStatuses()
     }
@@ -519,7 +516,8 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
             smartLinkDbHelper.fetchDatabases(url)
             smartLinkDbHelper.databases.value
         } catch (e: MegaFileUnavailableException) {
-            _errorEvent.value = getApplication<Application>().getString(R.string.mega_file_unavailable)
+            _errorEvent.value =
+                getApplication<Application>().getString(R.string.mega_file_unavailable)
             null
         } catch (e: Exception) {
             _errorEvent.value = e.message
@@ -568,8 +566,10 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                 val error = when (e) {
                     is MegaQuotaException ->
                         getApplication<Application>().getString(R.string.mega_bandwidth_exceeded)
+
                     is MegaFileUnavailableException ->
                         getApplication<Application>().getString(R.string.mega_file_unavailable)
+
                     else -> e.message
                         ?: getApplication<Application>().getString(R.string.operation_failed)
                 }
@@ -930,20 +930,20 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                             )
                             _errorEvent.postValue("missing_file_removed")
                         } else if (originalSize != dbItem.originalSizeInMB) {
-                        val uri = dbItem.path.toUri()
-                        SQLite3WiFiHelper.deleteCachedDatabase(getApplication(), uri)
-                        val helper = SQLite3WiFiHelper(getApplication(), uri, dbItem.directPath)
-                        try {
-                            val cachedSize = helper.getSelectedFileSize()
-                            updatedList.add(
-                                dbItem.copy(
-                                    originalSizeInMB = originalSize,
-                                    cachedSizeInMB = cachedSize
+                            val uri = dbItem.path.toUri()
+                            SQLite3WiFiHelper.deleteCachedDatabase(getApplication(), uri)
+                            val helper = SQLite3WiFiHelper(getApplication(), uri, dbItem.directPath)
+                            try {
+                                val cachedSize = helper.getSelectedFileSize()
+                                updatedList.add(
+                                    dbItem.copy(
+                                        originalSizeInMB = originalSize,
+                                        cachedSizeInMB = cachedSize
+                                    )
                                 )
-                            )
-                        } finally {
-                            helper.close()
-                        }
+                            } finally {
+                                helper.close()
+                            }
                         } else {
                             updatedList.add(dbItem)
                         }
@@ -962,8 +962,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-
-
 
 
     fun checkAndUpdateDatabasesWithIndexes() {

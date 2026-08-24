@@ -29,7 +29,8 @@ class NetProtectionFragment : Fragment() {
 
     private val statusReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            isServiceRunning = intent?.getBooleanExtra(NetProtectionService.EXTRA_STATUS_RUNNING, false) ?: false
+            isServiceRunning =
+                intent?.getBooleanExtra(NetProtectionService.EXTRA_STATUS_RUNNING, false) ?: false
             updateMasterStatus()
         }
     }
@@ -38,7 +39,11 @@ class NetProtectionFragment : Fragment() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val text = intent?.getStringExtra(NetProtectionService.EXTRA_EVENT_TEXT) ?: return
             val typeName = intent.getStringExtra(NetProtectionService.EXTRA_EVENT_TYPE) ?: "INFO"
-            val type = try { EventType.valueOf(typeName) } catch (_: Exception) { EventType.INFO }
+            val type = try {
+                EventType.valueOf(typeName)
+            } catch (_: Exception) {
+                EventType.INFO
+            }
             val event = NetProtectionEvent(System.currentTimeMillis(), type, text)
             eventAdapter.addEvent(event)
             binding.emptyLog.visibility = View.GONE
@@ -67,8 +72,10 @@ class NetProtectionFragment : Fragment() {
         super.onStart()
         val statusFilter = IntentFilter(NetProtectionService.BROADCAST_STATUS)
         val eventFilter = IntentFilter(NetProtectionService.BROADCAST_EVENT)
-        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(statusReceiver, statusFilter)
-        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(eventReceiver, eventFilter)
+        LocalBroadcastManager.getInstance(requireContext())
+            .registerReceiver(statusReceiver, statusFilter)
+        LocalBroadcastManager.getInstance(requireContext())
+            .registerReceiver(eventReceiver, eventFilter)
     }
 
     override fun onStop() {
@@ -121,17 +128,24 @@ class NetProtectionFragment : Fragment() {
             getString(R.string.np_notification_low),
             getString(R.string.np_notification_default)
         )
-        val priorityAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, priorityLabels)
+        val priorityAdapter =
+            ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, priorityLabels)
         priorityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.notificationPrioritySpinner.adapter = priorityAdapter
         binding.notificationPrioritySpinner.setSelection(priority)
 
         binding.notificationPrioritySpinner.onItemSelectedListener =
             object : android.widget.AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, pos: Int, id: Long) {
+                override fun onItemSelected(
+                    parent: android.widget.AdapterView<*>?,
+                    view: View?,
+                    pos: Int,
+                    id: Long
+                ) {
                     saveNotificationPriority(pos)
                     sendConfigUpdate()
                 }
+
                 override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
             }
     }
@@ -216,8 +230,10 @@ class NetProtectionFragment : Fragment() {
         val bannerText = when (result.overallLevel) {
             com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.FULL ->
                 getString(R.string.np_banner_full)
+
             com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.LIMITED ->
                 getString(R.string.np_banner_limited)
+
             com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.UNAVAILABLE ->
                 getString(R.string.np_banner_limited)
         }
@@ -226,6 +242,7 @@ class NetProtectionFragment : Fragment() {
         val color = when (result.overallLevel) {
             com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.FULL ->
                 ContextCompat.getColor(requireContext(), R.color.success_green)
+
             else -> ContextCompat.getColor(requireContext(), R.color.error_red)
         }
         binding.bannerText.setTextColor(color)
@@ -233,8 +250,10 @@ class NetProtectionFragment : Fragment() {
         val arpDetail = when {
             result.arpCapability == com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.FULL && CapabilityDetector.canReadProcArp() ->
                 getString(R.string.np_arp_detail_full)
+
             result.arpCapability == com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.FULL ->
                 getString(R.string.np_arp_detail_ipneigh)
+
             else -> getString(R.string.np_arp_detail_limited)
         }
         binding.arpMethod.text = "${getString(R.string.np_method, arpDetail)}"
@@ -242,8 +261,10 @@ class NetProtectionFragment : Fragment() {
         val portDetail = when {
             result.portScanCapability == com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.FULL && CapabilityDetector.canReadProcSnmp() ->
                 getString(R.string.np_port_detail_snmp)
+
             result.portScanCapability == com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.LIMITED ->
                 getString(R.string.np_port_detail_traffic)
+
             else -> getString(R.string.np_port_detail_limited)
         }
         binding.portScanMethod.text = "${getString(R.string.np_method, portDetail)}"
@@ -253,8 +274,10 @@ class NetProtectionFragment : Fragment() {
         val connDetail = when {
             result.connectionMonitorCapability == com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.FULL && CapabilityDetector.canReadProcTcp() ->
                 getString(R.string.np_conn_detail_proc)
+
             result.connectionMonitorCapability == com.lsd.wififrankenstein.ui.netprotection.DetectorCapability.LIMITED ->
                 getString(R.string.np_conn_detail_traffic)
+
             else -> getString(R.string.np_conn_detail_limited)
         }
         binding.connectionMethod.text = "${getString(R.string.np_method, connDetail)}"
@@ -301,7 +324,8 @@ class NetProtectionFragment : Fragment() {
             private val text2: TextView = itemView.findViewById(android.R.id.text2)
 
             fun bind(event: NetProtectionEvent) {
-                val timeFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+                val timeFormat =
+                    java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
                 val timeStr = timeFormat.format(java.util.Date(event.timestamp))
 
                 text1.text = "$timeStr ${event.message}"

@@ -590,18 +590,21 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                         try {
                             val nativeHashes = captureRunner.readCapBytesAndParse(item.filePath)
 
-                            val hcxHashes = if (ChrootCapabilities.hasChrootTools(getApplication())) {
-                                try {
-                                    val chrootPath = storageManager.ensureChrootCopy(item.filePath)
-                                    if (chrootPath != null) {
-                                        val raw = captureRunner.getHcxpcapngtoolOutput(chrootPath)
-                                        raw.lines()
-                                            .mapNotNull { HandshakeHash.parse22000Line(it.trim()) }
-                                    } else emptyList()
-                                } catch (_: Exception) {
-                                    emptyList()
-                                }
-                            } else emptyList()
+                            val hcxHashes =
+                                if (ChrootCapabilities.hasChrootTools(getApplication())) {
+                                    try {
+                                        val chrootPath =
+                                            storageManager.ensureChrootCopy(item.filePath)
+                                        if (chrootPath != null) {
+                                            val raw =
+                                                captureRunner.getHcxpcapngtoolOutput(chrootPath)
+                                            raw.lines()
+                                                .mapNotNull { HandshakeHash.parse22000Line(it.trim()) }
+                                        } else emptyList()
+                                    } catch (_: Exception) {
+                                        emptyList()
+                                    }
+                                } else emptyList()
 
                             val allHashes = (nativeHashes + hcxHashes).distinctBy { it.dedupKey() }
                             if (allHashes.isEmpty()) {
@@ -788,7 +791,12 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                             0,
                             1,
                             emptyList(),
-                            listOf(getApplication<Application>().getString(R.string.hsc_download_failed, e.message))
+                            listOf(
+                                getApplication<Application>().getString(
+                                    R.string.hsc_download_failed,
+                                    e.message
+                                )
+                            )
                         )
                     )
                 }
@@ -2046,7 +2054,8 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                                 )
                                 try {
                                     if (helper.database?.isOpen == true) {
-                                        val results = helper.searchNetworksByBSSIDsAsync(listOf(bssid))
+                                        val results =
+                                            helper.searchNetworksByBSSIDsAsync(listOf(bssid))
                                         results.mapNotNull { r ->
                                             r["WiFiKey"]?.toString()?.takeIf { it.isNotBlank() }
                                         }
@@ -2107,7 +2116,8 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                                                 helper.searchNetworksByESSIDsAsync(listOf(essid))
                                             results
                                                 .mapNotNull { r ->
-                                                    r["WiFiKey"]?.toString()?.takeIf { it.isNotBlank() }
+                                                    r["WiFiKey"]?.toString()
+                                                        ?.takeIf { it.isNotBlank() }
                                                 }
                                                 .forEach { essidPasswords.add(it) }
                                         }

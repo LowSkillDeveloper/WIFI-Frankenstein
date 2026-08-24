@@ -99,20 +99,29 @@ class BettercapAPDetailFragment : Fragment() {
         binding.buttonDeauthAll.setOnClickListener {
             val ap = viewModel.selectedAp.value ?: return@setOnClickListener
             viewModel.deauthAp(ap.mac)
-            Toast.makeText(requireContext(), getString(R.string.bc_deauth_all, ap.hostname), Toast.LENGTH_SHORT)
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.bc_deauth_all, ap.hostname),
+                Toast.LENGTH_SHORT
+            )
                 .show()
         }
 
         binding.buttonAssoc.setOnClickListener {
             val ap = viewModel.selectedAp.value ?: return@setOnClickListener
             viewModel.assoc(ap.mac)
-            Toast.makeText(requireContext(), getString(R.string.bc_assoc, ap.hostname), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.bc_assoc, ap.hostname),
+                Toast.LENGTH_SHORT
+            ).show()
         }
 
         binding.buttonDownloadHandshake.setOnClickListener {
             val ap = viewModel.selectedAp.value ?: return@setOnClickListener
             viewModel.saveHandshakeToStorage(ap)
-            Toast.makeText(requireContext(), R.string.bc_saving_handshake, Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.bc_saving_handshake, Toast.LENGTH_SHORT)
+                .show()
         }
 
         binding.buttonViewInStorage.setOnClickListener {
@@ -160,13 +169,39 @@ class BettercapAPDetailFragment : Fragment() {
     private fun bindDetailRows(ap: BettercapAP) {
         val enc = ap.encryption.ifEmpty { getString(R.string.bc_open) }
         bindDetailRow(binding.rowEncryption.root, getString(R.string.bc_detail_encryption), enc)
-        bindDetailRow(binding.rowCipher.root, getString(R.string.bc_detail_cipher), ap.cipher.ifEmpty { "-" })
-        bindDetailRow(binding.rowAuth.root, getString(R.string.bc_detail_auth), ap.authentication.ifEmpty { "-" })
-        bindDetailRow(binding.rowFrequency.root, getString(R.string.bc_detail_frequency), getString(R.string.bc_frequency_value, ap.frequency))
-        bindDetailRow(binding.rowFirstSeen.root, getString(R.string.bc_detail_first_seen), ap.first_seen)
-        bindDetailRow(binding.rowLastSeen.root, getString(R.string.bc_detail_last_seen), ap.last_seen)
-        bindDetailRow(binding.rowWpsVersion.root, getString(R.string.bc_detail_wps_version), ap.wps["Version"] ?: "-")
-        bindDetailRow(binding.rowWpsState.root, getString(R.string.bc_detail_wps_state), ap.wps["State"] ?: "-")
+        bindDetailRow(
+            binding.rowCipher.root,
+            getString(R.string.bc_detail_cipher),
+            ap.cipher.ifEmpty { "-" })
+        bindDetailRow(
+            binding.rowAuth.root,
+            getString(R.string.bc_detail_auth),
+            ap.authentication.ifEmpty { "-" })
+        bindDetailRow(
+            binding.rowFrequency.root,
+            getString(R.string.bc_detail_frequency),
+            getString(R.string.bc_frequency_value, ap.frequency)
+        )
+        bindDetailRow(
+            binding.rowFirstSeen.root,
+            getString(R.string.bc_detail_first_seen),
+            ap.first_seen
+        )
+        bindDetailRow(
+            binding.rowLastSeen.root,
+            getString(R.string.bc_detail_last_seen),
+            ap.last_seen
+        )
+        bindDetailRow(
+            binding.rowWpsVersion.root,
+            getString(R.string.bc_detail_wps_version),
+            ap.wps["Version"] ?: "-"
+        )
+        bindDetailRow(
+            binding.rowWpsState.root,
+            getString(R.string.bc_detail_wps_state),
+            ap.wps["State"] ?: "-"
+        )
         val sent = if (ap.sent > 0) formatBytes(ap.sent) else "-"
         val recv = if (ap.received > 0) formatBytes(ap.received) else "-"
         bindDetailRow(binding.rowSent.root, getString(R.string.bc_detail_sent), sent)

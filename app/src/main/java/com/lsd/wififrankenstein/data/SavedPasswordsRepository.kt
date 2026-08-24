@@ -111,168 +111,168 @@ class SavedPasswordsRepository(private val context: Context) {
 
     companion object {
         internal fun parseXmlConfigLines(lines: List<String>): List<SavedWifiPassword> {
-        val passwords = mutableListOf<SavedWifiPassword>()
-        var currentSsid = ""
-        var currentPassword = ""
-        var currentSecurity = SavedWifiPassword.SECURITY_UNKNOWN
-        var currentBssid: String? = null
-        var currentConfigKey: String? = null
-        var isInNetworkBlock = false
+            val passwords = mutableListOf<SavedWifiPassword>()
+            var currentSsid = ""
+            var currentPassword = ""
+            var currentSecurity = SavedWifiPassword.SECURITY_UNKNOWN
+            var currentBssid: String? = null
+            var currentConfigKey: String? = null
+            var isInNetworkBlock = false
 
-        for (i in lines.indices) {
-            val line = lines[i].trim()
+            for (i in lines.indices) {
+                val line = lines[i].trim()
 
-            when {
-                line.contains("<Network") || line.contains("<WifiConfiguration") -> {
-                    isInNetworkBlock = true
-                    currentSsid = ""
-                    currentPassword = ""
-                    currentSecurity = SavedWifiPassword.SECURITY_UNKNOWN
-                    currentBssid = null
-                    currentConfigKey = null
-                }
-
-                isInNetworkBlock && line.contains("name=\"SSID\"") -> {
-                    currentSsid = extractXmlValue(line, lines.getOrNull(i + 1))
-                        .removePrefix("\"").removeSuffix("\"")
-                }
-
-                isInNetworkBlock && line.contains("name=\"PreSharedKey\"") -> {
-                    currentPassword = extractXmlValue(line, lines.getOrNull(i + 1))
-                        .removePrefix("\"").removeSuffix("\"")
-                }
-
-                isInNetworkBlock && line.contains("name=\"ConfigKey\"") -> {
-                    currentConfigKey = extractXmlValue(line, lines.getOrNull(i + 1))
-                    currentSecurity = determineSecurityFromConfigKey(currentConfigKey ?: "")
-                }
-
-                isInNetworkBlock && line.contains("name=\"BSSID\"") -> {
-                    currentBssid = extractXmlValue(line, lines.getOrNull(i + 1))
-                }
-
-                isInNetworkBlock && line.contains("name=\"AllowedKeyManagement\"") -> {
-                    val value = extractXmlValue(line, lines.getOrNull(i + 1))
-                    currentSecurity = determineSecurityFromKeyMgmt(value)
-                }
-
-                line.contains("</Network>") || line.contains("</WifiConfiguration>") -> {
-                    if (isInNetworkBlock && currentSsid.isNotEmpty()) {
-                        if (currentSecurity == SavedWifiPassword.SECURITY_UNKNOWN && currentPassword.isEmpty()) {
-                            currentSecurity = SavedWifiPassword.SECURITY_OPEN
-                        }
-
-                        passwords.add(
-                            SavedWifiPassword(
-                                ssid = currentSsid,
-                                password = currentPassword,
-                                securityType = currentSecurity,
-                                bssid = currentBssid,
-                                configKey = currentConfigKey
-                            )
-                        )
+                when {
+                    line.contains("<Network") || line.contains("<WifiConfiguration") -> {
+                        isInNetworkBlock = true
+                        currentSsid = ""
+                        currentPassword = ""
+                        currentSecurity = SavedWifiPassword.SECURITY_UNKNOWN
+                        currentBssid = null
+                        currentConfigKey = null
                     }
-                    isInNetworkBlock = false
+
+                    isInNetworkBlock && line.contains("name=\"SSID\"") -> {
+                        currentSsid = extractXmlValue(line, lines.getOrNull(i + 1))
+                            .removePrefix("\"").removeSuffix("\"")
+                    }
+
+                    isInNetworkBlock && line.contains("name=\"PreSharedKey\"") -> {
+                        currentPassword = extractXmlValue(line, lines.getOrNull(i + 1))
+                            .removePrefix("\"").removeSuffix("\"")
+                    }
+
+                    isInNetworkBlock && line.contains("name=\"ConfigKey\"") -> {
+                        currentConfigKey = extractXmlValue(line, lines.getOrNull(i + 1))
+                        currentSecurity = determineSecurityFromConfigKey(currentConfigKey ?: "")
+                    }
+
+                    isInNetworkBlock && line.contains("name=\"BSSID\"") -> {
+                        currentBssid = extractXmlValue(line, lines.getOrNull(i + 1))
+                    }
+
+                    isInNetworkBlock && line.contains("name=\"AllowedKeyManagement\"") -> {
+                        val value = extractXmlValue(line, lines.getOrNull(i + 1))
+                        currentSecurity = determineSecurityFromKeyMgmt(value)
+                    }
+
+                    line.contains("</Network>") || line.contains("</WifiConfiguration>") -> {
+                        if (isInNetworkBlock && currentSsid.isNotEmpty()) {
+                            if (currentSecurity == SavedWifiPassword.SECURITY_UNKNOWN && currentPassword.isEmpty()) {
+                                currentSecurity = SavedWifiPassword.SECURITY_OPEN
+                            }
+
+                            passwords.add(
+                                SavedWifiPassword(
+                                    ssid = currentSsid,
+                                    password = currentPassword,
+                                    securityType = currentSecurity,
+                                    bssid = currentBssid,
+                                    configKey = currentConfigKey
+                                )
+                            )
+                        }
+                        isInNetworkBlock = false
+                    }
                 }
             }
-        }
 
-        return passwords
+            return passwords
         }
 
         internal fun parseSupplicantConfigLines(lines: List<String>): List<SavedWifiPassword> {
-        val passwords = mutableListOf<SavedWifiPassword>()
-        var currentSsid = ""
-        var currentPassword = ""
-        var currentSecurity = SavedWifiPassword.SECURITY_WPA
-        var inNetwork = false
+            val passwords = mutableListOf<SavedWifiPassword>()
+            var currentSsid = ""
+            var currentPassword = ""
+            var currentSecurity = SavedWifiPassword.SECURITY_WPA
+            var inNetwork = false
 
-        for (line in lines) {
-            val trimmedLine = line.trim()
+            for (line in lines) {
+                val trimmedLine = line.trim()
 
-            when {
-                trimmedLine.startsWith("network={") || trimmedLine == "network={" -> {
-                    inNetwork = true
-                    currentSsid = ""
-                    currentPassword = ""
-                    currentSecurity = SavedWifiPassword.SECURITY_WPA
-                }
-
-                inNetwork && trimmedLine.startsWith("ssid=") -> {
-                    currentSsid = trimmedLine.substringAfter("ssid=")
-                        .trim()
-                        .removePrefix("\"")
-                        .removeSuffix("\"")
-                }
-
-                inNetwork && trimmedLine.startsWith("psk=") -> {
-                    currentPassword = trimmedLine.substringAfter("psk=")
-                        .trim()
-                        .removePrefix("\"")
-                        .removeSuffix("\"")
-                }
-
-                inNetwork && (trimmedLine == "key_mgmt=NONE" || trimmedLine.contains("key_mgmt=NONE")) -> {
-                    currentSecurity = SavedWifiPassword.SECURITY_OPEN
-                    currentPassword = ""
-                }
-
-                inNetwork && trimmedLine == "}" -> {
-                    if (currentSsid.isNotEmpty()) {
-                        passwords.add(
-                            SavedWifiPassword(
-                                ssid = currentSsid,
-                                password = currentPassword,
-                                securityType = currentSecurity
-                            )
-                        )
+                when {
+                    trimmedLine.startsWith("network={") || trimmedLine == "network={" -> {
+                        inNetwork = true
+                        currentSsid = ""
+                        currentPassword = ""
+                        currentSecurity = SavedWifiPassword.SECURITY_WPA
                     }
-                    inNetwork = false
+
+                    inNetwork && trimmedLine.startsWith("ssid=") -> {
+                        currentSsid = trimmedLine.substringAfter("ssid=")
+                            .trim()
+                            .removePrefix("\"")
+                            .removeSuffix("\"")
+                    }
+
+                    inNetwork && trimmedLine.startsWith("psk=") -> {
+                        currentPassword = trimmedLine.substringAfter("psk=")
+                            .trim()
+                            .removePrefix("\"")
+                            .removeSuffix("\"")
+                    }
+
+                    inNetwork && (trimmedLine == "key_mgmt=NONE" || trimmedLine.contains("key_mgmt=NONE")) -> {
+                        currentSecurity = SavedWifiPassword.SECURITY_OPEN
+                        currentPassword = ""
+                    }
+
+                    inNetwork && trimmedLine == "}" -> {
+                        if (currentSsid.isNotEmpty()) {
+                            passwords.add(
+                                SavedWifiPassword(
+                                    ssid = currentSsid,
+                                    password = currentPassword,
+                                    securityType = currentSecurity
+                                )
+                            )
+                        }
+                        inNetwork = false
+                    }
                 }
             }
-        }
 
-        return passwords
-    }
+            return passwords
+        }
 
         internal fun extractXmlValue(line: String, nextLine: String?): String {
-        val patterns = listOf(
-            "&quot;(.+?)&quot;",
-            "value=\"(.+?)\"",
-            ">(.+?)<"
-        )
+            val patterns = listOf(
+                "&quot;(.+?)&quot;",
+                "value=\"(.+?)\"",
+                ">(.+?)<"
+            )
 
-        for (pattern in patterns) {
-            val regex = Regex(pattern)
-            val match = regex.find(line) ?: nextLine?.let { regex.find(it) }
-            if (match != null) {
-                return match.groupValues[1]
+            for (pattern in patterns) {
+                val regex = Regex(pattern)
+                val match = regex.find(line) ?: nextLine?.let { regex.find(it) }
+                if (match != null) {
+                    return match.groupValues[1]
+                }
+            }
+
+            return ""
+        }
+
+        internal fun determineSecurityFromConfigKey(configKey: String): String {
+            return when {
+                configKey.contains("WEP", ignoreCase = true) -> SavedWifiPassword.SECURITY_WEP
+                configKey.contains("WPA3", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA3
+                configKey.contains("WPA2", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA2
+                configKey.contains("WPA", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA
+                configKey.contains("NONE", ignoreCase = true) -> SavedWifiPassword.SECURITY_OPEN
+                else -> SavedWifiPassword.SECURITY_WPA2
             }
         }
 
-        return ""
-    }
-
-        internal fun determineSecurityFromConfigKey(configKey: String): String {
-        return when {
-            configKey.contains("WEP", ignoreCase = true) -> SavedWifiPassword.SECURITY_WEP
-            configKey.contains("WPA3", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA3
-            configKey.contains("WPA2", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA2
-            configKey.contains("WPA", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA
-            configKey.contains("NONE", ignoreCase = true) -> SavedWifiPassword.SECURITY_OPEN
-            else -> SavedWifiPassword.SECURITY_WPA2
-        }
-    }
-
         internal fun determineSecurityFromKeyMgmt(keyMgmt: String): String {
-        return when {
-            keyMgmt.contains("WPA2", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA2
-            keyMgmt.contains("WPA3", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA3
-            keyMgmt.contains("WPA", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA
-            keyMgmt.contains("NONE", ignoreCase = true) -> SavedWifiPassword.SECURITY_OPEN
-            else -> SavedWifiPassword.SECURITY_WPA2
+            return when {
+                keyMgmt.contains("WPA2", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA2
+                keyMgmt.contains("WPA3", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA3
+                keyMgmt.contains("WPA", ignoreCase = true) -> SavedWifiPassword.SECURITY_WPA
+                keyMgmt.contains("NONE", ignoreCase = true) -> SavedWifiPassword.SECURITY_OPEN
+                else -> SavedWifiPassword.SECURITY_WPA2
+            }
         }
-    }
     }
 
     @SuppressLint("LongLogTag")

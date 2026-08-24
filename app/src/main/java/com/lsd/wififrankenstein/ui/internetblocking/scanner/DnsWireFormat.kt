@@ -1,15 +1,7 @@
 package com.lsd.wififrankenstein.ui.internetblocking.scanner
 
 
-
-
-
-
-
 internal object DnsWireFormat {
-
-
-
 
 
     fun buildDnsQuery(txId: Short, domain: String): ByteArray {
@@ -42,12 +34,6 @@ internal object DnsWireFormat {
 
         return result.toByteArray()
     }
-
-
-
-
-
-
 
 
     fun parseDnsResponse(data: ByteArray, txId: Short): Any {

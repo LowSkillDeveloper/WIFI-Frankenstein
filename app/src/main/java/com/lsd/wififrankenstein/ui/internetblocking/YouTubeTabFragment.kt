@@ -41,7 +41,8 @@ class YouTubeTabFragment : Fragment() {
         viewModel.isChecking.observe(viewLifecycleOwner) { checking ->
             binding.buttonCheckYoutube.isEnabled = !checking
             binding.progressBar.visibility = if (checking) View.VISIBLE else View.GONE
-            binding.buttonCheckYoutube.text = if (checking) getString(R.string.ib_checking) else getString(R.string.ib_run_youtube_check)
+            binding.buttonCheckYoutube.text =
+                if (checking) getString(R.string.ib_checking) else getString(R.string.ib_run_youtube_check)
         }
 
         viewModel.youtubeResult.observe(viewLifecycleOwner) { result ->
@@ -74,7 +75,11 @@ class YouTubeTabFragment : Fragment() {
         binding.durationText.text = getString(R.string.ib_duration_sec, sec)
 
         binding.endpointSummaryText.text =
-            getString(R.string.ib_count_reachable, result.endpointReachableCount, result.endpointTotal)
+            getString(
+                R.string.ib_count_reachable,
+                result.endpointReachableCount,
+                result.endpointTotal
+            )
         binding.endpointContainer.removeAllViews()
         for (ep in result.endpointResults) {
             binding.endpointContainer.addView(createEndpointRow(ep))
@@ -98,7 +103,13 @@ class YouTubeTabFragment : Fragment() {
             val shortUrl = result.downloadUrlUsed.substringAfter("://").substringBeforeLast("/")
             sourceParts.add(shortUrl)
         }
-        sourceParts.add(getString(R.string.ib_endpoints_summary, result.endpointReachableCount, result.endpointTotal))
+        sourceParts.add(
+            getString(
+                R.string.ib_endpoints_summary,
+                result.endpointReachableCount,
+                result.endpointTotal
+            )
+        )
         binding.sourceText.text = sourceParts.joinToString("  ·  ")
     }
 

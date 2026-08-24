@@ -33,6 +33,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/textViewTitle" />
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardTheme"
             android:layout_width="0dp"
@@ -138,6 +139,7 @@
                 </RadioGroup>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <TextView
             android:id="@+id/textViewPermissionsSectionTitle"
             android:layout_width="0dp"

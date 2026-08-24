@@ -128,7 +128,11 @@ class PixieDustFragment : Fragment() {
                 requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
                     outputStream.write(content.toByteArray())
                 }
-                Toast.makeText(requireContext(), getString(R.string.pixie_console_saved), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.pixie_console_saved),
+                    Toast.LENGTH_SHORT
+                ).show()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to save console", e)
                 Toast.makeText(
@@ -495,7 +499,11 @@ class PixieDustFragment : Fragment() {
     private fun startAttack(network: IwWifiNetwork?) {
         binding.cardFailureResult.visibility = View.GONE
         val net = network ?: selectedNetwork ?: run {
-            Toast.makeText(requireContext(), getString(R.string.pixie_no_network_selected), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.pixie_no_network_selected),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
         val bssid = net.bssid.uppercase()

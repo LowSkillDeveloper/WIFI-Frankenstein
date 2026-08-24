@@ -28,22 +28,12 @@ import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
 
-
-
 data class ProxyConfig(
     val host: String,
     val port: Int,
     val username: String? = null,
     val password: String? = null
 )
-
-
-
-
-
-
-
-
 
 
 class DpiHttpClient(
@@ -73,8 +63,6 @@ class DpiHttpClient(
 
     private fun pinnedClient(ip: String): OkHttpClient =
         pinnedClients.getOrPut(ip) { createClient(pinnedIp = ip) }
-
-
 
 
     fun shutdown() {
@@ -126,9 +114,6 @@ class DpiHttpClient(
             .protocols(listOf(Protocol.HTTP_1_1))
 
 
-
-
-
             .connectionSpecs(listOf(connectionSpec))
 
 
@@ -177,12 +162,6 @@ class DpiHttpClient(
             InetSocketAddress(host, port)
         )
     }
-
-
-
-
-
-
 
 
     suspend fun checkHttps(
@@ -306,9 +285,7 @@ class DpiHttpClient(
                         bytesRead = bytesRead,
                         elapsed = elapsed(startTime)
                     )
-                }
-
-                else if (!location.isNullOrEmpty() && statusCode in 300..399) {
+                } else if (!location.isNullOrEmpty() && statusCode in 300..399) {
                     val locDomain = parseLocationDomain(location) ?: ""
                     val normLoc = locDomain.removePrefix("www.")
                     val normDomain = domain.removePrefix("www.")
@@ -343,9 +320,7 @@ class DpiHttpClient(
                             elapsed = elapsed(startTime)
                         )
                     }
-                }
-
-                else if (statusCode in 200..399) {
+                } else if (statusCode in 200..399) {
                     Log.d(
                         TAG,
                         "HTTPS OK: $domain | status=$statusCode | bytes=$bytesRead | elapsed=${
@@ -394,7 +369,8 @@ class DpiHttpClient(
                 elapsed = elapsed(startTime)
             )
         } catch (e: javax.net.ssl.SSLException) {
-            val classification = ErrorClassifier.classifySslError(context, e, 0, connectionState.stage)
+            val classification =
+                ErrorClassifier.classifySslError(context, e, 0, connectionState.stage)
             Log.w(
                 TAG,
                 "HTTPS SSL ERROR: $domain | status=${classification.first.label()} | detail=${classification.second} | stage=${connectionState.stage} | elapsed=${
@@ -409,7 +385,8 @@ class DpiHttpClient(
                 elapsed = elapsed(startTime)
             )
         } catch (e: java.net.ConnectException) {
-            val classification = ErrorClassifier.classifyConnectError(context, e, 0, connectionState.stage)
+            val classification =
+                ErrorClassifier.classifyConnectError(context, e, 0, connectionState.stage)
             Log.w(
                 TAG,
                 "HTTPS CONNECT ERROR: $domain | status=${classification.first.label()} | detail=${classification.second} | stage=${connectionState.stage} | elapsed=${
@@ -424,7 +401,8 @@ class DpiHttpClient(
                 elapsed = elapsed(startTime)
             )
         } catch (e: IOException) {
-            val classification = ErrorClassifier.classifyReadError(context, e, 0, connectionState.stage)
+            val classification =
+                ErrorClassifier.classifyReadError(context, e, 0, connectionState.stage)
             Log.w(
                 TAG,
                 "HTTPS IO ERROR: $domain | status=${classification.first.label()} | detail=${classification.second} | stage=${connectionState.stage} | elapsed=${
@@ -456,10 +434,6 @@ class DpiHttpClient(
     }
 
 
-
-
-
-
     suspend fun checkHttpsWithPinnedIp(
         sniHost: String,
         pinnedIp: String
@@ -470,9 +444,6 @@ class DpiHttpClient(
         fakeIpType = null,
         pinnedIp = pinnedIp
     )
-
-
-
 
 
     suspend fun checkHttp(
@@ -557,9 +528,7 @@ class DpiHttpClient(
                         elapsed = elapsed(startTime),
                         stubDetected = true
                     )
-                }
-
-                else if (statusCode == 451) {
+                } else if (statusCode == 451) {
                     Log.d(
                         TAG,
                         "HTTP BLOCKED: $domain | status=451 | bytes=$bytesRead | elapsed=${
@@ -573,9 +542,7 @@ class DpiHttpClient(
                         bytesRead = bytesRead,
                         elapsed = elapsed(startTime)
                     )
-                }
-
-                else if (!location.isNullOrEmpty() && statusCode in 300..399) {
+                } else if (!location.isNullOrEmpty() && statusCode in 300..399) {
                     val locDomain = parseLocationDomain(location) ?: ""
                     val normLoc = locDomain.removePrefix("www.")
                     val normDomain = domain.removePrefix("www.")
@@ -610,9 +577,7 @@ class DpiHttpClient(
                             elapsed = elapsed(startTime)
                         )
                     }
-                }
-
-                else if (statusCode in 200..399) {
+                } else if (statusCode in 200..399) {
                     Log.d(
                         TAG,
                         "HTTP OK: $domain | status=$statusCode | bytes=$bytesRead | elapsed=${
@@ -705,9 +670,6 @@ class DpiHttpClient(
     )
 
 
-
-
-
     internal fun classifyTimeout(stage: String): Pair<CheckStatus, String> = when (stage) {
         "tcp_connect" -> CheckStatus.SynDrop to "TCP SYN timeout (blackhole)"
         "tls_handshake", "tls_connected" -> CheckStatus.TlsDrop to "TLS handshake timeout"
@@ -716,11 +678,6 @@ class DpiHttpClient(
         else -> CheckStatus.Timeout to context.getString(R.string.ib_ec_timeout_stage, stage)
     }
 }
-
-
-
-
-
 
 
 class DpiTraceState {
@@ -737,9 +694,6 @@ class DpiTraceState {
         _events += StageTrace(newStage, System.currentTimeMillis() - startMs, note)
     }
 }
-
-
-
 
 
 class DpiTraceEventListener(
@@ -794,9 +748,6 @@ class DpiTraceEventListener(
         state.setStage("reading_data")
     }
 }
-
-
-
 
 
 data class DpiResult(

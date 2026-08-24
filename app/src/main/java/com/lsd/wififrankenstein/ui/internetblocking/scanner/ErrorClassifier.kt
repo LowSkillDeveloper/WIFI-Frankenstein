@@ -111,7 +111,9 @@ object ErrorClassifier {
         }
 
 
-        return CheckStatus.SslError to cleanDetail(error.message ?: context.getString(R.string.ib_ec_unknown_ssl))
+        return CheckStatus.SslError to cleanDetail(
+            error.message ?: context.getString(R.string.ib_ec_unknown_ssl)
+        )
     }
 
     fun classifyConnectError(
@@ -129,7 +131,10 @@ object ErrorClassifier {
                 STAGE_TCP_CONNECT -> CheckStatus.SynDrop to context.getString(R.string.ib_ec_tcp_syn_timeout)
                 STAGE_SENDING_DATA -> CheckStatus.SendTimeout to context.getString(R.string.ib_ec_send_timeout)
                 STAGE_READING_DATA -> CheckStatus.ReadTimeout to context.getString(R.string.ib_ec_read_timeout)
-                else -> CheckStatus.Timeout to context.getString(R.string.ib_ec_timeout_stage, stage)
+                else -> CheckStatus.Timeout to context.getString(
+                    R.string.ib_ec_timeout_stage,
+                    stage
+                )
             }
         }
 
@@ -181,7 +186,9 @@ object ErrorClassifier {
         }
 
 
-        return CheckStatus.ConnErr to cleanDetail(error.message ?: context.getString(R.string.ib_ec_unknown_conn))
+        return CheckStatus.ConnErr to cleanDetail(
+            error.message ?: context.getString(R.string.ib_ec_unknown_conn)
+        )
     }
 
     fun classifyReadError(

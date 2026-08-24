@@ -73,7 +73,6 @@ class Tcp16Scanner {
         val scheme = if (target.port == 80) "http" else "https"
 
 
-
         val sni = target.sni?.takeIf { it.isNotBlank() } ?: FAT_DEFAULT_SNI
         val url = "$scheme://$sni:${target.port}/"
         val pinnedIp = target.ip
