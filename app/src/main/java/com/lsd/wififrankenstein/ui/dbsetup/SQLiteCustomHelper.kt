@@ -704,14 +704,22 @@ AND $lonColumn >= ? AND $lonColumn <=?$limitClause
     ): List<Pair<String, List<String>>> {
         val (prefix, tail) = caseVariantParts(query)
         return enumerateCaseVariants(prefix).map { variant ->
-            val cond = "$column >= ? AND $column < (? || char(0))"
+            val cond = "$column >= ? AND $column < ?"
             if (tail == null) {
-                cond to listOf(variant, variant)
+                val upper = prefixSuccessor(variant)
+                cond to listOf(variant, upper)
             } else {
+                val upper = prefixSuccessor(variant)
                 cond + " AND UPPER(substr($column, ${prefix.length + 1})) LIKE UPPER(?)" to
-                        listOf(variant, variant, "$tail%")
+                        listOf(variant, upper, "$tail%")
             }
         }
+    }
+
+    private fun prefixSuccessor(prefix: String): String {
+        if (prefix.isEmpty()) return "\u0001"
+        val last = prefix.last()
+        return prefix.dropLast(1) + ((last.code + 1).toChar())
     }
 
     private fun caseInsensitiveEquals(column: String, query: String): Pair<String, List<String>> {
