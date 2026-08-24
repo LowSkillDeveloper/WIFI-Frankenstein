@@ -72,7 +72,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     private val _ipRanges = MutableLiveData<List<IpRangeResult>>()
     val ipRanges: LiveData<List<IpRangeResult>> = _ipRanges
 
-    private val databaseHelpers = mutableMapOf<String, SQLiteOpenHelper>()
+    private val databaseHelpers = java.util.concurrent.ConcurrentHashMap<String, SQLiteOpenHelper>()
+
+    private val helperCreationLocks = java.util.concurrent.ConcurrentHashMap<String, Mutex>()
 
     private val mapHelpers = mutableMapOf<String, MapHelper>()
 
@@ -232,56 +234,72 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch { reloadAvailableDatabases() }
     }
 
-    private fun getHelper(database: DbItem): SQLiteOpenHelper? {
+    private suspend fun getHelper(database: DbItem): SQLiteOpenHelper? {
         Log.d(TAG, "Getting helper for database: ${database.id}")
 
-        val existing = databaseHelpers[database.id]
-        if (existing is SQLite3WiFiHelper && existing.corruptionDetected) {
-            Log.d(TAG, "Helper for ${database.id} has corruption flag, not using it")
-            return null
+        databaseHelpers[database.id]?.let { existing ->
+            if (existing is SQLite3WiFiHelper && existing.corruptionDetected && existing.database == null) {
+                Log.d(TAG, "Helper for ${database.id} has corruption flag, not using it")
+                return null
+            }
+            return existing
         }
 
-        return databaseHelpers.getOrPut(database.id) {
-            Log.d(TAG, "Creating new helper for database: ${database.id}")
-            Log.d(TAG, "getHelper: database=${database.id}, dbType=${database.dbType}")
-            val helper = when (database.dbType) {
-                DbType.SQLITE_FILE_CUSTOM, DbType.SMARTLINK_SQLITE_FILE_CUSTOM -> {
-                    Log.d(TAG, "Creating SQLiteCustomHelper for database: ${database.id}")
-                    SQLiteCustomHelper(getApplication(), database.path.toUri(), database.directPath)
+        val creationLock = helperCreationLocks.computeIfAbsent(database.id) { Mutex() }
+        return creationLock.withLock {
+            databaseHelpers[database.id]?.let { existing ->
+                if (existing is SQLite3WiFiHelper && existing.corruptionDetected && existing.database == null) {
+                    Log.d(TAG, "Helper for ${database.id} has corruption flag, not using it")
+                    null
+                } else {
+                    existing
                 }
-
-                DbType.SQLITE_FILE_P3WIFI, DbType.SMARTLINK_SQLITE_FILE_P3WIFI -> {
-                    Log.d(TAG, "Creating SQLite3WiFiHelper for database: ${database.id}")
-                    SQLite3WiFiHelper(getApplication(), database.path.toUri(), database.directPath)
-                }
-
-                else -> {
-                    Log.d(TAG, "Creating SQLite3WiFiHelper for database: ${database.id}")
-                    SQLite3WiFiHelper(getApplication(), database.path.toUri(), database.directPath)
-                }
-            }
-
-            if (helper is SQLite3WiFiHelper && helper.corruptionDetected && helper.database == null) {
-                Log.d(TAG, "Corruption detected for ${database.id}, posting event")
-                databaseHelpers.remove(database.id)
-
-                if (database.id !in corruptionNotified) {
-                    corruptionNotified.add(database.id)
-                    val canRecover = checkSourceAvailability(database)
-                    _corruptionEvent.postValue(
-                        CorruptionEvent(database, canRecover, database.path)
-                    )
-                }
-                return@getOrPut helper
-            }
-
-            if (helper is SQLite3WiFiHelper && helper.database == null) {
-                Log.e(TAG, "Helper for ${database.id} has null database but no corruption flag")
-                databaseHelpers.remove(database.id)
-            }
-
-            helper
+            } ?: createHelper(database)
         }
+    }
+
+    private suspend fun createHelper(database: DbItem): SQLiteOpenHelper? {
+        Log.d(TAG, "Creating new helper for database: ${database.id}")
+        Log.d(TAG, "getHelper: database=${database.id}, dbType=${database.dbType}")
+        val helper = when (database.dbType) {
+            DbType.SQLITE_FILE_CUSTOM, DbType.SMARTLINK_SQLITE_FILE_CUSTOM -> {
+                Log.d(TAG, "Creating SQLiteCustomHelper for database: ${database.id}")
+                SQLiteCustomHelper(getApplication(), database.path.toUri(), database.directPath)
+            }
+
+            DbType.SQLITE_FILE_P3WIFI, DbType.SMARTLINK_SQLITE_FILE_P3WIFI -> {
+                Log.d(TAG, "Creating SQLite3WiFiHelper for database: ${database.id}")
+                SQLite3WiFiHelper(getApplication(), database.path.toUri(), database.directPath)
+            }
+
+            else -> {
+                Log.d(TAG, "Creating SQLite3WiFiHelper for database: ${database.id}")
+                SQLite3WiFiHelper(getApplication(), database.path.toUri(), database.directPath)
+            }
+        }
+
+        if (helper is SQLite3WiFiHelper && helper.corruptionDetected && helper.database == null) {
+            Log.d(TAG, "Corruption detected for ${database.id}, posting event")
+            databaseHelpers.remove(database.id)
+
+            if (database.id !in corruptionNotified) {
+                corruptionNotified.add(database.id)
+                val canRecover = checkSourceAvailability(database)
+                _corruptionEvent.postValue(
+                    CorruptionEvent(database, canRecover, database.path)
+                )
+            }
+            return helper
+        }
+
+        if (helper is SQLite3WiFiHelper && helper.database == null) {
+            Log.e(TAG, "Helper for ${database.id} has null database but no corruption flag")
+            databaseHelpers.remove(database.id)
+        } else {
+            databaseHelpers[database.id] = helper
+        }
+
+        return helper
     }
 
     private fun checkSourceAvailability(database: DbItem): Boolean {

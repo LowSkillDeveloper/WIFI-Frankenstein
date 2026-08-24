@@ -126,7 +126,7 @@ class SQLiteCustomHelper(
                 tempFile.path,
                 null,
                 SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-                SafeDatabaseErrorHandler()
+                SafeDatabaseErrorHandler(context)
             )
         } catch (e: Exception) {
             tempFile.delete()
@@ -976,7 +976,7 @@ AND $lonColumn >= ? AND $lonColumn <=?$limitClause
                 directPath!!,
                 null,
                 SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-                SafeDatabaseErrorHandler()
+                SafeDatabaseErrorHandler(context)
             )
         } catch (e: Exception) {
             Log.w(
@@ -994,7 +994,7 @@ AND $lonColumn >= ? AND $lonColumn <=?$limitClause
             tempFile.path,
             null,
             SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-            SafeDatabaseErrorHandler()
+            SafeDatabaseErrorHandler(context)
         )
     }
 
