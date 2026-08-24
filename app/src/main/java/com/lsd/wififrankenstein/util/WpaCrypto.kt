@@ -42,7 +42,7 @@ object WpaCrypto {
         dkLen: Int = 32
     ): ByteArray {
         val spec = PBEKeySpec(
-            password.toString(Charsets.ISO_8859_1).toCharArray(),
+            String(password, Charsets.UTF_8).toCharArray(),
             ssid,
             iterations,
             dkLen * 8

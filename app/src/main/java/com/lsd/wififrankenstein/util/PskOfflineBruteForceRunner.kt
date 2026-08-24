@@ -14,6 +14,7 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.util.concurrent.atomic.LongAdder
 
 data class OfflineProgress(
     val currentPassword: String,
@@ -74,7 +75,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         val allHashes = (listOf(handshakeHash) + extraHashes).distinctBy { it.dedupKey() }
 
         val totalPasswords = countLines(wordlistUri)
-        var totalAttempts = 0L
+        val totalAttempts = LongAdder()
         var foundPassword: String? = null
         var fileOffset = startOffset
         val speedWindow = mutableListOf<Pair<Long, Long>>()
@@ -121,7 +122,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                             }
                             if (cancelled) break
 
-                            val pw = line!!.trim()
+                            val pw = line!!.trim().trimStart('\uFEFF')
                             fileOffset++
                             if (pw.isEmpty() || pw.startsWith("#")) continue
                             batch.add(pw)
@@ -135,7 +136,8 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                                         allHashes,
                                         progressChannel,
                                         resultChannel,
-                                        fileOffset
+                                        fileOffset,
+                                        totalAttempts
                                     )
                                 }
                             }
@@ -149,7 +151,8 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                                 allHashes,
                                 progressChannel,
                                 resultChannel,
-                                fileOffset
+                                fileOffset,
+                                totalAttempts
                             )
                         }
                     }
@@ -160,12 +163,12 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                 Log.d(TAG, "progressConsumerJob started on IO")
                 var progressCount = 0
                 for (p in progressChannel) {
-                    totalAttempts += p.attempts
+                    val attemptsSnapshot = totalAttempts.sum()
                     progressCount++
                     if (progressCount % 10 == 1) {
                         Log.d(
                             TAG,
-                            "progress #$progressCount: attempts=$totalAttempts curr=${
+                            "progress #$progressCount: attempts=$attemptsSnapshot curr=${
                                 p.currentPassword.take(20)
                             }"
                         )
@@ -173,7 +176,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                     val now = System.currentTimeMillis()
                     val elapsed = now - startTime
 
-                    speedWindow.add(elapsed to totalAttempts)
+                    speedWindow.add(elapsed to attemptsSnapshot)
                     while (speedWindow.size > 2 && speedWindow.last().first - speedWindow.first().first > 5000) {
                         speedWindow.removeAt(0)
                     }
@@ -185,13 +188,13 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                     } else 0.0
 
                     val etaMs = if (speed > 0 && totalPasswords > 0) {
-                        ((totalPasswords - totalAttempts) / speed * 1000.0).toLong()
+                        ((totalPasswords - attemptsSnapshot) / speed * 1000.0).toLong()
                     } else 0L
 
                     onProgress?.invoke(
                         OfflineProgress(
                             currentPassword = p.currentPassword,
-                            attempts = totalAttempts,
+                            attempts = attemptsSnapshot,
                             totalPasswords = totalPasswords,
                             speed = speed,
                             elapsedMs = elapsed,
@@ -232,18 +235,19 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         }
 
         val elapsed = System.currentTimeMillis() - startTime
-        val avgSpeed = if (elapsed > 0) totalAttempts.toDouble() / elapsed * 1000.0 else 0.0
+        val attempts = totalAttempts.sum()
+        val avgSpeed = if (elapsed > 0) attempts.toDouble() / elapsed * 1000.0 else 0.0
 
         Log.d(TAG, "=== OFFLINE BRUTE FORCE END ===")
         Log.d(
             TAG,
-            "Found: ${foundPassword != null}, Attempts: $totalAttempts, Elapsed: ${elapsed}ms, Avg speed: ${
+            "Found: ${foundPassword != null}, Attempts: $attempts, Elapsed: ${elapsed}ms, Avg speed: ${
                 "%.1f".format(avgSpeed)
             } pw/s"
         )
 
         OfflineResult(
-            foundPassword, totalAttempts, elapsed, avgSpeed,
+            foundPassword, attempts, elapsed, avgSpeed,
             cancelled = cancelled && foundPassword == null,
             offset = fileOffset
         )
@@ -254,11 +258,17 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         hashes: List<HandshakeHash>,
         progressChannel: Channel<OfflineProgress>,
         resultChannel: Channel<String?>,
-        chunkOffset: Long
+        chunkOffset: Long,
+        attemptsAccumulator: LongAdder
     ) {
+        suspend fun report(p: OfflineProgress) {
+            attemptsAccumulator.add(p.attempts)
+            progressChannel.send(p)
+        }
+
         try {
             if (hashes.isEmpty() || passwords.isEmpty()) {
-                progressChannel.send(
+                report(
                     OfflineProgress(
                         passwords.firstOrNull() ?: "?",
                         0,
@@ -283,6 +293,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
             }
             val fallbackHashes = hashes.filter { h -> nativeHashes.none { it === h } }
             val miniBatchSize = NativeCracker.BATCH_SIZE
+            val allHashesForVerification = hashes
 
             var chunkAttempts = 0
             var lastPassword = ""
@@ -325,6 +336,21 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                             if (WpaCracker.tryPasswordAny(candidate, h)) {
                                 found = candidate
                                 break
+                            } else {
+                                Log.w(
+                                    TAG,
+                                    "Native reported hit at $idx but JVM rejected it; " +
+                                            "re-verifying whole batch in JVM"
+                                )
+                                for (pw in batch) {
+                                    if (allHashesForVerification.any {
+                                            WpaCracker.tryPasswordAny(pw, it)
+                                        }
+                                    ) {
+                                        found = pw
+                                        break
+                                    }
+                                }
                             }
                         }
                     }
@@ -339,16 +365,10 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                     val batchSize = end - i
                     chunkAttempts += batchSize
                     lastPassword = batch.last()
-                    if (found != null) {
-                        Log.d(TAG, "!!! FOUND PASSWORD (native, JVM-confirmed): $found !!!")
-                        resultChannel.send(found)
-                        cancelled = true
-                        return@crackChunk
-                    }
-                    progressChannel.send(
+                    report(
                         OfflineProgress(
                             lastPassword,
-                            batchSize.toLong(),
+                            chunkAttempts.toLong(),
                             0,
                             0.0,
                             0,
@@ -356,28 +376,47 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                             chunkOffset
                         )
                     )
-                }
-            }
-
-            for (password in passwords) {
-                if (cancelled) break
-                while (paused && !cancelled) {
-                    delay(PAUSE_POLL_MS)
-                }
-                if (cancelled) break
-                lastPassword = password
-                chunkAttempts++
-                for (h in fallbackHashes) {
-                    if (WpaCracker.tryPasswordAny(password, h)) {
-                        Log.d(TAG, "!!! FOUND PASSWORD: $password !!!")
-                        resultChannel.send(password)
+                    if (found != null) {
+                        Log.d(TAG, "!!! FOUND PASSWORD (native, JVM-confirmed): $found !!!")
+                        resultChannel.send(found)
                         cancelled = true
                         return@crackChunk
                     }
                 }
             }
+
+            if (fallbackHashes.isNotEmpty()) {
+                for (password in passwords) {
+                    if (cancelled) break
+                    while (paused && !cancelled) {
+                        delay(PAUSE_POLL_MS)
+                    }
+                    if (cancelled) break
+                    lastPassword = password
+                    chunkAttempts++
+                    for (h in fallbackHashes) {
+                        if (WpaCracker.tryPasswordAny(password, h)) {
+                            Log.d(TAG, "!!! FOUND PASSWORD: $password !!!")
+                            report(
+                                OfflineProgress(
+                                    password,
+                                    chunkAttempts.toLong(),
+                                    0,
+                                    0.0,
+                                    0,
+                                    0,
+                                    chunkOffset
+                                )
+                            )
+                            resultChannel.send(password)
+                            cancelled = true
+                            return@crackChunk
+                        }
+                    }
+                }
+            }
             Log.d(TAG, "chunk done: $chunkAttempts attempts, last=${lastPassword.take(20)}")
-            progressChannel.send(
+            report(
                 OfflineProgress(
                     lastPassword,
                     chunkAttempts.toLong(),
@@ -390,7 +429,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
             )
         } catch (e: Throwable) {
             Log.e(TAG, "chunk CRASHED: ${e.message}", e)
-            progressChannel.send(
+            report(
                 OfflineProgress(
                     passwords.firstOrNull() ?: "?",
                     0,
@@ -411,13 +450,18 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                     context.contentResolver.openInputStream(uri) ?: return@withContext 0L
                 inputStream.use { stream ->
                     var count = 0L
+                    var sawAnyByte = false
+                    var lastByte: Byte = '\n'.code.toByte()
                     val buffer = ByteArray(8192)
                     var read: Int
                     while (stream.read(buffer).also { read = it } != -1) {
                         for (i in 0 until read) {
+                            sawAnyByte = true
+                            lastByte = buffer[i]
                             if (buffer[i] == '\n'.code.toByte()) count++
                         }
                     }
+                    if (sawAnyByte && lastByte != '\n'.code.toByte()) count++
                     count
                 }
             } catch (e: Exception) {
