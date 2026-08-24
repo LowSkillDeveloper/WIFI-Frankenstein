@@ -1,13 +1,13 @@
 # WiFi Frankenstein
 
-![App Version](https://img.shields.io/badge/app_version-2.2-blue)
+![App Version](https://img.shields.io/badge/app_version-2.3-blue)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Kotlin](https://img.shields.io/badge/kotlin-2.4.10-purple)
 
 
 
 - 📱 **Download the application:**  
-  [WIFI-Frankenstein-2.2.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.2/WIFI-Frankenstein-2.2.apk)
+  [WIFI-Frankenstein-2.3.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.3/WIFI-Frankenstein-2.3.apk)
 
 
 
