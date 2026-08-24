@@ -19,17 +19,10 @@ object M3Parser {
     }
 
 
-
-
-
     sealed class M3Capture {
         data class Complete(val data: M3Data) : M3Capture()
         data class Incomplete(val capturedCount: Int, val missing: List<String>) : M3Capture()
     }
-
-
-
-
 
 
     data class M5M7Capture(
@@ -37,9 +30,6 @@ object M3Parser {
         val m5Enc: String? = null,
         val m7Enc: String? = null
     ) {
-
-
-
 
 
         fun toPixiewpsMode3Args(m3: M3Data): String =
@@ -69,14 +59,10 @@ object M3Parser {
     )
 
 
-
     private const val MIN_HEX_LENGTH = 32
 
 
-
-
     private const val M5M7_DWELL_MS = 4_000L
-
 
 
     private val KEY_VALUE = Regex("""([A-Z0-9]+)=([0-9a-fA-F]+)""")
@@ -86,19 +72,6 @@ object M3Parser {
     private val WPS_M3_PREFIX = "WPS-M3: "
     private const val M5_PREFIX = "WPS-M5:"
     private const val M7_PREFIX = "WPS-M7:"
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     fun parse(
@@ -202,19 +175,12 @@ object M3Parser {
     }
 
 
-
-
-
-
     private fun armDwell(completeReturnAt: Long): Long {
         if (completeReturnAt != Long.MAX_VALUE) return completeReturnAt
         val updated = System.currentTimeMillis() + M5M7_DWELL_MS
         Log.d(TAG, "Dwelling ${M5M7_DWELL_MS}ms for WPS-M5/M7 (P4) after M3...")
         return updated
     }
-
-
-
 
 
     private fun maybeNotifyM5M7(
@@ -228,10 +194,6 @@ object M3Parser {
         onM5M7(M5M7Capture(bssid = bssid, m5Enc = m5, m7Enc = m7))
         return true
     }
-
-
-
-
 
 
     private fun parseM3Line(line: String, fields: Array<String?>, onCaptured: () -> Unit) {
@@ -259,10 +221,6 @@ object M3Parser {
     }
 
 
-
-
-
-
     private fun extractEncr(line: String): String? {
         return ENCR_VALUE.find(line)?.groupValues?.get(1)?.ifEmpty { null }
     }
@@ -283,10 +241,6 @@ object M3Parser {
         eHash1 = fields[FIELD_EHASH1]!!,
         eHash2 = fields[FIELD_EHASH2]!!
     )
-
-
-
-
 
 
     fun cleanHex(line: String): String? {

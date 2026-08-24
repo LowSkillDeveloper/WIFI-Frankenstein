@@ -40,6 +40,7 @@
             android:textAlignment="center"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
             android:textFontWeight="700" />
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardDownload"
             android:layout_width="match_parent"
@@ -84,6 +85,7 @@
                     app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardAddFile"
             android:layout_width="match_parent"
@@ -128,6 +130,7 @@
                     app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardAddUrl"
             android:layout_width="match_parent"
@@ -172,6 +175,7 @@
                     app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardAddApiServer"
             android:layout_width="match_parent"
@@ -216,6 +220,7 @@
                     app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <TextView
             android:id="@+id/textViewSelectedTitle"
             android:layout_width="match_parent"

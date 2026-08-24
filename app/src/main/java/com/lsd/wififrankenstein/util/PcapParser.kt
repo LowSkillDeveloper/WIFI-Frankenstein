@@ -187,8 +187,8 @@ class PcapParser {
         }
         val ok =
             magic == PCAP_MAGIC.toInt() || magic == PCAP_MAGIC_SWAPPED.toInt() ||
-            magic == PCAP_MAGIC_NANO.toInt() || magic == PCAP_MAGIC_NANO_SWAPPED.toInt() ||
-            magic == PCAPNG_MAGIC.toInt()
+                    magic == PCAP_MAGIC_NANO.toInt() || magic == PCAP_MAGIC_NANO_SWAPPED.toInt() ||
+                    magic == PCAPNG_MAGIC.toInt()
         Log.d(TAG, "canParse: $file magic=0x%08x result=$ok".format(magic))
         return ok
     }
@@ -216,7 +216,11 @@ class PcapParser {
         if (data.size < 4) return emptyList()
         val magic = data.toInt32LE(0)
         return when {
-            magic == PCAP_MAGIC.toInt() || magic == PCAP_MAGIC_NANO.toInt() -> parsePcap(data, false)
+            magic == PCAP_MAGIC.toInt() || magic == PCAP_MAGIC_NANO.toInt() -> parsePcap(
+                data,
+                false
+            )
+
             magic == PCAP_MAGIC_SWAPPED.toInt() || magic == PCAP_MAGIC_NANO_SWAPPED.toInt() ->
                 parsePcap(data, true)
 
@@ -242,7 +246,7 @@ class PcapParser {
         val magic = data.toInt32LE(0)
         val handshakes = when {
             magic == PCAP_MAGIC.toInt() || magic == PCAP_MAGIC_SWAPPED.toInt() ||
-            magic == PCAP_MAGIC_NANO.toInt() || magic == PCAP_MAGIC_NANO_SWAPPED.toInt() -> {
+                    magic == PCAP_MAGIC_NANO.toInt() || magic == PCAP_MAGIC_NANO_SWAPPED.toInt() -> {
                 val swapped = magic == PCAP_MAGIC_SWAPPED.toInt() ||
                         magic == PCAP_MAGIC_NANO_SWAPPED.toInt()
                 val i32 =
@@ -530,7 +534,10 @@ class PcapParser {
                 val radiotapLen =
                     ((packet[offset + 3].toInt() and 0xFF) shl 8) or (packet[offset + 2].toInt() and 0xFF)
                 if (radiotapLen < 8 || offset + radiotapLen > packet.size) {
-                    Log.w(TAG, "  processPacket: bad radiotapLen=$radiotapLen (packet=${packet.size})")
+                    Log.w(
+                        TAG,
+                        "  processPacket: bad radiotapLen=$radiotapLen (packet=${packet.size})"
+                    )
                     return
                 }
                 val (flags, channel, rssi) = parseRadiotap(packet, offset)

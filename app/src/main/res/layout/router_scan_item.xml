@@ -20,6 +20,7 @@
         android:paddingTop="12dp"
         android:paddingEnd="14dp"
         android:paddingBottom="12dp">
+
         <View
             android:id="@+id/status_indicator"
             android:layout_width="4dp"
@@ -28,6 +29,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
         <TextView
             android:id="@+id/text_ip"
             android:layout_width="0dp"
@@ -44,6 +46,7 @@
             app:layout_constraintStart_toEndOf="@id/status_indicator"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="192.168.1.1:80" />
+
         <LinearLayout
             android:id="@+id/badge_container"
             android:layout_width="wrap_content"
@@ -68,6 +71,7 @@
                 android:textStyle="bold"
                 tools:text="Success" />
         </LinearLayout>
+
         <FrameLayout
             android:id="@+id/ssid_layout"
             android:layout_width="0dp"
@@ -89,6 +93,7 @@
                 android:textSize="14sp"
                 tools:text="MyRouter_Network" />
         </FrameLayout>
+
         <FrameLayout
             android:id="@+id/bssid_layout"
             android:layout_width="0dp"
@@ -109,6 +114,7 @@
                 android:textSize="12sp"
                 tools:text="AA:BB:CC:DD:EE:FF" />
         </FrameLayout>
+
         <FrameLayout
             android:id="@+id/auth_layout"
             android:layout_width="0dp"
@@ -128,6 +134,7 @@
                 android:textSize="12sp"
                 tools:text="WPA2" />
         </FrameLayout>
+
         <FrameLayout
             android:id="@+id/sec_layout"
             android:layout_width="0dp"
@@ -147,6 +154,7 @@
                 android:textSize="12sp"
                 tools:text="PSK" />
         </FrameLayout>
+
         <View
             android:id="@+id/divider"
             android:layout_width="0dp"
@@ -158,6 +166,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/status_indicator"
             app:layout_constraintTop_toBottomOf="@id/sec_layout" />
+
         <LinearLayout
             android:id="@+id/psk_layout"
             android:layout_width="0dp"
@@ -194,6 +203,7 @@
                 android:textSize="13sp"
                 tools:text="mypassword123" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/wps_layout"
             android:layout_width="0dp"
@@ -230,6 +240,7 @@
                 android:textSize="13sp"
                 tools:text="12345678" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/title_layout"
             android:layout_width="0dp"
@@ -265,6 +276,7 @@
                 android:textSize="13sp"
                 tools:text="Login Page" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/server_type_layout"
             android:layout_width="0dp"
@@ -300,6 +312,7 @@
                 android:textSize="13sp"
                 tools:text="Web server (403 Forbidden)" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/action_buttons"
             android:layout_width="0dp"

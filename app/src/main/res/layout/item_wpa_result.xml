@@ -16,28 +16,30 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingHorizontal="10dp"
-        android:paddingVertical="6dp">                <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:paddingVertical="6dp">
 
-        <ImageView
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:layout_marginEnd="8dp"
-            android:contentDescription="@null"
-            android:src="@drawable/ic_check_circle"
-            app:tint="@color/green_dark" />
-
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/wpa_algorithm_result"
-            android:textAppearance="?attr/textAppearanceCaption"
-            android:textColor="@color/green_dark"
-            android:textStyle="bold" />
-    </LinearLayout>
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_check_circle"
+                app:tint="@color/green_dark" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/wpa_algorithm_result"
+                android:textAppearance="?attr/textAppearanceCaption"
+                android:textColor="@color/green_dark"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/algorithm_name"
@@ -56,6 +58,7 @@
             android:padding="8dp"
             android:textAppearance="?attr/textAppearanceBody2"
             android:textIsSelectable="true" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -63,6 +66,7 @@
             android:layout_marginBottom="4dp"
             android:alpha="0.12"
             android:background="?attr/colorOnSurface" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

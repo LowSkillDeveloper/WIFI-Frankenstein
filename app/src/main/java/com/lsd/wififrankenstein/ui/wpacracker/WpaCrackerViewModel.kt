@@ -156,8 +156,9 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                         val password = intent.getStringExtra(WpaCrackService.EXTRA_RESULT_PSK) ?: ""
                         val hash = currentHash ?: candidateHashes.firstOrNull() ?: return@onReceive
                         val candidates = candidateHashes.ifEmpty { listOf(hash) }
-                        val match = candidates.firstOrNull { WpaCracker.tryPassword(password, it).found }
-                            ?: hash
+                        val match =
+                            candidates.firstOrNull { WpaCracker.tryPassword(password, it).found }
+                                ?: hash
                         val crackResult = WpaCracker.tryPassword(password, match)
                         _hashResult.postValue(crackResult)
                         persistCrackedResult(password, match)
@@ -299,7 +300,8 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
     fun loadHandshakeFile(uri: Uri) {
         _state.value = WpaCrackerState.LoadingHandshake
-        _handshakeInfo.value = getApplication<Application>().getString(R.string.wpa_loading_handshake)
+        _handshakeInfo.value =
+            getApplication<Application>().getString(R.string.wpa_loading_handshake)
         viewModelScope.launch {
             try {
                 val app = getApplication<Application>()
@@ -607,7 +609,8 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         currentHash = hash
         candidateHashes = hashes
         currentFileName = fileName ?: "22000 line"
-        _handshakeInfo.value = getApplication<Application>().getString(R.string.wpa_line, hash.essid)
+        _handshakeInfo.value =
+            getApplication<Application>().getString(R.string.wpa_line, hash.essid)
         _state.value = WpaCrackerState.Loaded(hash, "22000 line")
     }
 
@@ -655,7 +658,8 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                 val (tempFile, fileName) = result
                 val uri = Uri.fromFile(tempFile)
                 wordlistUri = uri
-                _wordlistInfo.value = getApplication<Application>().getString(R.string.wpa_url, fileName)
+                _wordlistInfo.value =
+                    getApplication<Application>().getString(R.string.wpa_url, fileName)
                 if (_selectedEngine.value == CrackEngine.CHROOT_AIRCRACK) {
                     copyWordlistToChroot(uri)
                 }
@@ -1021,11 +1025,12 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         _isRunningInBackground.value = true
         _state.value = WpaCrackerState.ChrootCracking(emptyList())
 
-        val joinedLines = (listOf(hash) + candidateHashes.filter { it.dedupKey() != hash.dedupKey() })
-            .map { it.to22000Line() }
-            .distinct()
-            .joinToString("\n")
-            .ifBlank { hash.to22000Line() }
+        val joinedLines =
+            (listOf(hash) + candidateHashes.filter { it.dedupKey() != hash.dedupKey() })
+                .map { it.to22000Line() }
+                .distinct()
+                .joinToString("\n")
+                .ifBlank { hash.to22000Line() }
 
         WpaCrackService.startChrootCrack(
             getApplication(),
@@ -1106,8 +1111,10 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         _hashResult.value = null
         _consoleLines.value = emptyList()
         _chrootProgress.value = null
-        _handshakeInfo.value = getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
-        _wordlistInfo.value = getApplication<Application>().getString(R.string.wpa_tap_select_wordlist)
+        _handshakeInfo.value =
+            getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
+        _wordlistInfo.value =
+            getApplication<Application>().getString(R.string.wpa_tap_select_wordlist)
         _isPaused.value = false
         _isRunningInBackground.value = false
     }

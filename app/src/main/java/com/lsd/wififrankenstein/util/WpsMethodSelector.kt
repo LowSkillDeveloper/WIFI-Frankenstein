@@ -22,7 +22,6 @@ class WpsMethodSelector(
     fun showMethodSelection(network: ScanResult, databasePin: String? = null) {
 
 
-
         val recommendedMethod = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) 2 else 0
         val methods = arrayOf(
             methodLabel(R.string.wps_method_3, recommendedMethod == 0),

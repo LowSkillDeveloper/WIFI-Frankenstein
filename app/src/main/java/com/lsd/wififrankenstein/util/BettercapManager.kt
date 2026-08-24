@@ -45,10 +45,6 @@ class BettercapManager(private val context: Context) {
     }
 
 
-
-
-
-
     suspend fun startDaemon(
         iface: String,
         channelMode: String = "auto",

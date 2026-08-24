@@ -5,21 +5,12 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.internetblocking.model.CheckStatus
 
 
-
-
-
-
-
-
-
 data class BlockDiagnosisResult(
     val blockStage: String,
     val blockMechanism: String,
     val conclusion: String,
     val confidence: String
 )
-
-
 
 
 internal object BlockDiagnosis {
@@ -38,15 +29,6 @@ internal object BlockDiagnosis {
         CheckStatus.NotBlocked,
         CheckStatus.Redirect
     )
-
-
-
-
-
-
-
-
-
 
 
     fun diagnose(
@@ -91,8 +73,14 @@ internal object BlockDiagnosis {
 
         if (!tcpReachable) {
             val (mechanism, confidence) = when {
-                tcp443Refused -> context.getString(R.string.ib_bd_mech_tcp_refused) to context.getString(R.string.ib_bd_conf_medium)
-                port80Reachable -> context.getString(R.string.ib_bd_mech_port_block_443) to context.getString(R.string.ib_bd_conf_high)
+                tcp443Refused -> context.getString(R.string.ib_bd_mech_tcp_refused) to context.getString(
+                    R.string.ib_bd_conf_medium
+                )
+
+                port80Reachable -> context.getString(R.string.ib_bd_mech_port_block_443) to context.getString(
+                    R.string.ib_bd_conf_high
+                )
+
                 else -> context.getString(R.string.ib_bd_mech_syn_drop) to context.getString(R.string.ib_bd_conf_high)
             }
             return BlockDiagnosisResult(
@@ -163,7 +151,10 @@ internal object BlockDiagnosis {
             return BlockDiagnosisResult(
                 blockStage = context.getString(R.string.ib_bd_stage_http),
                 blockMechanism = httpMechanism(context, httpStatus),
-                conclusion = context.getString(R.string.ib_bd_conc_http_failed, httpStatus.label(context)),
+                conclusion = context.getString(
+                    R.string.ib_bd_conc_http_failed,
+                    httpStatus.label(context)
+                ),
                 confidence = context.getString(R.string.ib_bd_conf_medium)
             )
         }

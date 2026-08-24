@@ -65,7 +65,9 @@ class PortScanDetector {
         val currentRxBytes = try {
             val total = TrafficStats.getTotalRxBytes()
             if (total == TrafficStats.UNSUPPORTED.toLong()) null else total
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
 
         if (currentRxBytes == null) {
             Log.d(TAG, "TrafficStats unavailable")
@@ -91,13 +93,21 @@ class PortScanDetector {
         if (bytesDelta < 0) return PortScanResult(false, 0, emptyList(), DataSource.TRAFFIC_STATS)
 
         val bytesPerSecond = bytesDelta / dt
-        Log.d(TAG, "TrafficStats: delta=${bytesDelta}bytes rate=${bytesPerSecond.toInt()}/s dt=${dt.toInt()}s")
+        Log.d(
+            TAG,
+            "TrafficStats: delta=${bytesDelta}bytes rate=${bytesPerSecond.toInt()}/s dt=${dt.toInt()}s"
+        )
 
         val isAnomaly = bytesPerSecond > TRAFFIC_ANOMALY_THRESHOLD && dt > 15
 
         return if (isAnomaly) {
             Log.w(TAG, "TRAFFIC ANOMALY DETECTED! rate=${bytesPerSecond.toInt()}/s")
-            PortScanResult(true, 1, listOf("Traffic spike: ${bytesPerSecond.toInt()}/s"), DataSource.TRAFFIC_STATS)
+            PortScanResult(
+                true,
+                1,
+                listOf("Traffic spike: ${bytesPerSecond.toInt()}/s"),
+                DataSource.TRAFFIC_STATS
+            )
         } else {
             PortScanResult(false, 0, emptyList(), DataSource.TRAFFIC_STATS)
         }
@@ -111,7 +121,10 @@ class PortScanDetector {
             prevInSegs = stats.inSegs
             prevStatTime = now
             baselineReads++
-            Log.d(TAG, "TCP stats baseline #${baselineReads}: RSTs=${stats.outRsts} InSegs=${stats.inSegs}")
+            Log.d(
+                TAG,
+                "TCP stats baseline #${baselineReads}: RSTs=${stats.outRsts} InSegs=${stats.inSegs}"
+            )
             return PortScanResult(false, 0, emptyList(), DataSource.PROC_NET_SNMP)
         }
 
@@ -128,16 +141,29 @@ class PortScanDetector {
         val rstRate = if (dt > 0) rstDelta / dt else 0.0
         val inSegsRate = if (dt > 0) inSegsDelta / dt else 0.0
 
-        Log.d(TAG, "TCP stats: RSTs=${rstDelta}(${rstRate.toInt()}/s) InSegs=${inSegsDelta}(${inSegsRate.toInt()}/s)")
+        Log.d(
+            TAG,
+            "TCP stats: RSTs=${rstDelta}(${rstRate.toInt()}/s) InSegs=${inSegsDelta}(${inSegsRate.toInt()}/s)"
+        )
 
         if (rstRate > RST_SPIKE_THRESHOLD) {
             Log.w(TAG, "PORT SCAN DETECTED! RST spike: ${rstRate.toInt()}/s")
-            return PortScanResult(true, rstDelta.toInt(), listOf("RST spike: ${rstDelta}"), DataSource.PROC_NET_SNMP)
+            return PortScanResult(
+                true,
+                rstDelta.toInt(),
+                listOf("RST spike: ${rstDelta}"),
+                DataSource.PROC_NET_SNMP
+            )
         }
 
         if (inSegsRate > INSEGS_SPIKE_THRESHOLD) {
             Log.w(TAG, "SUSPICIOUS TRAFFIC: InSegs spike ${inSegsRate.toInt()}/s")
-            return PortScanResult(true, inSegsDelta.toInt(), listOf("InSegs spike: ${inSegsDelta}"), DataSource.PROC_NET_SNMP)
+            return PortScanResult(
+                true,
+                inSegsDelta.toInt(),
+                listOf("InSegs spike: ${inSegsDelta}"),
+                DataSource.PROC_NET_SNMP
+            )
         }
 
         return PortScanResult(false, 0, emptyList(), DataSource.PROC_NET_SNMP)
@@ -172,7 +198,9 @@ class PortScanDetector {
                 }
             }
             null
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun readTcpStatsViaProc(): TcpStats? {
@@ -187,7 +215,9 @@ class PortScanDetector {
                 }
                 null
             }
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private data class TcpStats(val inSegs: Long, val outSegs: Long, val outRsts: Long)

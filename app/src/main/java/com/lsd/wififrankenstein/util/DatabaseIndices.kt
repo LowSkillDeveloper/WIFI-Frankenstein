@@ -26,7 +26,6 @@ object DatabaseIndices {
     const val BASE_WPSPIN = "idx_base_wpspin"
 
 
-
     const val MAIN_TABLE_COLUMNS =
         "BSSID, ESSID, WiFiKey, WPSPIN, name, Authorization, RadioOff, Hidden, LANIP, WANIP, time, cmtid, iprange, ip, port, Security, NoWiFiKey, NoWPS, NoBSSID, LANMask, WANMask, WANGateway, DNS1, DNS2, DNS3"
     const val SEARCH_COLUMNS =

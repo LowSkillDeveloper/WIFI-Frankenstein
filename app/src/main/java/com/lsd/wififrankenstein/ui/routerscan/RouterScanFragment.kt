@@ -334,7 +334,11 @@ class RouterScanFragment : Fragment() {
 
         val ports = parsePorts(portsInput)
         if (ports.isEmpty()) {
-            Toast.makeText(requireContext(), getString(R.string.rs_invalid_port), Toast.LENGTH_SHORT)
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.rs_invalid_port),
+                Toast.LENGTH_SHORT
+            )
                 .show()
             return
         }
@@ -637,7 +641,11 @@ class RouterScanFragment : Fragment() {
         }
 
         val scrollView = android.widget.ScrollView(requireContext()).apply {
-            addView(content, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            addView(
+                content,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
         }
 
         MaterialAlertDialogBuilder(requireContext())

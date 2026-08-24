@@ -102,7 +102,10 @@ object ThreeWiFiUploader {
                 if (json.optBoolean("result", false)) {
                     val upload = json.optJSONObject("upload")
                     if (upload != null && upload.optBoolean("state", false)) {
-                        UploadResult(true, context.getString(R.string.upl_uploaded, rowsCount(csvData)))
+                        UploadResult(
+                            true,
+                            context.getString(R.string.upl_uploaded, rowsCount(csvData))
+                        )
                     } else {
                         val errors = upload?.optJSONArray("error")
                         val errorMsg = if (errors != null && errors.length() > 0) {
@@ -113,7 +116,13 @@ object ThreeWiFiUploader {
                         UploadResult(false, errorMsg)
                     }
                 } else {
-                    UploadResult(false, json.optString("error", context.getString(R.string.upl_unknown_server_error)))
+                    UploadResult(
+                        false,
+                        json.optString(
+                            "error",
+                            context.getString(R.string.upl_unknown_server_error)
+                        )
+                    )
                 }
             } else {
                 UploadResult(false, context.getString(R.string.upl_http_code, responseCode))

@@ -336,7 +336,10 @@ class HandshakeCaptureService : Service() {
                 when (event) {
                     "HANDSHAKE" -> {
                         addLine("[+] Handshake detected by airodump")
-                        updateNotification(getString(R.string.hs_capture_title), getString(R.string.hs_handshake_detected))
+                        updateNotification(
+                            getString(R.string.hs_capture_title),
+                            getString(R.string.hs_handshake_detected)
+                        )
                     }
 
                     "PMKID" -> {
@@ -432,7 +435,10 @@ class HandshakeCaptureService : Service() {
                             handshakeConfirmed = true
                             handshakeDetectedAtMs = System.currentTimeMillis()
                             addLine("[+] Handshake confirmed. Auto-saving in ${AUTO_SAVE_DELAY_MS / 1000}s...")
-                            updateNotification(getString(R.string.hs_capture_title), getString(R.string.hs_handshake_confirmed))
+                            updateNotification(
+                                getString(R.string.hs_capture_title),
+                                getString(R.string.hs_handshake_confirmed)
+                            )
                         }
                     } else if (System.currentTimeMillis() - handshakeDetectedAtMs!! >= AUTO_SAVE_DELAY_MS) {
                         addLine("[+] Auto-saving now")

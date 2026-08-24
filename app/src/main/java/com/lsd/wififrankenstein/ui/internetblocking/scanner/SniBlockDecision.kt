@@ -1,13 +1,6 @@
 package com.lsd.wififrankenstein.ui.internetblocking.scanner
 
 
-
-
-
-
-
-
-
 enum class SniBlockVerdict {
 
     SNI_BLOCKED,
@@ -18,8 +11,6 @@ enum class SniBlockVerdict {
 
     INCONCLUSIVE
 }
-
-
 
 
 object SniBlockDecision {

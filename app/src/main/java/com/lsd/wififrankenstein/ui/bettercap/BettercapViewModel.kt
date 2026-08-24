@@ -361,10 +361,6 @@ class BettercapViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
 
-
-
-
-
     private fun bettercapPathFriendlyName(ap: BettercapAP): String {
         val bssid = ap.mac.replace(":", "")
         val cleanEssid = ap.hostname.replace(Regex("[^a-zA-Z0-9]+"), "")

@@ -421,7 +421,14 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
     fun updateCaptureStats(stats: CaptureStats) {
         for (client in stats.clients) {
             if (reportedClients.add(client.mac)) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_new_client, client.mac, client.power, client.rate))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_new_client,
+                        client.mac,
+                        client.power,
+                        client.rate
+                    )
+                )
             }
         }
         _captureStats.postValue(stats)
@@ -629,7 +636,13 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         _isSwitchingMode.postValue(true)
         viewModelScope.launch {
             try {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_switching_mode, iface, mode))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_switching_mode,
+                        iface,
+                        mode
+                    )
+                )
                 val success = iwWifiManager.setInterfaceMode(iface, mode, channel)
                 if (success) {
                     _interfaceMode.postValue(mode)
@@ -666,7 +679,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     _activeInterfaceName.postValue(newName)
 
                     if (mode == IwWifiManager.MODE_MONITOR) {
-                        addConsoleLine(getApplication<Application>().getString(R.string.aird_monitor_interface, newName))
+                        addConsoleLine(
+                            getApplication<Application>().getString(
+                                R.string.aird_monitor_interface,
+                                newName
+                            )
+                        )
                     }
                 } else {
                     val errorDetail = iwWifiManager.lastModeSwitchError
@@ -768,10 +786,16 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                 }
             } catch (e: Exception) {
                 Log.e(tag, "Scan failed", e)
-                _statusText.value = getApplication<Application>().getString(R.string.aird_scan_failed, e.message)
+                _statusText.value =
+                    getApplication<Application>().getString(R.string.aird_scan_failed, e.message)
             } finally {
                 if (wasMonitorBeforeScan && originalMonIface != null) {
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_restoring_monitor_after_scan, originalMonIface))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_restoring_monitor_after_scan,
+                            originalMonIface
+                        )
+                    )
                     val ifaceToRestore =
                         if (originalMonIface != iface && originalMonIface.endsWith("mon")) {
                             originalMonIface
@@ -791,11 +815,21 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     if (restored) {
                         monitorRestoreFailed = false
                         delay(500)
-                        addConsoleLine(getApplication<Application>().getString(R.string.aird_restored_monitor, ifaceToRestore))
+                        addConsoleLine(
+                            getApplication<Application>().getString(
+                                R.string.aird_restored_monitor,
+                                ifaceToRestore
+                            )
+                        )
                     } else {
                         monitorRestoreFailed = true
                         addConsoleLine(getApplication<Application>().getString(R.string.aird_failed_restore_monitor))
-                        addConsoleLine(getApplication<Application>().getString(R.string.aird_please_switch_monitor, ifaceToRestore))
+                        addConsoleLine(
+                            getApplication<Application>().getString(
+                                R.string.aird_please_switch_monitor,
+                                ifaceToRestore
+                            )
+                        )
                     }
                 }
                 _isScanning.value = false
@@ -863,7 +897,19 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         _captureTimerText.value = formatTimerText(0L, CAPTURE_TIMEOUT_MS)
 
         captureLocationProvider.start()
-        addConsoleLine(getApplication<Application>().getString(R.string.aird_start_capture_debug, iface, bssid, channel, autoDeauthClients, autoDeauthBroadcast, deauthIface, currentDeauthCount, excludeSelf))
+        addConsoleLine(
+            getApplication<Application>().getString(
+                R.string.aird_start_capture_debug,
+                iface,
+                bssid,
+                channel,
+                autoDeauthClients,
+                autoDeauthBroadcast,
+                deauthIface,
+                currentDeauthCount,
+                excludeSelf
+            )
+        )
         addConsoleLine(
             "[*] ${
                 getApplication<Application>().getString(
@@ -885,7 +931,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
 
         captureJob = viewModelScope.launch {
             try {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_checking_capture_iface, iface))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_checking_capture_iface,
+                        iface
+                    )
+                )
                 val currentMode = iwWifiManager.getInterfaceMode(iface)
                 Log.d(tag, "Capture iface $iface mode: $currentMode")
                 _interfaceMode.postValue(currentMode)
@@ -898,19 +949,35 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     (currentMode != IwWifiManager.MODE_MONITOR && !monExists) || monitorRestoreFailed
                 if (forceSwitch) {
                     monitorRestoreFailed = false
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_switching_monitor_channel, iface, channel))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_switching_monitor_channel,
+                            iface,
+                            channel
+                        )
+                    )
                     Log.d(tag, "setInterfaceMode($iface, monitor, $channel)")
                     val switched =
                         iwWifiManager.setInterfaceMode(iface, IwWifiManager.MODE_MONITOR, channel)
                     if (switched) {
                         delay(1000)
                         _interfaceMode.postValue(IwWifiManager.MODE_MONITOR)
-                        addConsoleLine(getApplication<Application>().getString(R.string.aird_iface_switched_monitor, iface))
+                        addConsoleLine(
+                            getApplication<Application>().getString(
+                                R.string.aird_iface_switched_monitor,
+                                iface
+                            )
+                        )
 
                         val foundMon = iwWifiManager.findMonitorInterface(iface)
                         Log.d(tag, "Monitor iface after switch: $foundMon")
                         if (foundMon != null) {
-                            addConsoleLine(getApplication<Application>().getString(R.string.aird_capture_monitor_interface, foundMon))
+                            addConsoleLine(
+                                getApplication<Application>().getString(
+                                    R.string.aird_capture_monitor_interface,
+                                    foundMon
+                                )
+                            )
                             _activeInterfaceName.postValue(foundMon)
                         }
                     } else {
@@ -931,9 +998,19 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                         return@launch
                     }
                 } else {
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_already_monitor, iface))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_already_monitor,
+                            iface
+                        )
+                    )
                     if (monIface != null) {
-                        addConsoleLine(getApplication<Application>().getString(R.string.aird_capture_monitor_interface, monIface))
+                        addConsoleLine(
+                            getApplication<Application>().getString(
+                                R.string.aird_capture_monitor_interface,
+                                monIface
+                            )
+                        )
                         _activeInterfaceName.postValue(monIface)
                     }
                 }
@@ -943,7 +1020,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     (currentAutoDeauthClients || currentAutoDeauthBroadcast) && actualDeauthIface != iface
 
                 if (deauthNeedsSetup) {
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_checking_deauth_iface, actualDeauthIface))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_checking_deauth_iface,
+                            actualDeauthIface
+                        )
+                    )
                     val deauthMode = iwWifiManager.getInterfaceMode(actualDeauthIface)
                     Log.d(tag, "Deauth iface $actualDeauthIface mode: $deauthMode")
                     _deauthMode.postValue(deauthMode)
@@ -953,7 +1035,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     val deauthMonExists = deauthMonIface != null
 
                     if (deauthMode != IwWifiManager.MODE_MONITOR && !deauthMonExists) {
-                        addConsoleLine(getApplication<Application>().getString(R.string.aird_switching_deauth_monitor, actualDeauthIface))
+                        addConsoleLine(
+                            getApplication<Application>().getString(
+                                R.string.aird_switching_deauth_monitor,
+                                actualDeauthIface
+                            )
+                        )
                         Log.d(tag, "setInterfaceMode($actualDeauthIface, monitor, $channel)")
                         val deauthSwitched = iwWifiManager.setInterfaceMode(
                             actualDeauthIface,
@@ -963,27 +1050,58 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                         if (deauthSwitched) {
                             delay(1000)
                             _deauthMode.postValue(IwWifiManager.MODE_MONITOR)
-                            addConsoleLine(getApplication<Application>().getString(R.string.aird_deauth_switched_monitor, actualDeauthIface))
+                            addConsoleLine(
+                                getApplication<Application>().getString(
+                                    R.string.aird_deauth_switched_monitor,
+                                    actualDeauthIface
+                                )
+                            )
 
                             val foundDeauthMon =
                                 iwWifiManager.findMonitorInterface(actualDeauthIface)
                             if (foundDeauthMon != null) {
-                                addConsoleLine(getApplication<Application>().getString(R.string.aird_deauth_monitor_interface, foundDeauthMon))
+                                addConsoleLine(
+                                    getApplication<Application>().getString(
+                                        R.string.aird_deauth_monitor_interface,
+                                        foundDeauthMon
+                                    )
+                                )
                             }
                         } else {
                             val errDetail = iwWifiManager.lastModeSwitchError
-                            addConsoleLine(getApplication<Application>().getString(R.string.aird_failed_deauth_monitor, actualDeauthIface, errDetail ?: "unknown error"))
+                            addConsoleLine(
+                                getApplication<Application>().getString(
+                                    R.string.aird_failed_deauth_monitor,
+                                    actualDeauthIface,
+                                    errDetail ?: "unknown error"
+                                )
+                            )
                             Log.e(tag, "Deauth monitor switch failed: $errDetail")
                             addConsoleLine(getApplication<Application>().getString(R.string.aird_deauth_may_fail))
                         }
                     } else {
-                        addConsoleLine(getApplication<Application>().getString(R.string.aird_deauth_already_monitor, actualDeauthIface))
+                        addConsoleLine(
+                            getApplication<Application>().getString(
+                                R.string.aird_deauth_already_monitor,
+                                actualDeauthIface
+                            )
+                        )
                         if (deauthMonIface != null) {
-                            addConsoleLine(getApplication<Application>().getString(R.string.aird_deauth_monitor_interface, deauthMonIface))
+                            addConsoleLine(
+                                getApplication<Application>().getString(
+                                    R.string.aird_deauth_monitor_interface,
+                                    deauthMonIface
+                                )
+                            )
                         }
                     }
                 } else if (currentAutoDeauthClients || currentAutoDeauthBroadcast) {
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_deauth_same_interface, iface))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_deauth_same_interface,
+                            iface
+                        )
+                    )
                 } else {
                     addConsoleLine(getApplication<Application>().getString(R.string.aird_auto_deauth_disabled))
                 }
@@ -999,7 +1117,14 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                 }
 
                 val captureIface = iwWifiManager.findMonitorInterface(iface) ?: iface
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_starting_airodump, captureIface, bssid, channel))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_starting_airodump,
+                        captureIface,
+                        bssid,
+                        channel
+                    )
+                )
                 Log.d(
                     tag,
                     "Starting capture: iface=$captureIface bssid=$bssid ch=$channel dir=$outputDir"
@@ -1144,7 +1269,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                                     false
                                 }
                             } ?: false
-                            addConsoleLine(getApplication<Application>().getString(R.string.aird_timeout_data, hasData))
+                            addConsoleLine(
+                                getApplication<Application>().getString(
+                                    R.string.aird_timeout_data,
+                                    hasData
+                                )
+                            )
                             stopCapture()
                             break
                         }
@@ -1194,7 +1324,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                                         hcxpcapngtoolHandshakeConfirmed = true
                                     }
                                 } catch (e: Exception) {
-                                    addConsoleLine(getApplication<Application>().getString(R.string.aird_hcx_verify_error, e.message))
+                                    addConsoleLine(
+                                        getApplication<Application>().getString(
+                                            R.string.aird_hcx_verify_error,
+                                            e.message
+                                        )
+                                    )
                                     Log.e(tag, "verifyHandshakeWithHcxpcapngtool failed", e)
                                 }
                                 if (!hcxpcapngtoolOk && handshakeDetectedAtMs != null) {
@@ -1269,9 +1404,14 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                                 }
                             } else if (shouldRecheck) {
                                 val hasPmkid = try {
-                                    captureRunner.hasPmkidViaAircrack(cappedFile) {  }
+                                    captureRunner.hasPmkidViaAircrack(cappedFile) { }
                                 } catch (e: Exception) {
-                                    addConsoleLine(getApplication<Application>().getString(R.string.aird_pmkid_check_error, e.message))
+                                    addConsoleLine(
+                                        getApplication<Application>().getString(
+                                            R.string.aird_pmkid_check_error,
+                                            e.message
+                                        )
+                                    )
                                     Log.e(tag, "hasPmkidViaAircrack failed", e)
                                     pmkidDetected
                                 }
@@ -1300,7 +1440,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
             } catch (e: kotlinx.coroutines.CancellationException) {
                 Log.d(tag, "Capture job cancelled")
             } catch (e: Exception) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_error_console, e.message))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_error_console,
+                        e.message
+                    )
+                )
                 Log.e(tag, "Capture failed", e)
             } finally {
                 cleanupCapture()
@@ -1380,13 +1525,23 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                 val saved = storageManager.moveToStorage(capFile, essid, bssid)
                 finalPath = saved ?: capFile
                 if (saved != null) {
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_saved_storage, saved))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_saved_storage,
+                            saved
+                        )
+                    )
                     if (currentOutputDir != null) {
                         chrootManager.executeInChroot("rm -rf '${currentOutputDir}' 2>/dev/null; true")
                         addConsoleLine(getApplication<Application>().getString(R.string.aird_temp_dir_cleaned))
                     }
                 } else {
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_save_failed_remains, capFile))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_save_failed_remains,
+                            capFile
+                        )
+                    )
                 }
             } else {
                 addConsoleLine(getApplication<Application>().getString(R.string.aird_no_valid_data))
@@ -1446,9 +1601,20 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                         originalFormat = originalFormat
                     )
                 )
-                if (hash22000 != null) addConsoleLine(getApplication<Application>().getString(R.string.aird_hash_22000_extracted, handshakeCount))
+                if (hash22000 != null) addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_hash_22000_extracted,
+                        handshakeCount
+                    )
+                )
                 if (hashPmkid != null) addConsoleLine(getApplication<Application>().getString(R.string.aird_pmkid_extracted))
-                if (lat != null && lon != null) addConsoleLine(getApplication<Application>().getString(R.string.aird_location, lat, lon))
+                if (lat != null && lon != null) addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_location,
+                        lat,
+                        lon
+                    )
+                )
             } catch (e: Exception) {
                 Log.e(tag, "Failed to extract hash/location after save", e)
             }
@@ -1629,7 +1795,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
 
                 val captureIface = currentIface
                 if (captureIface != null) {
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_restoring_capture_iface, captureIface))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_restoring_capture_iface,
+                            captureIface
+                        )
+                    )
                     Log.d(tag, "Restoring capture iface: $captureIface")
                     val monIface = iwWifiManager.findMonitorInterface(captureIface)
                     val ifaceToStop = monIface ?: captureIface
@@ -1639,12 +1810,22 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     delay(1000)
 
                     _activeInterfaceName.postValue(captureIface)
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_capture_iface_restored, captureIface))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_capture_iface_restored,
+                            captureIface
+                        )
+                    )
                 }
 
                 val deauthIface = currentDeauthIface
                 if (deauthIface != null && deauthIface != captureIface) {
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_restoring_deauth_iface, deauthIface))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_restoring_deauth_iface,
+                            deauthIface
+                        )
+                    )
                     Log.d(tag, "Restoring deauth iface: $deauthIface")
                     val deauthMonIface = iwWifiManager.findMonitorInterface(deauthIface)
                     val deauthIfaceToStop = deauthMonIface ?: deauthIface
@@ -1652,7 +1833,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     val deauthRestored = captureRunner.disableMonitor(deauthIfaceToStop)
                     Log.d(tag, "Deauth iface restore: success=$deauthRestored")
                     delay(1000)
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_deauth_iface_restored, deauthIface))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_deauth_iface_restored,
+                            deauthIface
+                        )
+                    )
                 }
 
                 if (!currentKeepHostWifi) {
@@ -1696,7 +1882,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             val chrootPath = resolveChrootPath(capFilePath)
             if (chrootPath == null) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_could_not_resolve, capFilePath))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_could_not_resolve,
+                        capFilePath
+                    )
+                )
                 return@launch
             }
             try {
@@ -1710,7 +1901,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     addConsoleLine("[-] ${getApplication<Application>().getString(R.string.airodump_invalid)}")
                 }
             } catch (e: Exception) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_verify_error, e.message))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_verify_error,
+                        e.message
+                    )
+                )
             }
         }
     }
@@ -1722,7 +1918,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             val chrootPath = resolveChrootPath(capFilePath)
             if (chrootPath == null) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_could_not_resolve, capFilePath))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_could_not_resolve,
+                        capFilePath
+                    )
+                )
                 return@launch
             }
             try {
@@ -1746,7 +1947,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     addConsoleLine("[-] ${getApplication<Application>().getString(R.string.airodump_key_not_found)}")
                 }
             } catch (e: Exception) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_crack_error, e.message))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_crack_error,
+                        e.message
+                    )
+                )
             }
         }
     }
@@ -1757,7 +1963,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             val chrootPath = resolveChrootPath(capFilePath)
             if (chrootPath == null) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_could_not_resolve, capFilePath))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_could_not_resolve,
+                        capFilePath
+                    )
+                )
                 return@launch
             }
             val outputPath = chrootPath.removeSuffix(".cap").removeSuffix(".pcap")
@@ -1778,7 +1989,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     addConsoleLine(getApplication<Application>().getString(R.string.aird_export_failed))
                 }
             } catch (e: Exception) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_export_error, e.message))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_export_error,
+                        e.message
+                    )
+                )
             }
         }
     }
@@ -1788,7 +2004,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             val chrootPath = resolveChrootPath(capFilePath)
             if (chrootPath == null) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_could_not_resolve, capFilePath))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_could_not_resolve,
+                        capFilePath
+                    )
+                )
                 return@launch
             }
             val outputPath = chrootPath.removeSuffix(".cap").removeSuffix(".pcap") + ".22000"
@@ -1815,7 +2036,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     addConsoleLine(getApplication<Application>().getString(R.string.aird_export_failed_no_output))
                 }
             } catch (e: Exception) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_export_error, e.message))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_export_error,
+                        e.message
+                    )
+                )
             }
         }
     }
@@ -1825,7 +2051,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             val chrootPath = resolveChrootPath(capFilePath)
             if (chrootPath == null) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_could_not_resolve, capFilePath))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_could_not_resolve,
+                        capFilePath
+                    )
+                )
                 return@launch
             }
             val outputPath = chrootPath.removeSuffix(".cap").removeSuffix(".pcap") + "_pmkid.txt"
@@ -1840,12 +2071,22 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                 addConsoleLine(output)
                 val success = chrootManager.executeInChroot("test -s '$outputPath'").isSuccess
                 if (success) {
-                    addConsoleLine(getApplication<Application>().getString(R.string.aird_pmkid_saved_to, outputPath))
+                    addConsoleLine(
+                        getApplication<Application>().getString(
+                            R.string.aird_pmkid_saved_to,
+                            outputPath
+                        )
+                    )
                 } else {
                     addConsoleLine(getApplication<Application>().getString(R.string.aird_no_pmkid))
                 }
             } catch (e: Exception) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_pmkid_extract_error, e.message))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_pmkid_extract_error,
+                        e.message
+                    )
+                )
             }
         }
     }
@@ -1858,7 +2099,14 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         channel: String? = null
     ) {
         val ch = channel ?: currentChannel
-        addConsoleLine(getApplication<Application>().getString(R.string.aird_sending_deauth, count, bssid, ch ?: "?"))
+        addConsoleLine(
+            getApplication<Application>().getString(
+                R.string.aird_sending_deauth,
+                count,
+                bssid,
+                ch ?: "?"
+            )
+        )
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -1878,7 +2126,12 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     addConsoleLine(getApplication<Application>().getString(R.string.aird_deauth_no_acks))
                 }
             } catch (e: Exception) {
-                addConsoleLine(getApplication<Application>().getString(R.string.aird_deauth_error, e.message))
+                addConsoleLine(
+                    getApplication<Application>().getString(
+                        R.string.aird_deauth_error,
+                        e.message
+                    )
+                )
             }
         }
     }

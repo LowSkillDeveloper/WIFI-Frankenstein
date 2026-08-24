@@ -318,7 +318,6 @@ class DnsScanner(
                         } else {
 
 
-
                             val udpIsStub = udpIps.any { it in stubIps }
                             if (udpIsStub) CheckStatus.DnsSpoof else CheckStatus.Ok
                         }
@@ -370,7 +369,12 @@ class DnsScanner(
                         append("\n" + context.getString(R.string.ib_dns_intersection_empty))
                     } else if (status == CheckStatus.Ok) {
                         val intersection = udpIps.toSet() intersect trusted
-                        append("\n" + context.getString(R.string.ib_dns_intersection, intersection.joinToString(", ")))
+                        append(
+                            "\n" + context.getString(
+                                R.string.ib_dns_intersection,
+                                intersection.joinToString(", ")
+                            )
+                        )
                     }
                 }
 
@@ -399,12 +403,6 @@ class DnsScanner(
     }
 
 
-
-
-
-
-
-
     suspend fun quickCheckDns(domain: String, timeoutMs: Long = 3000): QuickDnsVerdict {
         return withContext(Dispatchers.IO) {
             Log.d(TAG, "Quick DNS check for $domain")
@@ -421,14 +419,6 @@ class DnsScanner(
             classifyDnsVerdict(udpIps, dohIps)
         }
     }
-
-
-
-
-
-
-
-
 
 
     internal fun classifyDnsVerdict(udpIps: List<String>, dohIps: List<String>): QuickDnsVerdict {
@@ -469,7 +459,6 @@ class DnsScanner(
     }
 
 
-
     private suspend fun quickPingAllUdp(domain: String): List<ServerQuickResult> = coroutineScope {
         udpServers.map { server ->
             async { ServerQuickResult(server, probeUdpSingle(server.ip, domain)) }
@@ -487,7 +476,6 @@ class DnsScanner(
             async { ServerQuickResult(server, probeDoHWireSingle(server.ip, domain)) }
         }.awaitAll()
     }
-
 
 
     private suspend fun probeUdpSingle(serverIp: String, domain: String): List<String>? {
@@ -551,7 +539,6 @@ class DnsScanner(
         Log.d(TAG, "[Phase1] Wire $url $domain: all attempts failed")
         return null
     }
-
 
 
     private suspend fun probeUdpAll(
@@ -808,7 +795,6 @@ class DnsScanner(
     }
 
 
-
     internal fun resolveUdpSingle(serverIp: String, domain: String, timeoutMs: Long): List<String> =
         resolveUdp(serverIp, 53, domain, timeoutMs)
 
@@ -975,8 +961,6 @@ class DnsScanner(
         }
     }
 }
-
-
 
 
 data class QuickDnsVerdict(

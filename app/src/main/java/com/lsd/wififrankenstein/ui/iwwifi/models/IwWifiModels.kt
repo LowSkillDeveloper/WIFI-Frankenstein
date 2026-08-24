@@ -7,9 +7,6 @@ data class IwInterface(
 )
 
 
-
-
-
 data class IwWifiNetwork(
 
     val ssid: String,

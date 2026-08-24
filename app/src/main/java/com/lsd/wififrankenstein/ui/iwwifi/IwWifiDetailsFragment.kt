@@ -750,15 +750,18 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 network.rmNonOpChannelMaxDur
             )
 
-            binding.textRmLink.text = if (network.rmLinkMeasurement) getString(R.string.yes) else getString(R.string.no)
+            binding.textRmLink.text =
+                if (network.rmLinkMeasurement) getString(R.string.yes) else getString(R.string.no)
             binding.rowRmLink.visibility =
                 if (network.rmLinkMeasurement) View.VISIBLE else View.GONE
 
-            binding.textRmNeighbor.text = if (network.rmNeighborReport) getString(R.string.yes) else getString(R.string.no)
+            binding.textRmNeighbor.text =
+                if (network.rmNeighborReport) getString(R.string.yes) else getString(R.string.no)
             binding.rowRmNeighbor.visibility =
                 if (network.rmNeighborReport) View.VISIBLE else View.GONE
 
-            binding.textRmFtm.text = if (network.ftmRangeReport) getString(R.string.yes) else getString(R.string.no)
+            binding.textRmFtm.text =
+                if (network.ftmRangeReport) getString(R.string.yes) else getString(R.string.no)
             binding.rowRmFtm.visibility = if (network.ftmRangeReport) View.VISIBLE else View.GONE
 
             binding.cardRm.visibility =

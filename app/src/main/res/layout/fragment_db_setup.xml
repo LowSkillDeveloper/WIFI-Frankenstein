@@ -9,6 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp">
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardDownload"
             android:layout_width="match_parent"
@@ -54,6 +55,7 @@
                     app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardAddFile"
             android:layout_width="match_parent"
@@ -99,6 +101,7 @@
                     app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardAddUrl"
             android:layout_width="match_parent"
@@ -144,6 +147,7 @@
                     app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardAddApiServer"
             android:layout_width="match_parent"

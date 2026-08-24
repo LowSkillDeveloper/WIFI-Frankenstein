@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -37,6 +38,7 @@
             android:layout_height="6dp"
             android:layout_gravity="top" />
     </FrameLayout>
+
     <LinearLayout
         android:id="@+id/bottomPanel"
         android:layout_width="match_parent"
@@ -47,6 +49,7 @@
         app:behavior_hideable="false"
         app:behavior_peekHeight="50dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
         <LinearLayout
             android:id="@+id/dragHandle"
             android:layout_width="match_parent"
@@ -72,6 +75,7 @@
                 android:textAppearance="?attr/textAppearanceCaption"
                 android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
+
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -85,6 +89,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
+
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/databaseCard"
                     android:layout_width="match_parent"
@@ -99,6 +104,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="16dp">
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -140,6 +146,7 @@
                             android:nestedScrollingEnabled="false" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
+
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/ipRangesCard"
                     android:layout_width="match_parent"
@@ -155,6 +162,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="16dp">
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -177,6 +185,7 @@
                                 android:textAppearance="?attr/textAppearanceSubtitle1"
                                 android:textStyle="bold" />
                         </LinearLayout>
+
                         <TextView
                             android:id="@+id/centerText"
                             android:layout_width="match_parent"
@@ -185,6 +194,7 @@
                             android:text="@string/wifi_map_default_coords"
                             android:textAppearance="?attr/textAppearanceBody2"
                             android:textColor="?attr/colorOnSurfaceVariant" />
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -205,6 +215,7 @@
                                 android:layout_height="wrap_content"
                                 android:checked="true" />
                         </LinearLayout>
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -225,6 +236,7 @@
                                 android:layout_height="wrap_content"
                                 android:checked="false" />
                         </LinearLayout>
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -245,6 +257,7 @@
                                 android:layout_height="wrap_content"
                                 android:checked="false" />
                         </LinearLayout>
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -279,6 +292,7 @@
                                 app:icon="@drawable/ic_search"
                                 app:iconSize="24dp" />
                         </LinearLayout>
+
                         <com.google.android.material.progressindicator.LinearProgressIndicator
                             android:id="@+id/ipRangesProgress"
                             android:layout_width="match_parent"
@@ -289,6 +303,7 @@
                             app:indicatorColor="?attr/colorPrimary"
                             app:trackColor="?attr/colorSurface"
                             app:trackThickness="3dp" />
+
                         <LinearLayout
                             android:id="@+id/ipRangesActionsTop"
                             android:layout_width="match_parent"
@@ -314,6 +329,7 @@
                                 android:layout_marginStart="8dp"
                                 android:text="@string/copy_all" />
                         </LinearLayout>
+
                         <androidx.recyclerview.widget.RecyclerView
                             android:id="@+id/ipRangesRecyclerView"
                             android:layout_width="match_parent"
@@ -321,6 +337,7 @@
                             android:layout_marginTop="8dp"
                             android:nestedScrollingEnabled="false"
                             android:visibility="gone" />
+
                         <LinearLayout
                             android:id="@+id/ipRangesActions"
                             android:layout_width="match_parent"
@@ -348,6 +365,7 @@
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
+
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/offlineMapCard"
                     android:layout_width="match_parent"

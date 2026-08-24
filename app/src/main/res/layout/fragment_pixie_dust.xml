@@ -10,6 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:measureAllChildren="false">
+
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -128,6 +129,7 @@
                                 app:layout_constraintEnd_toEndOf="parent"
                                 app:layout_constraintTop_toTopOf="parent" />
                         </androidx.constraintlayout.widget.ConstraintLayout>
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -175,6 +177,7 @@
                                 android:textSize="11sp"
                                 android:visibility="gone" />
                         </LinearLayout>
+
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -224,6 +227,7 @@
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
+
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardAttackSettings"
                     android:layout_width="match_parent"
@@ -271,6 +275,7 @@
                     app:icon="@drawable/ic_arrow_right" />
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
+
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -328,6 +333,7 @@
                     app:tabGravity="fill"
                     app:tabIndicatorHeight="2dp"
                     app:tabMode="fixed" />
+
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardManualInput"
                     android:layout_width="match_parent"
@@ -367,6 +373,7 @@
                             app:icon="@drawable/ic_key" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
+
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -434,6 +441,7 @@
                     tools:listitem="@layout/item_pixie_dust_network" />
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -487,6 +495,7 @@
                             app:layout_constraintTop_toTopOf="parent"
                             tools:text="Step 3/4 вЂ” Attack" />
                     </androidx.constraintlayout.widget.ConstraintLayout>
+
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -518,6 +527,7 @@
                                 tools:text="AA:BB:CC:DD:EE:FF" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
+
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardAttackProgress"
                         android:layout_width="match_parent"
@@ -532,6 +542,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical">
+
                             <androidx.constraintlayout.widget.ConstraintLayout
                                 android:id="@+id/layoutConsoleHeader"
                                 android:layout_width="match_parent"
@@ -599,6 +610,7 @@
                                 android:scrollbars="vertical" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
+
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardFailureResult"
                         android:layout_width="match_parent"
@@ -658,6 +670,7 @@
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>
+
             <LinearLayout
                 android:id="@+id/layoutAttackBottomBar"
                 android:layout_width="match_parent"
@@ -683,6 +696,7 @@
                     app:icon="@drawable/ic_close" />
             </LinearLayout>
         </LinearLayout>
+
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -730,6 +744,7 @@
                         app:layout_constraintTop_toTopOf="parent"
                         tools:text="Step 4/4 вЂ” Complete" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
+
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -763,6 +778,7 @@
                             tools:text="Attack successful!" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
+
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardResults"
                     android:layout_width="match_parent"

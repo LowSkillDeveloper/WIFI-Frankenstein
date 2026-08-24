@@ -158,7 +158,10 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                             null,
                             null,
                             false,
-                            getApplication<Application>().getString(R.string.pixie_result_error, error),
+                            getApplication<Application>().getString(
+                                R.string.pixie_result_error,
+                                error
+                            ),
                             reason = error
                         )
                     )
@@ -299,7 +302,11 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             try {
                 addConsoleLine(
-                    getApplication<Application>().getString(R.string.pixie_switching_mode, iface, mode)
+                    getApplication<Application>().getString(
+                        R.string.pixie_switching_mode,
+                        iface,
+                        mode
+                    )
                 )
                 val success = if (isNativeMode()) {
                     nativeWifiHelper.setInterfaceMode(iface, mode)
@@ -308,7 +315,11 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                 }
                 if (success) {
                     addConsoleLine(
-                        getApplication<Application>().getString(R.string.pixie_switched_mode, iface, mode)
+                        getApplication<Application>().getString(
+                            R.string.pixie_switched_mode,
+                            iface,
+                            mode
+                        )
                     )
                     checkScanMode(scanInterface)
                     checkAttackMode(attackInterface)
@@ -360,7 +371,10 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                         R.string.pixiedust_no_networks
                     )
                 } else {
-                    getApplication<Application>().getString(R.string.pixie_networks_found, nets.size)
+                    getApplication<Application>().getString(
+                        R.string.pixie_networks_found,
+                        nets.size
+                    )
                 }
             } catch (e: SecurityException) {
                 Log.e(tag, "Scan failed: location permission required", e)

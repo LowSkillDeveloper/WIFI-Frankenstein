@@ -155,7 +155,10 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                 )
 
                 addLine(
-                    getApplication<Application>().getString(R.string.ln_ping_sweep, subnetInfo.subnet)
+                    getApplication<Application>().getString(
+                        R.string.ln_ping_sweep,
+                        subnetInfo.subnet
+                    )
                 )
                 val discoveredDevices = if (mode == ScanMode.CHROOT) {
                     chrootScanner.pingSweep(subnetInfo.subnet) { progress ->
@@ -209,7 +212,8 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                 )
                 _state.postValue(_state.value?.copy(isScanning = false, phase = ""))
             } catch (e: Exception) {
-                val msg = getApplication<Application>().getString(R.string.ln_scan_failed, e.message)
+                val msg =
+                    getApplication<Application>().getString(R.string.ln_scan_failed, e.message)
                 Log.e(TAG, msg, e)
                 addLine("[-] $msg")
                 _state.postValue(_state.value?.copy(isScanning = false, phase = "", error = msg))
@@ -281,7 +285,10 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                 )
 
                 addLine(
-                    getApplication<Application>().getString(R.string.ln_ping_sweep, subnetInfo.subnet)
+                    getApplication<Application>().getString(
+                        R.string.ln_ping_sweep,
+                        subnetInfo.subnet
+                    )
                 )
                 val discoveredDevices = if (mode == ScanMode.CHROOT) {
                     chrootScanner.pingSweep(subnetInfo.subnet) { progress ->
@@ -387,7 +394,10 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
                 )
             } catch (e: Exception) {
                 val msg =
-                    getApplication<Application>().getString(R.string.ln_detailed_scan_failed, e.message)
+                    getApplication<Application>().getString(
+                        R.string.ln_detailed_scan_failed,
+                        e.message
+                    )
                 Log.e(TAG, msg, e)
                 addLine("[-] $msg")
                 _state.postValue(_state.value?.copy(isScanning = false, phase = "", error = msg))
@@ -477,7 +487,10 @@ class LocalNetworkViewModel(application: Application) : AndroidViewModel(applica
             )
             if (success) {
                 addLine(
-                    getApplication<Application>().getString(R.string.ln_internet_restored, device.ip)
+                    getApplication<Application>().getString(
+                        R.string.ln_internet_restored,
+                        device.ip
+                    )
                 )
             } else {
                 addLine(

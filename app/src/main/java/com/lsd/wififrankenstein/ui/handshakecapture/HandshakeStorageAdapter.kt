@@ -146,7 +146,8 @@ class HandshakeStorageAdapter(
         private val textHashPmkid: TextView = itemView.findViewById(R.id.text_hs_hash_pmkid)
         private val iconCopyPmkid: ImageView = itemView.findViewById(R.id.icon_hs_copy_pmkid)
         private val textWpaSecStatus: TextView = itemView.findViewById(R.id.text_hs_wpasec_status)
-        private val textPwncrackStatus: TextView = itemView.findViewById(R.id.text_hs_pwncrack_status)
+        private val textPwncrackStatus: TextView =
+            itemView.findViewById(R.id.text_hs_pwncrack_status)
         private val btnMore: MaterialButton = itemView.findViewById(R.id.btn_hs_more)
 
         fun bind(item: HandshakeItem) {
@@ -155,7 +156,11 @@ class HandshakeStorageAdapter(
             checkSelect.setOnClickListener { toggleSelection(item.filePath) }
 
             textDisplayName.text = item.displayName
-            textFileInfo.text = itemView.context.getString(R.string.hsc_storage_adapter_format, item.dateFormatted, item.formattedSize)
+            textFileInfo.text = itemView.context.getString(
+                R.string.hsc_storage_adapter_format,
+                item.dateFormatted,
+                item.formattedSize
+            )
 
             cardRoot.alpha = 1.0f
             if (!item.fileExists) {
@@ -266,7 +271,8 @@ class HandshakeStorageAdapter(
             textPwncrackStatus.visibility = View.GONE
             if (item.pwncrackPasswordFound) {
                 textPwncrackStatus.visibility = View.VISIBLE
-                textPwncrackStatus.text = itemView.context.getString(R.string.pwncrack_password_found)
+                textPwncrackStatus.text =
+                    itemView.context.getString(R.string.pwncrack_password_found)
                 textPwncrackStatus.setTextColor(
                     ContextCompat.getColor(
                         itemView.context,
@@ -417,6 +423,7 @@ class HandshakeStorageAdapter(
                                     item
                                 )
                             }
+
                             R.id.action_check_pwncrack -> onCheckPwncrack?.invoke(item)
                             R.id.action_upload_ohc -> onUploadOhc?.invoke(item)
                             R.id.action_upload_3wifi -> onUploadTo3WiFi?.invoke(item)

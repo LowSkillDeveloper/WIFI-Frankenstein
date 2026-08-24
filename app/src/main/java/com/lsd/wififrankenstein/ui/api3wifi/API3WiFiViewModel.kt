@@ -98,7 +98,8 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
                     _requestResult.value = formatJsonResponse(response)
                 }
             } catch (e: Exception) {
-                _requestResult.value = getApplication<Application>().getString(R.string.api3_error, e.message)
+                _requestResult.value =
+                    getApplication<Application>().getString(R.string.api3_error, e.message)
             } finally {
                 _isLoading.value = false
             }
@@ -189,7 +190,8 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
     ): String {
         return withContext(Dispatchers.IO) {
             try {
-                val baseUrl = server?.path ?: return@withContext getApplication<Application>().getString(R.string.api3_error_no_server)
+                val baseUrl = server?.path
+                    ?: return@withContext getApplication<Application>().getString(R.string.api3_error_no_server)
                 var jwtToken = server?.jwtToken
 
                 val (endpoint, params) = when (request) {
@@ -226,7 +228,10 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
                         } ?: emptyList()
                         executeTrpcRequest(updatedServer, request, retryAttempt = true)
                     } else {
-                        getApplication<Application>().getString(R.string.api3_error_relogin, e.message)
+                        getApplication<Application>().getString(
+                            R.string.api3_error_relogin,
+                            e.message
+                        )
                     }
                 } else {
                     getApplication<Application>().getString(R.string.api3_error, e.message)
@@ -240,12 +245,23 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
     private fun formatTrpcRequestInfo(serverUrl: String, request: API3WiFiRequest): String {
         val app = getApplication<Application>()
         val sb = StringBuilder()
-        sb.appendLine(app.getString(R.string.api3_url_line, "$serverUrl/trpc/${request.methodName}"))
+        sb.appendLine(
+            app.getString(
+                R.string.api3_url_line,
+                "$serverUrl/trpc/${request.methodName}"
+            )
+        )
         sb.appendLine(app.getString(R.string.api3_protocol_trpc))
         sb.appendLine()
         sb.appendLine(app.getString(R.string.api3_parameters))
         when (request) {
-            is API3WiFiRequest.TrpcGetPoint -> sb.appendLine(app.getString(R.string.api3_id_line, request.id))
+            is API3WiFiRequest.TrpcGetPoint -> sb.appendLine(
+                app.getString(
+                    R.string.api3_id_line,
+                    request.id
+                )
+            )
+
             is API3WiFiRequest.TrpcSearchNetworks -> {
                 sb.appendLine(trpcSearchFieldLine(app, request))
                 sb.appendLine(app.getString(R.string.api3_limit_line))
@@ -256,7 +272,10 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
         return sb.toString()
     }
 
-    private fun trpcSearchFieldLine(app: Application, request: API3WiFiRequest.TrpcSearchNetworks): String {
+    private fun trpcSearchFieldLine(
+        app: Application,
+        request: API3WiFiRequest.TrpcSearchNetworks
+    ): String {
         return app.getString(
             if (request.type == "bssid") R.string.api3_bssid_line else R.string.api3_ssid_line,
             request.query
@@ -291,7 +310,10 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
                     finalResponse =
                         "${getApplication<Application>().getString(R.string.post_request_failed)}\n" +
                                 "${getApplication<Application>().getString(R.string.separator_line)}\n" +
-                                getApplication<Application>().getString(R.string.api3_error, e.message) + "\n\n"
+                                getApplication<Application>().getString(
+                                    R.string.api3_error,
+                                    e.message
+                                ) + "\n\n"
 
                     finalResponse += "${getApplication<Application>().getString(R.string.retry_with_get)}\n" +
                             "${getApplication<Application>().getString(R.string.separator_line)}\n\n"
@@ -308,13 +330,17 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
                     } catch (e2: Exception) {
                         finalResponse += "${getApplication<Application>().getString(R.string.get_request_response)}\n" +
                                 "${getApplication<Application>().getString(R.string.separator_line)}\n" +
-                                getApplication<Application>().getString(R.string.api3_error, e2.message)
+                                getApplication<Application>().getString(
+                                    R.string.api3_error,
+                                    e2.message
+                                )
                     }
                 }
 
                 _requestResult.value = finalResponse
             } catch (e: Exception) {
-                _requestResult.value = getApplication<Application>().getString(R.string.api3_error, e.message)
+                _requestResult.value =
+                    getApplication<Application>().getString(R.string.api3_error, e.message)
             } finally {
                 _isLoading.value = false
             }
@@ -367,10 +393,20 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
             is API3WiFiRequest.ApiQuery -> {
                 sb.appendLine(app.getString(R.string.api3_key_line, request.key))
                 request.bssidList?.let { list ->
-                    sb.appendLine(app.getString(R.string.api3_bssid_line, if (list.size == 1) list.first() else JSONArray(list).toString()))
+                    sb.appendLine(
+                        app.getString(
+                            R.string.api3_bssid_line,
+                            if (list.size == 1) list.first() else JSONArray(list).toString()
+                        )
+                    )
                 }
                 request.essidList?.let { list ->
-                    sb.appendLine(app.getString(R.string.api3_essid_line, if (list.size == 1) list.first() else JSONArray(list).toString()))
+                    sb.appendLine(
+                        app.getString(
+                            R.string.api3_essid_line,
+                            if (list.size == 1) list.first() else JSONArray(list).toString()
+                        )
+                    )
                 }
                 sb.appendLine(app.getString(R.string.api3_sens_line, request.sens.toString()))
             }
@@ -411,7 +447,12 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
                 sb.appendLine(app.getString(R.string.api3_login_line, request.login))
                 sb.appendLine(app.getString(R.string.api3_password_line, request.password))
                 sb.appendLine(app.getString(R.string.api3_genread_line, request.genRead.toString()))
-                sb.appendLine(app.getString(R.string.api3_genwrite_line, request.genWrite.toString()))
+                sb.appendLine(
+                    app.getString(
+                        R.string.api3_genwrite_line,
+                        request.genWrite.toString()
+                    )
+                )
             }
 
             is API3WiFiRequest.TrpcGetPoint -> {

@@ -1,11 +1,6 @@
 package com.lsd.wififrankenstein.ui.internetblocking.scanner
 
 
-
-
-
-
-
 internal object StubDetector {
 
     private val markers = listOf(

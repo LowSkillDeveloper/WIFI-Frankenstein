@@ -326,7 +326,11 @@ class UploadRouterScanFragment : Fragment() {
         val portStr = binding.editTextPort.text?.toString()?.trim()?.ifEmpty { "80" } ?: "80"
         val port = portStr.toIntOrNull()
         if (port == null || port < 1 || port > 65535) {
-            Toast.makeText(requireContext(), getString(R.string.upl_invalid_port), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.upl_invalid_port),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
         val auth = binding.editTextAuth.text?.toString()?.trim() ?: ""
@@ -335,15 +339,27 @@ class UploadRouterScanFragment : Fragment() {
         val latText = binding.editTextLat.text?.toString()?.trim() ?: ""
         val lonText = binding.editTextLon.text?.toString()?.trim() ?: ""
         if (latText.isNotEmpty() && latText.toDoubleOrNull() == null) {
-            Toast.makeText(requireContext(), getString(R.string.upl_invalid_latitude), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.upl_invalid_latitude),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
         if (lonText.isNotEmpty() && lonText.toDoubleOrNull() == null) {
-            Toast.makeText(requireContext(), getString(R.string.upl_invalid_longitude), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.upl_invalid_longitude),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
         if (wpsPin.isNotEmpty() && (wpsPin.length != 8 || !wpsPin.all { it.isDigit() })) {
-            Toast.makeText(requireContext(), getString(R.string.upl_wps_pin_8_digits), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.upl_wps_pin_8_digits),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
         val comment = binding.editTextComment.text?.toString()?.trim() ?: ""

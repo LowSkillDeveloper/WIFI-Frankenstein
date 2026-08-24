@@ -352,24 +352,27 @@ class WelcomeDatabasesFragment : Fragment() {
                 val url = s?.toString() ?: ""
                 when {
                     url.isBlank() -> {
-                        textInputApiUrl.endIconDrawable = androidx.appcompat.content.res.AppCompatResources.getDrawable(
-                            requireContext(),
-                            R.drawable.ic_web
-                        )
+                        textInputApiUrl.endIconDrawable =
+                            androidx.appcompat.content.res.AppCompatResources.getDrawable(
+                                requireContext(),
+                                R.drawable.ic_web
+                            )
                     }
 
                     url.startsWith("http://") || url.startsWith("https://") -> {
-                        textInputApiUrl.endIconDrawable = androidx.appcompat.content.res.AppCompatResources.getDrawable(
-                            requireContext(),
-                            R.drawable.ic_check
-                        )
+                        textInputApiUrl.endIconDrawable =
+                            androidx.appcompat.content.res.AppCompatResources.getDrawable(
+                                requireContext(),
+                                R.drawable.ic_check
+                            )
                     }
 
                     else -> {
-                        textInputApiUrl.endIconDrawable = androidx.appcompat.content.res.AppCompatResources.getDrawable(
-                            requireContext(),
-                            R.drawable.ic_close
-                        )
+                        textInputApiUrl.endIconDrawable =
+                            androidx.appcompat.content.res.AppCompatResources.getDrawable(
+                                requireContext(),
+                                R.drawable.ic_close
+                            )
                     }
                 }
             }
@@ -726,7 +729,13 @@ class WelcomeDatabasesFragment : Fragment() {
                         failures.add(dbInfo.name to reason)
                         failuresText?.let { tv ->
                             tv.visibility = View.VISIBLE
-                            tv.append(getString(R.string.download_failed_item, dbInfo.name, reason) + "\n")
+                            tv.append(
+                                getString(
+                                    R.string.download_failed_item,
+                                    dbInfo.name,
+                                    reason
+                                ) + "\n"
+                            )
                         }
                         progressText?.text =
                             getString(R.string.download_failed_count, failures.size, databases.size)

@@ -574,7 +574,11 @@ class BruteForceFragment : Fragment() {
 
     private fun proceedToAttack() {
         if (attackMode == null) {
-            Toast.makeText(requireContext(), getString(R.string.brute_select_attack_type_first), Toast.LENGTH_SHORT)
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.brute_select_attack_type_first),
+                Toast.LENGTH_SHORT
+            )
                 .show(); return
         }
         if (isAttackRunning) return
@@ -595,8 +599,17 @@ class BruteForceFragment : Fragment() {
                     val result =
                         currentRunner!!.runBruteForce(bssid, attackIface, onProgress = { p ->
                             val text = when {
-                                p.percentComplete != null -> getString(R.string.brute_pin_progress, p.percentComplete, p.currentPin ?: "...")
-                                p.currentPin != null -> getString(R.string.brute_trying_pin, p.currentPin)
+                                p.percentComplete != null -> getString(
+                                    R.string.brute_pin_progress,
+                                    p.percentComplete,
+                                    p.currentPin ?: "..."
+                                )
+
+                                p.currentPin != null -> getString(
+                                    R.string.brute_trying_pin,
+                                    p.currentPin
+                                )
+
                                 else -> p.line
                             }
                             requireActivity().runOnUiThread { consoleAdapter?.addLine(text) }
@@ -608,7 +621,14 @@ class BruteForceFragment : Fragment() {
                         )
                     }
                 } catch (e: Exception) {
-                    requireActivity().runOnUiThread { consoleAdapter?.addLine(getString(R.string.brute_error, e.message)) }
+                    requireActivity().runOnUiThread {
+                        consoleAdapter?.addLine(
+                            getString(
+                                R.string.brute_error,
+                                e.message
+                            )
+                        )
+                    }
                 } finally {
                     isAttackRunning = false
                     currentRunner = null
@@ -626,7 +646,14 @@ class BruteForceFragment : Fragment() {
             }
             showConsole()
             consoleAdapter?.addLine(getString(R.string.brute_starting_psk, ssid, bssid))
-            selectedWordlistLabel?.let { consoleAdapter?.addLine(getString(R.string.brute_wordlist, it)) }
+            selectedWordlistLabel?.let {
+                consoleAdapter?.addLine(
+                    getString(
+                        R.string.brute_wordlist,
+                        it
+                    )
+                )
+            }
             isAttackRunning = true
             binding.buttonRunBackground.visibility = View.GONE
             goToStep(Step.ATTACK)
@@ -760,7 +787,7 @@ class BruteForceFragment : Fragment() {
             binding.textResultStatus.text = getString(R.string.bruteforce_success)
             binding.textResultData.text =
                 getString(R.string.brute_psk_result, result.foundPassword) + "\n" +
-                    getString(R.string.psk_attempts_made, result.attemptsMade)
+                        getString(R.string.psk_attempts_made, result.attemptsMade)
         } else {
             consoleAdapter?.addLine(
                 getString(
@@ -880,7 +907,7 @@ class BruteForceFragment : Fragment() {
             binding.textResultStatus.text = getString(R.string.bruteforce_success)
             binding.textResultData.text =
                 getString(R.string.brute_pin_result, pin) +
-                    if (psk != null) "\n" + getString(R.string.brute_psk_result, psk) else ""
+                        if (psk != null) "\n" + getString(R.string.brute_psk_result, psk) else ""
             goToStep(Step.RESULTS)
         } else {
             consoleAdapter?.addLine(getString(R.string.brute_wps_pin_not_found))

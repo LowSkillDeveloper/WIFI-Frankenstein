@@ -102,9 +102,6 @@ class PixiePinProvider(private val context: Context) {
     }
 
 
-
-
-
     companion object {
 
         suspend fun find3WiFiPins(
@@ -297,9 +294,6 @@ class PixiePinProvider(private val context: Context) {
             return pin.length in 4..8 && pin.all { it.isDigit() }
         }
     }
-
-
-
 
 
     private fun getPinsFromWpsDb(bssid: String): List<String> {

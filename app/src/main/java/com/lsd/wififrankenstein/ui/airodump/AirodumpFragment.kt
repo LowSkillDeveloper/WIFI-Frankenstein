@@ -1015,7 +1015,11 @@ class AirodumpFragment : Fragment() {
         val bssid = if (binding.tabLayout.selectedTabPosition == MODE_MANUAL) {
             val input = binding.editTextBssid.text?.toString()?.trim() ?: ""
             if (input.isEmpty()) {
-                Toast.makeText(requireContext(), getString(R.string.enter_bssid), Toast.LENGTH_SHORT)
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.enter_bssid),
+                    Toast.LENGTH_SHORT
+                )
                     .show()
                 return
             }
@@ -1099,7 +1103,11 @@ class AirodumpFragment : Fragment() {
         val bssid = selectedNetwork?.bssid?.uppercase()
             ?: viewModel.captureStats.value?.targetBssid?.uppercase()
         if (bssid.isNullOrEmpty()) {
-            Toast.makeText(requireContext(), getString(R.string.aird_no_target_selected), Toast.LENGTH_SHORT)
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.aird_no_target_selected),
+                Toast.LENGTH_SHORT
+            )
                 .show()
             return
         }
@@ -1115,7 +1123,11 @@ class AirodumpFragment : Fragment() {
         view.findViewById<View>(R.id.buttonDeauthAllClients).setOnClickListener {
             sheet.dismiss()
             if (currentClients.isEmpty()) {
-                Toast.makeText(requireContext(), getString(R.string.aird_no_clients_yet), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.aird_no_clients_yet),
+                    Toast.LENGTH_SHORT
+                ).show()
             } else {
                 performDeauth(bssid, "*ALL*")
             }
@@ -1276,7 +1288,11 @@ class AirodumpFragment : Fragment() {
             )
         )
         if (!dir.exists() || !dir.isDirectory) {
-            Toast.makeText(requireContext(), getString(R.string.aird_storage_folder_not_found), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.aird_storage_folder_not_found),
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
         try {

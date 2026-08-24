@@ -12,6 +12,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingHorizontal="8dp">
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -36,6 +37,7 @@
                 android:inset="0dp"
                 app:icon="@drawable/ic_close" />
         </LinearLayout>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_signal"
             android:layout_width="match_parent"
@@ -101,6 +103,7 @@
                     android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_basic"
             android:layout_width="match_parent"
@@ -122,6 +125,7 @@
                     android:text="@string/iw_basic_info"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                     android:textColor="?attr/colorPrimary" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -144,6 +148,7 @@
                         android:textStyle="bold"
                         tools:text="MyWiFiNetwork" />
                 </LinearLayout>
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -176,6 +181,7 @@
                         android:inset="0dp"
                         app:icon="@drawable/ic_content_copy" />
                 </LinearLayout>
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -199,6 +205,7 @@
                         android:textColor="?attr/colorOnSurface"
                         tools:text="2437 MHz" />
                 </LinearLayout>
+
                 <LinearLayout
                     android:id="@+id/row_channel"
                     android:layout_width="match_parent"
@@ -223,6 +230,7 @@
                         android:textColor="?attr/colorOnSurface"
                         tools:text="6" />
                 </LinearLayout>
+
                 <LinearLayout
                     android:id="@+id/row_band"
                     android:layout_width="match_parent"
@@ -247,6 +255,7 @@
                         android:textColor="?attr/colorOnSurface"
                         tools:text="2.4 GHz" />
                 </LinearLayout>
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -284,6 +293,7 @@
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_security"
             android:layout_width="match_parent"
@@ -305,23 +315,27 @@
                     android:text="@string/security_details"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                     android:textColor="?attr/colorPrimary" />
+
                 <include
                     android:id="@+id/row_group_cipher"
                     layout="@layout/item_detail_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
+
                 <include
                     android:id="@+id/row_pairwise_cipher"
                     layout="@layout/item_detail_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp" />
+
                 <include
                     android:id="@+id/row_auth_suite"
                     layout="@layout/item_detail_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -359,6 +373,7 @@
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_device"
             android:layout_width="match_parent"
@@ -418,6 +433,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_network"
             android:layout_width="match_parent"
@@ -513,6 +529,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_bss_load"
             android:layout_width="match_parent"
@@ -604,6 +621,7 @@
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_caps"
             android:layout_width="match_parent"
@@ -675,6 +693,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_tsf"
             android:layout_width="match_parent"
@@ -704,6 +723,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_rm"
             android:layout_width="match_parent"
@@ -749,6 +769,7 @@
                     layout="@layout/item_detail_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
+
                 <LinearLayout
                     android:id="@+id/row_rm_link"
                     android:layout_width="match_parent"
@@ -822,6 +843,7 @@
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_11u"
             android:layout_width="match_parent"
@@ -869,6 +891,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_op_class"
             android:layout_width="match_parent"
@@ -958,6 +981,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_he_detailed"
             android:layout_width="match_parent"
@@ -1077,6 +1101,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_vht"
             android:layout_width="match_parent"
@@ -1148,6 +1173,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_ht_ampdu"
             android:layout_width="match_parent"
@@ -1189,6 +1215,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_obss"
             android:layout_width="match_parent"
@@ -1242,6 +1269,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_ht_op"
             android:layout_width="match_parent"
@@ -1295,6 +1323,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_raw"
             android:layout_width="match_parent"
@@ -1315,6 +1344,7 @@
                     android:text="@string/raw_data"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                     android:textColor="?attr/colorPrimary" />
+
                 <TextView
                     android:id="@+id/button_show_raw_data"
                     android:layout_width="match_parent"
@@ -1324,6 +1354,7 @@
                     android:text="@string/show_raw_data"
                     android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
                     android:textColor="?attr/colorPrimary" />
+
                 <LinearLayout
                     android:id="@+id/row_raw_buttons"
                     android:layout_width="match_parent"
@@ -1349,6 +1380,7 @@
                         android:inset="0dp"
                         app:icon="@drawable/ic_save" />
                 </LinearLayout>
+
                 <TextView
                     android:id="@+id/text_raw_data"
                     android:layout_width="match_parent"

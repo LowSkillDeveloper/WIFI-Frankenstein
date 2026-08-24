@@ -144,7 +144,10 @@ class ForegroundAttackService : Service() {
             return
         }
 
-        val notification = buildNotification(getAttackTypeLabel(attackType), getString(R.string.svc_starting)).build()
+        val notification = buildNotification(
+            getAttackTypeLabel(attackType),
+            getString(R.string.svc_starting)
+        ).build()
         startForeground(NOTIFICATION_ID, notification)
 
         attackJob = serviceScope.launch {
@@ -160,7 +163,10 @@ class ForegroundAttackService : Service() {
             } catch (e: Exception) {
                 Log.e(TAG, "Attack failed", e)
                 broadcastError(e.message ?: getString(R.string.svc_unknown_error))
-                updateNotification(getAttackTypeLabel(attackType), getString(R.string.svc_failed, e.message))
+                updateNotification(
+                    getAttackTypeLabel(attackType),
+                    getString(R.string.svc_failed, e.message)
+                )
             } finally {
                 stopForegroundCompat()
                 stopSelf()
@@ -175,7 +181,11 @@ class ForegroundAttackService : Service() {
 
         val result = runner.runBruteForce(bssid, iface, onProgress = { progress ->
             val text = if (progress.percentComplete != null) {
-                getString(R.string.svc_pin_percent, progress.percentComplete, progress.currentPin ?: "...")
+                getString(
+                    R.string.svc_pin_percent,
+                    progress.percentComplete,
+                    progress.currentPin ?: "..."
+                )
             } else {
                 progress.line
             }
@@ -186,13 +196,22 @@ class ForegroundAttackService : Service() {
         val broadcastIntent = Intent(BROADCAST_ATTACK_COMPLETE).apply {
             putExtra(EXTRA_RESULT_PIN, result.wpsPin)
             putExtra(EXTRA_RESULT_PSK, result.wpaPsk)
-            putExtra(EXTRA_PROGRESS_TEXT, if (result.success) getString(R.string.svc_pin, result.wpsPin) else getString(R.string.svc_failed_short))
+            putExtra(
+                EXTRA_PROGRESS_TEXT,
+                if (result.success) getString(
+                    R.string.svc_pin,
+                    result.wpsPin
+                ) else getString(R.string.svc_failed_short)
+            )
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcastIntent)
 
         updateNotification(
             getString(R.string.foreground_attack_wps_brute),
-            if (result.success) getString(R.string.svc_pin, result.wpsPin) else getString(R.string.svc_not_found)
+            if (result.success) getString(
+                R.string.svc_pin,
+                result.wpsPin
+            ) else getString(R.string.svc_not_found)
         )
     }
 
@@ -212,7 +231,10 @@ class ForegroundAttackService : Service() {
             putExtra(EXTRA_RESULT_PSK, result.wpaPsk)
             putExtra(
                 EXTRA_PROGRESS_TEXT,
-                if (result.success) getString(R.string.svc_pin, result.wpsPin) else getString(R.string.svc_not_found)
+                if (result.success) getString(
+                    R.string.svc_pin,
+                    result.wpsPin
+                ) else getString(R.string.svc_not_found)
             )
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcastIntent)
@@ -227,7 +249,12 @@ class ForegroundAttackService : Service() {
 
         val result = runner.runAttack(ssid, bssid, wordlistUri, onProgress = { progress ->
             val text =
-                getString(R.string.svc_attempt, progress.attemptNumber, progress.totalPasswords, progress.currentPassword)
+                getString(
+                    R.string.svc_attempt,
+                    progress.attemptNumber,
+                    progress.totalPasswords,
+                    progress.currentPassword
+                )
             updateNotification(getString(R.string.foreground_attack_psk_brute), text)
             broadcastProgress(text)
         })
@@ -236,7 +263,10 @@ class ForegroundAttackService : Service() {
             putExtra(EXTRA_RESULT_PSK, result.foundPassword)
             putExtra(
                 EXTRA_PROGRESS_TEXT,
-                if (result.success) getString(R.string.svc_psk, result.foundPassword) else getString(R.string.svc_not_found_attempts, result.attemptsMade)
+                if (result.success) getString(
+                    R.string.svc_psk,
+                    result.foundPassword
+                ) else getString(R.string.svc_not_found_attempts, result.attemptsMade)
             )
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcastIntent)
@@ -251,7 +281,12 @@ class ForegroundAttackService : Service() {
 
         val result = runner.runAttack(ssid, bssid, wordlistUri, onProgress = { progress ->
             val text =
-                getString(R.string.svc_attempt, progress.attemptNumber, progress.totalPasswords, progress.currentPassword)
+                getString(
+                    R.string.svc_attempt,
+                    progress.attemptNumber,
+                    progress.totalPasswords,
+                    progress.currentPassword
+                )
             updateNotification(getString(R.string.foreground_attack_psk_brute), text)
             broadcastProgress(text)
         })
@@ -260,14 +295,20 @@ class ForegroundAttackService : Service() {
             putExtra(EXTRA_RESULT_PSK, result.foundPassword)
             putExtra(
                 EXTRA_PROGRESS_TEXT,
-                if (result.success) getString(R.string.svc_psk, result.foundPassword) else getString(R.string.svc_not_found_attempts, result.attemptsMade)
+                if (result.success) getString(
+                    R.string.svc_psk,
+                    result.foundPassword
+                ) else getString(R.string.svc_not_found_attempts, result.attemptsMade)
             )
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(broadcastIntent)
 
         updateNotification(
             getString(R.string.foreground_attack_psk_brute),
-            if (result.success) getString(R.string.svc_psk, result.foundPassword) else getString(R.string.svc_not_found_attempts, result.attemptsMade)
+            if (result.success) getString(
+                R.string.svc_psk,
+                result.foundPassword
+            ) else getString(R.string.svc_not_found_attempts, result.attemptsMade)
         )
     }
 

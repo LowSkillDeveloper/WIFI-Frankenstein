@@ -43,7 +43,12 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
             }
 
 
-            binding.udpStatus.text = result.udpStatus?.let { binding.root.context.getString(R.string.ib_dns_status_prefix, it) }
+            binding.udpStatus.text = result.udpStatus?.let {
+                binding.root.context.getString(
+                    R.string.ib_dns_status_prefix,
+                    it
+                )
+            }
 
 
             binding.jsonIpsContainer.removeAllViews()
@@ -57,7 +62,12 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
             }
 
 
-            binding.jsonStatus.text = result.jsonStatus?.let { binding.root.context.getString(R.string.ib_dns_status_prefix, it) }
+            binding.jsonStatus.text = result.jsonStatus?.let {
+                binding.root.context.getString(
+                    R.string.ib_dns_status_prefix,
+                    it
+                )
+            }
 
 
             binding.wireIpsContainer.removeAllViews()
@@ -71,7 +81,12 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
             }
 
 
-            binding.wireStatus.text = result.wireStatus?.let { binding.root.context.getString(R.string.ib_dns_status_prefix, it) }
+            binding.wireStatus.text = result.wireStatus?.let {
+                binding.root.context.getString(
+                    R.string.ib_dns_status_prefix,
+                    it
+                )
+            }
 
 
             val analysis = when (result.status) {
@@ -82,14 +97,20 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
                 CheckStatus.FakeNxdomain -> binding.root.context.getString(R.string.ib_dns_analysis_nxdomain)
                 CheckStatus.FakeEmpty -> binding.root.context.getString(R.string.ib_dns_analysis_empty)
                 CheckStatus.DohBlocked -> binding.root.context.getString(R.string.ib_dns_analysis_doh_blocked)
-                else -> binding.root.context.getString(R.string.ib_dns_analysis_else, result.status.label(binding.root.context))
+                else -> binding.root.context.getString(
+                    R.string.ib_dns_analysis_else,
+                    result.status.label(binding.root.context)
+                )
             }
             binding.analysisText.text = analysis
 
 
             if (result.totalUniqueIps > 0) {
                 binding.extraInfo.visibility = android.view.View.VISIBLE
-                binding.extraInfo.text = binding.root.context.getString(R.string.ib_dns_unique_ips, result.totalUniqueIps)
+                binding.extraInfo.text = binding.root.context.getString(
+                    R.string.ib_dns_unique_ips,
+                    result.totalUniqueIps
+                )
             } else {
                 binding.extraInfo.visibility = android.view.View.GONE
             }

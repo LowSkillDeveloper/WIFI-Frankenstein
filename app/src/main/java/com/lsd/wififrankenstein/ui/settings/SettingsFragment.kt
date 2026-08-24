@@ -162,9 +162,18 @@ class SettingsFragment : Fragment() {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
-            startActivity(Intent.createChooser(shareIntent, getString(R.string.st_share_log_chooser)))
+            startActivity(
+                Intent.createChooser(
+                    shareIntent,
+                    getString(R.string.st_share_log_chooser)
+                )
+            )
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), getString(R.string.st_error_share_log), Toast.LENGTH_SHORT)
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.st_error_share_log),
+                Toast.LENGTH_SHORT
+            )
                 .show()
         }
     }
@@ -689,7 +698,8 @@ class SettingsFragment : Fragment() {
         viewModel.setTryAlternativeUrl(binding.switchTryAlternativeUrl.isChecked)
         viewModel.setIgnoreSSLCertificate(binding.switchIgnoreSSLCertificate.isChecked)
 
-        Toast.makeText(context, getString(R.string.st_api_settings_saved), Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, getString(R.string.st_api_settings_saved), Toast.LENGTH_SHORT)
+            .show()
     }
 
     private fun showWarningDialog() {
@@ -1422,7 +1432,8 @@ class SettingsFragment : Fragment() {
         binding.switchTryAlternativeUrl.isChecked = true
         binding.switchIgnoreSSLCertificate.isChecked = false
 
-        Toast.makeText(context, getString(R.string.st_api_settings_reset), Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, getString(R.string.st_api_settings_reset), Toast.LENGTH_SHORT)
+            .show()
     }
 
     private fun observeViewModel() {

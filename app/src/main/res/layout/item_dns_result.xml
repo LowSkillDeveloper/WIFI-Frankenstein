@@ -13,6 +13,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="12dp">
+
         <LinearLayout
             android:id="@+id/header"
             android:layout_width="match_parent"
@@ -47,6 +48,7 @@
                 android:src="@drawable/ic_expand_more"
                 android:tint="?attr/colorOnSurface" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/detailsContainer"
             android:layout_width="match_parent"
@@ -54,10 +56,12 @@
             android:layout_marginTop="8dp"
             android:orientation="vertical"
             android:visibility="gone">
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:background="@color/divider_color" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -102,6 +106,7 @@
                 android:layout_marginTop="4dp"
                 android:textAppearance="?attr/textAppearanceCaption"
                 android:textColor="?android:attr/textColorSecondary" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -155,6 +160,7 @@
                 android:layout_marginTop="4dp"
                 android:textAppearance="?attr/textAppearanceCaption"
                 android:textColor="?android:attr/textColorSecondary" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -199,6 +205,7 @@
                 android:layout_marginTop="4dp"
                 android:textAppearance="?attr/textAppearanceCaption"
                 android:textColor="?android:attr/textColorSecondary" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -220,7 +227,9 @@
                     android:text="@string/analysis"
                     android:textAppearance="?attr/textAppearanceCaption"
                     android:textStyle="bold" />
-            </LinearLayout>                        <TextView
+            </LinearLayout>
+
+            <TextView
                 android:id="@+id/extraInfo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

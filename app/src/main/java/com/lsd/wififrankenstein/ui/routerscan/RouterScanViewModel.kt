@@ -145,10 +145,12 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
                         title = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_TITLE) ?: "",
                         serverType = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_SERVER_TYPE)
                             ?: "",
-                        lanIp = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_LAN_IP) ?: "",
+                        lanIp = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_LAN_IP)
+                            ?: "",
                         lanMask = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_LAN_MASK)
                             ?: "",
-                        wanIp = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_WAN_IP) ?: "",
+                        wanIp = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_WAN_IP)
+                            ?: "",
                         wanMask = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_WAN_MASK)
                             ?: "",
                         wanGate = intent.getStringExtra(ChrootAttackService.EXTRA_RESULT_WAN_GATE)
@@ -256,7 +258,10 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
         maxThreads = prefs.getInt("max_threads", 10),
         timeout = prefs.getLong("timeout", 1000),
         rsTimeout = prefs.getLong("rs_timeout", 30_000),
-        pingBeforeScan = if (isRootlessProot) false else prefs.getBoolean("ping_before_scan", false),
+        pingBeforeScan = if (isRootlessProot) false else prefs.getBoolean(
+            "ping_before_scan",
+            false
+        ),
         saveToLocalDb = prefs.getBoolean("save_to_local_db", true)
     )
 
@@ -448,7 +453,10 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
     fun uploadTo3WiFi(results: List<RouterScanResult>, server: DbItem, comment: String) {
         if (results.isEmpty()) {
             _uploadResult.postValue(
-                UploadResult(false, getApplication<Application>().getString(R.string.rs_no_results_upload))
+                UploadResult(
+                    false,
+                    getApplication<Application>().getString(R.string.rs_no_results_upload)
+                )
             )
             return
         }
@@ -511,7 +519,10 @@ class RouterScanViewModel(application: Application) : AndroidViewModel(applicati
                     if (upload != null && upload.optBoolean("state", false)) {
                         return UploadResult(
                             true,
-                            getApplication<Application>().getString(R.string.rs_uploaded, results.size)
+                            getApplication<Application>().getString(
+                                R.string.rs_uploaded,
+                                results.size
+                            )
                         )
                     } else {
                         val errors = upload?.optJSONArray("error")

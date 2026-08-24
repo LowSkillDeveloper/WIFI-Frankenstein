@@ -182,7 +182,8 @@ class ChrootManager(private val context: Context) {
                 ).exec()
                 if (!setup.isSuccess) return false to "setup failed at $baseDir"
 
-                val testBin = if (checkSystemChroot()) "/system/bin/chroot" else "$BUSYBOX_LEGACY chroot"
+                val testBin =
+                    if (checkSystemChroot()) "/system/bin/chroot" else "$BUSYBOX_LEGACY chroot"
                 val testCmd = "$testBin $testRoot /bin/busybox true 2>&1"
                 val result = Shell.cmd(testCmd).exec()
                 val ok = result.isSuccess && result.code == 0
@@ -522,14 +523,24 @@ class ChrootManager(private val context: Context) {
             }
 
             val selinuxStage = diagResults.find { it.name == "selinux_status" }
-            onStatusUpdate(context.getString(R.string.chroot_status_selinux, selinuxStage?.output?.trim() ?: context.getString(R.string.unknown)))
+            onStatusUpdate(
+                context.getString(
+                    R.string.chroot_status_selinux,
+                    selinuxStage?.output?.trim() ?: context.getString(R.string.unknown)
+                )
+            )
 
             val contextStage = diagResults.find { it.name == "context" }
             val ctxLine = contextStage?.output?.lineSequence()?.firstOrNull()?.trim() ?: "unknown"
             onStatusUpdate(context.getString(R.string.chroot_status_context, ctxLine))
 
             val rootStage = diagResults.find { it.name == "root" }
-            onStatusUpdate(context.getString(R.string.chroot_status_root, if (rootStage?.success == true) "OK" else "FAIL"))
+            onStatusUpdate(
+                context.getString(
+                    R.string.chroot_status_root,
+                    if (rootStage?.success == true) "OK" else "FAIL"
+                )
+            )
 
             val allAvc = diagResults.flatMap { it.avcEntries }
             val chrootSyscallOk =
@@ -563,7 +574,12 @@ class ChrootManager(private val context: Context) {
             }
             if (domainTransition) {
                 val rules = chrootExecAvc.mapNotNull { it.toMagiskRule() }.distinct()
-                onStatusUpdate(context.getString(R.string.chroot_status_domain_transition, rules.firstOrNull() ?: "N/A"))
+                onStatusUpdate(
+                    context.getString(
+                        R.string.chroot_status_domain_transition,
+                        rules.firstOrNull() ?: "N/A"
+                    )
+                )
             }
 
             val noexecDirs = execDirs.filter { !it.second }
@@ -573,7 +589,12 @@ class ChrootManager(private val context: Context) {
                 }
                 val execDirsAvail = execDirs.filter { it.second }
                 if (execDirsAvail.isNotEmpty()) {
-                    onStatusUpdate(context.getString(R.string.chroot_status_exec_available, execDirsAvail.first().first))
+                    onStatusUpdate(
+                        context.getString(
+                            R.string.chroot_status_exec_available,
+                            execDirsAvail.first().first
+                        )
+                    )
                 }
             }
 
@@ -614,7 +635,12 @@ class ChrootManager(private val context: Context) {
                     }
 
                     allAvc.isNotEmpty() && hasMagiskPolicy -> {
-                        onStatusUpdate(context.getString(R.string.chroot_status_selinux_blocks, allAvc.size))
+                        onStatusUpdate(
+                            context.getString(
+                                R.string.chroot_status_selinux_blocks,
+                                allAvc.size
+                            )
+                        )
                         diag.applyMagiskRules(diagResults)
                         onStatusUpdate(context.getString(R.string.chroot_status_rules_applied))
                         "selinux_fixed"
@@ -646,9 +672,21 @@ class ChrootManager(private val context: Context) {
 
                     allAvc.isNotEmpty() && !hasMagiskPolicy -> {
                         val rules = allAvc.mapNotNull { it.toMagiskRule() }.distinct()
-                        onStatusUpdate(context.getString(R.string.chroot_status_selinux_no_magisk, rules.size))
+                        onStatusUpdate(
+                            context.getString(
+                                R.string.chroot_status_selinux_no_magisk,
+                                rules.size
+                            )
+                        )
                         rules.take(3)
-                            .forEach { onStatusUpdate(context.getString(R.string.chroot_status_allow_line, it.removePrefix("allow "))) }
+                            .forEach {
+                                onStatusUpdate(
+                                    context.getString(
+                                        R.string.chroot_status_allow_line,
+                                        it.removePrefix("allow ")
+                                    )
+                                )
+                            }
                         onStatusUpdate(context.getString(R.string.chroot_status_apply_magisk))
                         "selinux_no_magisk"
                     }
@@ -1825,134 +1863,135 @@ class ChrootManager(private val context: Context) {
                 }
 
                 try {
-                val maxWait = 120000L
-                var elapsed = 0L
-                var pollInterval = 1000L
-                pollLoop@ while (elapsed < maxWait) {
+                    val maxWait = 120000L
+                    var elapsed = 0L
+                    var pollInterval = 1000L
+                    pollLoop@ while (elapsed < maxWait) {
 
-                    val pidList = ipPids.values.filter { it != 0 }
-                    if (pidList.isEmpty()) break
-
-
-                    for (pid in pidList) {
-                        try {
-                            stdin.write("kill -0 $pid 2>/dev/null && echo PID_${pid}_ALIVE || echo PID_${pid}_DEAD\n".toByteArray())
-                            stdin.flush()
-                        } catch (e: IOException) {
-                            Log.w(TAG, "poll loop: stdin closed, stopping")
-                            break@pollLoop
-                        }
-                        delay(20)
-                    }
-
-                    delay(pollInterval)
-                    val completedTargets = mutableListOf<String>()
-                    synchronized(stdoutLines) {
-                        val alivePids = pidList.filter { pid ->
-                            stdoutLines.any { it.contains("PID_${pid}_ALIVE") }
-                        }
-                        stdoutLines.clear()
+                        val pidList = ipPids.values.filter { it != 0 }
+                        if (pidList.isEmpty()) break
 
 
                         for (pid in pidList) {
-                            if (!alivePids.contains(pid)) {
-                                val ipToRemove = ipPids.entries.find { it.value == pid }?.key
-                                if (ipToRemove != null) {
-                                    ipPids.remove(ipToRemove)
-                                    completedTargets.add(ipToRemove)
-                                    Log.d(TAG, "Process $pid for $ipToRemove completed")
+                            try {
+                                stdin.write("kill -0 $pid 2>/dev/null && echo PID_${pid}_ALIVE || echo PID_${pid}_DEAD\n".toByteArray())
+                                stdin.flush()
+                            } catch (e: IOException) {
+                                Log.w(TAG, "poll loop: stdin closed, stopping")
+                                break@pollLoop
+                            }
+                            delay(20)
+                        }
+
+                        delay(pollInterval)
+                        val completedTargets = mutableListOf<String>()
+                        synchronized(stdoutLines) {
+                            val alivePids = pidList.filter { pid ->
+                                stdoutLines.any { it.contains("PID_${pid}_ALIVE") }
+                            }
+                            stdoutLines.clear()
+
+
+                            for (pid in pidList) {
+                                if (!alivePids.contains(pid)) {
+                                    val ipToRemove = ipPids.entries.find { it.value == pid }?.key
+                                    if (ipToRemove != null) {
+                                        ipPids.remove(ipToRemove)
+                                        completedTargets.add(ipToRemove)
+                                        Log.d(TAG, "Process $pid for $ipToRemove completed")
+                                    }
+                                }
+                            }
+                        }
+
+                        for (ipPort in completedTargets) {
+                            deliverCompletedTarget(ipPort)
+                        }
+                        synchronized(stdoutLines) { stdoutLines.clear() }
+
+                        synchronized(stdoutLines) {
+                            if (ipPids.values.none { it != 0 }) {
+                                Log.d(TAG, "All processes completed")
+                                break
+                            }
+                            Log.d(
+                                TAG,
+                                "${ipPids.values.count { it != 0 }} processes still alive"
+                            )
+                        }
+
+                        elapsed += pollInterval
+                        pollInterval = (pollInterval * 2).coerceAtMost(1500)
+                    }
+
+                    batchJob.cancel()
+                    delay(500)
+
+
+                    synchronized(stdoutLines) { stdoutLines.clear() }
+
+
+                    val results = mutableMapOf<String, List<String>>()
+                    val pendingTmpFiles = tmpFiles.filterKeys { it !in collectedTargets }
+                    if (pendingTmpFiles.isNotEmpty()) {
+                        for ((ip, tmpFile) in pendingTmpFiles) {
+                            val startMarker = "BATCH_START_${ip}"
+                            val endMarker = "BATCH_END_${ip}"
+                            try {
+                                stdin.write("echo \"$startMarker\"; cat $tmpFile 2>/dev/null; echo \"$endMarker\"\n".toByteArray())
+                                stdin.flush()
+                            } catch (e: IOException) {
+                                Log.w(TAG, "final collection: stdin closed")
+                                break
+                            }
+                        }
+
+                        val collectDeadline = System.currentTimeMillis() + 15_000
+                        var collectPollInterval = 100L
+                        while (System.currentTimeMillis() < collectDeadline) {
+                            synchronized(stdoutLines) {
+                                val allOut = stdoutLines.joinToString("\n")
+                                val allMarkersPresent = pendingTmpFiles.keys.all { ip ->
+                                    val s = allOut.indexOf("BATCH_START_${ip}")
+                                    val e = allOut.indexOf("BATCH_END_${ip}")
+                                    s != -1 && e != -1 && e > s
+                                }
+                                if (allMarkersPresent) break
+                            }
+                            delay(collectPollInterval)
+                            collectPollInterval = (collectPollInterval * 2).coerceAtMost(500)
+                        }
+
+                        synchronized(stdoutLines) {
+                            val allOut = stdoutLines.joinToString("\n")
+                            for ((ip, tmpFile) in pendingTmpFiles) {
+                                val startMarker = "BATCH_START_${ip}"
+                                val endMarker = "BATCH_END_${ip}"
+                                val startIdx = allOut.indexOf(startMarker)
+                                val endIdx = allOut.indexOf(endMarker)
+                                if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
+                                    val content =
+                                        allOut.substring(startIdx + startMarker.length, endIdx)
+                                    results[ip] = content.split("\n").filter { it.isNotEmpty() }
+                                } else {
+                                    results[ip] = emptyList()
+                                    Log.w(TAG, "No output for $ip")
                                 }
                             }
                         }
                     }
 
-                    for (ipPort in completedTargets) {
-                        deliverCompletedTarget(ipPort)
-                    }
-                    synchronized(stdoutLines) { stdoutLines.clear() }
 
-                    synchronized(stdoutLines) {
-                        if (ipPids.values.none { it != 0 }) {
-                            Log.d(TAG, "All processes completed")
-                            break
-                        }
-                        Log.d(
-                            TAG,
-                            "${ipPids.values.count { it != 0 }} processes still alive"
-                        )
+                    val rmCmd = "rm -f ${tmpFiles.values.joinToString(" ")}"
+                    try {
+                        stdin.write(rmCmd.toByteArray())
+                        stdin.write("\n".toByteArray())
+                        stdin.flush()
+                    } catch (e: IOException) {
+                        Log.w(TAG, "Failed to rm tmp files", e)
                     }
 
-                    elapsed += pollInterval
-                    pollInterval = (pollInterval * 2).coerceAtMost(1500)
-                }
-
-                batchJob.cancel()
-                delay(500)
-
-
-                synchronized(stdoutLines) { stdoutLines.clear() }
-
-
-                val results = mutableMapOf<String, List<String>>()
-                val pendingTmpFiles = tmpFiles.filterKeys { it !in collectedTargets }
-                if (pendingTmpFiles.isNotEmpty()) {
-                    for ((ip, tmpFile) in pendingTmpFiles) {
-                        val startMarker = "BATCH_START_${ip}"
-                        val endMarker = "BATCH_END_${ip}"
-                        try {
-                            stdin.write("echo \"$startMarker\"; cat $tmpFile 2>/dev/null; echo \"$endMarker\"\n".toByteArray())
-                            stdin.flush()
-                        } catch (e: IOException) {
-                            Log.w(TAG, "final collection: stdin closed")
-                            break
-                        }
-                    }
-
-                    val collectDeadline = System.currentTimeMillis() + 15_000
-                    var collectPollInterval = 100L
-                    while (System.currentTimeMillis() < collectDeadline) {
-                        synchronized(stdoutLines) {
-                            val allOut = stdoutLines.joinToString("\n")
-                            val allMarkersPresent = pendingTmpFiles.keys.all { ip ->
-                                val s = allOut.indexOf("BATCH_START_${ip}")
-                                val e = allOut.indexOf("BATCH_END_${ip}")
-                                s != -1 && e != -1 && e > s
-                            }
-                            if (allMarkersPresent) break
-                        }
-                        delay(collectPollInterval)
-                        collectPollInterval = (collectPollInterval * 2).coerceAtMost(500)
-                    }
-
-                    synchronized(stdoutLines) {
-                        val allOut = stdoutLines.joinToString("\n")
-                        for ((ip, tmpFile) in pendingTmpFiles) {
-                            val startMarker = "BATCH_START_${ip}"
-                            val endMarker = "BATCH_END_${ip}"
-                            val startIdx = allOut.indexOf(startMarker)
-                            val endIdx = allOut.indexOf(endMarker)
-                            if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
-                                val content = allOut.substring(startIdx + startMarker.length, endIdx)
-                                results[ip] = content.split("\n").filter { it.isNotEmpty() }
-                            } else {
-                                results[ip] = emptyList()
-                                Log.w(TAG, "No output for $ip")
-                            }
-                        }
-                    }
-                }
-
-
-                val rmCmd = "rm -f ${tmpFiles.values.joinToString(" ")}"
-                try {
-                    stdin.write(rmCmd.toByteArray())
-                    stdin.write("\n".toByteArray())
-                    stdin.flush()
-                } catch (e: IOException) {
-                    Log.w(TAG, "Failed to rm tmp files", e)
-                }
-
-                return results
+                    return results
                 } finally {
                     withContext(NonCancellable) {
                         monitorJob.cancel()

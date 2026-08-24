@@ -43,7 +43,11 @@ class MainTabFragment : Fragment() {
         binding.buttonCheck.setOnClickListener {
             val domain = binding.editTextDomain.text?.toString()?.trim() ?: ""
             if (domain.isBlank()) {
-                Toast.makeText(requireContext(), getString(R.string.ib_enter_domain), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.ib_enter_domain),
+                    Toast.LENGTH_SHORT
+                ).show()
                 return@setOnClickListener
             }
             viewModel.checkMainDomain(domain)
@@ -52,7 +56,8 @@ class MainTabFragment : Fragment() {
         viewModel.isChecking.observe(viewLifecycleOwner) { checking ->
             binding.buttonCheck.isEnabled = !checking
             binding.progressBar.visibility = if (checking) View.VISIBLE else View.GONE
-            binding.buttonCheck.text = if (checking) getString(R.string.ib_checking) else getString(R.string.ib_check_domain)
+            binding.buttonCheck.text =
+                if (checking) getString(R.string.ib_checking) else getString(R.string.ib_check_domain)
         }
 
         viewModel.progressText.observe(viewLifecycleOwner) { text ->
@@ -131,7 +136,8 @@ class MainTabFragment : Fragment() {
 
 
         binding.domainText.text = getString(R.string.ib_domain_label, r.domain)
-        binding.resolvedIpText.text = getString(R.string.ib_resolved_ip, r.resolvedIp ?: getString(R.string.ib_unresolvable))
+        binding.resolvedIpText.text =
+            getString(R.string.ib_resolved_ip, r.resolvedIp ?: getString(R.string.ib_unresolvable))
 
 
         binding.conclusionText.text = r.conclusion.ifBlank { "—" }
@@ -143,7 +149,12 @@ class MainTabFragment : Fragment() {
             else R.color.success_green
         val stageText = buildString {
             append(getString(R.string.ib_stage_block, r.blockStage, r.blockMechanism))
-            if (r.confidence.isNotBlank() && r.confidence != "—") append(getString(R.string.ib_confidence_suffix, r.confidence))
+            if (r.confidence.isNotBlank() && r.confidence != "—") append(
+                getString(
+                    R.string.ib_confidence_suffix,
+                    r.confidence
+                )
+            )
         }.trimEnd(' ', '·', '—')
         binding.blockStageText.text = stageText
         binding.blockStageText.setTextColor(ContextCompat.getColor(ctx, stageColor))
@@ -185,7 +196,8 @@ class MainTabFragment : Fragment() {
             val gd = binding.tcpDot.background as GradientDrawable
             gd.setColor(ContextCompat.getColor(ctx, R.color.success_green))
             val latency = r.tcpLatencyMs?.let { "${it}ms" } ?: ""
-            binding.tcpText.text = getString(R.string.ib_reachable) + (if (latency.isEmpty()) "" else " $latency")
+            binding.tcpText.text =
+                getString(R.string.ib_reachable) + (if (latency.isEmpty()) "" else " $latency")
             binding.tcpText.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
         } else {
             val gd = binding.tcpDot.background as GradientDrawable
@@ -194,9 +206,13 @@ class MainTabFragment : Fragment() {
             binding.tcpText.setTextColor(ContextCompat.getColor(ctx, R.color.error_red))
         }
         val portLine = buildString {
-            append(getString(R.string.ib_ports_line,
-                if (r.port80Reachable) getString(R.string.ib_port_open) else getString(R.string.ib_port_blocked),
-                if (r.baselineReachable) getString(R.string.ib_baseline_ok) else getString(R.string.ib_baseline_down)))
+            append(
+                getString(
+                    R.string.ib_ports_line,
+                    if (r.port80Reachable) getString(R.string.ib_port_open) else getString(R.string.ib_port_blocked),
+                    if (r.baselineReachable) getString(R.string.ib_baseline_ok) else getString(R.string.ib_baseline_down)
+                )
+            )
             if (r.sniBlocked) append(getString(R.string.ib_sni_blocked_suffix))
         }
         binding.tcpText.append("  ·  " + portLine)

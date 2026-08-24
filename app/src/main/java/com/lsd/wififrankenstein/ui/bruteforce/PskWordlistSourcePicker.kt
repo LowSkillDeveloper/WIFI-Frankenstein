@@ -181,13 +181,24 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
     }
 
     private fun downloadFromUrl(url: String, isMega: Boolean) {
-        Toast.makeText(requireContext(), getString(R.string.brute_downloading_wordlist), Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.brute_downloading_wordlist),
+            Toast.LENGTH_SHORT
+        ).show()
         lifecycleScope.launch {
             val result = downloadWordlist(url, isMega)
             if (result != null) {
-                pickWordlist(Uri.fromFile(result.first), getString(R.string.brute_url_label, result.second))
+                pickWordlist(
+                    Uri.fromFile(result.first),
+                    getString(R.string.brute_url_label, result.second)
+                )
             } else {
-                Toast.makeText(requireContext(), getString(R.string.brute_download_failed), Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.brute_download_failed),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
@@ -266,7 +277,11 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
                 if (text.isBlank()) return@setPositiveButton
                 val passwords = text.lines().map { it.trim() }.filter { it.isNotBlank() }
                 if (passwords.isEmpty()) {
-                    Toast.makeText(requireContext(), getString(R.string.brute_no_passwords), Toast.LENGTH_SHORT)
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.brute_no_passwords),
+                        Toast.LENGTH_SHORT
+                    )
                         .show()
                     return@setPositiveButton
                 }
@@ -323,7 +338,11 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
     }
 
     private fun useWpaSecDict() {
-        Toast.makeText(requireContext(), getString(R.string.brute_checking_wpa_sec), Toast.LENGTH_SHORT)
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.brute_checking_wpa_sec),
+            Toast.LENGTH_SHORT
+        )
             .show()
         lifecycleScope.launch {
             val path = withContext(Dispatchers.IO) {
@@ -332,7 +351,10 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
             }
             if (path != null) {
                 val file = File(path)
-                val mb = if (file.length() > 0) getString(R.string.brute_mb_suffix, file.length() / (1024 * 1024)) else ""
+                val mb = if (file.length() > 0) getString(
+                    R.string.brute_mb_suffix,
+                    file.length() / (1024 * 1024)
+                ) else ""
                 pickWordlist(Uri.fromFile(file), getString(R.string.brute_wpa_sec_dict_label, mb))
             } else {
                 Toast.makeText(

@@ -153,6 +153,7 @@ class BettercapMainFragment : Fragment() {
         getString(R.string.bc_channel_multi),
         getString(R.string.bc_channel_custom)
     )
+
     private val ALL_CHANNELS = listOf(
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
         36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116,
@@ -365,7 +366,8 @@ class BettercapMainFragment : Fragment() {
         binding.seekBarHopPeriod.setOnSeekBarChangeListener(object :
             SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                binding.textHopPeriodValue.text = getString(R.string.bc_hop_period_value, (progress + 1) * 50)
+                binding.textHopPeriodValue.text =
+                    getString(R.string.bc_hop_period_value, (progress + 1) * 50)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}

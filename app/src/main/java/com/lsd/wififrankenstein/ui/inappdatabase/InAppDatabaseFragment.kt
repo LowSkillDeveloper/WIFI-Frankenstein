@@ -443,7 +443,12 @@ class InAppDatabaseFragment : Fragment() {
                 if (key.isNotEmpty()) {
                     startPwncrackImport(key)
                 } else {
-                    showSnackbar(getString(R.string.pwncrack_import_failed, getString(R.string.pwncrack_invalid_key)))
+                    showSnackbar(
+                        getString(
+                            R.string.pwncrack_import_failed,
+                            getString(R.string.pwncrack_invalid_key)
+                        )
+                    )
                 }
             }
             .setNegativeButton(R.string.cancel, null)

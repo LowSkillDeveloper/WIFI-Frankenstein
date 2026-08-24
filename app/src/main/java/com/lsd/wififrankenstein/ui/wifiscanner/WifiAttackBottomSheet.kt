@@ -144,7 +144,11 @@ class WifiAttackBottomSheet : BottomSheetDialogFragment() {
 
         binding.buttonPskBrute.setOnClickListener {
             if (iwSsid.isEmpty() || iwBssid.isEmpty()) {
-                Toast.makeText(requireContext(), getString(R.string.ws_ssid_bssid_not_available), Toast.LENGTH_SHORT)
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.ws_ssid_bssid_not_available),
+                    Toast.LENGTH_SHORT
+                )
                     .show()
                 return@setOnClickListener
             }

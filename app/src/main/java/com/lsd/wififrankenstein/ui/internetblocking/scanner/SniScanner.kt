@@ -356,7 +356,6 @@ class SniScanner {
             )
 
 
-
             val candidates = targets.filter { isSweepCandidate(it) }
 
             if (candidates.isEmpty()) {
@@ -370,7 +369,6 @@ class SniScanner {
             val allResults = mutableListOf<SweepResult>()
 
 
-
             val grouped = candidates.groupBy { it.asn ?: it.ip }
             for ((_, groupTargets) in grouped) {
                 val target = groupTargets.minByOrNull { it.rtt ?: Float.MAX_VALUE }
@@ -382,11 +380,6 @@ class SniScanner {
             allResults
         }
     }
-
-
-
-
-
 
 
     internal fun isSweepCandidate(target: TcpCheckResult): Boolean {
@@ -404,7 +397,6 @@ class SniScanner {
         semaphore: Semaphore
     ): List<SweepResult> = withContext(Dispatchers.IO) {
         val results = mutableListOf<SweepResult>()
-
 
 
         val client = createClient(pinnedIp = target.ip)

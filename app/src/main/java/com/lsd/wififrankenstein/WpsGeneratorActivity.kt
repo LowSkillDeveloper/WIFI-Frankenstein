@@ -935,7 +935,6 @@ class WpsGeneratorActivity : AppCompatActivity() {
     inner class MyJavascriptInterface {
 
 
-
         @JavascriptInterface
         fun initAlgos(json: String?, bssid: String) {
             Log.d("MyJavascriptInterface", "initAlgos called with JSON: $json")

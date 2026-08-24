@@ -41,7 +41,8 @@ class TelegramTabFragment : Fragment() {
         viewModel.isChecking.observe(viewLifecycleOwner) { checking ->
             binding.buttonCheckTelegram.isEnabled = !checking
             binding.progressBar.visibility = if (checking) View.VISIBLE else View.GONE
-            binding.buttonCheckTelegram.text = if (checking) getString(R.string.ib_checking) else getString(R.string.ib_run_telegram_check)
+            binding.buttonCheckTelegram.text =
+                if (checking) getString(R.string.ib_checking) else getString(R.string.ib_run_telegram_check)
         }
 
         viewModel.telegramResult.observe(viewLifecycleOwner) { result ->
@@ -75,7 +76,8 @@ class TelegramTabFragment : Fragment() {
         binding.durationText.text = getString(R.string.ib_duration_sec, sec)
 
 
-        binding.dcSummaryText.text = getString(R.string.ib_count_reachable, result.dcReachableCount, result.dcTotal)
+        binding.dcSummaryText.text =
+            getString(R.string.ib_count_reachable, result.dcReachableCount, result.dcTotal)
         binding.dcContainer.removeAllViews()
         for (dc in result.dcResults) {
             binding.dcContainer.addView(createDcRow(dc))

@@ -79,7 +79,9 @@ class ConnectionMonitor {
         val currentRxBytes = try {
             val total = TrafficStats.getTotalRxBytes()
             if (total == TrafficStats.UNSUPPORTED.toLong()) null else total
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
 
         if (currentRxBytes == null) return ConnectionSpikeResult(false, 0, DataSource.UNKNOWN)
 
@@ -93,13 +95,21 @@ class ConnectionMonitor {
         }
 
         val dt = (now - prevTrafficTime) / 1000.0
-        if (dt < 5) return ConnectionSpikeResult(false, activeConnections.get(), DataSource.TRAFFIC_STATS)
+        if (dt < 5) return ConnectionSpikeResult(
+            false,
+            activeConnections.get(),
+            DataSource.TRAFFIC_STATS
+        )
 
         val bytesDelta = currentRxBytes - prevRxBytes
         prevRxBytes = currentRxBytes
         prevTrafficTime = now
 
-        if (bytesDelta < 0) return ConnectionSpikeResult(false, activeConnections.get(), DataSource.TRAFFIC_STATS)
+        if (bytesDelta < 0) return ConnectionSpikeResult(
+            false,
+            activeConnections.get(),
+            DataSource.TRAFFIC_STATS
+        )
 
         val bytesPerSecond = bytesDelta / dt
         Log.d(TAG, "TrafficStats: delta=${bytesDelta}bytes rate=${bytesPerSecond.toInt()}/s")
@@ -125,9 +135,13 @@ class ConnectionMonitor {
         }
 
         val growth = currentCount.toDouble() / previous
-        Log.d(TAG, "Connections: prev=$previous current=$currentCount growth=${"%.1f".format(growth)}x")
+        Log.d(
+            TAG,
+            "Connections: prev=$previous current=$currentCount growth=${"%.1f".format(growth)}x"
+        )
 
-        val isSpike = growth >= CONNECTION_SPIKE_THRESHOLD && currentCount > MIN_CONNECTIONS_FOR_SPIKE
+        val isSpike =
+            growth >= CONNECTION_SPIKE_THRESHOLD && currentCount > MIN_CONNECTIONS_FOR_SPIKE
 
         if (isSpike) {
             Log.w(TAG, "CONNECTION SPIKE DETECTED! $previous -> $currentCount (${growth}x)")

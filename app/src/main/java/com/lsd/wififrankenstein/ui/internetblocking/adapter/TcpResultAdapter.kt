@@ -16,7 +16,8 @@ class TcpResultAdapter : ListAdapter<TcpCheckResult, TcpResultAdapter.ViewHolder
         RecyclerView.ViewHolder(binding.root) {
         fun bind(result: TcpCheckResult) {
             val ctx = binding.root.context
-            binding.provider.text = ctx.getString(R.string.ib_tcp_provider, result.provider, result.id)
+            binding.provider.text =
+                ctx.getString(R.string.ib_tcp_provider, result.provider, result.id)
             binding.ipPort.text = ctx.getString(R.string.ib_tcp_ipport, result.ip, result.port)
             binding.status.text = result.status.label(ctx)
             binding.status.setTextColor(
@@ -24,7 +25,12 @@ class TcpResultAdapter : ListAdapter<TcpCheckResult, TcpResultAdapter.ViewHolder
             )
 
             binding.details.text = buildString {
-                append(ctx.getString(R.string.ib_tcp_alive, ctx.getString(if (result.alive) R.string.yes else R.string.no)))
+                append(
+                    ctx.getString(
+                        R.string.ib_tcp_alive,
+                        ctx.getString(if (result.alive) R.string.yes else R.string.no)
+                    )
+                )
                 result.rtt?.let { append(ctx.getString(R.string.ib_tcp_rtt, it)) }
                 result.blockKb?.let { append(ctx.getString(R.string.ib_tcp_block_at, it)) }
                 result.blockDetail?.let { append("\n$it") }

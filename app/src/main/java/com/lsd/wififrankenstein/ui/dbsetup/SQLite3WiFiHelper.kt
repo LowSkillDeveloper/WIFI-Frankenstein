@@ -264,7 +264,10 @@ class SQLite3WiFiHelper(
                         if (isAppManagedFile(file)) {
                             Log.w(TAG, "Deleting corrupted app-managed file: ${file.path}")
                             if (!file.delete()) {
-                                Log.w(TAG, "Failed to delete corrupted app-managed file: ${file.path}")
+                                Log.w(
+                                    TAG,
+                                    "Failed to delete corrupted app-managed file: ${file.path}"
+                                )
                             }
                             val metadataFile = File(file.parentFile, "${file.name}.metadata")
                             if (metadataFile.exists()) metadataFile.delete()
@@ -1064,7 +1067,8 @@ class SQLite3WiFiHelper(
                             if (lastModified == originalLastModified) {
                                 when (checkSqliteIntegrity(tempFile.absolutePath)) {
                                     SqliteIntegrity.OK -> {
-                                        selectedFileSize = tempFile.length().toFloat() / (1024 * 1024)
+                                        selectedFileSize =
+                                            tempFile.length().toFloat() / (1024 * 1024)
                                         return tempFile
                                     }
 

@@ -461,7 +461,10 @@ class SmartLinkDbHelper(private val context: Context) {
                         }
 
                         downloadUrl.endsWith(".zip", true) || downloadUrl.endsWith(".7z", true) ||
-                                downloadUrl.endsWith(".gz", true) || downloadUrl.endsWith(".tgz", true) ||
+                                downloadUrl.endsWith(".gz", true) || downloadUrl.endsWith(
+                            ".tgz",
+                            true
+                        ) ||
                                 downloadUrl.endsWith(".tar", true) -> {
                             downloadAndExtractArchiveWithResume(
                                 dbInfo,
@@ -530,7 +533,11 @@ class SmartLinkDbHelper(private val context: Context) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: MegaQuotaException) {
-                Log.e(TAG, "Download failed due to MEGA bandwidth quota, preserving partial download", e)
+                Log.e(
+                    TAG,
+                    "Download failed due to MEGA bandwidth quota, preserving partial download",
+                    e
+                )
                 throw e
             } catch (e: Exception) {
                 clearDownloadMetadata(dbInfo.id)
@@ -1186,7 +1193,10 @@ class SmartLinkDbHelper(private val context: Context) {
                         downloadedFile.renameTo(tempArchiveFile)
                         var lastExtractPct = -1
                         try {
-                            extractArchiveWithValidation(tempArchiveFile, outputFile) { bytes, total ->
+                            extractArchiveWithValidation(
+                                tempArchiveFile,
+                                outputFile
+                            ) { bytes, total ->
                                 val pct = if (total != null && total > 0) {
                                     ((bytes.toDouble() / total.toDouble()) * 100).toInt()
                                 } else 0
@@ -1216,7 +1226,11 @@ class SmartLinkDbHelper(private val context: Context) {
                     break
                 } catch (e: IOException) {
                     lastError = e
-                    Log.e(TAG, "MEGA download attempt $attempt/$maxAttempts failed: ${e.message}", e)
+                    Log.e(
+                        TAG,
+                        "MEGA download attempt $attempt/$maxAttempts failed: ${e.message}",
+                        e
+                    )
                     resumeBytes = tempFile.length()
                     if (attempt < maxAttempts) {
                         withContext(Dispatchers.Main) {
@@ -1257,6 +1271,7 @@ class SmartLinkDbHelper(private val context: Context) {
                 length >= 6 && bytes[0] == 0x37.toByte() && bytes[1] == 0x7A.toByte() &&
                         bytes[2] == 0xBC.toByte() && bytes[3] == 0xAF.toByte() &&
                         bytes[4] == 0x27.toByte() && bytes[5] == 0x1C.toByte() -> "7z"
+
                 isTarMagic(bytes, length) -> "tar"
                 isGzipMagic(bytes, length) -> "gz"
                 else -> "zip"
@@ -1478,7 +1493,9 @@ class SmartLinkDbHelper(private val context: Context) {
                 else -> {
                     val fullName = firstUrl.substringAfterLast('/')
                     val extensionMatch =
-                        Regex("\\.(zip|7z|tgz|tar|gz)\\.[0-9]+$", RegexOption.IGNORE_CASE).find(fullName)
+                        Regex("\\.(zip|7z|tgz|tar|gz)\\.[0-9]+$", RegexOption.IGNORE_CASE).find(
+                            fullName
+                        )
                     extensionMatch?.groupValues?.get(1)?.lowercase() ?: "zip"
                 }
             }
@@ -1881,7 +1898,11 @@ class SmartLinkDbHelper(private val context: Context) {
                 } else {
                     val url = downloadUrls.first()
                     if (url.endsWith(".zip", true) || url.endsWith(".7z", true)) {
-                        downloadAndExtractArchiveWithResume(dbInfo, url, file) { progress, bytes, _ ->
+                        downloadAndExtractArchiveWithResume(
+                            dbInfo,
+                            url,
+                            file
+                        ) { progress, bytes, _ ->
                             progressCallback(if (progress == PROGRESS_EXTRACT) bytes.toInt() else progress)
                         }
                     } else {

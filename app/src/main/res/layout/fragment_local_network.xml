@@ -111,6 +111,7 @@
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/subnetInfoCard"
                 android:layout_width="match_parent"
@@ -150,6 +151,7 @@
                         tools:text="Gateway: 192.168.1.1" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -205,6 +207,7 @@
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -268,6 +271,7 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
     <LinearLayout
         android:id="@+id/placeholderChroot"
         android:layout_width="match_parent"
@@ -335,6 +339,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
+
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/progressCard"
         android:layout_width="match_parent"
