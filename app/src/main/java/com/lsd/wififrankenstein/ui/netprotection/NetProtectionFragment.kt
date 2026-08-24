@@ -16,7 +16,6 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import androidx.appcompat.widget.SwitchCompat
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentNetProtectionBinding
 import com.lsd.wififrankenstein.service.NetProtectionService
