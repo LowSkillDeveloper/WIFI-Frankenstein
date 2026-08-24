@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
 import android.os.Looper
+import android.os.StatFs
 import com.lsd.wififrankenstein.ui.databasefinder.AdvancedSearchQuery
 import com.lsd.wififrankenstein.ui.databasefinder.SearchMode
 import com.lsd.wififrankenstein.ui.ipranges.IpRangeManager
@@ -29,7 +30,6 @@ import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
-import android.os.StatFs
 
 class DirectPathInaccessibleException(message: String) : Exception(message)
 

@@ -3,7 +3,6 @@ package com.lsd.wififrankenstein.util
 import android.content.Context
 import android.os.Environment
 import com.lsd.wififrankenstein.ui.iwwifi.IwWifiManager
-import com.lsd.wififrankenstein.util.ChrootCapabilities
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
