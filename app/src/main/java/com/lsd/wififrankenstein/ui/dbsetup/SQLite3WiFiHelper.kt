@@ -29,6 +29,7 @@ import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
+import android.os.StatFs
 
 
 class SQLite3WiFiHelper(
@@ -986,7 +987,7 @@ class SQLite3WiFiHelper(
         return if (cachedFile.exists()) cachedFile else null
     }
 
-    private fun copyUriToTempFileWithRetry(uri: Uri, maxRetries: Int = 3): File {
+    internal fun copyUriToTempFileWithRetry(uri: Uri, maxRetries: Int = 3): File {
         var lastException: Exception? = null
         val isMainThread = Looper.myLooper() == Looper.getMainLooper()
         val effectiveRetries = if (isMainThread) 1 else maxRetries
@@ -998,75 +999,126 @@ class SQLite3WiFiHelper(
             )
         }
 
-        repeat(effectiveRetries) { attempt ->
-            try {
-                val fileName = getFileNameFromUri(uri)
-                val tempFile = File(cacheDir, fileName)
+        val fileName = getFileNameFromUri(uri)
+        val copyLock = copyLocksPerFile.getOrPut(fileName) { Any() }
 
-                if (tempFile.exists()) {
-                    if (CompatibilityHelper.isFileAccessible(tempFile)) {
-                        val lastModified = getCachedLastModified(tempFile)
-                        val originalLastModified = getOriginalLastModified(uri)
-                        if (lastModified == originalLastModified) {
-                            if (checkSqliteIntegrity(tempFile.absolutePath)) {
-                                selectedFileSize = tempFile.length().toFloat() / (1024 * 1024)
-                                return tempFile
-                            } else {
-                                Log.w(TAG, "Cached file is corrupted, re-copying: ${tempFile.path}")
+        synchronized(copyLock) {
+            for (attempt in 0 until effectiveRetries) {
+                try {
+                    val tempFile = File(cacheDir, fileName)
+
+                    if (tempFile.exists()) {
+                        if (CompatibilityHelper.isFileAccessible(tempFile)) {
+                            val lastModified = getCachedLastModified(tempFile)
+                            val originalLastModified = getOriginalLastModified(uri)
+                            if (lastModified == originalLastModified) {
+                                if (checkSqliteIntegrity(tempFile.absolutePath)) {
+                                    selectedFileSize = tempFile.length().toFloat() / (1024 * 1024)
+                                    return tempFile
+                                } else {
+                                    Log.w(TAG, "Cached file is corrupted, re-copying: ${tempFile.path}")
+                                }
+                            }
+                        }
+                        tempFile.delete()
+                    }
+
+                    ensureEnoughFreeSpace(uri, tempFile)
+
+                    val bufferSize = if (CompatibilityHelper.isLowMemoryDevice()) 4096 else 8192
+                    var totalBytes = 0L
+
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        FileOutputStream(tempFile).use { output ->
+                            val buffer = ByteArray(bufferSize)
+                            var bytesRead: Int
+                            while (input.read(buffer).also { bytesRead = it } != -1) {
+                                output.write(buffer, 0, bytesRead)
+                                totalBytes += bytesRead
+
+                                if (totalBytes > 500 * 1024 * 1024 && CompatibilityHelper.isLowMemoryDevice()) {
+                                    throw IllegalStateException("File too large for this device")
+                                }
                             }
                         }
                     }
-                    tempFile.delete()
-                }
 
-                val bufferSize = if (CompatibilityHelper.isLowMemoryDevice()) 4096 else 8192
-                var totalBytes = 0L
-
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    FileOutputStream(tempFile).use { output ->
-                        val buffer = ByteArray(bufferSize)
-                        var bytesRead: Int
-                        while (input.read(buffer).also { bytesRead = it } != -1) {
-                            output.write(buffer, 0, bytesRead)
-                            totalBytes += bytesRead
-
-                            if (totalBytes > 500 * 1024 * 1024 && CompatibilityHelper.isLowMemoryDevice()) {
-                                throw IllegalStateException("File too large for this device")
-                            }
-                        }
+                    if (!CompatibilityHelper.isFileAccessible(tempFile)) {
+                        tempFile.delete()
+                        throw IllegalStateException("Copied file is not accessible")
                     }
-                }
 
-                if (!CompatibilityHelper.isFileAccessible(tempFile)) {
-                    tempFile.delete()
-                    throw IllegalStateException("Copied file is not accessible")
-                }
+                    if (!checkSqliteIntegrity(tempFile.absolutePath)) {
+                        tempFile.delete()
+                        throw IllegalStateException("Copied file from URI is corrupted/incomplete")
+                    }
 
-                if (!checkSqliteIntegrity(tempFile.absolutePath)) {
-                    tempFile.delete()
-                    throw IllegalStateException("Copied file from URI is corrupted/incomplete")
-                }
+                    val originalLastModified = getOriginalLastModified(uri)
+                    saveCachedLastModified(tempFile, originalLastModified)
+                    selectedFileSize = tempFile.length().toFloat() / (1024 * 1024)
 
-                val originalLastModified = getOriginalLastModified(uri)
-                saveCachedLastModified(tempFile, originalLastModified)
-                selectedFileSize = tempFile.length().toFloat() / (1024 * 1024)
+                    return tempFile
 
-                return tempFile
-
-            } catch (e: Exception) {
-                lastException = e
-                Log.w(TAG, "Copy attempt ${attempt + 1} failed", e)
-                if (!isMainThread && attempt < effectiveRetries - 1) {
-                    Thread.sleep(1000)
+                } catch (e: Exception) {
+                    lastException = e
+                    Log.w(TAG, "Copy attempt ${attempt + 1} failed", e)
+                    runCatching { File(cacheDir, fileName).delete() }
+                    if (e.isOutOfSpaceError()) break
+                    if (!isMainThread && attempt < effectiveRetries - 1) {
+                        Thread.sleep(1000)
+                    }
                 }
             }
         }
 
+        val cause = lastException
         throw IllegalArgumentException(
-            "Failed to copy URI to temp file after $effectiveRetries attempts",
-            lastException
+            if (cause?.isOutOfSpaceError() == true) buildNotEnoughSpaceMessage(cause) else
+                "Failed to copy URI to temp file after $effectiveRetries attempts",
+            cause
         )
     }
+
+    private fun ensureEnoughFreeSpace(uri: Uri, targetFile: File) {
+        val sourceSize = try {
+            context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: 0L
+        } catch (e: Exception) {
+            Log.w(TAG, "Cannot determine source size for free space check", e)
+            0L
+        }
+        if (sourceSize <= 0L) return
+
+        val stat = StatFs(targetFile.parentFile?.absolutePath ?: cacheDir.absolutePath)
+        val availableBytes = stat.availableBytes
+        val requiredBytes = (sourceSize * 1.15).toLong()
+
+        if (availableBytes < requiredBytes) {
+            throw InsufficientStorageException(
+                requiredBytes = requiredBytes,
+                availableBytes = availableBytes
+            )
+        }
+    }
+
+    private fun buildNotEnoughSpaceMessage(cause: Exception): String {
+        val neededMb = cause.message?.let { msg ->
+            Regex("need=(\\d+)").find(msg)?.groupValues?.get(1)?.toLong()
+        } ?: 0L
+        return "Failed to copy URI to temp file: not enough storage space" +
+                (if (neededMb > 0) " (need ~${neededMb / (1024 * 1024)} MB free)" else "")
+    }
+
+    private fun Exception.isOutOfSpaceError(): Boolean {
+        if (this is InsufficientStorageException) return true
+        val text = (message ?: "") + (cause?.message ?: "")
+        return text.contains("ENOSPC", ignoreCase = true) ||
+                text.contains("No space left", ignoreCase = true)
+    }
+
+    class InsufficientStorageException(
+        requiredBytes: Long,
+        availableBytes: Long
+    ) : IllegalStateException("Insufficient storage: need=$requiredBytes available=$availableBytes")
 
     private fun getOriginalLastModified(uri: Uri): Long {
         return try {
@@ -1688,14 +1740,22 @@ class SQLite3WiFiHelper(
     ): List<Pair<String, List<String>>> {
         val (prefix, tail) = caseVariantParts(query)
         return enumerateCaseVariants(prefix).map { variant ->
-            val cond = "$column >= ? AND $column < (? || char(0))"
+            val cond = "$column >= ? AND $column < ?"
             if (tail == null) {
-                cond to listOf(variant, variant)
+                val upper = prefixSuccessor(variant)
+                cond to listOf(variant, upper)
             } else {
+                val upper = prefixSuccessor(variant)
                 cond + " AND UPPER(substr($column, ${prefix.length + 1})) LIKE UPPER(?)" to
-                        listOf(variant, variant, "$tail%")
+                        listOf(variant, upper, "$tail%")
             }
         }
+    }
+
+    private fun prefixSuccessor(prefix: String): String {
+        if (prefix.isEmpty()) return "\u0001"
+        val last = prefix.last()
+        return prefix.dropLast(1) + ((last.code + 1).toChar())
     }
 
     private fun caseInsensitiveEquals(column: String, query: String): Pair<String, List<String>> {
@@ -2125,6 +2185,9 @@ class SQLite3WiFiHelper(
         private val MAC_HEX_MIN_REGEX = Regex("[0-9A-Fa-f]+")
         private val MAC_FULL_REGEX = Regex("[0-9A-Fa-f:.-]+")
         private val HEX_PAIR_REGEX = Regex("(.{2})")
+
+        private val copyLocksPerFile = ConcurrentHashMap<String, Any>()
+
 
         fun deleteCachedDatabase(context: Context, dbUri: Uri) {
             val cacheDir = File(context.cacheDir, "CacheDB")
