@@ -31,6 +31,9 @@ import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import android.os.StatFs
 
+class DirectPathInaccessibleException(message: String) : Exception(message)
+
+private enum class SqliteIntegrity { OK, CORRUPT, INACCESSIBLE }
 
 class SQLite3WiFiHelper(
     private val context: Context,
@@ -39,6 +42,9 @@ class SQLite3WiFiHelper(
     deferOpen: Boolean = false
 ) : SQLiteOpenHelper(context, null, null, 1) {
     var database: SQLiteDatabase? = null
+
+    var corruptionDetected: Boolean = false
+        private set
     private var selectedFileSize: Float = 0f
     private val databaseLock = Mutex()
 
@@ -65,7 +71,15 @@ class SQLite3WiFiHelper(
                 Log.d(TAG, "Attempting to open database from direct path: $directPath")
                 try {
                     database = openDatabaseFromDirectPath()
+                    corruptionDetected = false
                     Log.d(TAG, "Successfully opened database from direct path")
+                } catch (e: DirectPathInaccessibleException) {
+                    Log.i(
+                        TAG,
+                        "Direct path not accessible (${e.message}), falling back to URI method. " +
+                                "Grant 'All files access' to use the direct path."
+                    )
+                    database = null
                 } catch (e: Exception) {
                     Log.w(
                         TAG,
@@ -81,6 +95,7 @@ class SQLite3WiFiHelper(
             if (database == null) {
                 try {
                     database = openDatabaseFromUri()
+                    corruptionDetected = false
                     Log.d(TAG, "Successfully opened database from URI method")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to open database from URI method", e)
@@ -105,6 +120,7 @@ class SQLite3WiFiHelper(
         return try {
             database = copyUriToCacheWithProgress(onProgress)
             if (database != null) {
+                corruptionDetected = false
                 Log.d(TAG, "Successfully copied and opened database from URI to cache")
             } else {
                 Log.e(TAG, "Failed to copy database - result is null")
@@ -159,7 +175,7 @@ class SQLite3WiFiHelper(
                 tempFile.path,
                 null,
                 SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-                SafeDatabaseErrorHandler()
+                SafeDatabaseErrorHandler(context)
             )
         } catch (e: Exception) {
             tempFile.delete()
@@ -182,13 +198,10 @@ class SQLite3WiFiHelper(
     var indexLevel: DatabaseIndices.IndexLevel = DatabaseIndices.IndexLevel.NONE
         private set
 
-    var corruptionDetected: Boolean = false
-        private set
-
-    private fun checkSqliteIntegrity(filePath: String): Boolean {
+    private fun checkSqliteIntegrity(filePath: String): SqliteIntegrity {
         return try {
             RandomAccessFile(filePath, "r").use { raf ->
-                if (raf.length() < 100) return false
+                if (raf.length() < 100) return@use SqliteIntegrity.CORRUPT
                 val header = ByteArray(100)
                 raf.readFully(header)
 
@@ -204,17 +217,34 @@ class SQLite3WiFiHelper(
                 val expectedSize = pageCount.toLong() * effectivePageSize
                 val actualSize = raf.length()
 
-                val valid = actualSize >= expectedSize
-                if (!valid) {
+                if (actualSize >= expectedSize) {
+                    SqliteIntegrity.OK
+                } else {
                     Log.w(
                         TAG,
                         "SQLite integrity check failed: header claims $pageCount pages ($expectedSize bytes), file is $actualSize bytes"
                     )
+                    SqliteIntegrity.CORRUPT
                 }
-                valid
             }
         } catch (e: Exception) {
-            Log.w(TAG, "SQLite integrity check error for $filePath", e)
+            Log.w(
+                TAG,
+                "Cannot read $filePath (${e.javaClass.simpleName}: ${e.message}) - treating as inaccessible, not corrupt",
+                e
+            )
+            SqliteIntegrity.INACCESSIBLE
+        }
+    }
+
+    private fun isAppManagedFile(file: File): Boolean {
+        return try {
+            val canonical = file.canonicalPath
+            listOf(context.cacheDir, context.filesDir).any { root ->
+                canonical.startsWith(root.canonicalPath + File.separator)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to resolve app-managed paths", e)
             false
         }
     }
@@ -223,13 +253,33 @@ class SQLite3WiFiHelper(
         Log.d(TAG, "Opening database from direct path: $directPath")
         if (directPath != null) {
             val file = File(directPath)
-            if (file.exists() && !checkSqliteIntegrity(directPath)) {
-                Log.e(TAG, "Cached database corrupted at $directPath, removing and falling back")
-                file.delete()
-                val metadataFile = File(file.parentFile, "${file.name}.metadata")
-                if (metadataFile.exists()) metadataFile.delete()
-                corruptionDetected = true
-                throw IllegalStateException("Database corrupted at $directPath")
+            if (file.exists()) {
+                when (checkSqliteIntegrity(directPath)) {
+                    SqliteIntegrity.INACCESSIBLE -> {
+                        throw DirectPathInaccessibleException("Direct path not accessible: $directPath")
+                    }
+
+                    SqliteIntegrity.CORRUPT -> {
+                        Log.e(TAG, "Database corrupted at $directPath")
+                        if (isAppManagedFile(file)) {
+                            Log.w(TAG, "Deleting corrupted app-managed file: ${file.path}")
+                            if (!file.delete()) {
+                                Log.w(TAG, "Failed to delete corrupted app-managed file: ${file.path}")
+                            }
+                            val metadataFile = File(file.parentFile, "${file.name}.metadata")
+                            if (metadataFile.exists()) metadataFile.delete()
+                        } else {
+                            Log.e(
+                                TAG,
+                                "Refusing to delete user file outside app storage: ${file.path}"
+                            )
+                        }
+                        corruptionDetected = true
+                        throw IllegalStateException("Database corrupted at $directPath")
+                    }
+
+                    SqliteIntegrity.OK -> Unit
+                }
             }
         }
         return try {
@@ -237,7 +287,7 @@ class SQLite3WiFiHelper(
                 directPath!!,
                 null,
                 SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-                SafeDatabaseErrorHandler()
+                SafeDatabaseErrorHandler(context)
             )
             Log.d(TAG, "Database opened successfully from direct path")
             DatabaseOptimizer.optimizeDatabase(db)
@@ -271,7 +321,7 @@ class SQLite3WiFiHelper(
                     cachedFile.path,
                     null,
                     SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-                    SafeDatabaseErrorHandler()
+                    SafeDatabaseErrorHandler(context)
                 )
                 hasQuadkey = DatabaseTypeUtils.hasColumn(db, "geo", "quadkey")
                 db
@@ -291,7 +341,7 @@ class SQLite3WiFiHelper(
             tempFile.path,
             null,
             SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-            SafeDatabaseErrorHandler()
+            SafeDatabaseErrorHandler(context)
         )
         hasQuadkey = DatabaseTypeUtils.hasColumn(db, "geo", "quadkey")
         indexLevel = DatabaseIndices.determineIndexLevel(db)
@@ -1012,11 +1062,16 @@ class SQLite3WiFiHelper(
                             val lastModified = getCachedLastModified(tempFile)
                             val originalLastModified = getOriginalLastModified(uri)
                             if (lastModified == originalLastModified) {
-                                if (checkSqliteIntegrity(tempFile.absolutePath)) {
-                                    selectedFileSize = tempFile.length().toFloat() / (1024 * 1024)
-                                    return tempFile
-                                } else {
-                                    Log.w(TAG, "Cached file is corrupted, re-copying: ${tempFile.path}")
+                                when (checkSqliteIntegrity(tempFile.absolutePath)) {
+                                    SqliteIntegrity.OK -> {
+                                        selectedFileSize = tempFile.length().toFloat() / (1024 * 1024)
+                                        return tempFile
+                                    }
+
+                                    else -> Log.w(
+                                        TAG,
+                                        "Cached file failed integrity check, re-copying: ${tempFile.path}"
+                                    )
                                 }
                             }
                         }
@@ -1048,7 +1103,7 @@ class SQLite3WiFiHelper(
                         throw IllegalStateException("Copied file is not accessible")
                     }
 
-                    if (!checkSqliteIntegrity(tempFile.absolutePath)) {
+                    if (checkSqliteIntegrity(tempFile.absolutePath) != SqliteIntegrity.OK) {
                         tempFile.delete()
                         throw IllegalStateException("Copied file from URI is corrupted/incomplete")
                     }

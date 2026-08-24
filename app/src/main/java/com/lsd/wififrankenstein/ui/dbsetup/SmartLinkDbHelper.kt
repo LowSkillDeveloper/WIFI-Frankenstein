@@ -665,7 +665,7 @@ class SmartLinkDbHelper(private val context: Context) {
             path,
             null,
             SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-            SafeDatabaseErrorHandler()
+            SafeDatabaseErrorHandler(context)
         )
     }
 
