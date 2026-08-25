@@ -112,46 +112,49 @@ class PskOfflineBruteForceRunner(private val context: Context) {
             val chunkChannel = Channel<ChunkData>(capacity = workerCount * 4)
 
             val producerJob = scope.launch(Dispatchers.IO) {
-                supervisorScope {
-                    val reader = BufferedReader(InputStreamReader(inputStream))
-                    var linesSkipped = 0L
-                    var batch = mutableListOf<String>()
+                try {
+                    supervisorScope {
+                        val reader = BufferedReader(InputStreamReader(inputStream))
+                        var linesSkipped = 0L
+                        var batch = mutableListOf<String>()
 
-                    reader.use { br ->
-                        var line: String?
+                        reader.use { br ->
+                            var line: String?
 
-                        if (startOffset > 0) {
-                            while (linesSkipped < startOffset && br.readLine()
-                                    .also { line = it } != null
-                            ) {
-                                linesSkipped++
+                            if (startOffset > 0) {
+                                while (linesSkipped < startOffset && br.readLine()
+                                        .also { line = it } != null
+                                ) {
+                                    linesSkipped++
+                                    fileOffset++
+                                }
+                            }
+
+                            while (br.readLine().also { line = it } != null && !cancelled) {
+                                while (paused && !cancelled) {
+                                    delay(PAUSE_POLL_MS)
+                                }
+                                if (cancelled) break
+
+                                val pw = line!!.trim().trimStart('\uFEFF')
                                 fileOffset++
+                                if (pw.isEmpty() || pw.startsWith("#")) continue
+                                batch.add(pw)
+
+                                if (batch.size >= CHUNK_SIZE) {
+                                    chunkChannel.send(ChunkData(batch.toList(), fileOffset))
+                                    batch = mutableListOf()
+                                }
                             }
                         }
 
-                        while (br.readLine().also { line = it } != null && !cancelled) {
-                            while (paused && !cancelled) {
-                                delay(PAUSE_POLL_MS)
-                            }
-                            if (cancelled) break
-
-                            val pw = line!!.trim().trimStart('\uFEFF')
-                            fileOffset++
-                            if (pw.isEmpty() || pw.startsWith("#")) continue
-                            batch.add(pw)
-
-                            if (batch.size >= CHUNK_SIZE) {
-                                chunkChannel.send(ChunkData(batch.toList(), fileOffset))
-                                batch = mutableListOf()
-                            }
+                        if (batch.isNotEmpty() && !cancelled) {
+                            chunkChannel.send(ChunkData(batch.toList(), fileOffset))
                         }
                     }
-
-                    if (batch.isNotEmpty() && !cancelled) {
-                        chunkChannel.send(ChunkData(batch.toList(), fileOffset))
-                    }
+                } finally {
+                    chunkChannel.close()
                 }
-                chunkChannel.close()
             }
 
             val workers = List(workerCount) {
@@ -262,6 +265,116 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         )
     }
 
+    suspend fun crackFromMask(
+        handshakeHash: HandshakeHash,
+        extraHashes: List<HandshakeHash> = emptyList(),
+        mask: String,
+        threadCount: Int = Runtime.getRuntime().availableProcessors().coerceAtLeast(1),
+        startOffset: Long = 0,
+        onProgress: ((OfflineProgress) -> Unit)? = null,
+        onPasswordFound: ((String) -> Unit)? = null
+    ): OfflineResult {
+        val parsed = MaskCracker.parse(mask)
+        if (!parsed.isValid || parsed.totalCombinations <= 0) {
+            return OfflineResult(null, 0, 0, 0.0, offset = 0)
+        }
+        cancelled = false
+        paused = false
+        foundDelivered = false
+        val startTime = System.currentTimeMillis()
+        val allHashes = (listOf(handshakeHash) + extraHashes).distinctBy { it.dedupKey() }
+        val totalPasswords = parsed.totalCombinations
+        val totalAttempts = LongAdder()
+        var foundPassword: String? = null
+        var currentIndex = startOffset
+        val speedWindow = mutableListOf<Pair<Long, Long>>()
+        val workerCount = threadCount.coerceAtLeast(1)
+
+        try {
+            val progressChannel = Channel<OfflineProgress>(Channel.CONFLATED)
+            val resultChannel = Channel<String?>(Channel.CONFLATED)
+            val chunkChannel = Channel<ChunkData>(capacity = workerCount * 4)
+
+            val producerJob = scope.launch(Dispatchers.IO) {
+                try {
+                    var index = startOffset
+                    while (index < totalPasswords && !cancelled) {
+                        while (paused && !cancelled) delay(PAUSE_POLL_MS)
+                        if (cancelled) break
+                        val batchEnd = minOf(index + CHUNK_SIZE, totalPasswords)
+                        val batch = (index until batchEnd).map {
+                            MaskCracker.generateAt(parsed, it)
+                        }
+                        chunkChannel.send(ChunkData(batch, batchEnd))
+                        index = batchEnd
+                    }
+                } finally {
+                    chunkChannel.close()
+                }
+            }
+
+            val workers = List(workerCount) {
+                scope.launch {
+                    for (chunk in chunkChannel) {
+                        crackChunk(chunk.passwords, allHashes, progressChannel,
+                            resultChannel, chunk.offset, totalAttempts)
+                    }
+                }
+            }
+
+            val progressConsumerJob = scope.launch(Dispatchers.IO) {
+                for (p in progressChannel) {
+                    if (foundDelivered) continue
+                    val attemptsSnapshot = totalAttempts.sum()
+                    val elapsed = System.currentTimeMillis() - startTime
+                    speedWindow.add(elapsed to attemptsSnapshot)
+                    while (speedWindow.size > 2 &&
+                        speedWindow.last().first - speedWindow.first().first > 5000) {
+                        speedWindow.removeAt(0)
+                    }
+                    val speed = if (speedWindow.size >= 2) {
+                        val dt = speedWindow.last().first - speedWindow.first().first
+                        val da = speedWindow.last().second - speedWindow.first().second
+                        if (dt > 0) da.toDouble() / dt * 1000.0 else 0.0
+                    } else 0.0
+                    val etaMs = if (speed > 0 && totalPasswords > attemptsSnapshot) {
+                        ((totalPasswords - attemptsSnapshot) / speed * 1000.0).toLong().coerceAtLeast(0)
+                    } else 0L
+                    onProgress?.invoke(OfflineProgress(
+                        p.currentPassword, attemptsSnapshot, totalPasswords,
+                        speed, elapsed, etaMs, p.offset
+                    ))
+                }
+            }
+
+            val resultConsumerJob = scope.launch(Dispatchers.IO) {
+                for (password in resultChannel) {
+                    if (password != null) {
+                        foundDelivered = true
+                        foundPassword = password
+                        onPasswordFound?.invoke(password)
+                        cancelled = true
+                    }
+                }
+            }
+
+            producerJob.join()
+            workers.joinAll()
+            progressChannel.close()
+            resultChannel.close()
+            progressConsumerJob.join()
+            resultConsumerJob.join()
+        } catch (e: Exception) {
+            if (!cancelled) Log.e(TAG, "Mask crack failed", e)
+        }
+
+        val elapsed = System.currentTimeMillis() - startTime
+        val attempts = totalAttempts.sum()
+        val avgSpeed = if (elapsed > 0) attempts.toDouble() / elapsed * 1000.0 else 0.0
+        return OfflineResult(foundPassword, attempts, elapsed, avgSpeed,
+            cancelled = cancelled && foundPassword == null, offset = currentIndex)
+    }
+
     private suspend fun crackChunk(
         passwords: List<String>,
         hashes: List<HandshakeHash>,
@@ -332,51 +445,59 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                     var nativeFailed = false
                     for ((_, group) in nativeGroups) {
                         if (found != null || cancelled) break
-                        val idx = try {
-                            NativeCracker.crackBatchMultiHex(
-                                batch,
-                                group[0].essid,
-                                Array(group.size) { g ->
-                                    group[g].macAp.replace(":", "").lowercase()
-                                },
-                                Array(group.size) { g ->
-                                    group[g].macSta.replace(":", "").lowercase()
-                                },
-                                Array(group.size) { g -> group[g].anonce?.lowercase() ?: "" },
-                                Array(group.size) { g -> group[g].eapol?.lowercase() ?: "" },
-                                Array(group.size) { g -> group[g].pmkidOrMic.lowercase() },
-                                IntArray(group.size) { g -> group[g].keyver ?: 2 },
-                                IntArray(group.size) { g ->
-                                    when (group[g].type) {
-                                        HandshakeType.PMKID -> 1
-                                        HandshakeType.EAPOL -> 2
-                                        HandshakeType.PMKID_EAPOL -> 3
-                                    }
-                                }
-                            )
-                        } catch (e: Throwable) {
-                            nativeFailed = true
-                            Log.e(TAG, "Native batch error, falling back to JVM: ${e.message}", e)
-                            -1
-                        }
-                        if (idx >= 0 && idx < batch.size) {
-                            val candidate = batch[idx]
-                            if (group.any { WpaCracker.tryPasswordAny(candidate, it) }) {
-                                found = candidate
-                                break
-                            } else {
-                                Log.w(
-                                    TAG,
-                                    "Native reported hit at $idx but JVM rejected it; " +
-                                            "re-verifying whole batch in JVM"
-                                )
-                                for (pw in batch) {
-                                    if (allHashesForVerification.any {
-                                            WpaCracker.tryPasswordAny(pw, it)
+                        for (subGroup in group.chunked(32)) {
+                            if (found != null || cancelled) break
+                            val idx = try {
+                                NativeCracker.crackBatchMultiHex(
+                                    batch,
+                                    subGroup[0].essid,
+                                    Array(subGroup.size) { g ->
+                                        subGroup[g].macAp.replace(":", "").lowercase()
+                                    },
+                                    Array(subGroup.size) { g ->
+                                        subGroup[g].macSta.replace(":", "").lowercase()
+                                    },
+                                    Array(subGroup.size) { g ->
+                                        subGroup[g].anonce?.lowercase() ?: ""
+                                    },
+                                    Array(subGroup.size) { g ->
+                                        subGroup[g].eapol?.lowercase() ?: ""
+                                    },
+                                    Array(subGroup.size) { g ->
+                                        subGroup[g].pmkidOrMic.lowercase()
+                                    },
+                                    IntArray(subGroup.size) { g -> subGroup[g].keyver ?: 2 },
+                                    IntArray(subGroup.size) { g ->
+                                        when (subGroup[g].type) {
+                                            HandshakeType.PMKID -> 1
+                                            HandshakeType.EAPOL -> 2
+                                            HandshakeType.PMKID_EAPOL -> 3
                                         }
-                                    ) {
-                                        found = pw
-                                        break
+                                    }
+                                )
+                            } catch (e: Throwable) {
+                                nativeFailed = true
+                                Log.e(TAG, "Native batch error: ${e.message}", e)
+                                -1
+                            }
+                            if (idx >= 0 && idx < batch.size) {
+                                val candidate = batch[idx]
+                                if (subGroup.any { WpaCracker.tryPasswordAny(candidate, it) }) {
+                                    found = candidate
+                                    break
+                                } else {
+                                    Log.w(
+                                        TAG,
+                                        "Native hit at $idx rejected by JVM; re-verifying batch"
+                                    )
+                                    for (pw in batch) {
+                                        if (allHashesForVerification.any {
+                                                WpaCracker.tryPasswordAny(pw, it)
+                                            }
+                                        ) {
+                                            found = pw
+                                            break
+                                        }
                                     }
                                 }
                                 if (found != null) break

@@ -41,6 +41,7 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
     }
 
     var onWordlistSelected: ((Uri, String) -> Unit)? = null
+    var onMaskSelected: ((String, Array<String>) -> Unit)? = null
 
     private val wordlistPicker = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -77,7 +78,8 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
             SourceOption(R.drawable.ic_file_download, getString(R.string.brute_source_from_url)),
             SourceOption(R.drawable.ic_content_copy, getString(R.string.brute_source_paste)),
             SourceOption(R.drawable.cloud_download_24px, getString(R.string.brute_source_wpa_sec)),
-            SourceOption(R.drawable.ic_key, getString(R.string.brute_source_single))
+            SourceOption(R.drawable.ic_key, getString(R.string.brute_source_single)),
+            SourceOption(R.drawable.ic_edit, getString(R.string.brute_source_mask))
         )
 
         val density = resources.displayMetrics.density
@@ -151,6 +153,7 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
             2 -> showWordlistPasteDialog()
             3 -> useWpaSecDict()
             4 -> showSinglePasswordDialog()
+            5 -> showMaskDialog()
         }
     }
 
@@ -303,6 +306,70 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
             }
             pickWordlist(Uri.fromFile(file), getString(R.string.brute_pasted, passwords.size))
         }
+    }
+
+    private fun showMaskDialog() {
+        val context = requireContext()
+        val dp = (resources.displayMetrics.density).toInt()
+
+        val layout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 32, 48, 16)
+        }
+
+        val maskInput = android.widget.EditText(context).apply {
+            hint = getString(R.string.brute_mask_hint)
+            setSingleLine(true)
+            setPadding(dp * 12, dp * 8, dp * 12, dp * 8)
+        }
+        layout.addView(maskInput)
+
+        val countLabel = TextView(context).apply {
+            setPadding(dp * 12, dp * 8, dp * 12, dp * 8)
+            setTextAppearance(
+                com.google.android.material.R.style.TextAppearance_Material3_BodySmall
+            )
+        }
+        layout.addView(countLabel)
+
+        fun updateCount() {
+            val parsed = com.lsd.wififrankenstein.util.MaskCracker.parse(
+                maskInput.text.toString()
+            )
+            countLabel.text = when {
+                !parsed.isValid -> parsed.error ?: ""
+                parsed.totalCombinations <= 0 -> getString(R.string.brute_mask_no_combinations)
+                else -> {
+                    val count = if (true) {
+                        parsed.exactCombinations.toString()
+                    } else {
+                        parsed.totalCombinations.toString()
+                    }
+                    context.getString(R.string.brute_mask_combinations, count)
+                }
+            }
+        }
+
+        maskInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) = updateCount()
+        })
+        updateCount()
+
+        MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.brute_source_mask)
+            .setView(layout)
+            .setPositiveButton(R.string.brute_start) { _, _ ->
+                val mask = maskInput.text.toString().trim()
+                if (mask.isBlank()) return@setPositiveButton
+                val parsed = com.lsd.wififrankenstein.util.MaskCracker.parse(mask)
+                if (!parsed.isValid || parsed.totalCombinations <= 0) return@setPositiveButton
+                dismiss()
+                onMaskSelected?.invoke(mask, arrayOf("", "", "", ""))
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
     }
 
     private fun showSinglePasswordDialog() {

@@ -1900,6 +1900,13 @@
     <string name="wpa_benchmark_error">Ошибка: %1$s</string>
     <string name="wpa_loading_handshake">Загрузка handshake...</string>
     <string name="wpa_parsing_progress">Анализ захвата… %1$d%%</string>
+    <string name="brute_source_mask">Брутфорс по маске</string>
+    <string name="brute_mask_hint">\\?u\\?l\\?l\\?d\\?d\\?s</string>
+    <string name="brute_mask_combinations">%1$s комбинаций</string>
+    <string name="brute_mask_no_combinations">Нет комбинаций</string>
+    <string name="brute_start">Запустить</string>
+    <string name="wpa_clear_session">Сбросить сессию</string>
+    <string name="wpa_clear_confirm">Остановить и очистить все выбранные источники?</string>
     <string name="wpa_cannot_open_file">Не удаётся открыть файл</string>
     <string name="wpa_no_handshakes_in_file">Handshake в файле не найдены</string>
     <string name="wpa_error_loading_file">Ошибка загрузки файла: %1$s</string>

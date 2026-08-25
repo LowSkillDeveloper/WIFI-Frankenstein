@@ -177,10 +177,20 @@
                 android:id="@+id/buttonStartCrack"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="4dp"
                 android:enabled="false"
                 android:text="@string/wpa_start_cracking"
                 app:icon="@drawable/ic_lock_open" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonClearSession"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="@string/wpa_clear_session"
+                android:textColor="?attr/colorOnError"
+                android:visibility="gone" />
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardNativeProgress"

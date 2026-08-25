@@ -122,6 +122,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
     private var candidateHashes: List<HandshakeHash> = emptyList()
     private var currentFileName: String? = null
     private var wordlistUri: Uri? = null
+    private var maskPattern: String? = null
     private var capChrootPath: String? = null
     private var wordlistChrootPath: String? = null
     private var runner: PskOfflineBruteForceRunner? = null
@@ -237,6 +238,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                         _isPaused.postValue(false)
                         _isRunningInBackground.postValue(false)
                         clearCurrentSession()
+                        _state.postValue(WpaCrackerState.Idle)
                     }
 
                     WpaCrackService.BROADCAST_CHROOT_LINE -> {
@@ -687,6 +689,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
     fun setWordlistFile(uri: Uri) {
         wordlistUri = uri
+        maskPattern = null
         val fileName = uri.lastPathSegment ?: "wordlist.txt"
         _wordlistInfo.value = getApplication<Application>().getString(R.string.wpa_file, fileName)
         if (_selectedEngine.value == CrackEngine.CHROOT_AIRCRACK) {
@@ -695,6 +698,21 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
             }
         }
         checkSessionMatch()
+    }
+
+    fun setWordlistMask(pattern: String) {
+        maskPattern = pattern
+        wordlistUri = null
+        val parsed = com.lsd.wififrankenstein.util.MaskCracker.parse(pattern)
+        _wordlistInfo.value = getApplication<Application>().getString(
+            R.string.brute_mask_combinations,
+            parsed.exactCombinations.toString()
+        )
+        updateStartButton()
+    }
+
+    private fun updateStartButton() {
+        // Called from fragment via state observer; no-op here
     }
 
     fun loadWordlistFromUrl(url: String, isMega: Boolean) {
@@ -713,6 +731,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                 val (tempFile, fileName) = result
                 val uri = Uri.fromFile(tempFile)
                 wordlistUri = uri
+        maskPattern = null
                 _wordlistInfo.value =
                     getApplication<Application>().getString(R.string.wpa_url, fileName)
                 if (_selectedEngine.value == CrackEngine.CHROOT_AIRCRACK) {
@@ -738,6 +757,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                 val tempFile = File(app.cacheDir, "pasted_wordlist_${System.nanoTime()}.txt")
                 tempFile.writeText(passwords.joinToString("\n"))
                 wordlistUri = Uri.fromFile(tempFile)
+        maskPattern = null
                 _wordlistInfo.value = getApplication<Application>().getString(
                     R.string.wpa_pasted_passwords,
                     passwords.size
@@ -906,7 +926,8 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun startNativeCracking() {
         val hash = currentHash ?: return
-        val uri = wordlistUri ?: return
+        val isMask = maskPattern != null
+        if (!isMask && wordlistUri == null) return
 
         if (CrackRuntimeState.isRunning) {
             Log.w("WpaCrackerVM", "startNativeCracking: crack already running, re-attaching")
@@ -920,10 +941,11 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         val extraLines = candidateHashes
             .filter { it.dedupKey() != hash.dedupKey() }
             .map { it.to22000Line() }
-        WpaCrackService.startCrack(
+        WpaCrackService.startMaskOrDictCrack(
             getApplication(),
             hashLine,
-            uri.toString(),
+            wordlistUri = wordlistUri?.toString(),
+            mask = maskPattern,
             extraLines = extraLines,
             offset = 0,
             totalLines = 0
@@ -1163,6 +1185,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
         currentHash = null
         candidateHashes = emptyList()
         wordlistUri = null
+        maskPattern = null
         capChrootPath = null
         wordlistChrootPath = null
         runner = null
@@ -1178,6 +1201,11 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
             getApplication<Application>().getString(R.string.wpa_tap_select_wordlist)
         _isPaused.value = false
         _isRunningInBackground.value = false
+    }
+
+    fun clearSession() {
+        sessionManager.clearAll()
+        reset()
     }
 
     override fun onCleared() {
@@ -1222,7 +1250,11 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                 .addHeader("User-Agent", "WIFI-Frankenstein/1.1").build()
             val response = client.newCall(request).execute()
             if (!response.isSuccessful) return@withContext null
-            response.body?.bytes()?.let { tempFile.writeBytes(it) }
+            response.body?.byteStream()?.use { input ->
+                tempFile.outputStream().use { output ->
+                    input.copyTo(output, bufferSize = 64 * 1024)
+                }
+            }
 
             val ext = fileExtension(tempFile)
             if (ext in listOf("zip", "7z", "gz", "tgz")) {
