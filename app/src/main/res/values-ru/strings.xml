@@ -3465,4 +3465,32 @@
     <string name="np_svc_running">Защита работает</string>
     <string name="np_event_log">Журнал событий</string>
     <string name="np_empty_log">Пока нет событий</string>
+    <!-- Фоновая загрузка баз данных -->
+    <string name="db_active_downloads_title">Загрузки</string>
+    <string name="db_dl_cancel_all">Отменить всё</string>
+    <string name="db_dl_status_queued">Ожидает в очереди</string>
+    <string name="db_dl_status_downloading">Скачивание… %1$d%%</string>
+    <string name="db_dl_status_extracting">Распаковка… %1$d%%</string>
+    <string name="db_dl_status_waiting_quota">Лимит MEGA исчерпан — докачается автоматически</string>
+    <string name="db_dl_status_failed">Ошибка: %1$s</string>
+    <string name="db_dl_status_needs_setup">Скачано — требуется настройка</string>
+    <string name="db_dl_action_resume">Продолжить</string>
+    <string name="db_dl_action_setup">Настроить</string>
+    <string name="db_dl_snackbar_started">Загрузка продолжится в фоне</string>
+    <string name="db_dl_nothing_new">Эти базы уже добавлены или находятся в очереди</string>
+    <string name="db_dl_completed_snackbar">База добавлена: %1$s</string>
+    <string name="db_dl_needs_setup_snackbar">%1$s скачана — выберите таблицу и колонки</string>
+    <string name="db_dl_notification_channel">Загрузка баз данных</string>
+    <string name="db_dl_notif_preparing">Подготовка к загрузке баз данных…</string>
+    <string name="db_dl_notification_channel_description">Прогресс фоновой загрузки баз данных</string>
+    <string name="db_dl_notif_active_title">Скачивание баз данных (%1$d из %2$d)</string>
+    <string name="db_dl_notif_text_current">%1$s — %2$d%%</string>
+    <string name="db_dl_notif_extracting_title">Распаковка базы данных…</string>
+    <string name="db_dl_notif_quota_title">Лимит MEGA исчерпан</string>
+    <string name="db_dl_notif_quota_text">%1$s — докачается автоматически позже</string>
+    <string name="db_dl_notif_done_title">Загрузка баз данных завершена</string>
+    <string name="db_dl_notif_done_text">Нажмите, чтобы открыть настройки баз данных</string>
+    <string name="needs_setup_dialog_title">Требуется настройка базы</string>
+    <string name="needs_setup_dialog_message">Некоторые скачанные базы требуют выбора таблицы и сопоставления колонок. Откройте настройки баз данных, чтобы завершить добавление.</string>
+    <string name="needs_setup_dialog_open">Открыть настройки</string>
 </resources>

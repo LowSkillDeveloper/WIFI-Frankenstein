@@ -133,6 +133,7 @@ class MainActivity : AppCompatActivity() {
 
         navController = findNavController(R.id.nav_host_fragment_content_main)
         handleNotificationIntent(intent)
+        maybeShowNeedsSetupPrompt(savedInstanceState)
 
         setupBackPressedHandler()
         onBackPressedDispatcher.addCallback(this, exitCallback)
@@ -445,6 +446,34 @@ class MainActivity : AppCompatActivity() {
         handleNotificationIntent(intent)
     }
 
+    /**
+     * If background downloads finished with custom SQLite databases that still
+     * need interactive table/column mapping, offer to open the Database Setup
+     * screen (once per launch).
+     */
+    private fun maybeShowNeedsSetupPrompt(savedInstanceState: Bundle?) {
+        if (savedInstanceState?.getBoolean(KEY_NEEDS_SETUP_PROMPT_SHOWN) == true) return
+        val manager = com.lsd.wififrankenstein.ui.dbsetup.DatabaseDownloadManager.peek()
+            ?: return
+        if (!manager.hasNeedsSetup()) return
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.needs_setup_dialog_title)
+            .setMessage(R.string.needs_setup_dialog_message)
+            .setPositiveButton(R.string.needs_setup_dialog_open) { _, _ ->
+                if (navController.currentDestination?.id != R.id.dbSetupFragment) {
+                    navController.navigate(R.id.dbSetupFragment)
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(KEY_NEEDS_SETUP_PROMPT_SHOWN, true)
+    }
+
     override fun onSupportNavigateUp(): Boolean {
         val drawerLayout = binding.drawerLayout
         return if (drawerLayout.isDrawerOpen(androidx.core.view.GravityCompat.START)) {
@@ -570,6 +599,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val KEY_NEEDS_SETUP_PROMPT_SHOWN = "needs_setup_prompt_shown"
         private const val KEY_DRAWER_COLLAPSED_CATEGORIES = "drawer_collapsed_categories"
     }
 }

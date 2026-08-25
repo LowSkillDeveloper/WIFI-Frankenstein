@@ -290,7 +290,7 @@ class SmartLinkDbHelper(private val context: Context) {
         }
     }
 
-    private fun clearDownloadMetadata(dbId: String) {
+    fun clearDownloadMetadata(dbId: String) {
         getMetadataFile(dbId).delete()
 
         context.cacheDir.listFiles { file ->
@@ -421,6 +421,18 @@ class SmartLinkDbHelper(private val context: Context) {
     }
 
     fun getCurrentSource(): DbSource? = currentSource
+
+    /**
+     * Sets the origin URL context (jsonUrl/currentUrlType) without refetching,
+     * mirroring what [fetchDatabases] assigns. Used by the background download
+     * manager so that updateUrl is preserved for databases downloaded outside
+     * of a fragment lifecycle.
+     */
+    fun setDownloadOrigin(url: String?) {
+        if (url.isNullOrBlank()) return
+        jsonUrl = url
+        currentUrlType = detectUrlType(url)
+    }
 
     suspend fun downloadDatabase(
         dbInfo: SmartLinkDbInfo,

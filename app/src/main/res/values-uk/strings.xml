@@ -3412,4 +3412,32 @@
     <string name="api3_clip_request">Запит API</string>
     <string name="benchmark_multi_thread">Багатопотоковість (%1$d/%2$d ядер)</string>
     <string name="benchmark_multi_thread_prefix">Багатопотоковість</string>
+    <!-- Фонове завантаження баз даних -->
+    <string name="db_active_downloads_title">Завантаження</string>
+    <string name="db_dl_cancel_all">Скасувати всі</string>
+    <string name="db_dl_status_queued">Очікує у черзі</string>
+    <string name="db_dl_status_downloading">Завантаження… %1$d%%</string>
+    <string name="db_dl_status_extracting">Розпакування… %1$d%%</string>
+    <string name="db_dl_status_waiting_quota">Ліміт MEGA вичерпано — завантажиться автоматично</string>
+    <string name="db_dl_status_failed">Помилка: %1$s</string>
+    <string name="db_dl_status_needs_setup">Завантажено — потрібне налаштування</string>
+    <string name="db_dl_action_resume">Продовжити</string>
+    <string name="db_dl_action_setup">Налаштувати</string>
+    <string name="db_dl_snackbar_started">Завантаження триватиме у фоні</string>
+    <string name="db_dl_nothing_new">Ці бази вже додано або перебувають у черзі</string>
+    <string name="db_dl_completed_snackbar">Базу додано: %1$s</string>
+    <string name="db_dl_needs_setup_snackbar">%1$s завантажено — виберіть таблицю та колонки</string>
+    <string name="db_dl_notification_channel">Завантаження баз даних</string>
+    <string name="db_dl_notif_preparing">Підготовка до завантаження баз даних…</string>
+    <string name="db_dl_notification_channel_description">Прогрес фонового завантаження баз даних</string>
+    <string name="db_dl_notif_active_title">Завантаження баз даних (%1$d з %2$d)</string>
+    <string name="db_dl_notif_text_current">%1$s — %2$d%%</string>
+    <string name="db_dl_notif_extracting_title">Розпакування бази даних…</string>
+    <string name="db_dl_notif_quota_title">Ліміт MEGA вичерпано</string>
+    <string name="db_dl_notif_quota_text">%1$s — завантажиться автоматично пізніше</string>
+    <string name="db_dl_notif_done_title">Завантаження баз даних завершено</string>
+    <string name="db_dl_notif_done_text">Торкніться, щоб відкрити налаштування баз даних</string>
+    <string name="needs_setup_dialog_title">Потрібне налаштування бази</string>
+    <string name="needs_setup_dialog_message">Деякі завантажені бази потребують вибору таблиці та зіставлення колонок. Відкрийте налаштування баз даних, щоб завершити додавання.</string>
+    <string name="needs_setup_dialog_open">Відкрити налаштування</string>
 </resources>
