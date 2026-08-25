@@ -2619,6 +2619,13 @@
     <string name="notice_root_not_required">Root rights are NOT required! Most of the app’s features work without root, root only unlocks a small part of advanced functionality.</string>
     <string name="notice_chroot_optional">Installing chroot/proot is optional, most features are available without it.</string>
     <string name="wpa_parsing_progress">Analyzing capture… %1$d%%</string>
+    <string name="brute_source_mask">Brute-force by mask</string>
+    <string name="brute_mask_hint">\\?u\\?l\\?l\\?d\\?d\\?s</string>
+    <string name="brute_mask_combinations">%1$s combinations</string>
+    <string name="brute_mask_no_combinations">No combinations</string>
+    <string name="brute_start">Start</string>
+    <string name="wpa_clear_session">Clear session</string>
+    <string name="wpa_clear_confirm">Stop crack and clear all selections?</string>
     <string name="wpa_cannot_open_file">Cannot open file</string>
     <string name="wpa_no_handshakes_in_file">No handshakes found in file</string>
     <string name="wpa_error_loading_file">Error loading file: %1$s</string>

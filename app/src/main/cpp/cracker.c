@@ -725,6 +725,7 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_debugPbkdf2Hex(
     jsize ssid_len = (*env)->GetStringUTFLength(env, jSsid);
 
     uint8_t pmk[32];
+    if (ssid_len > 64) ssid_len = 64;
     pbkdf2_sha1((const uint8_t *) password, pw_len,
                 (const uint8_t *) ssid, ssid_len, pmk);
 

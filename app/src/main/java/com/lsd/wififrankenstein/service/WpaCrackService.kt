@@ -63,6 +63,8 @@ class WpaCrackService : Service() {
     @Volatile
     private var foundBroadcastSent = false
 
+    private var progressSaveCounter = 0
+
     companion object {
         private const val TAG = "WpaCrackService"
         private const val CHANNEL_ID = "wpa_crack_channel"
@@ -89,6 +91,7 @@ class WpaCrackService : Service() {
         const val EXTRA_CURRENT_PASSWORD = "current_password"
         const val EXTRA_ATTEMPTS = "attempts"
         const val EXTRA_SPEED = "speed"
+        const val EXTRA_MASK = "mask"
         const val EXTRA_ELAPSED_MS = "elapsed_ms"
         const val EXTRA_ETA_MS = "eta_ms"
 
@@ -117,6 +120,27 @@ class WpaCrackService : Service() {
                 action = ACTION_STOP_CHROOT_CRACK
             }
             context.startService(intent)
+        }
+
+        fun startMaskOrDictCrack(
+            context: Context,
+            handshakeLine: String,
+            wordlistUri: String?,
+            mask: String?,
+            extraLines: List<String> = emptyList(),
+            offset: Long = 0,
+            totalLines: Long = 0
+        ) {
+            val intent = Intent(context, WpaCrackService::class.java).apply {
+                action = ACTION_START_CRACK
+                putExtra(EXTRA_HANDSHAKE_LINE, handshakeLine)
+                if (mask != null) putExtra(EXTRA_MASK, mask)
+                if (wordlistUri != null) putExtra(EXTRA_WORDLIST_URI, wordlistUri)
+                putExtra(EXTRA_HANDSHAKE_LINES, extraLines.toTypedArray())
+                putExtra(EXTRA_OFFSET, offset)
+                putExtra(EXTRA_TOTAL_LINES, totalLines)
+            }
+            context.startForegroundService(intent)
         }
 
         fun startCrack(
@@ -201,17 +225,21 @@ class WpaCrackService : Service() {
     }
 
     private fun handleStartCrack(intent: Intent) {
-        if (CrackRuntimeState.isRunning) {
+        if (CrackRuntimeState.isRunning || chrootCrackJob?.isActive == true) {
             Log.w(TAG, "handleStartCrack: crack already running, ignoring new start")
             return
         }
         val handshakeLine = intent.getStringExtra(EXTRA_HANDSHAKE_LINE) ?: return
-        val wordlistUriStr = intent.getStringExtra(EXTRA_WORDLIST_URI) ?: return
+        val wordlistUriStr = intent.getStringExtra(EXTRA_WORDLIST_URI)
+        val maskPattern = intent.getStringExtra(EXTRA_MASK)
+        if (wordlistUriStr == null && maskPattern == null) return
         val offset = intent.getLongExtra(EXTRA_OFFSET, 0)
         val totalLines = intent.getLongExtra(EXTRA_TOTAL_LINES, 0)
 
         sessionHandshakeLine = handshakeLine
-        sessionWordlistUri = wordlistUriStr
+        val isMaskMode = maskPattern != null
+        val sessionUri = if (isMaskMode) "mask:$maskPattern" else wordlistUriStr
+        sessionWordlistUri = sessionUri ?: ""
         sessionTotalLines = totalLines
         foundBroadcastSent = false
 
@@ -228,7 +256,8 @@ class WpaCrackService : Service() {
             return
         }
 
-        val wordlistUri = android.net.Uri.parse(wordlistUriStr)
+        val wordlistUri: android.net.Uri? =
+            if (!isMaskMode && wordlistUriStr != null) android.net.Uri.parse(wordlistUriStr) else null
 
         val notification = buildNotification(
             getString(R.string.wpa_crack_notif_title),
@@ -250,29 +279,65 @@ class WpaCrackService : Service() {
         CrackRuntimeState.lastProgress = null
         CrackRuntimeState.handshakeLine = handshakeLine
         CrackRuntimeState.extraLines = extraLines
-        CrackRuntimeState.wordlistUri = wordlistUriStr
+        CrackRuntimeState.wordlistUri = sessionUri ?: ""
 
         crackJob = serviceScope.launch {
             try {
                 runner = PskOfflineBruteForceRunner(this@WpaCrackService)
-                val result = runner!!.crackFromWordlist(
-                    handshakeHash = candidateHashes.first(),
-                    extraHashes = candidateHashes.drop(1),
-                    wordlistUri = wordlistUri,
-                    startOffset = offset,
-                    onProgress = { progress ->
-                        lastKnownOffset = progress.offset
-                        CrackRuntimeState.lastProgress = progress
-                        updateNotif(progress, isPaused = false)
-                        broadcastProgress(progress)
-                    },
-                    onPasswordFound = { password ->
-                        foundBroadcastSent = true
-                        val text = getString(R.string.svc_found, password)
-                        updateNotificationSimple(getString(R.string.wpa_crack_notif_title), text)
-                        broadcastFound(password, hash)
-                    }
-                )
+                val result: OfflineResult
+                if (isMaskMode) {
+                    result = runner!!.crackFromMask(
+                        handshakeHash = candidateHashes.first(),
+                        extraHashes = candidateHashes.drop(1),
+                        mask = maskPattern!!,
+                        startOffset = offset,
+                        onProgress = { progress ->
+                            lastKnownOffset = progress.offset
+                            CrackRuntimeState.lastProgress = progress
+                            updateNotif(progress, isPaused = false)
+                            broadcastProgress(progress)
+                            progressSaveCounter++
+                            if (progressSaveCounter % 200 == 0) {
+                                saveProgressSession(progress)
+                            }
+                        },
+                        onPasswordFound = { password ->
+                            foundBroadcastSent = true
+                            persistFoundPassword(password, hash)
+                            val text = getString(R.string.svc_found, password)
+                            updateNotificationSimple(
+                                getString(R.string.wpa_crack_notif_title), text
+                            )
+                            broadcastFound(password, hash)
+                        }
+                    )
+                } else {
+                    result = runner!!.crackFromWordlist(
+                        handshakeHash = candidateHashes.first(),
+                        extraHashes = candidateHashes.drop(1),
+                        wordlistUri = wordlistUri!!,
+                        startOffset = offset,
+                        onProgress = { progress ->
+                            lastKnownOffset = progress.offset
+                            CrackRuntimeState.lastProgress = progress
+                            updateNotif(progress, isPaused = false)
+                            broadcastProgress(progress)
+                            progressSaveCounter++
+                            if (progressSaveCounter % 200 == 0) {
+                                saveProgressSession(progress)
+                            }
+                        },
+                        onPasswordFound = { password ->
+                            foundBroadcastSent = true
+                            persistFoundPassword(password, hash)
+                            val text = getString(R.string.svc_found, password)
+                            updateNotificationSimple(
+                                getString(R.string.wpa_crack_notif_title), text
+                            )
+                            broadcastFound(password, hash)
+                        }
+                    )
+                }
                 handleResult(result, hash)
             } catch (e: CancellationException) {
                 throw e
@@ -292,6 +357,39 @@ class WpaCrackService : Service() {
                 stopForegroundCompat()
                 stopSelf()
             }
+        }
+    }
+
+    private fun persistFoundPassword(password: String, hash: HandshakeHash) {
+        try {
+            val app = applicationContext
+            com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper(app).addRecord(
+                com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork(
+                    id = 0,
+                    wifiName = hash.essid,
+                    macAddress = hash.macAp,
+                    wifiPassword = password
+                )
+            )
+            val sm = com.lsd.wififrankenstein.ui.handshakecapture.HandshakeStorageManager(app)
+            sm.saveCrackedPassword(hash.macAp, password)
+        } catch (e: Exception) {
+            Log.e(TAG, "persistFoundPassword failed", e)
+        }
+    }
+
+    private fun saveProgressSession(progress: OfflineProgress) {
+        if (sessionHandshakeLine.isNotBlank() && sessionWordlistUri.isNotBlank()) {
+            sessionManager.saveSession(
+                CrackSessionData(
+                    wordlistUri = sessionWordlistUri,
+                    handshakeLine = sessionHandshakeLine,
+                    offset = progress.offset,
+                    totalLines = progress.totalPasswords,
+                    engineName = "NATIVE",
+                    timestamp = System.currentTimeMillis()
+                )
+            )
         }
     }
 

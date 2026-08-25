@@ -218,6 +218,7 @@ class WpaCrackerFragment : Fragment() {
             when (val state = viewModel.state.value) {
                 is WpaCrackerState.Cracking -> {}
                 is WpaCrackerState.Paused -> viewModel.resumeCracking()
+                is WpaCrackerState.ChrootCracking -> viewModel.cancel()
                 else -> {
                     viewModel.startCracking()
                 }
@@ -258,6 +259,16 @@ class WpaCrackerFragment : Fragment() {
 
         binding.buttonRunBenchmark.setOnClickListener {
             runBenchmark()
+        }
+        binding.buttonClearSession.setOnClickListener {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(getString(R.string.wpa_clear_session))
+                .setMessage(getString(R.string.wpa_clear_confirm))
+                .setPositiveButton(R.string.wpa_clear_session) { _, _ ->
+                    viewModel.clearSession()
+                }
+                .setNegativeButton(R.string.close, null)
+                .show()
         }
     }
 
@@ -423,7 +434,8 @@ class WpaCrackerFragment : Fragment() {
                 R.drawable.cloud_download_24px,
                 getString(R.string.wpa_source_wpasec_dict)
             ),
-            SourceOption(R.drawable.ic_key, getString(R.string.wpa_source_single_password))
+            SourceOption(R.drawable.ic_key, getString(R.string.wpa_source_single_password)),
+            SourceOption(R.drawable.ic_edit, getString(R.string.brute_source_mask))
         )
         showSourcePickerBottomSheet(
             getString(R.string.wpa_select_wordlist_source),
@@ -442,8 +454,59 @@ class WpaCrackerFragment : Fragment() {
                 2 -> showWordlistPasteDialog()
                 3 -> viewModel.useWpaSecDict()
                 4 -> showSinglePasswordDialog()
+                5 -> showMaskInputDialog()
             }
         }
+    }
+
+    private fun showMaskInputDialog() {
+        val context = requireContext()
+        val layout = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 32, 48, 16)
+        }
+        val maskInput = android.widget.EditText(context).apply {
+            hint = getString(R.string.brute_mask_hint)
+            setSingleLine(true)
+            setPadding(48, 32, 48, 32)
+        }
+        layout.addView(maskInput)
+        val countLabel = android.widget.TextView(context).apply {
+            setPadding(48, 8, 48, 8)
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
+        }
+        layout.addView(countLabel)
+
+        fun updateCount() {
+            val parsed = com.lsd.wififrankenstein.util.MaskCracker.parse(
+                maskInput.text.toString()
+            )
+            countLabel.text = when {
+                !parsed.isValid -> parsed.error ?: ""
+                parsed.totalCombinations <= 0 -> getString(R.string.brute_mask_no_combinations)
+                else -> getString(
+                    R.string.brute_mask_combinations,
+                    parsed.exactCombinations.toString()
+                )
+            }
+        }
+        maskInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) = updateCount()
+        })
+        updateCount()
+
+        MaterialAlertDialogBuilder(context)
+            .setTitle(getString(R.string.brute_source_mask))
+            .setView(layout)
+            .setPositiveButton(R.string.brute_start) { _, _ ->
+                val mask = maskInput.text.toString().trim()
+                if (mask.isBlank()) return@setPositiveButton
+                viewModel.setWordlistMask(mask)
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
     }
 
     private fun showWordlistUrlDialog() {
@@ -881,6 +944,7 @@ class WpaCrackerFragment : Fragment() {
                 binding.buttonPauseResume.isVisible = false
                 binding.buttonStopCrack.isVisible = false
                 binding.textBackgroundIndicator.isVisible = false
+                binding.buttonClearSession.isVisible = false
                 consoleAdapter = null
             }
 
@@ -893,6 +957,7 @@ class WpaCrackerFragment : Fragment() {
             is WpaCrackerState.Loaded -> {
                 updateHandshakeInfo(state.hash, state.fileName)
                 updateStartButton()
+                binding.buttonClearSession.isVisible = true
             }
 
             is WpaCrackerState.Cracking -> {
@@ -903,6 +968,7 @@ class WpaCrackerFragment : Fragment() {
                 binding.buttonPauseResume.text = getString(R.string.wpa_crack_action_pause)
                 binding.buttonStopCrack.isVisible = true
                 binding.buttonCancel.isVisible = false
+                binding.buttonClearSession.isVisible = false
             }
 
             is WpaCrackerState.Paused -> {
@@ -914,6 +980,7 @@ class WpaCrackerFragment : Fragment() {
                 binding.buttonStopCrack.isVisible = true
                 binding.buttonStartCrack.visibility = View.GONE
                 binding.buttonCancel.isVisible = false
+                binding.buttonClearSession.isVisible = false
             }
 
             is WpaCrackerState.ChrootCracking -> {
@@ -936,6 +1003,7 @@ class WpaCrackerFragment : Fragment() {
                 binding.buttonStartCrack.text = getString(R.string.wpa_start_cracking)
                 binding.buttonStartCrack.visibility = View.VISIBLE
                 binding.buttonStartCrack.isEnabled = true
+                binding.buttonClearSession.isVisible = true
                 val found = state.result.foundPassword
                 if (found != null) {
                     showPasswordFound(found)
@@ -1137,6 +1205,15 @@ class WpaCrackerFragment : Fragment() {
         return if (hours > 0) getString(R.string.wpa_hms, hours, mins, secs)
         else if (mins > 0) getString(R.string.wpa_mins_secs, mins, secs)
         else getString(R.string.wpa_secs, secs)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.savedSession.value?.let { session ->
+            if (_binding != null) {
+                showResumeSessionDialog(session)
+            }
+        }
     }
 
     override fun onDestroyView() {
