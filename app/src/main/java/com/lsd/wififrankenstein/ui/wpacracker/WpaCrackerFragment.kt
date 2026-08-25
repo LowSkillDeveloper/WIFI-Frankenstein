@@ -1017,6 +1017,7 @@ class WpaCrackerFragment : Fragment() {
                 binding.buttonStartCrack.visibility = View.VISIBLE
                 binding.buttonPauseResume.isVisible = false
                 binding.buttonStopCrack.isVisible = false
+                binding.cardNativeProgress.isVisible = false
             }
 
             is WpaCrackerState.Cracking -> {

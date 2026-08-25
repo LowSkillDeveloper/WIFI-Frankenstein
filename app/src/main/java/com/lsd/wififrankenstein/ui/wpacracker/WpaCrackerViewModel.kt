@@ -1180,8 +1180,6 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                 _isRunningInBackground.value = false
             }
         }
-        runner?.cancel()
-        runner = null
         clearCurrentSession()
         _savedSession.value = null
     }
