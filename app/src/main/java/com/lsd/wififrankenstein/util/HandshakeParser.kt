@@ -560,7 +560,10 @@ private fun extractNonceFromEapol(eapolHex: String): String? {
 object HandshakeParser {
     private const val TAG = "HandshakeParser"
 
-    fun parseFile(file: File): List<HandshakeHash> {
+    fun parseFile(
+        file: File,
+        onProgress: ((Float) -> Unit)? = null
+    ): List<HandshakeHash> {
         Log.d(TAG, "parseFile: ${file.name} (${file.length()})")
         val format = HandshakeHash.detectFileFormat(file)
         Log.d(TAG, "  detected format: $format")
@@ -606,7 +609,7 @@ object HandshakeParser {
 
             HandshakeFormat.PCAP, HandshakeFormat.PCAPNG -> {
                 try {
-                    val raw = PcapParser().extractHandshakes(file)
+                    val raw = PcapParser().extractHandshakes(file, onProgress)
                     Log.d(TAG, "  pcap extracted ${raw.size} raw handshakes")
                     val hashes = raw.mapNotNull { h ->
                         val line = h.to22000Line()

@@ -300,6 +300,8 @@
     <string name="welcome_agree_hint">Продолжая, вы соглашаетесь с условиями</string>
     <string name="disclaimer_title">Отказ от ответственности</string>
     <string name="disclaimer_text">Используя это приложение, вы соглашаетесь со следующими условиями:\n\n• Вы будете использовать это приложение только в своих личных сетях или с явного разрешения владельца сети\n\n• Это приложение предназначено для проверки безопасности личных сетей и картографирования бесплатных WiFi сетей\n\n• Приложение не содержит встроенной базы данных сетей и не собирает никаких личных данных\n\n• Автор не несет ответственности за любое неправильное использование этого приложения</string>
+        <string name="notice_root_not_required">Root-права НЕ обязательны! Большинство функций работает без root, root открывает лишь небольшую часть расширенных возможностей.</string>
+        <string name="notice_chroot_optional">Установка chroot/proot необязательна, большинство функций доступно без неё.</string>
     <string name="choose_theme">Выберите тему</string>
     <string name="choose_color_theme">Выберите цветовую тему</string>
     <string name="system_theme">Системная</string>
@@ -1880,6 +1882,7 @@
     <string name="wpa_benchmark_all_finished">Все тесты завершены</string>
     <string name="wpa_benchmark_error">Ошибка: %1$s</string>
     <string name="wpa_loading_handshake">Загрузка handshake...</string>
+    <string name="wpa_parsing_progress">Анализ захвата… %1$d%%</string>
     <string name="wpa_cannot_open_file">Не удаётся открыть файл</string>
     <string name="wpa_no_handshakes_in_file">Handshake в файле не найдены</string>
     <string name="wpa_error_loading_file">Ошибка загрузки файла: %1$s</string>
