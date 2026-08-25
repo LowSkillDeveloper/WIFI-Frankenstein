@@ -76,6 +76,9 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
     private val _benchmarkProgress = MutableLiveData<BenchmarkProgress?>()
     val benchmarkProgress: LiveData<BenchmarkProgress?> = _benchmarkProgress
 
+    private val _parseProgress = MutableLiveData(0)
+    val parseProgress: LiveData<Int> = _parseProgress
+
     private val _selectedEngine = MutableLiveData(CrackEngine.NATIVE)
 
     val selectedEngine: LiveData<CrackEngine> = _selectedEngine
@@ -300,38 +303,37 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
     fun loadHandshakeFile(uri: Uri) {
         _state.value = WpaCrackerState.LoadingHandshake
+        _parseProgress.value = 0
         _handshakeInfo.value =
             getApplication<Application>().getString(R.string.wpa_loading_handshake)
         viewModelScope.launch {
             try {
                 val app = getApplication<Application>()
-                val inputStream = app.contentResolver.openInputStream(uri)
-                if (inputStream == null) {
-                    _state.value = WpaCrackerState.Error(
-                        getApplication<Application>().getString(R.string.wpa_cannot_open_file)
-                    )
-                    _handshakeInfo.value =
-                        getApplication<Application>().getString(R.string.wpa_tap_select_handshake)
-                    return@launch
+                val hash = withContext(Dispatchers.IO) {
+                    val inputStream = app.contentResolver.openInputStream(uri)
+                        ?: return@withContext null
+                    val bytes = inputStream.use { it.readBytes() }
+                    val fileName = uri.lastPathSegment ?: "unknown"
+
+                    val tempFile = File(app.cacheDir, "wpa_cracker_handshake_${System.nanoTime()}")
+                    tempFile.writeBytes(bytes)
+
+                    val parsed = parseHandshakeFile(tempFile, fileName) { pct ->
+                        _parseProgress.postValue(pct)
+                    }
+                    tempFile.delete()
+                    parsed
                 }
-                val bytes = inputStream.use { it.readBytes() }
-                val fileName = uri.lastPathSegment ?: "unknown"
-
-                val tempFile = File(app.cacheDir, "wpa_cracker_handshake_${System.nanoTime()}")
-                tempFile.writeBytes(bytes)
-
-                val hash = parseHandshakeFile(tempFile, fileName)
-                tempFile.delete()
 
                 if (hash != null) {
                     val hashes = hash.first
                     val primary = hashes.first()
                     currentHash = primary
                     candidateHashes = hashes
-                    currentFileName = fileName
+                    currentFileName = uri.lastPathSegment ?: "unknown"
                     _handshakeInfo.value = hash.second
-                    _state.value = WpaCrackerState.Loaded(primary, fileName)
-                } else {
+                    _state.value = WpaCrackerState.Loaded(primary, currentFileName ?: "unknown")
+                } else if (_state.value !is WpaCrackerState.Error) {
                     _state.value = WpaCrackerState.Error(
                         getApplication<Application>().getString(R.string.wpa_no_handshakes_in_file)
                     )
@@ -353,12 +355,15 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
     fun loadHandshakeFromUrl(url: String, isMega: Boolean) {
         _state.value = WpaCrackerState.LoadingHandshake
+        _parseProgress.value = 0
         _handshakeInfo.value =
             getApplication<Application>().getString(R.string.wpa_downloading_handshake)
         viewModelScope.launch {
             try {
                 val app = getApplication<Application>()
-                val result = downloadFile(app, url, isMega, "handshake_dl") ?: run {
+                val result = withContext(Dispatchers.IO) {
+                    downloadFile(app, url, isMega, "handshake_dl")
+                } ?: run {
                     _state.value = WpaCrackerState.Error(
                         getApplication<Application>().getString(R.string.wpa_download_failed)
                     )
@@ -367,7 +372,11 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                     return@launch
                 }
                 val (tempFile, fileName) = result
-                val hash = parseHandshakeFile(tempFile, fileName)
+                _handshakeInfo.value =
+                    getApplication<Application>().getString(R.string.wpa_loading_handshake)
+                val hash = parseHandshakeFile(tempFile, fileName) { pct ->
+                    _parseProgress.postValue(pct)
+                }
                 if (hash != null) {
                     val hashes = hash.first
                     val primary = hashes.first()
@@ -433,13 +442,19 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
     private suspend fun parseHandshakeFile(
         file: File,
-        fileName: String
+        fileName: String,
+        onProgress: ((Int) -> Unit)? = null
     ): Pair<List<HandshakeHash>, String>? {
         val format = HandshakeHash.detectFileFormat(file)
         val hashes = when (format) {
-            HandshakeFormat.PCAP, HandshakeFormat.PCAPNG -> HandshakeParser.parseFile(file)
+            HandshakeFormat.PCAP, HandshakeFormat.PCAPNG ->
+                withContext(Dispatchers.IO) {
+                    HandshakeParser.parseFile(file) { frac ->
+                        onProgress?.invoke((frac * 100).toInt().coerceIn(0, 100))
+                    }
+                }
 
-            else -> HandshakeParser.parseFile(file)
+            else -> withContext(Dispatchers.IO) { HandshakeParser.parseFile(file) }
         }
         if (hashes.isEmpty()) return null
 

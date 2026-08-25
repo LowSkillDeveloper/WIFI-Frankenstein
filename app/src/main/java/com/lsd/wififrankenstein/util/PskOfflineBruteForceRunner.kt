@@ -289,9 +289,11 @@ class PskOfflineBruteForceRunner(private val context: Context) {
 
             val nativeHashes = hashes.filter { h ->
                 NativeCracker.isAvailable && h.anonce != null && h.eapol != null &&
-                        (h.keyver ?: WpaCracker.extractKeyver(WpaCrypto.hexToBytes(h.eapol))) == 2
+                        (h.keyver ?: WpaCracker.extractKeyver(WpaCrypto.hexToBytes(h.eapol))) in 1..2
             }
             val fallbackHashes = hashes.filter { h -> nativeHashes.none { it === h } }
+            // Hashes sharing an ESSID are verified against a single PBKDF2 per password
+            val nativeGroups = nativeHashes.groupBy { it.essid }
             val miniBatchSize = NativeCracker.BATCH_SIZE
             val allHashesForVerification = hashes
 
@@ -309,31 +311,38 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                     val batch = passwords.subList(i, end).toTypedArray()
                     var found: String? = null
                     var nativeFailed = false
-                    for (h in nativeHashes) {
-                        val typeCode = when (h.type) {
-                            HandshakeType.PMKID -> 1
-                            HandshakeType.EAPOL -> 2
-                            HandshakeType.PMKID_EAPOL -> 3
-                        }
-                        val kv = h.keyver ?: WpaCracker.extractKeyver(
-                            WpaCrypto.hexToBytes(h.eapol!!)
-                        )
-                        var idx = -1
-                        try {
-                            idx = NativeCracker.crackBatchHex(
-                                batch, h.essid,
-                                h.macAp.replace(":", "").lowercase(),
-                                h.macSta.replace(":", "").lowercase(),
-                                h.anonce!!.lowercase(), h.eapol!!.lowercase(),
-                                h.pmkidOrMic.lowercase(), kv, typeCode
+                    for ((_, group) in nativeGroups) {
+                        if (found != null || cancelled) break
+                        val idx = try {
+                            NativeCracker.crackBatchMultiHex(
+                                batch,
+                                group[0].essid,
+                                Array(group.size) { g ->
+                                    group[g].macAp.replace(":", "").lowercase()
+                                },
+                                Array(group.size) { g ->
+                                    group[g].macSta.replace(":", "").lowercase()
+                                },
+                                Array(group.size) { g -> group[g].anonce?.lowercase() ?: "" },
+                                Array(group.size) { g -> group[g].eapol?.lowercase() ?: "" },
+                                Array(group.size) { g -> group[g].pmkidOrMic.lowercase() },
+                                IntArray(group.size) { g -> group[g].keyver ?: 2 },
+                                IntArray(group.size) { g ->
+                                    when (group[g].type) {
+                                        HandshakeType.PMKID -> 1
+                                        HandshakeType.EAPOL -> 2
+                                        HandshakeType.PMKID_EAPOL -> 3
+                                    }
+                                }
                             )
                         } catch (e: Throwable) {
                             nativeFailed = true
                             Log.e(TAG, "Native batch error, falling back to JVM: ${e.message}", e)
+                            -1
                         }
                         if (idx >= 0 && idx < batch.size) {
                             val candidate = batch[idx]
-                            if (WpaCracker.tryPasswordAny(candidate, h)) {
+                            if (group.any { WpaCracker.tryPasswordAny(candidate, it) }) {
                                 found = candidate
                                 break
                             } else {
@@ -351,6 +360,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                                         break
                                     }
                                 }
+                                if (found != null) break
                             }
                         }
                     }
@@ -365,19 +375,19 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                     val batchSize = end - i
                     chunkAttempts += batchSize
                     lastPassword = batch.last()
-                    report(
-                        OfflineProgress(
-                            lastPassword,
-                            chunkAttempts.toLong(),
-                            0,
-                            0.0,
-                            0,
-                            0,
-                            chunkOffset
-                        )
-                    )
                     if (found != null) {
                         Log.d(TAG, "!!! FOUND PASSWORD (native, JVM-confirmed): $found !!!")
+                        report(
+                            OfflineProgress(
+                                lastPassword,
+                                chunkAttempts.toLong(),
+                                0,
+                                0.0,
+                                0,
+                                0,
+                                chunkOffset
+                            )
+                        )
                         resultChannel.send(found)
                         cancelled = true
                         return@crackChunk

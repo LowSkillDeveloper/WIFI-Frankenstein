@@ -122,6 +122,8 @@ class PcapParser {
     ) {
         private var offset = 24
 
+        fun bytesRead(): Int = offset
+
         private fun isPlausibleRecord(off: Int): Boolean {
             if (off < 0 || off + 16 > data.size) return false
             val incl = i32(off + 8)
@@ -193,14 +195,17 @@ class PcapParser {
         return ok
     }
 
-    fun extractHandshakes(file: File): List<ParsedHandshake> {
+    fun extractHandshakes(
+        file: File,
+        onProgress: ((Float) -> Unit)? = null
+    ): List<ParsedHandshake> {
         Log.d(TAG, "extractHandshakes: ${file.name} (${file.length()}B)")
         val bytes = try {
             file.readBytes()
         } catch (e: Exception) {
             Log.e(TAG, "extractHandshakes: read failed", e); return emptyList()
         }
-        return parseBytes(bytes)
+        return parseBytes(bytes, onProgress)
     }
 
     fun extractApMetadata(file: File): Map<String, ApMetadata> {
@@ -212,19 +217,23 @@ class PcapParser {
         return parseBytesWithMetadata(bytes)
     }
 
-    private fun parseBytes(data: ByteArray): List<ParsedHandshake> {
+    private fun parseBytes(
+        data: ByteArray,
+        onProgress: ((Float) -> Unit)? = null
+    ): List<ParsedHandshake> {
         if (data.size < 4) return emptyList()
         val magic = data.toInt32LE(0)
         return when {
             magic == PCAP_MAGIC.toInt() || magic == PCAP_MAGIC_NANO.toInt() -> parsePcap(
                 data,
-                false
+                false,
+                onProgress
             )
 
             magic == PCAP_MAGIC_SWAPPED.toInt() || magic == PCAP_MAGIC_NANO_SWAPPED.toInt() ->
-                parsePcap(data, true)
+                parsePcap(data, true, onProgress)
 
-            magic == PCAPNG_MAGIC.toInt() -> parsePcapng(data)
+            magic == PCAPNG_MAGIC.toInt() -> parsePcapng(data, onProgress)
             else -> {
                 Log.w(TAG, "  unknown magic")
                 emptyList()
@@ -367,7 +376,11 @@ class PcapParser {
         }
     }
 
-    private fun parsePcap(data: ByteArray, swapped: Boolean): List<ParsedHandshake> {
+    private fun parsePcap(
+        data: ByteArray,
+        swapped: Boolean,
+        onProgress: ((Float) -> Unit)? = null
+    ): List<ParsedHandshake> {
         val i32 = if (swapped) { o: Int -> data.toInt32BE(o) } else { o: Int -> data.toInt32LE(o) }
         val linktype = i32(20)
         Log.d(TAG, "  parsePcap: linktype=$linktype, size=${data.size}")
@@ -387,14 +400,18 @@ class PcapParser {
             val packetData = reader.nextPacket() ?: break
             processPacket(packetData, linktype, ctx)
             packetCount++
+            if (onProgress != null && packetCount % 512 == 0) {
+                onProgress(reader.bytesRead().toFloat() / data.size)
+            }
         }
+        onProgress?.invoke(1f)
         pairMessages(ctx.eapolMessages, ctx.records, ctx.essidMap)
         val distinct = ctx.records.distinctBy { it.to22000Line() }
         Log.d(TAG, "  parsePcap: $packetCount packets, ${distinct.size} distinct")
         return distinct
     }
 
-    private fun parsePcapng(data: ByteArray): List<ParsedHandshake> {
+    private fun parsePcapng(data: ByteArray, onProgress: ((Float) -> Unit)? = null): List<ParsedHandshake> {
         Log.d(TAG, "  parsePcapng: size=${data.size}")
         val ctx = ProcContext(
             records = mutableListOf(),
@@ -446,7 +463,11 @@ class PcapParser {
             }
             offset += totalLen
             if (totalLen == 0) break
+            if (onProgress != null && blockCount % 512 == 0) {
+                onProgress(offset.toFloat() / data.size)
+            }
         }
+        onProgress?.invoke(1f)
         pairMessages(ctx.eapolMessages, ctx.records, ctx.essidMap)
         val distinct = ctx.records.distinctBy { it.to22000Line() }
         Log.d(TAG, "  parsePcapng: $blockCount blocks, ${distinct.size} distinct")

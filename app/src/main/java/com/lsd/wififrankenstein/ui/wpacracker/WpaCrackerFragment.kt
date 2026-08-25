@@ -53,6 +53,9 @@ class WpaCrackerFragment : Fragment() {
 
     private lateinit var viewModel: WpaCrackerViewModel
     private var consoleAdapter: ConsoleAdapter? = null
+    private var parseDialog: androidx.appcompat.app.AlertDialog? = null
+    private var parseProgressBar: android.widget.ProgressBar? = null
+    private var parsePercentText: android.widget.TextView? = null
 
     private val handshakeFilePicker = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -748,6 +751,13 @@ class WpaCrackerFragment : Fragment() {
         viewModel.state.observe(viewLifecycleOwner) { state ->
             handleState(state)
         }
+        viewModel.parseProgress.observe(viewLifecycleOwner) { percent ->
+            parseProgressBar?.let { bar ->
+                bar.isIndeterminate = false
+                bar.progress = percent
+            }
+            parsePercentText?.text = getString(R.string.wpa_parsing_progress, percent)
+        }
         viewModel.hashResult.observe(viewLifecycleOwner) { result ->
             if (result != null && result.found) {
                 showResult(result)
@@ -813,8 +823,34 @@ class WpaCrackerFragment : Fragment() {
         }
     }
 
-    private fun updateBenchmarkProgress(progress: BenchmarkProgress) {
-        binding.textBenchmarkDevice.isVisible = true
+    private fun showParseDialog() {
+        if (parseDialog?.isShowing == true) return
+        val view = layoutInflater.inflate(
+            com.lsd.wififrankenstein.R.layout.dialog_parse_progress, null
+        )
+        parseProgressBar = view.findViewById(
+            com.lsd.wififrankenstein.R.id.progressParse
+        )
+        parsePercentText = view.findViewById(
+            com.lsd.wififrankenstein.R.id.textParsePercent
+        )
+        parseProgressBar?.isIndeterminate = true
+        parsePercentText?.text = getString(R.string.wpa_parsing_progress, 0)
+        parseDialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.wpa_loading))
+            .setView(view)
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun dismissParseDialog() {
+        parseDialog?.dismiss()
+        parseDialog = null
+        parseProgressBar = null
+        parsePercentText = null
+    }
+
+    private fun updateBenchmarkProgress(progress: BenchmarkProgress) {        binding.textBenchmarkDevice.isVisible = true
         val text = buildString {
             append(progress.stage)
             if (progress.subProgress.isNotEmpty()) {
@@ -828,6 +864,9 @@ class WpaCrackerFragment : Fragment() {
     }
 
     private fun handleState(state: WpaCrackerState) {
+        if (state !is WpaCrackerState.LoadingHandshake) {
+            dismissParseDialog()
+        }
         when (state) {
             is WpaCrackerState.Idle -> {
                 binding.cardNativeProgress.isVisible = false
@@ -847,6 +886,7 @@ class WpaCrackerFragment : Fragment() {
 
             is WpaCrackerState.LoadingHandshake -> {
                 binding.textHandshakeInfo.text = getString(R.string.wpa_loading)
+                showParseDialog()
             }
 
             is WpaCrackerState.LoadingWordlist -> {}
@@ -1101,6 +1141,7 @@ class WpaCrackerFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        dismissParseDialog()
         _binding = null
     }
 }

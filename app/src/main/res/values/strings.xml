@@ -2598,6 +2598,7 @@
     <string name="wpa_benchmark_all_finished">All tests finished</string>
     <string name="wpa_benchmark_error">Error: %1$s</string>
     <string name="wpa_loading_handshake">Loading handshake...</string>
+    <string name="wpa_parsing_progress">Analyzing capture… %1$d%%</string>
     <string name="wpa_cannot_open_file">Cannot open file</string>
     <string name="wpa_no_handshakes_in_file">No handshakes found in file</string>
     <string name="wpa_error_loading_file">Error loading file: %1$s</string>

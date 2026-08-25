@@ -48,33 +48,8 @@ static void sha1_init(sha1_ctx *ctx) {
     ctx->count = 0;
 }
 
-#if defined(__aarch64__)
-#include <arm_neon.h>
-static void sha1_transform(uint32_t state[5], const uint8_t block[64]) {
-
-    uint32_t W[80];
-    for (int i = 0; i < 16; i++) W[i] = load_be32(block + i * 4);
-    for (int i = 16; i < 80; i++)
-        W[i] = ROTL32(W[i-3] ^ W[i-8] ^ W[i-14] ^ W[i-16], 1);
-
-    uint32x4_t abcd = vld1q_u32(state);
-    uint32_t e = state[4];
-    for (int i = 0; i < 80; i++) {
-        uint32x4_t wk = vdupq_n_u32(W[i]);
-        e = vsha1h_u32(e);
-        if (i < 20)      abcd = vsha1cq_u32(abcd, e, wk);
-        else if (i < 40) abcd = vsha1pq_u32(abcd, e, wk);
-        else if (i < 60) abcd = vsha1mq_u32(abcd, e, wk);
-        else             abcd = vsha1pq_u32(abcd, e, wk);
-        e = vgetq_lane_u32(abcd, 2);
-    }
-    uint32_t sa[4]; vst1q_u32(sa, abcd);
-    state[0] += sa[0]; state[1] += sa[1]; state[2] += sa[2];
-    state[3] += sa[3]; state[4] += e;
-}
-#else
-
-static void sha1_transform(uint32_t state[5], const uint8_t block[64]) {
+/* Portable scalar SHA1 block transform — always compiled, used as fallback. */
+static void sha1_transform_scalar(uint32_t state[5], const uint8_t block[64]) {
     uint32_t W[80];
     for (int i = 0; i < 16; i++) W[i] = load_be32(block + i * 4);
     for (int i = 16; i < 80; i++)
@@ -89,6 +64,7 @@ static void sha1_transform(uint32_t state[5], const uint8_t block[64]) {
         else
             SHA1_ROUND(i, b ^ c ^ d, SHA1_K3);
     }
+#undef SHA1_ROUND
     state[0] += a;
     state[1] += b;
     state[2] += c;
@@ -96,7 +72,205 @@ static void sha1_transform(uint32_t state[5], const uint8_t block[64]) {
     state[4] += e;
 }
 
+#if defined(__aarch64__)
+#include <arm_neon.h>
+#include <sys/auxv.h>
+#ifndef HWCAP_ASIMD
+#define HWCAP_ASIMD (1UL << 1)
 #endif
+#ifndef HWCAP_SHA1
+#define HWCAP_SHA1 (1UL << 5)
+#endif
+
+static int have_sha1_ce(void) {
+    static int cached = -1;
+    if (cached < 0) {
+        unsigned long h = getauxval(AT_HWCAP);
+        cached = ((h & HWCAP_ASIMD) && (h & HWCAP_SHA1)) ? 1 : 0;
+    }
+    return cached;
+}
+
+/* ARMv8 Cryptography Extensions: each vsha1{c,p,m}q_u32 performs FOUR
+ * rounds over a 4-lane message vector (with K already added), consuming
+ * the raw (unrotated) E of the group's first round. E for the next group
+ * is rol30(A) taken via vsha1h_u32 BEFORE the state is overwritten.
+ * Pattern follows the canonical ARM/mbedTLS implementation. */
+static void sha1_transform_ce(uint32_t state[5], const uint8_t block[64]) {
+    uint32x4_t ABCD, ABCD_SAVED, MSG0, MSG1, MSG2, MSG3, TMP0, TMP1;
+    uint32_t E0, E0_SAVED, E1;
+
+    ABCD = vld1q_u32(state);
+    E0 = state[4];
+    ABCD_SAVED = ABCD;
+    E0_SAVED = E0;
+
+    MSG0 = vld1q_u32((const uint32_t *) (block));
+    MSG1 = vld1q_u32((const uint32_t *) (block + 16));
+    MSG2 = vld1q_u32((const uint32_t *) (block + 32));
+    MSG3 = vld1q_u32((const uint32_t *) (block + 48));
+
+    /* big-endian words -> little-endian lanes */
+    MSG0 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(MSG0)));
+    MSG1 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(MSG1)));
+    MSG2 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(MSG2)));
+    MSG3 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(MSG3)));
+
+    TMP0 = vaddq_u32(MSG0, vdupq_n_u32(SHA1_K0));
+    TMP1 = vaddq_u32(MSG1, vdupq_n_u32(SHA1_K0));
+
+    /* Rounds 0-3 */
+    E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1cq_u32(ABCD, E0, TMP0);
+    TMP0 = vaddq_u32(MSG2, vdupq_n_u32(SHA1_K0));
+    MSG0 = vsha1su0q_u32(MSG0, MSG1, MSG2);
+
+    /* Rounds 4-7 */
+    E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1cq_u32(ABCD, E1, TMP1);
+    TMP1 = vaddq_u32(MSG3, vdupq_n_u32(SHA1_K0));
+    MSG0 = vsha1su1q_u32(MSG0, MSG3);
+    MSG1 = vsha1su0q_u32(MSG1, MSG2, MSG3);
+
+    /* Rounds 8-11 */
+    E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1cq_u32(ABCD, E0, TMP0);
+    TMP0 = vaddq_u32(MSG0, vdupq_n_u32(SHA1_K0));
+    MSG1 = vsha1su1q_u32(MSG1, MSG0);
+    MSG2 = vsha1su0q_u32(MSG2, MSG3, MSG0);
+
+    /* Rounds 12-15 */
+    E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1cq_u32(ABCD, E1, TMP1);
+    TMP1 = vaddq_u32(MSG1, vdupq_n_u32(SHA1_K1));
+    MSG2 = vsha1su1q_u32(MSG2, MSG1);
+    MSG3 = vsha1su0q_u32(MSG3, MSG0, MSG1);
+
+    /* Rounds 16-19 */
+    E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1cq_u32(ABCD, E0, TMP0);
+    TMP0 = vaddq_u32(MSG2, vdupq_n_u32(SHA1_K1));
+    MSG3 = vsha1su1q_u32(MSG3, MSG2);
+    MSG0 = vsha1su0q_u32(MSG0, MSG1, MSG2);
+
+    /* Rounds 20-23 */
+    E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1pq_u32(ABCD, E1, TMP1);
+    TMP1 = vaddq_u32(MSG3, vdupq_n_u32(SHA1_K1));
+    MSG0 = vsha1su1q_u32(MSG0, MSG3);
+    MSG1 = vsha1su0q_u32(MSG1, MSG2, MSG3);
+
+    /* Rounds 24-27 */
+    E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1pq_u32(ABCD, E0, TMP0);
+    TMP0 = vaddq_u32(MSG0, vdupq_n_u32(SHA1_K1));
+    MSG1 = vsha1su1q_u32(MSG1, MSG0);
+    MSG2 = vsha1su0q_u32(MSG2, MSG3, MSG0);
+
+    /* Rounds 28-31 */
+    E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1pq_u32(ABCD, E1, TMP1);
+    TMP1 = vaddq_u32(MSG1, vdupq_n_u32(SHA1_K1));
+    MSG2 = vsha1su1q_u32(MSG2, MSG1);
+    MSG3 = vsha1su0q_u32(MSG3, MSG0, MSG1);
+
+    /* Rounds 32-35 */
+    E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1pq_u32(ABCD, E0, TMP0);
+    TMP0 = vaddq_u32(MSG2, vdupq_n_u32(SHA1_K2));
+    MSG3 = vsha1su1q_u32(MSG3, MSG2);
+    MSG0 = vsha1su0q_u32(MSG0, MSG1, MSG2);
+
+    /* Rounds 36-39 */
+    E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1pq_u32(ABCD, E1, TMP1);
+    TMP1 = vaddq_u32(MSG3, vdupq_n_u32(SHA1_K2));
+    MSG0 = vsha1su1q_u32(MSG0, MSG3);
+    MSG1 = vsha1su0q_u32(MSG1, MSG2, MSG3);
+
+    /* Rounds 40-43 */
+    E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1mq_u32(ABCD, E0, TMP0);
+    TMP0 = vaddq_u32(MSG0, vdupq_n_u32(SHA1_K2));
+    MSG1 = vsha1su1q_u32(MSG1, MSG0);
+    MSG2 = vsha1su0q_u32(MSG2, MSG3, MSG0);
+
+    /* Rounds 44-47 */
+    E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1mq_u32(ABCD, E1, TMP1);
+    TMP1 = vaddq_u32(MSG1, vdupq_n_u32(SHA1_K2));
+    MSG2 = vsha1su1q_u32(MSG2, MSG1);
+    MSG3 = vsha1su0q_u32(MSG3, MSG0, MSG1);
+
+    /* Rounds 48-51 */
+    E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1mq_u32(ABCD, E0, TMP0);
+    TMP0 = vaddq_u32(MSG2, vdupq_n_u32(SHA1_K2));
+    MSG3 = vsha1su1q_u32(MSG3, MSG2);
+    MSG0 = vsha1su0q_u32(MSG0, MSG1, MSG2);
+
+    /* Rounds 52-55 */
+    E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1mq_u32(ABCD, E1, TMP1);
+    TMP1 = vaddq_u32(MSG3, vdupq_n_u32(SHA1_K3));
+    MSG0 = vsha1su1q_u32(MSG0, MSG3);
+    MSG1 = vsha1su0q_u32(MSG1, MSG2, MSG3);
+
+    /* Rounds 56-59 */
+    E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1mq_u32(ABCD, E0, TMP0);
+    TMP0 = vaddq_u32(MSG0, vdupq_n_u32(SHA1_K3));
+    MSG1 = vsha1su1q_u32(MSG1, MSG0);
+    MSG2 = vsha1su0q_u32(MSG2, MSG3, MSG0);
+
+    /* Rounds 60-63 */
+    E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1pq_u32(ABCD, E1, TMP1);
+    TMP1 = vaddq_u32(MSG1, vdupq_n_u32(SHA1_K3));
+    MSG2 = vsha1su1q_u32(MSG2, MSG1);
+    MSG3 = vsha1su0q_u32(MSG3, MSG0, MSG1);
+
+    /* Rounds 64-67 */
+    E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1pq_u32(ABCD, E0, TMP0);
+    TMP0 = vaddq_u32(MSG2, vdupq_n_u32(SHA1_K3));
+    MSG3 = vsha1su1q_u32(MSG3, MSG2);
+    MSG0 = vsha1su0q_u32(MSG0, MSG1, MSG2);
+
+    /* Rounds 68-71 */
+    E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1pq_u32(ABCD, E1, TMP1);
+    TMP1 = vaddq_u32(MSG3, vdupq_n_u32(SHA1_K3));
+    MSG0 = vsha1su1q_u32(MSG0, MSG3);
+
+    /* Rounds 72-75 */
+    E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1pq_u32(ABCD, E0, TMP0);
+
+    /* Rounds 76-79 */
+    E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
+    ABCD = vsha1pq_u32(ABCD, E1, TMP1);
+
+    /* Combine state */
+    E0 += E0_SAVED;
+    ABCD = vaddq_u32(ABCD_SAVED, ABCD);
+
+    vst1q_u32(state, ABCD);
+    state[4] = E0;
+}
+#endif /* __aarch64__ */
+
+/* Dispatcher: hardware CE transform when the CPU advertises SHA1,
+ * portable scalar otherwise (also covers emulators/x86 builds). */
+static void sha1_transform(uint32_t state[5], const uint8_t block[64]) {
+#if defined(__aarch64__)
+    if (have_sha1_ce()) {
+        sha1_transform_ce(state, block);
+        return;
+    }
+#endif
+    sha1_transform_scalar(state, block);
+}
 
 static void sha1_update(sha1_ctx *ctx, const uint8_t *data, size_t len) {
     size_t idx = (size_t) (ctx->count & 0x3F);
@@ -157,6 +331,21 @@ static void hmac_sha1(const uint8_t *key, size_t key_len,
     sha1_update(&ctx, k_opad, 64);
     sha1_update(&ctx, inner, 20);
     sha1_final(&ctx, mac);
+}
+
+/* HMAC-SHA1 where the key-pad blocks were compressed once beforehand
+ * (midstates). Each call costs exactly two compressions instead of four. */
+static void hmac_sha1_padded(const sha1_ctx *ipad_state,
+                             const sha1_ctx *opad_state,
+                             const uint8_t *data, size_t data_len,
+                             uint8_t mac[20]) {
+    sha1_ctx c = *ipad_state;
+    uint8_t inner[20];
+    sha1_update(&c, data, data_len);
+    sha1_final(&c, inner);
+    c = *opad_state;
+    sha1_update(&c, inner, 20);
+    sha1_final(&c, mac);
 }
 
 /* --- MD5 (RFC 1321) for TKIP (keyver 1) MIC verification --- */
@@ -340,19 +529,48 @@ static void hmac_md5(const uint8_t *key, size_t key_len,
 static void pbkdf2_sha1(const uint8_t *password, size_t pw_len,
                         const uint8_t *ssid, size_t ssid_len,
                         uint8_t pmk[32]) {
-    uint8_t buf[4], u[20], t[20];
-    uint8_t combined[64 + 4];
+    /* HMAC midstate optimisation: the password-derived ipad/opad pad
+     * blocks are compressed once here; every one of the 4096 iterations
+     * then costs 2 compressions instead of 4 (~1.9x overall speedup). */
+    uint8_t k_ipad[64], k_opad[64], key_hash[20];
+    if (pw_len > 64) {
+        sha1_ctx c;
+        sha1_init(&c);
+        sha1_update(&c, password, pw_len);
+        sha1_final(&c, key_hash);
+        memcpy(k_ipad, key_hash, 20);
+        memcpy(k_opad, key_hash, 20);
+        memset(k_ipad + 20, 0, 44);
+        memset(k_opad + 20, 0, 44);
+    } else {
+        memcpy(k_ipad, password, pw_len);
+        memset(k_ipad + pw_len, 0, 64 - pw_len);
+        memcpy(k_opad, password, pw_len);
+        memset(k_opad + pw_len, 0, 64 - pw_len);
+    }
+    for (int i = 0; i < 64; i++) {
+        k_ipad[i] ^= 0x36;
+        k_opad[i] ^= 0x5c;
+    }
+
+    sha1_ctx ipad_state, opad_state;
+    sha1_init(&ipad_state);
+    sha1_update(&ipad_state, k_ipad, 64);
+    sha1_init(&opad_state);
+    sha1_update(&opad_state, k_opad, 64);
+
+    uint8_t combined[68], u[20], t[20];
     for (int block = 1; block <= 2; block++) {
-        buf[0] = (uint8_t) (block >> 24);
-        buf[1] = (uint8_t) (block >> 16);
-        buf[2] = (uint8_t) (block >> 8);
-        buf[3] = (uint8_t) (block);
+        combined[ssid_len]     = (uint8_t) (block >> 24);
+        combined[ssid_len + 1] = (uint8_t) (block >> 16);
+        combined[ssid_len + 2] = (uint8_t) (block >> 8);
+        combined[ssid_len + 3] = (uint8_t) (block);
         memcpy(combined, ssid, ssid_len);
-        memcpy(combined + ssid_len, buf, 4);
-        hmac_sha1(password, pw_len, combined, ssid_len + 4, u);
+        hmac_sha1_padded(&ipad_state, &opad_state,
+                         combined, ssid_len + 4, u);
         memcpy(t, u, 20);
         for (int iter = 2; iter <= 4096; iter++) {
-            hmac_sha1(password, pw_len, u, 20, u);
+            hmac_sha1_padded(&ipad_state, &opad_state, u, 20, u);
             for (int j = 0; j < 20; j++) t[j] ^= u[j];
         }
         memcpy(pmk + (block - 1) * 20, t, (block == 1) ? 20 : 12);
@@ -370,6 +588,26 @@ static uint8_t from_hex(char c) {
 static void hex_to_bytes(const char *hex, size_t hex_len, uint8_t *out) {
     for (size_t i = 0; i < hex_len / 2; i++)
         out[i] = (uint8_t) ((from_hex(hex[i * 2]) << 4) | from_hex(hex[i * 2 + 1]));
+}
+
+/* Tolerant variant: skips any non-hex characters (e.g. ':' in MACs),
+ * mirroring the JVM-side filtering. Writes exactly out_len bytes. */
+static void hex_to_bytes_tolerant(const char *hex, uint8_t *out, size_t out_len) {
+    size_t written = 0;
+    int high = -1;
+    for (size_t i = 0; written < out_len && hex[i]; i++) {
+        if ((hex[i] >= '0' && hex[i] <= '9') ||
+            (hex[i] >= 'a' && hex[i] <= 'f') ||
+            (hex[i] >= 'A' && hex[i] <= 'F')) {
+            if (high < 0) {
+                high = from_hex(hex[i]);
+            } else {
+                out[written++] = (uint8_t) ((high << 4) | from_hex(hex[i]));
+                high = -1;
+            }
+        }
+    }
+    while (written < out_len) out[written++] = 0;
 }
 
 static int memcmp_b(const uint8_t *a, const uint8_t *b, size_t len) {
@@ -484,6 +722,35 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_benchmarkPbkdf2(
 
 #define JNI_CLASS "com/lsd/wififrankenstein/util/NativeCracker"
 
+/* TEMP DEBUG: native PMK for divergence analysis (remove after diagnosis) */
+JNIEXPORT jstring JNICALL
+Java_com_lsd_wififrankenstein_util_NativeCracker_debugPbkdf2Hex(
+        JNIEnv *env, jclass cls,
+        jstring jPassword, jstring jSsid) {
+
+    const char *password = (*env)->GetStringUTFChars(env, jPassword, NULL);
+    const char *ssid = (*env)->GetStringUTFChars(env, jSsid, NULL);
+    jsize pw_len = (*env)->GetStringUTFLength(env, jPassword);
+    jsize ssid_len = (*env)->GetStringUTFLength(env, jSsid);
+
+    uint8_t pmk[32];
+    pbkdf2_sha1((const uint8_t *) password, pw_len,
+                (const uint8_t *) ssid, ssid_len, pmk);
+
+    (*env)->ReleaseStringUTFChars(env, jPassword, password);
+    (*env)->ReleaseStringUTFChars(env, jSsid, ssid);
+
+    char out[65];
+    static const char hx[] = "0123456789abcdef";
+    for (int i = 0; i < 32; i++) {
+        out[i * 2] = hx[pmk[i] >> 4];
+        out[i * 2 + 1] = hx[pmk[i] & 0xF];
+    }
+    out[64] = 0;
+    return (*env)->NewStringUTF(env, out);
+}
+
+
 JNIEXPORT jboolean JNICALL
 Java_com_lsd_wififrankenstein_util_NativeCracker_tryPasswordHex(
         JNIEnv *env, jclass cls,
@@ -507,10 +774,9 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_tryPasswordHex(
     pbkdf2_sha1((const uint8_t *) password, pw_len,
                 (const uint8_t *) ssid, ssid_len, pmk);
 
-    size_t macHexLen = 12;
     uint8_t apMac[6], staMac[6];
-    hex_to_bytes(macApHex, macHexLen, apMac);
-    hex_to_bytes(macStaHex, macHexLen, staMac);
+    hex_to_bytes_tolerant(macApHex, apMac, 6);
+    hex_to_bytes_tolerant(macStaHex, staMac, 6);
 
     int result = 0;
     int type = jType;
@@ -588,8 +854,8 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_crackBatchHex(
 
 
     uint8_t apMac[6], staMac[6];
-    hex_to_bytes(macApHex, 12, apMac);
-    hex_to_bytes(macStaHex, 12, staMac);
+    hex_to_bytes_tolerant(macApHex, apMac, 6);
+    hex_to_bytes_tolerant(macStaHex, staMac, 6);
 
 
     uint8_t aNonce[32], sNonce[32], eapol[512];
@@ -654,5 +920,129 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_crackBatchHex(
     (*env)->ReleaseStringUTFChars(env, jEapolHex, eapolHex);
     (*env)->ReleaseStringUTFChars(env, jMicHex, micHex);
 
+    return result;
+}
+
+/* ------------------------------------------------------------------
+ * Multi-hash batch: PBKDF2 is computed ONCE per password, the resulting
+ * PMK is then verified against every target hash that shares the SSID
+ * (typical capture: many clients -> many M1+M2 pairs of one network).
+ * Returns index of first matching password or -1.
+ * Targets are passed as parallel arrays; max 32 targets per call.
+ * ------------------------------------------------------------------ */
+typedef struct {
+    int type;
+    int keyver;
+    int micOk;
+    uint8_t apMac[6];
+    uint8_t staMac[6];
+    uint8_t anonce[32];
+    uint8_t sNonce[32];
+    uint8_t eapol[512];
+    size_t eapolLen;
+    uint8_t pke[100];
+    uint8_t mic[16];
+} nh_target;
+
+JNIEXPORT jint JNICALL
+Java_com_lsd_wififrankenstein_util_NativeCracker_crackBatchMultiHex(
+        JNIEnv *env, jclass cls,
+        jobjectArray jPasswords, jstring jSsid,
+        jobjectArray jApArr, jobjectArray jStaArr,
+        jobjectArray jAnonceArr, jobjectArray jEapolArr,
+        jobjectArray jMicArr, jintArray jKeyvers, jintArray jTypes) {
+
+    const char *ssid = (*env)->GetStringUTFChars(env, jSsid, NULL);
+    jsize ssid_len = (*env)->GetStringUTFLength(env, jSsid);
+    jsize count = (*env)->GetArrayLength(env, jPasswords);
+    jsize hn = (*env)->GetArrayLength(env, jApArr);
+    if (hn > 32) hn = 32;
+
+    jint *kvs = (*env)->GetIntArrayElements(env, jKeyvers, NULL);
+    jint *tps = (*env)->GetIntArrayElements(env, jTypes, NULL);
+
+    nh_target tg[32];
+    for (int h = 0; h < hn; h++) {
+        memset(&tg[h], 0, sizeof(nh_target));
+        tg[h].type = tps[h];
+        tg[h].keyver = kvs[h];
+
+        jstring s;
+        const char *p;
+
+        s = (jstring) (*env)->GetObjectArrayElement(env, jApArr, h);
+        p = (*env)->GetStringUTFChars(env, s, NULL);
+        hex_to_bytes_tolerant(p, tg[h].apMac, 6);
+        (*env)->ReleaseStringUTFChars(env, s, p);
+        (*env)->DeleteLocalRef(env, s);
+
+        s = (jstring) (*env)->GetObjectArrayElement(env, jStaArr, h);
+        p = (*env)->GetStringUTFChars(env, s, NULL);
+        hex_to_bytes_tolerant(p, tg[h].staMac, 6);
+        (*env)->ReleaseStringUTFChars(env, s, p);
+        (*env)->DeleteLocalRef(env, s);
+
+        s = (jstring) (*env)->GetObjectArrayElement(env, jMicArr, h);
+        p = (*env)->GetStringUTFChars(env, s, NULL);
+        tg[h].micOk = (strlen(p) >= 32) ? 1 : 0;
+        if (tg[h].micOk) hex_to_bytes(p, 32, tg[h].mic);
+        (*env)->ReleaseStringUTFChars(env, s, p);
+        (*env)->DeleteLocalRef(env, s);
+
+        s = (jstring) (*env)->GetObjectArrayElement(env, jAnonceArr, h);
+        p = (*env)->GetStringUTFChars(env, s, NULL);
+        if (strlen(p) >= 64) hex_to_bytes(p, 64, tg[h].anonce);
+        (*env)->ReleaseStringUTFChars(env, s, p);
+        (*env)->DeleteLocalRef(env, s);
+
+        s = (jstring) (*env)->GetObjectArrayElement(env, jEapolArr, h);
+        p = (*env)->GetStringUTFChars(env, s, NULL);
+        size_t elen = strlen(p) / 2;
+        if (elen > 512) elen = 512;
+        if (elen >= 97) {
+            hex_to_bytes(p, elen * 2, tg[h].eapol);
+            tg[h].eapolLen = elen;
+            memcpy(tg[h].sNonce, tg[h].eapol + 17, 32);
+            build_pke(tg[h].pke, tg[h].apMac, tg[h].staMac,
+                      tg[h].anonce, tg[h].sNonce);
+        }
+        (*env)->ReleaseStringUTFChars(env, s, p);
+        (*env)->DeleteLocalRef(env, s);
+    }
+
+    (*env)->ReleaseIntArrayElements(env, jKeyvers, kvs, JNI_ABORT);
+    (*env)->ReleaseIntArrayElements(env, jTypes, tps, JNI_ABORT);
+
+    int result = -1;
+    uint8_t pmk[32], ptk[80];
+
+    for (jsize i = 0; i < count && result < 0; i++) {
+        jstring jpw = (jstring) (*env)->GetObjectArrayElement(env, jPasswords, i);
+        if (!jpw) continue;
+        const char *password = (*env)->GetStringUTFChars(env, jpw, NULL);
+        jsize pw_len = (*env)->GetStringUTFLength(env, jpw);
+
+        pbkdf2_sha1((const uint8_t *) password, pw_len,
+                    (const uint8_t *) ssid, ssid_len, pmk);
+
+        for (int h = 0; h < hn && result < 0; h++) {
+            int ok = 0;
+            if (tg[h].micOk && (tg[h].type == 1 || tg[h].type == 3))
+                ok = verify_pmkid(pmk, tg[h].apMac, tg[h].staMac, tg[h].mic);
+            if (!ok && tg[h].micOk && tg[h].eapolLen >= 97 &&
+                tg[h].keyver > 0 && tg[h].keyver < 3) {
+                derive_ptk(pmk, tg[h].pke, ptk);
+                ok = (tg[h].keyver == 1)
+                     ? verify_mic_md5(ptk, tg[h].eapol, tg[h].eapolLen, tg[h].mic)
+                     : verify_mic_kv2(ptk, tg[h].eapol, tg[h].eapolLen, tg[h].mic);
+            }
+            if (ok) result = i;
+        }
+
+        (*env)->ReleaseStringUTFChars(env, jpw, password);
+        (*env)->DeleteLocalRef(env, jpw);
+    }
+
+    (*env)->ReleaseStringUTFChars(env, jSsid, ssid);
     return result;
 }

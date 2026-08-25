@@ -7,8 +7,9 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 add_library(cracker SHARED cracker.c)
 
 target_compile_options(cracker PRIVATE
-        -O2
+        -O3
         -funroll-loops
+        -fomit-frame-pointer
         $<$<NOT:$<CONFIG:Debug>>:-DNDEBUG>
 )
 
