@@ -165,3 +165,5 @@ If you find this project useful and would like to support its development, you c
 ```
 4AC1MepXZA8R6XGcL5mjejWRDqKvmbY3YWGEJTCWmFxJ8gPuLULSYxKSWafy9haMXGYuR2CdF3Vr8Q2kS8pBorVpQ4Lie48
 ```
+
+## Download the application: [WIFI-Frankenstein-2.4.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.4/WIFI-Frankenstein-2.4.apk)
