@@ -2623,6 +2623,18 @@
     <string name="brute_mask_hint">\\?u\\?l\\?l\\?d\\?d\\?s</string>
     <string name="brute_mask_combinations">%1$s combinations</string>
     <string name="brute_mask_no_combinations">No combinations</string>
+    <string name="brute_mask_legend_title">Mask tokens (tap to copy):</string>
+    <string name="brute_mask_tok_l">\?l</string>
+    <string name="brute_mask_tok_u">\?u</string>
+    <string name="brute_mask_tok_d">\?d</string>
+    <string name="brute_mask_tok_s">\?s</string>
+    <string name="brute_mask_tok_a">\?a</string>
+    <string name="brute_mask_copied">%s copied</string>
+    <string name="brute_mask_desc_l" formatted="false">lowercase a-z</string>
+    <string name="brute_mask_desc_u" formatted="false">UPPERCASE A-Z</string>
+    <string name="brute_mask_desc_d" formatted="false">digits 0-9</string>
+    <string name="brute_mask_desc_s" formatted="false">specials !@#$%</string>
+    <string name="brute_mask_desc_a" formatted="false">all printable</string>
     <string name="brute_start">Start</string>
     <string name="wpa_clear_session">Clear session</string>
     <string name="wpa_clear_confirm">Stop crack and clear all selections?</string>

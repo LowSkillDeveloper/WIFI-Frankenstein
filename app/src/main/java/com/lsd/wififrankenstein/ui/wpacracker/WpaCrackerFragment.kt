@@ -235,8 +235,6 @@ class WpaCrackerFragment : Fragment() {
 
         binding.buttonStopCrack.setOnClickListener {
             viewModel.cancel()
-            binding.buttonPauseResume.isVisible = false
-            binding.buttonStopCrack.isVisible = false
         }
 
         binding.buttonCancel.setOnClickListener {
@@ -476,6 +474,64 @@ class WpaCrackerFragment : Fragment() {
             setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
         }
         layout.addView(countLabel)
+
+        val legendLabel = android.widget.TextView(context).apply {
+            text = getString(R.string.brute_mask_legend_title)
+            setPadding(48, 16, 48, 4)
+            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelSmall)
+        }
+        layout.addView(legendLabel)
+
+        val tokens = listOf(
+            "?l" to getString(R.string.brute_mask_desc_l),
+            "?u" to getString(R.string.brute_mask_desc_u),
+            "?d" to getString(R.string.brute_mask_desc_d),
+            "?s" to getString(R.string.brute_mask_desc_s),
+            "?a" to getString(R.string.brute_mask_desc_a)
+        )
+        for ((token, desc) in tokens) {
+            val row = android.widget.LinearLayout(context).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                setPadding(48, 2, 48, 2)
+                isClickable = true
+                isFocusable = true
+                val tv = android.util.TypedValue()
+                context.theme.resolveAttribute(
+                    android.R.attr.selectableItemBackground, tv, true
+                )
+                background = androidx.core.content.ContextCompat.getDrawable(context, tv.resourceId)
+                setOnClickListener {
+                    val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                        as android.content.ClipboardManager
+                    cm.setPrimaryClip(
+                        android.content.ClipData.newPlainText("mask_token", token)
+                    )
+                    android.widget.Toast.makeText(
+                        context, getString(R.string.brute_mask_copied, token), Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            val tokView = android.widget.TextView(context).apply {
+                text = token
+                setPadding(0, 0, 24, 0)
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
+                setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.notice_icon_tint))
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+            val descView = android.widget.TextView(context).apply {
+                text = desc
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                )
+            }
+            row.addView(tokView)
+            row.addView(descView)
+            layout.addView(row)
+        }
 
         fun updateCount() {
             val parsed = com.lsd.wififrankenstein.util.MaskCracker.parse(
@@ -958,6 +1014,9 @@ class WpaCrackerFragment : Fragment() {
                 updateHandshakeInfo(state.hash, state.fileName)
                 updateStartButton()
                 binding.buttonClearSession.isVisible = true
+                binding.buttonStartCrack.visibility = View.VISIBLE
+                binding.buttonPauseResume.isVisible = false
+                binding.buttonStopCrack.isVisible = false
             }
 
             is WpaCrackerState.Cracking -> {
@@ -1023,6 +1082,7 @@ class WpaCrackerFragment : Fragment() {
                 binding.textBackgroundIndicator.isVisible = false
                 binding.buttonStartCrack.text = getString(R.string.wpa_start_cracking)
                 binding.buttonStartCrack.visibility = View.VISIBLE
+                binding.buttonClearSession.isVisible = true
             }
         }
     }

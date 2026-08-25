@@ -182,6 +182,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                 when (intent.action) {
                     WpaCrackService.BROADCAST_CRACK_PROGRESS -> {
                         if (_state.value is WpaCrackerState.Done) return@onReceive
+                        if (_isPaused.value == true) return@onReceive
                         val password =
                             intent.getStringExtra(WpaCrackService.EXTRA_CURRENT_PASSWORD) ?: ""
                         val attempts = intent.getLongExtra(WpaCrackService.EXTRA_ATTEMPTS, 0)
@@ -238,7 +239,14 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
                         _isPaused.postValue(false)
                         _isRunningInBackground.postValue(false)
                         clearCurrentSession()
-                        _state.postValue(WpaCrackerState.Idle)
+                        val hash = currentHash
+                        if (hash != null) {
+                            _state.postValue(
+                                WpaCrackerState.Loaded(hash, currentFileName ?: "")
+                            )
+                        } else {
+                            _state.postValue(WpaCrackerState.Idle)
+                        }
                     }
 
                     WpaCrackService.BROADCAST_CHROOT_LINE -> {
@@ -708,7 +716,6 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
             R.string.brute_mask_combinations,
             parsed.exactCombinations.toString()
         )
-        updateStartButton()
     }
 
     private fun updateStartButton() {
