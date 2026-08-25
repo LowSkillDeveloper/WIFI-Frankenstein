@@ -14,7 +14,7 @@
             android:id="@+id/groupContent"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:constraint_referenced_ids="imageViewHeroIcon,textViewWelcomeTitle,textViewSubtitle,cardViewDisclaimer,textViewBottomHint,buttonNext" />
+            app:constraint_referenced_ids="imageViewHeroIcon,textViewWelcomeTitle,textViewSubtitle,cardViewDisclaimer,cardViewRootNotice,textViewBottomHint,buttonNext" />
 
         <ImageView
             android:id="@+id/imageViewHeroIcon"
@@ -64,7 +64,7 @@
             app:cardBackgroundColor="@color/disclaimer_card_background"
             app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
-            app:layout_constraintBottom_toTopOf="@+id/textViewBottomHint"
+            app:layout_constraintBottom_toTopOf="@+id/cardViewRootNotice"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/textViewSubtitle"
@@ -97,6 +97,46 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardViewRootNotice"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardBackgroundColor="@color/notice_card_background"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:layout_constraintBottom_toTopOf="@+id/textViewBottomHint"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/cardViewDisclaimer"
+            app:strokeColor="@color/notice_card_stroke"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="top"
+                android:orientation="horizontal"
+                android:padding="16dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@string/notice_root_not_required"
+                    android:src="@drawable/ic_info"
+                    app:tint="@color/notice_icon_tint" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="@string/notice_root_not_required"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <TextView
             android:id="@+id/textViewBottomHint"
             android:layout_width="0dp"
@@ -109,7 +149,7 @@
             app:layout_constraintBottom_toTopOf="@+id/buttonNext"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/cardViewDisclaimer" />
+            app:layout_constraintTop_toBottomOf="@+id/cardViewRootNotice" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonNext"
