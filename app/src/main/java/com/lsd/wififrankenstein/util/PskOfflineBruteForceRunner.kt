@@ -288,8 +288,19 @@ class PskOfflineBruteForceRunner(private val context: Context) {
             )
 
             val nativeHashes = hashes.filter { h ->
-                NativeCracker.isAvailable && h.anonce != null && h.eapol != null &&
-                        (h.keyver ?: WpaCracker.extractKeyver(WpaCrypto.hexToBytes(h.eapol))) in 1..2
+                if (!NativeCracker.isAvailable) return@filter false
+                val hasMic = h.pmkidOrMic.length >= 32
+                val hasEapolData = h.anonce != null && h.eapol != null
+                when {
+                    h.type == HandshakeType.PMKID -> hasMic
+
+                    hasEapolData -> hasMic &&
+                            (h.keyver ?: WpaCracker.extractKeyver(
+                                WpaCrypto.hexToBytes(h.eapol)
+                            )) in 1..2
+
+                    else -> false
+                }
             }
             val fallbackHashes = hashes.filter { h -> nativeHashes.none { it === h } }
             // Hashes sharing an ESSID are verified against a single PBKDF2 per password
