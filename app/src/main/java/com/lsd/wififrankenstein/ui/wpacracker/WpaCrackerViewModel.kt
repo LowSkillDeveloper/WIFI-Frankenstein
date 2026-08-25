@@ -12,6 +12,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.service.CrackRuntimeState
 import com.lsd.wififrankenstein.service.WpaCrackService
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
@@ -134,6 +135,42 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
 
     init {
         checkChrootAvailability()
+        reattachToRunningCrack()
+    }
+
+    private fun reattachToRunningCrack() {
+        val st = CrackRuntimeState
+        if (!st.isRunning) return
+        val line = st.handshakeLine
+        if (line.isBlank()) return
+
+        val hashes = (listOf(line) + st.extraLines)
+            .mapNotNull { HandshakeHash.parseAny(it) }
+            .distinctBy { it.dedupKey() }
+        if (hashes.isEmpty()) return
+
+        registerCrackReceiver()
+        _selectedEngine.value = CrackEngine.NATIVE
+        currentHash = hashes.first()
+        candidateHashes = hashes
+        currentFileName = "background"
+        val fileNameTail = android.net.Uri.parse(st.wordlistUri).lastPathSegment
+            ?: st.wordlistUri
+        _wordlistInfo.value = fileNameTail
+
+        val progress = st.lastProgress
+            ?: OfflineProgress("", 0, 0, 0.0, 0, 0, 0)
+        _handshakeInfo.value = getApplication<Application>().getString(
+            R.string.wpa_line, hashes.first().essid
+        )
+        if (st.isPaused) {
+            _isPaused.value = true
+            _state.value = WpaCrackerState.Paused(progress)
+        } else {
+            _state.value = WpaCrackerState.Cracking(progress)
+            _isRunningInBackground.value = true
+        }
+        Log.d("WpaCrackerVM", "Re-attached to running background crack")
     }
 
     private fun registerCrackReceiver() {
@@ -143,14 +180,17 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
             override fun onReceive(context: Context, intent: Intent) {
                 when (intent.action) {
                     WpaCrackService.BROADCAST_CRACK_PROGRESS -> {
+                        if (_state.value is WpaCrackerState.Done) return@onReceive
                         val password =
                             intent.getStringExtra(WpaCrackService.EXTRA_CURRENT_PASSWORD) ?: ""
                         val attempts = intent.getLongExtra(WpaCrackService.EXTRA_ATTEMPTS, 0)
                         val totalLines = intent.getLongExtra(WpaCrackService.EXTRA_TOTAL_LINES, 0)
                         val speed = intent.getDoubleExtra(WpaCrackService.EXTRA_SPEED, 0.0)
+                        val elapsedMs = intent.getLongExtra(WpaCrackService.EXTRA_ELAPSED_MS, 0)
+                        val etaMs = intent.getLongExtra(WpaCrackService.EXTRA_ETA_MS, 0)
                         val offset = intent.getLongExtra(WpaCrackService.EXTRA_OFFSET, 0)
                         val progress =
-                            OfflineProgress(password, attempts, totalLines, speed, 0, 0, offset)
+                            OfflineProgress(password, attempts, totalLines, speed, elapsedMs, etaMs, offset)
                         lastProgress = progress
                         _state.postValue(WpaCrackerState.Cracking(progress))
                     }
@@ -867,6 +907,12 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
     private fun startNativeCracking() {
         val hash = currentHash ?: return
         val uri = wordlistUri ?: return
+
+        if (CrackRuntimeState.isRunning) {
+            Log.w("WpaCrackerVM", "startNativeCracking: crack already running, re-attaching")
+            reattachToRunningCrack()
+            return
+        }
 
         registerCrackReceiver()
 

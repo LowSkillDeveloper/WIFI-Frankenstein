@@ -417,6 +417,12 @@ class MainActivity : AppCompatActivity() {
     private fun handleNotificationIntent(intent: Intent?) {
         intent?.let {
             when {
+                it.getBooleanExtra("open_wpa_cracker", false) -> {
+                    if (navController.currentDestination?.id != R.id.nav_wpa_cracker) {
+                        navController.navigate(R.id.nav_wpa_cracker)
+                    }
+                }
+
                 it.getBooleanExtra("open_updates", false) -> {
                     navController.navigate(R.id.nav_updates)
                 }

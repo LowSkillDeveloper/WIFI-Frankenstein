@@ -8,6 +8,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
@@ -50,6 +51,9 @@ class PskOfflineBruteForceRunner(private val context: Context) {
     private var cancelled = false
 
     @Volatile
+    private var foundDelivered = false
+
+    @Volatile
     var paused = false
 
     fun pause() {
@@ -60,16 +64,23 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         paused = false
     }
 
+    private data class ChunkData(
+        val passwords: List<String>,
+        val offset: Long
+    )
+
     suspend fun crackFromWordlist(
         handshakeHash: HandshakeHash,
         extraHashes: List<HandshakeHash> = emptyList(),
         wordlistUri: Uri,
         threadCount: Int = Runtime.getRuntime().availableProcessors().coerceAtLeast(1),
         startOffset: Long = 0,
-        onProgress: ((OfflineProgress) -> Unit)? = null
+        onProgress: ((OfflineProgress) -> Unit)? = null,
+        onPasswordFound: ((String) -> Unit)? = null
     ): OfflineResult = withContext(Dispatchers.IO) {
         cancelled = false
         paused = false
+        foundDelivered = false
         val startTime = System.currentTimeMillis()
 
         val allHashes = (listOf(handshakeHash) + extraHashes).distinctBy { it.dedupKey() }
@@ -79,6 +90,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         var foundPassword: String? = null
         var fileOffset = startOffset
         val speedWindow = mutableListOf<Pair<Long, Long>>()
+        val workerCount = threadCount.coerceAtLeast(1)
 
         Log.d(TAG, "=== OFFLINE BRUTE FORCE START ===")
         Log.d(
@@ -88,7 +100,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         Log.d(TAG, "Type: ${handshakeHash.type}, Keyver: ${handshakeHash.keyver}")
         Log.d(
             TAG,
-            "Wordlist lines: $totalPasswords, Threads: $threadCount, Start offset: $startOffset"
+            "Wordlist lines: $totalPasswords, Threads: $workerCount, Start offset: $startOffset"
         )
 
         try {
@@ -97,8 +109,9 @@ class PskOfflineBruteForceRunner(private val context: Context) {
 
             val progressChannel = Channel<OfflineProgress>(Channel.CONFLATED)
             val resultChannel = Channel<String?>(Channel.CONFLATED)
+            val chunkChannel = Channel<ChunkData>(capacity = workerCount * 4)
 
-            val producerJob = scope.launch {
+            val producerJob = scope.launch(Dispatchers.IO) {
                 supervisorScope {
                     val reader = BufferedReader(InputStreamReader(inputStream))
                     var linesSkipped = 0L
@@ -128,33 +141,30 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                             batch.add(pw)
 
                             if (batch.size >= CHUNK_SIZE) {
-                                val chunk = batch.toList()
+                                chunkChannel.send(ChunkData(batch.toList(), fileOffset))
                                 batch = mutableListOf()
-                                launch {
-                                    crackChunk(
-                                        chunk,
-                                        allHashes,
-                                        progressChannel,
-                                        resultChannel,
-                                        fileOffset,
-                                        totalAttempts
-                                    )
-                                }
                             }
                         }
                     }
 
                     if (batch.isNotEmpty() && !cancelled) {
-                        launch {
-                            crackChunk(
-                                batch,
-                                allHashes,
-                                progressChannel,
-                                resultChannel,
-                                fileOffset,
-                                totalAttempts
-                            )
-                        }
+                        chunkChannel.send(ChunkData(batch.toList(), fileOffset))
+                    }
+                }
+                chunkChannel.close()
+            }
+
+            val workers = List(workerCount) {
+                scope.launch {
+                    for (chunk in chunkChannel) {
+                        crackChunk(
+                            chunk.passwords,
+                            allHashes,
+                            progressChannel,
+                            resultChannel,
+                            chunk.offset,
+                            totalAttempts
+                        )
                     }
                 }
             }
@@ -188,7 +198,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                     } else 0.0
 
                     val etaMs = if (speed > 0 && totalPasswords > 0) {
-                        ((totalPasswords - attemptsSnapshot) / speed * 1000.0).toLong()
+                        ((totalPasswords - attemptsSnapshot) / speed * 1000.0).toLong().coerceAtLeast(0)
                     } else 0L
 
                     onProgress?.invoke(
@@ -209,20 +219,19 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                 Log.d(TAG, "resultConsumerJob started on IO")
                 for (password in resultChannel) {
                     if (password != null) {
-                        Log.d(TAG, "!!! PASSWORD FOUND: $password !!!")
+                        foundDelivered = true
                         foundPassword = password
+                        Log.d(TAG, "!!! PASSWORD FOUND: $password !!!")
+                        onPasswordFound?.invoke(password)
                         cancelled = true
                     }
                 }
             }
 
-            crackJob = scope.launch {
-                producerJob.join()
-                progressChannel.close()
-                resultChannel.close()
-            }
-
-            crackJob?.join()
+            producerJob.join()
+            workers.joinAll()
+            progressChannel.close()
+            resultChannel.close()
             progressConsumerJob.join()
             resultConsumerJob.join()
 
@@ -263,7 +272,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
     ) {
         suspend fun report(p: OfflineProgress) {
             attemptsAccumulator.add(p.attempts)
-            progressChannel.send(p)
+            if (!foundDelivered) progressChannel.send(p)
         }
 
         try {
@@ -303,7 +312,6 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                 }
             }
             val fallbackHashes = hashes.filter { h -> nativeHashes.none { it === h } }
-            // Hashes sharing an ESSID are verified against a single PBKDF2 per password
             val nativeGroups = nativeHashes.groupBy { it.essid }
             val miniBatchSize = NativeCracker.BATCH_SIZE
             val allHashesForVerification = hashes

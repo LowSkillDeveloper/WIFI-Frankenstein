@@ -35,6 +35,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
+object CrackRuntimeState {
+    @Volatile var isRunning: Boolean = false
+    @Volatile var isPaused: Boolean = false
+    @Volatile var lastProgress: OfflineProgress? = null
+    @Volatile var handshakeLine: String = ""
+    @Volatile var extraLines: List<String> = emptyList()
+    @Volatile var wordlistUri: String = ""
+}
+
+
 class WpaCrackService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -49,6 +59,9 @@ class WpaCrackService : Service() {
     private var lastKnownOffset: Long = 0
     private var chrootCrackJob: Job? = null
     private lateinit var sessionManager: CrackSessionManager
+
+    @Volatile
+    private var foundBroadcastSent = false
 
     companion object {
         private const val TAG = "WpaCrackService"
@@ -76,6 +89,8 @@ class WpaCrackService : Service() {
         const val EXTRA_CURRENT_PASSWORD = "current_password"
         const val EXTRA_ATTEMPTS = "attempts"
         const val EXTRA_SPEED = "speed"
+        const val EXTRA_ELAPSED_MS = "elapsed_ms"
+        const val EXTRA_ETA_MS = "eta_ms"
 
         const val EXTRA_RESULT_PSK = "result_psk"
         const val EXTRA_ERROR_MESSAGE = "error_message"
@@ -186,6 +201,10 @@ class WpaCrackService : Service() {
     }
 
     private fun handleStartCrack(intent: Intent) {
+        if (CrackRuntimeState.isRunning) {
+            Log.w(TAG, "handleStartCrack: crack already running, ignoring new start")
+            return
+        }
         val handshakeLine = intent.getStringExtra(EXTRA_HANDSHAKE_LINE) ?: return
         val wordlistUriStr = intent.getStringExtra(EXTRA_WORDLIST_URI) ?: return
         val offset = intent.getLongExtra(EXTRA_OFFSET, 0)
@@ -194,6 +213,7 @@ class WpaCrackService : Service() {
         sessionHandshakeLine = handshakeLine
         sessionWordlistUri = wordlistUriStr
         sessionTotalLines = totalLines
+        foundBroadcastSent = false
 
         val hash = HandshakeHash.parseAny(handshakeLine) ?: run {
             Log.e(TAG, "Failed to parse handshake line")
@@ -225,6 +245,13 @@ class WpaCrackService : Service() {
         )
         startForeground(NOTIFICATION_ID, notification.build())
 
+        CrackRuntimeState.isRunning = true
+        CrackRuntimeState.isPaused = false
+        CrackRuntimeState.lastProgress = null
+        CrackRuntimeState.handshakeLine = handshakeLine
+        CrackRuntimeState.extraLines = extraLines
+        CrackRuntimeState.wordlistUri = wordlistUriStr
+
         crackJob = serviceScope.launch {
             try {
                 runner = PskOfflineBruteForceRunner(this@WpaCrackService)
@@ -235,8 +262,15 @@ class WpaCrackService : Service() {
                     startOffset = offset,
                     onProgress = { progress ->
                         lastKnownOffset = progress.offset
+                        CrackRuntimeState.lastProgress = progress
                         updateNotif(progress, isPaused = false)
                         broadcastProgress(progress)
+                    },
+                    onPasswordFound = { password ->
+                        foundBroadcastSent = true
+                        val text = getString(R.string.svc_found, password)
+                        updateNotificationSimple(getString(R.string.wpa_crack_notif_title), text)
+                        broadcastFound(password, hash)
                     }
                 )
                 handleResult(result, hash)
@@ -250,6 +284,8 @@ class WpaCrackService : Service() {
                     getString(R.string.svc_failed, e.message)
                 )
             } finally {
+                CrackRuntimeState.isRunning = false
+                CrackRuntimeState.isPaused = false
                 if (sessionHandshakeLine.isNotBlank() && sessionWordlistUri.isNotBlank()) {
                     sessionManager.removeSession(sessionHandshakeLine, sessionWordlistUri)
                 }
@@ -263,7 +299,12 @@ class WpaCrackService : Service() {
         if (result.foundPassword != null) {
             val text = getString(R.string.svc_found, result.foundPassword)
             updateNotificationSimple(getString(R.string.wpa_crack_notif_title), text)
-            broadcastFound(result.foundPassword, hash)
+            if (!foundBroadcastSent) {
+                foundBroadcastSent = true
+                broadcastFound(result.foundPassword, hash)
+            } else {
+                broadcastStopped()
+            }
         } else if (result.cancelled) {
             broadcastStopped()
         } else {
@@ -273,6 +314,7 @@ class WpaCrackService : Service() {
 
     private fun handlePauseCrack() {
         runner?.pause()
+        CrackRuntimeState.isPaused = true
         if (sessionHandshakeLine.isNotBlank() && sessionWordlistUri.isNotBlank()) {
             sessionManager.saveSession(
                 CrackSessionData(
@@ -290,12 +332,15 @@ class WpaCrackService : Service() {
 
     private fun handleResumeCrack() {
         runner?.resume()
+        CrackRuntimeState.isPaused = false
         broadcastResumed()
     }
 
     private fun handleStopCrack() {
         runner?.cancel()
         runner = null
+        CrackRuntimeState.isRunning = false
+        CrackRuntimeState.isPaused = false
         crackJob?.cancel()
         crackJob = null
         if (sessionHandshakeLine.isNotBlank() && sessionWordlistUri.isNotBlank()) {
@@ -582,6 +627,7 @@ class WpaCrackService : Service() {
     ): NotificationCompat.Builder {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("open_wpa_cracker", true)
         }
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent,
@@ -656,6 +702,8 @@ class WpaCrackService : Service() {
             putExtra(EXTRA_CURRENT_PASSWORD, progress.currentPassword)
             putExtra(EXTRA_ATTEMPTS, progress.attempts)
             putExtra(EXTRA_SPEED, progress.speed)
+            putExtra(EXTRA_ELAPSED_MS, progress.elapsedMs)
+            putExtra(EXTRA_ETA_MS, progress.etaMs)
             putExtra(EXTRA_OFFSET, progress.offset)
             putExtra(EXTRA_TOTAL_LINES, progress.totalPasswords)
         }
