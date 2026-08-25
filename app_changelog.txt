@@ -1,3 +1,15 @@
+#2.4
+Fully fixed handshake bruteforce.
+Added a message stating that root and chroot are not required and only unlock a small part of the functionality.
+Accelerated the handshake password algorithm (on some devices, up to 2× speed increase).
+
+#2.3
+Corrected handshake bruteforce
+Fixed map operation without location permissions
+Reduced device load in WiFi map when working with a large database
+Added partial support for the pwncrack.org service
+Added ARP attack detection and port scanning (not available on all devices)
+
 #2.2
 Fixed handshake parsing
 Fixed adding database via SmartLinkDb
