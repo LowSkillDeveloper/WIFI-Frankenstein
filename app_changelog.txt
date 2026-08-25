@@ -1,3 +1,16 @@
+#2.5
+Added the ability to lock the app using biometrics
+Added mask-based brute-force
+Added support for background database downloads
+Added a session clear button in WPA Cracker
+Fixed OOM when using a large dictionary in WPA Cracker
+Fixed background mode operation in WPA Cracker
+Fixed handling of networks with long SSIDs in WPA Cracker
+Fixed time determination in WPA Cracker
+Fixed session continuation in WPA Cracker
+Optimized PMKID brute-force
+Improved handshake parsing
+
 #2.4
 Fully fixed handshake bruteforce.
 Added a message stating that root and chroot are not required and only unlock a small part of the functionality.
