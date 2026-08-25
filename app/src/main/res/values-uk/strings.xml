@@ -310,6 +310,23 @@
     <string name="welcome_completed">Налаштування завершено</string>
     <string name="welcome_setup_completed_message">Ваш додаток налаштовано та готовий до використання!</string>
     <string name="start_using_app">Почати використовувати додаток</string>
+
+    <string name="security_settings">Безпека</string>
+    <string name="app_lock_switch_title">Вхід за біометрією</string>
+    <string name="app_lock_switch_summary">Вимагати відбиток пальця або PIN-код пристрою під час кожного запуску додатка. Як резервний варіант використовується PIN-код пристрою.</string>
+    <string name="app_lock_unavailable">Біометрична автентифікація недоступна на цьому пристрої</string>
+    <string name="app_lock_not_enrolled">Відбитки, обличчя або PIN-код пристрою не налаштовано. Налаштуйте їх у системних параметрах, щоб використовувати блокування.</string>
+    <string name="lock_screen_title">Додаток заблоковано</string>
+    <string name="lock_screen_subtitle">Підтвердьте свою особу, щоб продовжити</string>
+    <string name="unlock_button">Розблокувати</string>
+    <string name="biometric_prompt_title">Розблокувати додаток</string>
+    <string name="biometric_prompt_subtitle">Використовуйте біометрію або PIN-код пристрою</string>
+    <string name="biometric_cancelled">Автентифікацію скасовано. Додаток буде закрито.</string>
+    <string name="biometric_failed_to_start">Не вдалося запустити автентифікацію. Спробуйте ще раз.</string>
+    <string name="welcome_biometrics_title">Вхід за біометрією</string>
+    <string name="welcome_biometrics_description">Захистіть додаток за допомогою відбитка пальця або PIN-коду пристрою. Під час кожного запуску додатка потрібно підтвердити особу.</string>
+    <string name="enable_app_lock">Увімкнути блокування додатка</string>
+    <string name="app_lock_enabled_toast">Блокування додатка увімкнено</string>
     <string name="theme_setup">Налаштування зовнішнього вигляду</string>
     <string name="choose_your_preferences">Виберіть ваші налаштування:</string>
     <string name="updates_setup">Перевірка оновлень</string>

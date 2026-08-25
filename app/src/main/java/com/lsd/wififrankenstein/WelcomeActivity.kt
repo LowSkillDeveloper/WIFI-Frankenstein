@@ -23,6 +23,7 @@ import com.lsd.wififrankenstein.ui.welcome.WelcomeDisclaimerFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeRootFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeThemePermissionsFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeUpdatesFragment
+import com.lsd.wififrankenstein.ui.welcome.WelcomeBiometricsFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeVersionCheckFragment
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
@@ -66,6 +67,7 @@ class WelcomeActivity : AppCompatActivity() {
             WelcomeRootFragment.newInstance(),
             ChrootInstallFragment.newInstance(),
             WelcomeUpdatesFragment.newInstance(),
+            WelcomeBiometricsFragment.newInstance(),
             WelcomeCompletedFragment.newInstance()
         )
     }

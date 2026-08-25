@@ -40,6 +40,7 @@ import com.lsd.wififrankenstein.databinding.FragmentSettingsBinding
 import com.lsd.wififrankenstein.databinding.ItemSettingsInterfaceBinding
 import com.lsd.wififrankenstein.ui.airodump.InterfaceStatus
 import com.lsd.wififrankenstein.ui.iwwifi.IwWifiManager
+import com.lsd.wififrankenstein.util.AppLockManager
 import com.lsd.wififrankenstein.util.ChrootDiagnostics
 import com.lsd.wififrankenstein.util.ChrootManager
 import com.lsd.wififrankenstein.util.ChrootManagerSingleton
@@ -93,6 +94,7 @@ class SettingsFragment : Fragment() {
         setupRootChrootSettings()
         setupStartPageSettings()
         setupWlanInterfaceManager()
+        setupSecuritySettings()
 
         binding.layoutDbSettingsContent.visibility = View.VISIBLE
         binding.layoutAppSettingsContent.visibility = View.VISIBLE
@@ -578,6 +580,22 @@ class SettingsFragment : Fragment() {
             viewModel.setEnableRoot(isChecked)
         }
 
+    }
+
+    private fun setupSecuritySettings() {
+        val available = AppLockManager.isAvailable(requireContext())
+        binding.switchAppLock.isChecked =
+            available && AppLockManager.isEnabled(requireContext())
+
+        if (!available) {
+            binding.switchAppLock.isEnabled = false
+            binding.textViewAppLockSummary.setText(R.string.app_lock_unavailable)
+            return
+        }
+
+        binding.switchAppLock.setOnCheckedChangeListener { _, isChecked ->
+            AppLockManager.setEnabled(requireContext(), isChecked)
+        }
     }
 
     private fun setupAPI3WiFiSettings() {
