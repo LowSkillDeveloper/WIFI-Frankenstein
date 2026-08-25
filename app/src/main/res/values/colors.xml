@@ -46,6 +46,9 @@
     <color name="disclaimer_card_background">#1AFF9800</color>
     <color name="disclaimer_card_stroke">#40FF9800</color>
     <color name="disclaimer_icon_tint">#E6A300</color>
+    <color name="notice_card_background">#1A4CAF50</color>
+    <color name="notice_card_stroke">#404CAF50</color>
+    <color name="notice_icon_tint">#2E7D32</color>
     <color name="text_hint">#888888</color>
     <color name="divider_color">#1F000000</color>
     <color name="gray_200">#EEEEEE</color>

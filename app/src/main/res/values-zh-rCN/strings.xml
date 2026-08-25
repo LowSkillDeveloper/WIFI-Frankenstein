@@ -2596,6 +2596,9 @@
     <string name="wpa_benchmark_all_finished">所有测试已完成</string>
     <string name="wpa_benchmark_error">错误：%1$s</string>
     <string name="wpa_loading_handshake">正在加载握手...</string>
+    <string name="notice_chroot_optional">chroot/proot 安装是可选的，大多数功能无需它即可使用。</string>
+    <string name="notice_root_not_required">无需 Root 权限！大多数功能无需 Root 即可使用，Root 仅解锁少量高级功能。</string>
+    <string name="wpa_parsing_progress">正在分析捕获文件… %1$d%%</string>
     <string name="wpa_cannot_open_file">无法打开文件</string>
     <string name="wpa_no_handshakes_in_file">文件中未找到握手</string>
     <string name="wpa_error_loading_file">加载文件时出错：%1$s</string>

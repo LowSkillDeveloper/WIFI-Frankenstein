@@ -1880,6 +1880,9 @@
     <string name="wpa_benchmark_all_finished">Усі тести завершено</string>
     <string name="wpa_benchmark_error">Помилка: %1$s</string>
     <string name="wpa_loading_handshake">Завантаження handshake...</string>
+    <string name="notice_chroot_optional">Встановлення chroot/proot не є обов\'язковим, більшість функцій доступна без нього.</string>
+    <string name="notice_root_not_required">Root-права НЕ обов\'язкові! Більшість функцій працює без root, root відкриває лише невелику частину розширених можливостей.</string>
+    <string name="wpa_parsing_progress">Аналіз захоплення… %1$d%%</string>
     <string name="wpa_cannot_open_file">Не вдається відкрити файл</string>
     <string name="wpa_no_handshakes_in_file">Handshake у файлі не знайдено</string>
     <string name="wpa_error_loading_file">Помилка завантаження файлу: %1$s</string>
