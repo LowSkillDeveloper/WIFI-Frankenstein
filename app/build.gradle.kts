@@ -151,6 +151,7 @@ dependencies {
     implementation(libs.androidx.preference.ktx)
     implementation(libs.play.services.location)
     implementation(libs.androidx.documentfile)
+    implementation(libs.androidx.biometric)
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     androidTestImplementation(libs.androidx.junit)

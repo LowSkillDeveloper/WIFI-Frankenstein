@@ -348,6 +348,24 @@
     <string name="checking_updates">Checking for Updates</string>
     <string name="welcome_completed">Setup Completed</string>
     <string name="welcome_setup_completed_message">Your app is now set up and ready to use!</string>
+
+    <string name="security_settings">Security</string>
+    <string name="app_lock_switch_title">Biometric unlock</string>
+    <string name="app_lock_switch_summary">Require fingerprint or device PIN every time the app starts. Device PIN is used as a fallback.</string>
+    <string name="app_lock_unavailable">Biometric authentication is not available on this device</string>
+    <string name="app_lock_not_enrolled">No fingerprints or face enrolled, and no device PIN set. Configure them in system settings to use app lock.</string>
+    <string name="lock_screen_title">App Locked</string>
+    <string name="lock_screen_subtitle">Confirm your identity to continue</string>
+    <string name="unlock_button">Unlock</string>
+    <string name="biometric_prompt_title">Unlock the app</string>
+    <string name="biometric_prompt_subtitle">Use biometrics or device PIN</string>
+    <string name="biometric_cancelled">Authentication cancelled. The app will close.</string>
+    <string name="biometric_failed_to_start">Could not start authentication. Try again.</string>
+    <string name="welcome_biometrics_title">Biometric Unlock</string>
+    <string name="welcome_biometrics_description">Protect the app with your fingerprint or device PIN. You will be asked to confirm your identity each time the app starts.</string>
+    <string name="enable_app_lock">Enable app lock</string>
+    <string name="app_lock_enabled_toast">App lock enabled</string>
+
     <string name="start_using_app">Start Using App</string>
     <string name="theme_setup">Appearance Setup</string>
     <string name="choose_your_preferences">Choose your preferences:</string>

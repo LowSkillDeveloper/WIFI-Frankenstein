@@ -311,6 +311,23 @@
     <string name="checking_updates">Проверка обновлений</string>
     <string name="welcome_completed">Настройка завершена</string>
     <string name="welcome_setup_completed_message">Ваше приложение настроено и готово к использованию!</string>
+
+    <string name="security_settings">Безопасность</string>
+    <string name="app_lock_switch_title">Вход по биометрии</string>
+    <string name="app_lock_switch_summary">Требовать отпечаток пальца или PIN устройства при каждом запуске приложения. В качестве резервного варианта используется PIN устройства.</string>
+    <string name="app_lock_unavailable">Биометрическая аутентификация недоступна на этом устройстве</string>
+    <string name="app_lock_not_enrolled">Отпечатки, лицо или PIN устройства не настроены. Настройте их в системных параметрах, чтобы использовать блокировку.</string>
+    <string name="lock_screen_title">Приложение заблокировано</string>
+    <string name="lock_screen_subtitle">Подтвердите свою личность, чтобы продолжить</string>
+    <string name="unlock_button">Разблокировать</string>
+    <string name="biometric_prompt_title">Разблокировать приложение</string>
+    <string name="biometric_prompt_subtitle">Используйте биометрию или PIN устройства</string>
+    <string name="biometric_cancelled">Аутентификация отменена. Приложение будет закрыто.</string>
+    <string name="biometric_failed_to_start">Не удалось запустить аутентификацию. Попробуйте ещё раз.</string>
+    <string name="welcome_biometrics_title">Вход по биометрии</string>
+    <string name="welcome_biometrics_description">Защитите приложение с помощью отпечатка пальца или PIN устройства. При каждом запуске приложения потребуется подтвердить личность.</string>
+    <string name="enable_app_lock">Включить блокировку приложения</string>
+    <string name="app_lock_enabled_toast">Блокировка приложения включена</string>
     <string name="start_using_app">Начать использовать приложение</string>
     <string name="theme_setup">Настройка внешнего вида</string>
     <string name="choose_your_preferences">Выберите ваши предпочтения:</string>

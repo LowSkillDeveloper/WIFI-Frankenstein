@@ -346,6 +346,23 @@
     <string name="welcome_completed">设置已完成</string>
     <string name="welcome_setup_completed_message">您的应用已完成设置，可以开始使用了！</string>
     <string name="start_using_app">开始使用应用</string>
+
+    <string name="security_settings">安全</string>
+    <string name="app_lock_switch_title">生物识别解锁</string>
+    <string name="app_lock_switch_summary">每次启动应用时要求验证指纹或设备PIN码。设备PIN码作为备用验证方式。</string>
+    <string name="app_lock_unavailable">此设备不支持生物识别认证</string>
+    <string name="app_lock_not_enrolled">尚未录入指纹、面部或设置设备PIN码。请在系统设置中配置后使用应用锁。</string>
+    <string name="lock_screen_title">应用已锁定</string>
+    <string name="lock_screen_subtitle">请验证您的身份以继续</string>
+    <string name="unlock_button">解锁</string>
+    <string name="biometric_prompt_title">解锁应用</string>
+    <string name="biometric_prompt_subtitle">使用生物识别或设备PIN码</string>
+    <string name="biometric_cancelled">认证已取消。应用将关闭。</string>
+    <string name="biometric_failed_to_start">无法启动认证，请重试。</string>
+    <string name="welcome_biometrics_title">生物识别解锁</string>
+    <string name="welcome_biometrics_description">使用指纹或设备PIN码保护应用。每次启动应用时都需要验证身份。</string>
+    <string name="enable_app_lock">启用应用锁</string>
+    <string name="app_lock_enabled_toast">应用锁已启用</string>
     <string name="theme_setup">外观设置</string>
     <string name="choose_your_preferences">选择您的偏好：</string>
     <string name="updates_setup">更新检查</string>

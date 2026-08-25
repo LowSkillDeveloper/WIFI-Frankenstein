@@ -19,8 +19,11 @@ import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import androidx.biometric.BiometricPrompt
+import androidx.biometric.BiometricManager
 import com.lsd.wififrankenstein.databinding.ActivityMainBinding
 import com.lsd.wififrankenstein.databinding.DialogUsbWifiDetectedBinding
+import com.lsd.wififrankenstein.databinding.ViewAppLockBinding
 import com.lsd.wififrankenstein.network.NetworkUtils
 import com.lsd.wififrankenstein.ui.drawer.DrawerItem
 import com.lsd.wififrankenstein.ui.drawer.DrawerMenuAdapter
@@ -30,6 +33,7 @@ import com.lsd.wififrankenstein.ui.settings.UsbDeviceInfo
 import com.lsd.wififrankenstein.ui.settings.WlanInterfaceManagerViewModel
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
 import com.lsd.wififrankenstein.util.Log
+import com.lsd.wififrankenstein.util.AppLockManager
 import com.lsd.wififrankenstein.util.SignatureVerifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -52,6 +56,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var exitCallback: OnBackPressedCallback
     private var usbWifiDialog: android.app.Dialog? = null
     private var currentNavId: Int? = null
+
+    private var lockBinding: ViewAppLockBinding? = null
+    private var biometricPrompt: BiometricPrompt? = null
 
     private fun handleStartPage() {
         val prefs = getSharedPreferences("settings", MODE_PRIVATE)
@@ -117,6 +124,8 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        setupAppLock()
 
         setSupportActionBar(binding.appBarMain.toolbar)
 
@@ -269,6 +278,90 @@ class MainActivity : AppCompatActivity() {
                 wlanInterfaceViewModel.clearNewUsbDeviceDetected()
             }
         }
+    }
+
+    private fun setupAppLock() {
+        if (!AppLockManager.shouldLock(this)) {
+            return
+        }
+
+        val lock = ViewAppLockBinding.inflate(layoutInflater)
+        lockBinding = lock
+
+        binding.lockOverlay.removeAllViews()
+        binding.lockOverlay.addView(lock.root)
+        binding.lockOverlay.visibility = android.view.View.VISIBLE
+
+        lock.buttonUnlock.setOnClickListener { showBiometricPrompt() }
+
+        lock.root.post { showBiometricPrompt() }
+    }
+
+    private fun showBiometricPrompt() {
+        val prompt = BiometricPrompt(
+            this,
+            ContextCompat.getMainExecutor(this),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    AppLockManager.markUnlocked()
+                    dismissLockOverlay()
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+
+                    when (errorCode) {
+                        BiometricPrompt.ERROR_USER_CANCELED,
+                        BiometricPrompt.ERROR_NEGATIVE_BUTTON,
+                        BiometricPrompt.ERROR_TIMEOUT -> {
+                            Snackbar.make(
+                                binding.lockOverlay,
+                                R.string.biometric_cancelled,
+                                Snackbar.LENGTH_SHORT
+                            ).show()
+                            finishAffinity()
+                        }
+                        else -> {
+                            if (!AppLockManager.isAvailable(this@MainActivity)) {
+                                AppLockManager.setEnabled(this@MainActivity, false)
+                                AppLockManager.markUnlocked()
+                                dismissLockOverlay()
+                            } else {
+                                Snackbar.make(
+                                    binding.lockOverlay,
+                                    R.string.biometric_failed_to_start,
+                                    Snackbar.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    }
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                }
+            })
+
+        biometricPrompt = prompt
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle(getString(R.string.biometric_prompt_title))
+            .setSubtitle(getString(R.string.biometric_prompt_subtitle))
+            .setAllowedAuthenticators(
+                BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                        BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            )
+            .build()
+
+        prompt.authenticate(promptInfo)
+    }
+
+    private fun dismissLockOverlay() {
+        biometricPrompt = null
+        binding.lockOverlay.visibility = android.view.View.GONE
+        binding.lockOverlay.removeAllViews()
+        lockBinding = null
     }
 
     private fun showUsbWifiDetectedDialog(device: UsbDeviceInfo) {
@@ -429,6 +522,11 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         if (usbWifiDialog?.isShowing == true) {
             usbWifiDialog?.dismiss()
+        }
+        biometricPrompt?.cancelAuthentication()
+        lockBinding = null
+        if (isFinishing) {
+            AppLockManager.resetSession()
         }
         Log.d("MainActivity", "onDestroy called")
         super.onDestroy()

@@ -48,7 +48,7 @@ static void sha1_init(sha1_ctx *ctx) {
     ctx->count = 0;
 }
 
-/* Portable scalar SHA1 block transform — always compiled, used as fallback. */
+
 static void sha1_transform_scalar(uint32_t state[5], const uint8_t block[64]) {
     uint32_t W[80];
     for (int i = 0; i < 16; i++) W[i] = load_be32(block + i * 4);
@@ -91,11 +91,7 @@ static int have_sha1_ce(void) {
     return cached;
 }
 
-/* ARMv8 Cryptography Extensions: each vsha1{c,p,m}q_u32 performs FOUR
- * rounds over a 4-lane message vector (with K already added), consuming
- * the raw (unrotated) E of the group's first round. E for the next group
- * is rol30(A) taken via vsha1h_u32 BEFORE the state is overwritten.
- * Pattern follows the canonical ARM/mbedTLS implementation. */
+
 static void sha1_transform_ce(uint32_t state[5], const uint8_t block[64]) {
     uint32x4_t ABCD, ABCD_SAVED, MSG0, MSG1, MSG2, MSG3, TMP0, TMP1;
     uint32_t E0, E0_SAVED, E1;
@@ -110,7 +106,7 @@ static void sha1_transform_ce(uint32_t state[5], const uint8_t block[64]) {
     MSG2 = vld1q_u32((const uint32_t *) (block + 32));
     MSG3 = vld1q_u32((const uint32_t *) (block + 48));
 
-    /* big-endian words -> little-endian lanes */
+    
     MSG0 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(MSG0)));
     MSG1 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(MSG1)));
     MSG2 = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(MSG2)));
@@ -119,149 +115,148 @@ static void sha1_transform_ce(uint32_t state[5], const uint8_t block[64]) {
     TMP0 = vaddq_u32(MSG0, vdupq_n_u32(SHA1_K0));
     TMP1 = vaddq_u32(MSG1, vdupq_n_u32(SHA1_K0));
 
-    /* Rounds 0-3 */
+    
     E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1cq_u32(ABCD, E0, TMP0);
     TMP0 = vaddq_u32(MSG2, vdupq_n_u32(SHA1_K0));
     MSG0 = vsha1su0q_u32(MSG0, MSG1, MSG2);
 
-    /* Rounds 4-7 */
+    
     E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1cq_u32(ABCD, E1, TMP1);
     TMP1 = vaddq_u32(MSG3, vdupq_n_u32(SHA1_K0));
     MSG0 = vsha1su1q_u32(MSG0, MSG3);
     MSG1 = vsha1su0q_u32(MSG1, MSG2, MSG3);
 
-    /* Rounds 8-11 */
+    
     E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1cq_u32(ABCD, E0, TMP0);
     TMP0 = vaddq_u32(MSG0, vdupq_n_u32(SHA1_K0));
     MSG1 = vsha1su1q_u32(MSG1, MSG0);
     MSG2 = vsha1su0q_u32(MSG2, MSG3, MSG0);
 
-    /* Rounds 12-15 */
+    
     E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1cq_u32(ABCD, E1, TMP1);
     TMP1 = vaddq_u32(MSG1, vdupq_n_u32(SHA1_K1));
     MSG2 = vsha1su1q_u32(MSG2, MSG1);
     MSG3 = vsha1su0q_u32(MSG3, MSG0, MSG1);
 
-    /* Rounds 16-19 */
+    
     E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1cq_u32(ABCD, E0, TMP0);
     TMP0 = vaddq_u32(MSG2, vdupq_n_u32(SHA1_K1));
     MSG3 = vsha1su1q_u32(MSG3, MSG2);
     MSG0 = vsha1su0q_u32(MSG0, MSG1, MSG2);
 
-    /* Rounds 20-23 */
+    
     E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1pq_u32(ABCD, E1, TMP1);
     TMP1 = vaddq_u32(MSG3, vdupq_n_u32(SHA1_K1));
     MSG0 = vsha1su1q_u32(MSG0, MSG3);
     MSG1 = vsha1su0q_u32(MSG1, MSG2, MSG3);
 
-    /* Rounds 24-27 */
+    
     E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1pq_u32(ABCD, E0, TMP0);
     TMP0 = vaddq_u32(MSG0, vdupq_n_u32(SHA1_K1));
     MSG1 = vsha1su1q_u32(MSG1, MSG0);
     MSG2 = vsha1su0q_u32(MSG2, MSG3, MSG0);
 
-    /* Rounds 28-31 */
+    
     E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1pq_u32(ABCD, E1, TMP1);
     TMP1 = vaddq_u32(MSG1, vdupq_n_u32(SHA1_K1));
     MSG2 = vsha1su1q_u32(MSG2, MSG1);
     MSG3 = vsha1su0q_u32(MSG3, MSG0, MSG1);
 
-    /* Rounds 32-35 */
+    
     E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1pq_u32(ABCD, E0, TMP0);
     TMP0 = vaddq_u32(MSG2, vdupq_n_u32(SHA1_K2));
     MSG3 = vsha1su1q_u32(MSG3, MSG2);
     MSG0 = vsha1su0q_u32(MSG0, MSG1, MSG2);
 
-    /* Rounds 36-39 */
+    
     E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1pq_u32(ABCD, E1, TMP1);
     TMP1 = vaddq_u32(MSG3, vdupq_n_u32(SHA1_K2));
     MSG0 = vsha1su1q_u32(MSG0, MSG3);
     MSG1 = vsha1su0q_u32(MSG1, MSG2, MSG3);
 
-    /* Rounds 40-43 */
+    
     E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1mq_u32(ABCD, E0, TMP0);
     TMP0 = vaddq_u32(MSG0, vdupq_n_u32(SHA1_K2));
     MSG1 = vsha1su1q_u32(MSG1, MSG0);
     MSG2 = vsha1su0q_u32(MSG2, MSG3, MSG0);
 
-    /* Rounds 44-47 */
+    
     E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1mq_u32(ABCD, E1, TMP1);
     TMP1 = vaddq_u32(MSG1, vdupq_n_u32(SHA1_K2));
     MSG2 = vsha1su1q_u32(MSG2, MSG1);
     MSG3 = vsha1su0q_u32(MSG3, MSG0, MSG1);
 
-    /* Rounds 48-51 */
+    
     E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1mq_u32(ABCD, E0, TMP0);
     TMP0 = vaddq_u32(MSG2, vdupq_n_u32(SHA1_K2));
     MSG3 = vsha1su1q_u32(MSG3, MSG2);
     MSG0 = vsha1su0q_u32(MSG0, MSG1, MSG2);
 
-    /* Rounds 52-55 */
+    
     E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1mq_u32(ABCD, E1, TMP1);
     TMP1 = vaddq_u32(MSG3, vdupq_n_u32(SHA1_K3));
     MSG0 = vsha1su1q_u32(MSG0, MSG3);
     MSG1 = vsha1su0q_u32(MSG1, MSG2, MSG3);
 
-    /* Rounds 56-59 */
+    
     E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1mq_u32(ABCD, E0, TMP0);
     TMP0 = vaddq_u32(MSG0, vdupq_n_u32(SHA1_K3));
     MSG1 = vsha1su1q_u32(MSG1, MSG0);
     MSG2 = vsha1su0q_u32(MSG2, MSG3, MSG0);
 
-    /* Rounds 60-63 */
+    
     E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1pq_u32(ABCD, E1, TMP1);
     TMP1 = vaddq_u32(MSG1, vdupq_n_u32(SHA1_K3));
     MSG2 = vsha1su1q_u32(MSG2, MSG1);
     MSG3 = vsha1su0q_u32(MSG3, MSG0, MSG1);
 
-    /* Rounds 64-67 */
+    
     E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1pq_u32(ABCD, E0, TMP0);
     TMP0 = vaddq_u32(MSG2, vdupq_n_u32(SHA1_K3));
     MSG3 = vsha1su1q_u32(MSG3, MSG2);
     MSG0 = vsha1su0q_u32(MSG0, MSG1, MSG2);
 
-    /* Rounds 68-71 */
+    
     E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1pq_u32(ABCD, E1, TMP1);
     TMP1 = vaddq_u32(MSG3, vdupq_n_u32(SHA1_K3));
     MSG0 = vsha1su1q_u32(MSG0, MSG3);
 
-    /* Rounds 72-75 */
+    
     E1 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1pq_u32(ABCD, E0, TMP0);
 
-    /* Rounds 76-79 */
+    
     E0 = vsha1h_u32(vgetq_lane_u32(ABCD, 0));
     ABCD = vsha1pq_u32(ABCD, E1, TMP1);
 
-    /* Combine state */
+    
     E0 += E0_SAVED;
     ABCD = vaddq_u32(ABCD_SAVED, ABCD);
 
     vst1q_u32(state, ABCD);
     state[4] = E0;
 }
-#endif /* __aarch64__ */
+#endif 
 
-/* Dispatcher: hardware CE transform when the CPU advertises SHA1,
- * portable scalar otherwise (also covers emulators/x86 builds). */
+
 static void sha1_transform(uint32_t state[5], const uint8_t block[64]) {
 #if defined(__aarch64__)
     if (have_sha1_ce()) {
@@ -333,8 +328,7 @@ static void hmac_sha1(const uint8_t *key, size_t key_len,
     sha1_final(&ctx, mac);
 }
 
-/* HMAC-SHA1 where the key-pad blocks were compressed once beforehand
- * (midstates). Each call costs exactly two compressions instead of four. */
+
 static void hmac_sha1_padded(const sha1_ctx *ipad_state,
                              const sha1_ctx *opad_state,
                              const uint8_t *data, size_t data_len,
@@ -348,7 +342,7 @@ static void hmac_sha1_padded(const sha1_ctx *ipad_state,
     sha1_final(&c, mac);
 }
 
-/* --- MD5 (RFC 1321) for TKIP (keyver 1) MIC verification --- */
+
 
 typedef struct {
     uint32_t state[4];
@@ -529,9 +523,7 @@ static void hmac_md5(const uint8_t *key, size_t key_len,
 static void pbkdf2_sha1(const uint8_t *password, size_t pw_len,
                         const uint8_t *ssid, size_t ssid_len,
                         uint8_t pmk[32]) {
-    /* HMAC midstate optimisation: the password-derived ipad/opad pad
-     * blocks are compressed once here; every one of the 4096 iterations
-     * then costs 2 compressions instead of 4 (~1.9x overall speedup). */
+    
     uint8_t k_ipad[64], k_opad[64], key_hash[20];
     if (pw_len > 64) {
         sha1_ctx c;
@@ -590,8 +582,7 @@ static void hex_to_bytes(const char *hex, size_t hex_len, uint8_t *out) {
         out[i] = (uint8_t) ((from_hex(hex[i * 2]) << 4) | from_hex(hex[i * 2 + 1]));
 }
 
-/* Tolerant variant: skips any non-hex characters (e.g. ':' in MACs),
- * mirroring the JVM-side filtering. Writes exactly out_len bytes. */
+
 static void hex_to_bytes_tolerant(const char *hex, uint8_t *out, size_t out_len) {
     size_t written = 0;
     int high = -1;
@@ -722,7 +713,7 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_benchmarkPbkdf2(
 
 #define JNI_CLASS "com/lsd/wififrankenstein/util/NativeCracker"
 
-/* TEMP DEBUG: native PMK for divergence analysis (remove after diagnosis) */
+
 JNIEXPORT jstring JNICALL
 Java_com_lsd_wififrankenstein_util_NativeCracker_debugPbkdf2Hex(
         JNIEnv *env, jclass cls,
@@ -923,13 +914,6 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_crackBatchHex(
     return result;
 }
 
-/* ------------------------------------------------------------------
- * Multi-hash batch: PBKDF2 is computed ONCE per password, the resulting
- * PMK is then verified against every target hash that shares the SSID
- * (typical capture: many clients -> many M1+M2 pairs of one network).
- * Returns index of first matching password or -1.
- * Targets are passed as parallel arrays; max 32 targets per call.
- * ------------------------------------------------------------------ */
 typedef struct {
     int type;
     int keyver;
