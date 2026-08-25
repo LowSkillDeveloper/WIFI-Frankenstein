@@ -3,6 +3,8 @@ package com.lsd.wififrankenstein
 import android.app.Application
 import android.os.Environment
 import android.os.Process
+import com.lsd.wififrankenstein.service.DatabaseDownloadService
+import com.lsd.wififrankenstein.ui.dbsetup.DatabaseDownloadManager
 import com.lsd.wififrankenstein.util.FileLogger
 import com.lsd.wififrankenstein.util.GlobalExceptionHandler
 import com.topjohnwu.superuser.Shell
@@ -53,10 +55,32 @@ class WifiApplication : Application() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(defaultHandler))
         setupNotificationWorker()
+        resumeBackgroundDbDownloads()
 
         com.lsd.wififrankenstein.util.Log.i("WifiApplication", "Application started")
         val exceptionHandler = CoroutineExceptionHandler { _, t ->
             com.lsd.wififrankenstein.util.Log.e("AppCoroutine", "Unhandled coroutine exception", t)
+        }
+    }
+
+    /**
+     * Restores the background database download queue after process death and
+     * restarts the foreground service if there is network work to do
+     * (auto-resume, including items parked on MEGA quota limits).
+     */
+    private fun resumeBackgroundDbDownloads() {
+        try {
+            val manager = DatabaseDownloadManager.getOrCreate(this)
+            manager.restoreFromDisk()
+            if (manager.hasNetworkWork()) {
+                DatabaseDownloadService.start(this)
+            }
+        } catch (e: Exception) {
+            com.lsd.wififrankenstein.util.Log.e(
+                "WifiApplication",
+                "Failed to resume background db downloads",
+                e
+            )
         }
     }
 

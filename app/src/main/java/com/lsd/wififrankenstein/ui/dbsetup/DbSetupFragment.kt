@@ -32,6 +32,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentDbSetupBinding
+import com.lsd.wififrankenstein.service.DatabaseDownloadService
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
 import com.lsd.wififrankenstein.ui.welcome.DatabaseSelectAdapter
@@ -59,6 +60,7 @@ class DbSetupFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel by viewModels<DbSetupViewModel>()
     private lateinit var dbListAdapter: DbListAdapter
+    private lateinit var pendingDownloadsAdapter: PendingDownloadsAdapter
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var isBackupBeforeClear = false
 
@@ -84,6 +86,7 @@ class DbSetupFragment : Fragment() {
 
         setupCardClicks()
         setupRecyclerView()
+        setupActiveDownloadsCard()
         observeViewModel()
         setupLocalDbCard()
         updateLocalDbStats()
@@ -260,7 +263,7 @@ class DbSetupFragment : Fragment() {
                 try {
                     val databases = viewModel.fetchSmartLinkDatabases(url)
                     if (databases != null && databases.isNotEmpty()) {
-                        showMultiSelectDialog(databases)
+                        showMultiSelectDialog(databases, originUrl = url)
                     } else {
                         showSnackbar(getString(R.string.db_step1_no_databases))
                     }
@@ -572,7 +575,8 @@ class DbSetupFragment : Fragment() {
                 if (allDatabases.isNotEmpty()) {
                     showMultiSelectDialog(
                         allDatabases.distinctBy { it.id },
-                        sources.mapNotNull { it.description }.distinct().joinToString("\n")
+                        sources.mapNotNull { it.description }.distinct().joinToString("\n"),
+                        originUrl = sources.lastOrNull()?.smartlinkUrl
                     )
                 } else {
                     showSnackbar(getString(R.string.db_step1_no_databases))
@@ -590,7 +594,8 @@ class DbSetupFragment : Fragment() {
 
     private fun showMultiSelectDialog(
         databases: List<SmartLinkDbInfo>,
-        description: String? = null
+        description: String? = null,
+        originUrl: String? = null
     ) {
         val checkedItems = BooleanArray(databases.size) { false }
         val dialogView = layoutInflater.inflate(R.layout.dialog_database_select, null)
@@ -621,168 +626,102 @@ class DbSetupFragment : Fragment() {
             .setView(dialogView)
             .setPositiveButton(R.string.download) { _, _ ->
                 val selected = databases.filterIndexed { i, _ -> checkedItems[i] }
-                if (selected.isNotEmpty()) showDownloadProgressDialog(selected)
+                if (selected.isNotEmpty()) startBackgroundDownload(selected, originUrl)
                 else showSnackbar(getString(R.string.no_databases_selected))
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
-    private fun showDownloadProgressDialog(databases: List<SmartLinkDbInfo>) {
-        val dialogJob = Job()
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setView(R.layout.dialog_download_progress)
-            .setCancelable(false)
-            .create()
-        dialog.setOnDismissListener { dialogJob.cancel() }
-        dialog.show()
+    private fun startBackgroundDownload(databases: List<SmartLinkDbInfo>, originUrl: String?) {
+        val appContext = requireContext().applicationContext
+        val manager = DatabaseDownloadManager.getOrCreate(appContext)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val enqueued = manager.enqueue(databases, originUrl)
+            if (enqueued == 0) {
+                showSnackbar(getString(R.string.db_dl_nothing_new))
+            } else {
+                DatabaseDownloadService.start(requireContext())
+                showSnackbar(getString(R.string.db_dl_snackbar_started))
+            }
+        }
+    }
 
-        val progressText = dialog.findViewById<TextView>(R.id.textViewProgress)
-        val progressBar = dialog.findViewById<ProgressBar>(R.id.progressBarDownload)
-        val cancelButton = dialog.findViewById<Button>(R.id.buttonCancel)
-        val failuresText = dialog.findViewById<TextView>(R.id.textViewFailures)
-        val failures = mutableListOf<Pair<String, String>>()
-        var isCancelled = false
-        cancelButton?.setOnClickListener {
-            isCancelled = true; dialogJob.cancel(); dialog.dismiss()
+    private fun setupActiveDownloadsCard() {
+        val appContext = requireContext().applicationContext
+        val manager = DatabaseDownloadManager.getOrCreate(appContext)
+
+        pendingDownloadsAdapter = PendingDownloadsAdapter(
+            onRetry = { manager.retry(it.dbId) },
+            onCancel = { manager.cancel(it.dbId) },
+            onSetup = { configurePendingDownload(it) }
+        )
+        binding.recyclerViewActiveDownloads.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerViewActiveDownloads.adapter = pendingDownloadsAdapter
+        binding.buttonCancelAllDownloads.setOnClickListener { manager.cancelAll() }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            manager.downloads.collect { list ->
+                binding.cardActiveDownloads.isVisible = list.isNotEmpty()
+                pendingDownloadsAdapter.submit(list)
+            }
         }
 
-        viewLifecycleOwner.lifecycleScope.launch(dialogJob) {
-            try {
-                databases.forEachIndexed { index, dbInfo ->
-                    if (isCancelled) return@forEachIndexed
-                    progressText?.text = getString(
-                        R.string.downloading_database_progress,
-                        index + 1,
-                        databases.size,
-                        dbInfo.name
-                    )
-                    progressBar?.isIndeterminate = false
-                    progressBar?.progress = 0
-                    var lastShownProgress = -1
-                    var lastShownExtract = -1
-                    var extractingTextSet = false
-
-                    val result =
-                        viewModel.downloadSmartLinkDatabase(dbInfo) { progress, bytes, total ->
-                            when (progress) {
-                                PROGRESS_EXTRACT -> {
-                                    val pct = bytes.toInt().coerceIn(0, 100)
-                                    if (!extractingTextSet) {
-                                        extractingTextSet = true
-                                        progressText?.text = getString(
-                                            R.string.extracting_database_progress,
-                                            index + 1,
-                                            databases.size,
-                                            dbInfo.name
-                                        )
-                                    }
-                                    val indeterminate = total == null || total <= 0
-                                    if (progressBar?.isIndeterminate != indeterminate) {
-                                        progressBar?.isIndeterminate = indeterminate
-                                    }
-                                    if (!indeterminate && pct != lastShownExtract) {
-                                        lastShownExtract = pct
-                                        progressBar?.progress = pct
-                                    }
-                                }
-
-                                else -> {
-                                    progressBar?.isIndeterminate = false
-                                    if (progress >= 0 && progress != lastShownProgress) {
-                                        lastShownProgress = progress
-                                        progressBar?.progress = progress
-                                    }
-                                }
-                            }
-                        }
-                    val item = result.dbItem
-                    if (item != null) {
-                        if (item.dbType == DbType.SQLITE_FILE_CUSTOM || item.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM) {
-                            withContext(Dispatchers.Main) {
-                                dialog.dismiss()
-                                viewModel.initializeSQLiteCustomHelper(
-                                    item.path.toUri(),
-                                    item.directPath
-                                )
-                                val tableNames = viewModel.getCustomTableNames()
-                                if (tableNames != null && tableNames.isNotEmpty()) {
-                                    showCustomDbSetupDialog(item, tableNames)
-                                } else {
-                                    showSnackbar(getString(R.string.error_reading_database))
-                                }
-                            }
-                        } else {
-                            val existing = viewModel.dbList.value?.find { it.id == item.id }
-                            if (existing == null) {
-                                viewModel.addDb(item)
-                            }
-                            withContext(Dispatchers.Main) {
-                                showSnackbar(getString(R.string.db_added_successfully))
-                            }
-                        }
-                    } else {
-                        val reason = result.error ?: getString(R.string.operation_failed)
-                        failures.add(dbInfo.name to reason)
-                        failuresText?.let { tv ->
-                            tv.visibility = View.VISIBLE
-                            tv.append(
-                                getString(
-                                    R.string.download_failed_item,
-                                    dbInfo.name,
-                                    reason
-                                ) + "\n"
+        viewLifecycleOwner.lifecycleScope.launch {
+            manager.events.collect { event ->
+                when (event) {
+                    is DatabaseDownloadManager.Event.Completed -> {
+                        viewModel.loadDbList(force = true)
+                        event.dbItem.oldFormatWarning?.let { showSnackbar(it) }
+                            ?: showSnackbar(
+                                getString(R.string.db_dl_completed_snackbar, event.dbItem.type)
                             )
-                        }
-                        progressText?.text =
-                            getString(R.string.download_failed_count, failures.size, databases.size)
                     }
-                }
-                withContext(Dispatchers.Main) {
-                    if (failures.isNotEmpty()) {
-                        progressBar?.visibility = View.GONE
-                        progressText?.text = getString(R.string.download_completed_with_errors)
-                        cancelButton?.text = getString(R.string.close)
-                        cancelButton?.setOnClickListener { dialog.dismiss() }
-                        val toastMessage = failures.joinToString("\n") { (name, reason) ->
-                            getString(R.string.download_failed_item, name, reason)
-                        }
-                        Toast.makeText(
-                            requireContext(),
-                            if (toastMessage.length > 200) toastMessage.take(200) + "…" else toastMessage,
-                            Toast.LENGTH_LONG
-                        ).show()
-                    } else {
-                        if (!dialog.isShowing) dialog.show()
-                        dialog.dismiss()
-                        if (!isCancelled) {
-                            showSnackbar(getString(R.string.download_completed))
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    dialog.dismiss()
-                    if (e !is CancellationException) {
-                        showSnackbar(getString(R.string.error_downloading_database, e.message))
-                    }
+
+                    is DatabaseDownloadManager.Event.NeedsSetupReady -> showSnackbar(
+                        getString(R.string.db_dl_needs_setup_snackbar, event.pending.name)
+                    )
+
+                    is DatabaseDownloadManager.Event.Failed -> Unit // visible in the card
                 }
             }
         }
     }
 
-    private fun showCustomDbSetupDialog(dbItem: DbItem, tableNames: List<String>) {
+    private fun configurePendingDownload(pending: PendingDownload) {
+        val item = pending.decodeDbItem() ?: run {
+            showSnackbar(getString(R.string.error_reading_database))
+            return
+        }
+        viewModel.initializeSQLiteCustomHelper(item.path.toUri(), item.directPath)
+        val tableNames = viewModel.getCustomTableNames()
+        if (!tableNames.isNullOrEmpty()) {
+            showCustomDbSetupDialog(item, tableNames, pending.dbId)
+        } else {
+            showSnackbar(getString(R.string.error_reading_database))
+        }
+    }
+
+    private fun showCustomDbSetupDialog(
+        dbItem: DbItem,
+        tableNames: List<String>,
+        pendingDbId: String? = null
+    ) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.select_table))
             .setItems(tableNames.toTypedArray()) { _, which ->
                 val table = tableNames[which]
                 viewModel.setSelectedTable(table)
-                showColumnMappingDialog(dbItem, table)
+                showColumnMappingDialog(dbItem, table, pendingDbId)
             }
             .show()
     }
 
-    private fun showColumnMappingDialog(dbItem: DbItem, tableName: String) {
+    private fun showColumnMappingDialog(
+        dbItem: DbItem,
+        tableName: String,
+        pendingDbId: String? = null
+    ) {
         val columnNames = viewModel.getCustomColumnNames(tableName) ?: return
         val dialogView = layoutInflater.inflate(R.layout.dialog_column_mapping, null)
 
@@ -892,6 +831,10 @@ class DbSetupFragment : Fragment() {
                     columnMap = columnMap
                 )
                 viewModel.addDb(finalItem)
+                if (pendingDbId != null) {
+                    DatabaseDownloadManager.getOrCreate(requireContext().applicationContext)
+                        .markSetupCompleted(pendingDbId)
+                }
                 showSnackbar(getString(R.string.db_added_successfully))
             }
             .setNegativeButton(getString(R.string.cancel), null)

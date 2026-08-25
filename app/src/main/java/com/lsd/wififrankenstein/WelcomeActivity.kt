@@ -14,6 +14,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.snackbar.Snackbar
 import com.lsd.wififrankenstein.databinding.ActivityWelcomeBinding
+import com.lsd.wififrankenstein.ui.dbsetup.DatabaseDownloadManager
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.welcome.ChrootInstallFragment
 
@@ -94,6 +95,17 @@ class WelcomeActivity : AppCompatActivity() {
 
             viewModel.selectedDatabases.observe(this@WelcomeActivity) { dbs ->
                 updateDatabasesButton(dbs.isNotEmpty())
+            }
+
+            // Re-evaluate the Next button while background downloads progress
+            lifecycleScope.launch {
+                DatabaseDownloadManager.getOrCreate(applicationContext).downloads.collect {
+                    if (viewPager.currentItem == 3) {
+                        updateDatabasesButton(
+                            viewModel.selectedDatabases.value?.isNotEmpty() == true
+                        )
+                    }
+                }
             }
         }
     }
@@ -188,7 +200,10 @@ class WelcomeActivity : AppCompatActivity() {
 
     private fun updateDatabasesButton(hasDatabases: Boolean) {
         if (viewPager.currentItem == 3) {
-            if (hasDatabases) {
+            // Allow moving on while background database downloads are running
+            val hasPendingDownloads = DatabaseDownloadManager.getOrCreate(applicationContext)
+                .hasActiveWork()
+            if (hasDatabases || hasPendingDownloads) {
                 binding.buttonSkip.visibility = View.GONE
                 binding.buttonNext.visibility = View.VISIBLE
                 binding.buttonNext.text = getString(R.string.next)

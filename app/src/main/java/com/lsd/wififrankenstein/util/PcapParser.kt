@@ -54,6 +54,9 @@ data class ApMetadata(
 
 class PcapParser {
 
+    private var macParseWarnCount = 0
+    private var notEapolLogCount = 0
+
     companion object {
         private const val TAG = "PcapParser"
         private const val PCAP_MAGIC = 0xa1b2c3d4L
@@ -405,6 +408,12 @@ class PcapParser {
             }
         }
         onProgress?.invoke(1f)
+        if (macParseWarnCount > 5) {
+            Log.w(
+                TAG,
+                "  suppressed ${macParseWarnCount - 5} MAC-frame warnings; not-EAPOL frames: $notEapolLogCount"
+            )
+        }
         pairMessages(ctx.eapolMessages, ctx.records, ctx.essidMap)
         val distinct = ctx.records.distinctBy { it.to22000Line() }
         Log.d(TAG, "  parsePcap: $packetCount packets, ${distinct.size} distinct")
@@ -617,7 +626,10 @@ class PcapParser {
 
         val frame = parseMacFrame(packet, offset)
         if (frame == null) {
-            Log.w(TAG, "  processPacket: failed to parse MAC frame at offset $offset")
+            macParseWarnCount++
+            if (macParseWarnCount <= 5) {
+                Log.w(TAG, "  processPacket: failed to parse MAC frame at offset $offset")
+            }
             return
         }
         val payloadStart = offset + frame.headerSize
@@ -766,7 +778,10 @@ class PcapParser {
             matched = true
         }
         if (!matched) {
-            Log.d(TAG, "  parseEapolFrame: not EAPOL (dsap=0x%02x ssap=0x%02x)".format(dsap, ssap))
+            notEapolLogCount++
+            if (notEapolLogCount <= 10) {
+                Log.d(TAG, "  parseEapolFrame: not EAPOL (dsap=0x%02x ssap=0x%02x)".format(dsap, ssap))
+            }
             return null
         }
 
@@ -804,7 +819,7 @@ class PcapParser {
         if (off + 8 > packet.size) {
             Log.w(TAG, "  parseEapolFrame: truncated at replay counter ($bssid)"); return null
         }
-        val replayCounter = packet.toLongLE(off)
+        val replayCounter = packet.toLongBE(off)
         off += 8
 
         if (off + 32 > packet.size) {
@@ -902,12 +917,15 @@ class PcapParser {
             for ((rc, msgs) in replayGroups) {
                 val m1s = msgs.filter { it.messageNum == 1 }
                 val m2s = msgs.filter { it.messageNum == 2 }
+                val allClientMsgs = replayGroups.values.flatten()
                 val m3 = msgs.firstOrNull { it.messageNum == 3 }
                     ?: replayGroups[rc + 1]?.firstOrNull { it.messageNum == 3 }
                     ?: replayGroups[rc - 1]?.firstOrNull { it.messageNum == 3 }
+                    ?: allClientMsgs.lastOrNull { it.messageNum == 3 }
                 val m4 = msgs.firstOrNull { it.messageNum == 4 }
                     ?: replayGroups[rc + 1]?.firstOrNull { it.messageNum == 4 }
                     ?: replayGroups[rc - 1]?.firstOrNull { it.messageNum == 4 }
+                    ?: allClientMsgs.lastOrNull { it.messageNum == 4 }
                 Log.d(
                     TAG,
                     "  replay=0x%x msg=[m1=${m1s.isNotEmpty()} m2=${m2s.isNotEmpty()} m3=${m3 != null} m4=${m4 != null}] $bssid <-> $clientMac".format(
@@ -960,7 +978,7 @@ class PcapParser {
                 }
 
                 val m4HasNonce = m4 != null && m4.nonce.any { it != '0' }
-                if (m3 != null && m4HasNonce) {
+                if (m3 != null && m4 != null) {
                     val m4Eapol = bytesToHex(m4.eapolKeyData)
                     Log.d(
                         TAG,
@@ -1002,7 +1020,7 @@ class PcapParser {
                 }
 
                 val m2First = m2s.firstOrNull()
-                if (m2First != null && m3 != null && m1s.isEmpty() && m4 == null) {
+                if (m2First != null && m3 != null && m1s.isEmpty()) {
                     val m2Eapol = bytesToHex(m2First.eapolKeyData)
                     Log.d(
                         TAG,
@@ -1340,6 +1358,15 @@ class PcapParser {
         for (i in 0..7) {
             if (offset + i >= size) break
             result = result or (((this[offset + i].toLong()) and 0xFF) shl (i * 8))
+        }
+        return result
+    }
+
+    private fun ByteArray.toLongBE(offset: Int): Long {
+        var result = 0L
+        for (i in 0 until 8) {
+            if (offset + i >= size) break
+            result = (result shl 8) or ((this[offset + i].toLong()) and 0xFF)
         }
         return result
     }

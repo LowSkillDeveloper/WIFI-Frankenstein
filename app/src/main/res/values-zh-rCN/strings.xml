@@ -3423,4 +3423,32 @@
     <string name="api3_clip_request">API 请求</string>
     <string name="benchmark_multi_thread">多线程（%1$d/%2$d 核心）</string>
     <string name="benchmark_multi_thread_prefix">多线程</string>
+    <!-- 后台数据库下载 -->
+    <string name="db_active_downloads_title">下载任务</string>
+    <string name="db_dl_cancel_all">全部取消</string>
+    <string name="db_dl_status_queued">排队等待中</string>
+    <string name="db_dl_status_downloading">下载中… %1$d%%</string>
+    <string name="db_dl_status_extracting">解压中… %1$d%%</string>
+    <string name="db_dl_status_waiting_quota">已达 MEGA 限额，稍后将自动续传</string>
+    <string name="db_dl_status_failed">失败：%1$s</string>
+    <string name="db_dl_status_needs_setup">已下载 — 需要设置</string>
+    <string name="db_dl_action_resume">继续</string>
+    <string name="db_dl_action_setup">设置</string>
+    <string name="db_dl_snackbar_started">下载将在后台继续进行</string>
+    <string name="db_dl_nothing_new">这些数据库已添加或已在队列中</string>
+    <string name="db_dl_completed_snackbar">已添加数据库：%1$s</string>
+    <string name="db_dl_needs_setup_snackbar">%1$s 已下载 — 请选择表和列映射</string>
+    <string name="db_dl_notification_channel">数据库下载</string>
+    <string name="db_dl_notif_preparing">正在准备数据库下载…</string>
+    <string name="db_dl_notification_channel_description">后台数据库下载进度</string>
+    <string name="db_dl_notif_active_title">正在下载数据库（第 %1$d 个，共 %2$d 个）</string>
+    <string name="db_dl_notif_text_current">%1$s — %2$d%%</string>
+    <string name="db_dl_notif_extracting_title">正在解压数据库…</string>
+    <string name="db_dl_notif_quota_title">已达 MEGA 限额</string>
+    <string name="db_dl_notif_quota_text">%1$s 将在稍后自动续传</string>
+    <string name="db_dl_notif_done_title">数据库下载完成</string>
+    <string name="db_dl_notif_done_text">点按以打开数据库设置</string>
+    <string name="needs_setup_dialog_title">需要设置数据库</string>
+    <string name="needs_setup_dialog_message">部分已下载数据库需要选择数据表并映射列。请打开数据库设置以完成添加。</string>
+    <string name="needs_setup_dialog_open">打开设置</string>
 </resources>

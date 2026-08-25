@@ -3485,4 +3485,32 @@
     <string name="np_svc_running">Protection is running</string>
     <string name="np_event_log">Event Log</string>
     <string name="np_empty_log">No events yet</string>
+    <!-- Background database downloads -->
+    <string name="db_active_downloads_title">Downloads</string>
+    <string name="db_dl_cancel_all">Cancel all</string>
+    <string name="db_dl_status_queued">Waiting in queue</string>
+    <string name="db_dl_status_downloading">Downloading… %1$d%%</string>
+    <string name="db_dl_status_extracting">Extracting… %1$d%%</string>
+    <string name="db_dl_status_waiting_quota">MEGA limit reached — will resume automatically</string>
+    <string name="db_dl_status_failed">Failed: %1$s</string>
+    <string name="db_dl_status_needs_setup">Downloaded — setup required</string>
+    <string name="db_dl_action_resume">Resume</string>
+    <string name="db_dl_action_setup">Set up</string>
+    <string name="db_dl_snackbar_started">Download continues in the background</string>
+    <string name="db_dl_nothing_new">These databases are already added or queued</string>
+    <string name="db_dl_completed_snackbar">Database added: %1$s</string>
+    <string name="db_dl_needs_setup_snackbar">%1$s downloaded — table setup required</string>
+    <string name="db_dl_notification_channel">Database Downloads</string>
+    <string name="db_dl_notif_preparing">Preparing database downloads…</string>
+    <string name="db_dl_notification_channel_description">Progress of background database downloads</string>
+    <string name="db_dl_notif_active_title">Downloading databases (%1$d of %2$d)</string>
+    <string name="db_dl_notif_text_current">%1$s — %2$d%%</string>
+    <string name="db_dl_notif_extracting_title">Extracting database…</string>
+    <string name="db_dl_notif_quota_title">MEGA limit reached</string>
+    <string name="db_dl_notif_quota_text">%1$s will resume automatically later</string>
+    <string name="db_dl_notif_done_title">Database downloads finished</string>
+    <string name="db_dl_notif_done_text">Tap to open database settings</string>
+    <string name="needs_setup_dialog_title">Database setup required</string>
+    <string name="needs_setup_dialog_message">Some downloaded databases require table selection and column mapping. Open database settings to finish adding them.</string>
+    <string name="needs_setup_dialog_open">Open settings</string>
 </resources>
