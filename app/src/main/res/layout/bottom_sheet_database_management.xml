@@ -113,6 +113,15 @@
             android:text="@string/import_pwncrack"
             app:icon="@drawable/ic_file_download" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonImportWifiLocTracker"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/import_wifiloctracker"
+            app:icon="@drawable/ic_restore" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -193,6 +202,18 @@
             android:text="@string/sync_locations_button"
             android:textColor="@color/orange_500"
             app:icon="@drawable/swap_horizontal_circle_24px"
+            app:iconTint="@color/orange_500"
+            app:strokeColor="@color/orange_500" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonSyncWifiLocTrackerDirect"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/sync_wifiloctracker_direct"
+            android:textColor="@color/orange_500"
+            app:icon="@drawable/ic_restore"
             app:iconTint="@color/orange_500"
             app:strokeColor="@color/orange_500" />
 

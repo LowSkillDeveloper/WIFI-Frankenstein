@@ -2,6 +2,8 @@ package com.lsd.wififrankenstein.ui.inappdatabase
 
 import android.app.Application
 import android.net.Uri
+import android.database.sqlite.SQLiteDatabase
+import androidx.core.database.sqlite.transaction
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -13,6 +15,7 @@ import androidx.paging.cachedIn
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.network.WpaSecClient
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.PersonalWifiNetwork
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.PwncrackImporter
@@ -27,6 +30,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import java.io.File
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -202,6 +206,33 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
             updateStats()
             withContext(Dispatchers.Main) {
                 onResult(count)
+            }
+        }
+    }
+
+    fun syncWifiLocTrackerDirect(uri: Uri, onResult: (Int) -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val context = getApplication<Application>()
+                val tempFile = File(context.cacheDir, "temp_sync_wifiloc.db")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    tempFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                val count = dbHelper.syncLocationsFromExternalWifiLoc(tempFile.absolutePath)
+                tempFile.delete()
+
+                updateStats()
+                withContext(Dispatchers.Main) {
+                    onResult(count)
+                }
+            } catch (e: Exception) {
+                Log.e("InAppDatabaseViewModel", "Error direct syncing from WifiLocTracker", e)
+                withContext(Dispatchers.Main) {
+                    onError(e.message ?: "Unknown error")
+                }
             }
         }
     }
@@ -678,6 +709,65 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
                 updateStats()
             } catch (e: Exception) {
                 Log.e("InAppDatabaseViewModel", "Error restoring database", e)
+            }
+        }
+    }
+
+    fun importFromWifiLocTracker(uri: Uri, onResult: (Int) -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val context = getApplication<Application>()
+                // Копируем временный файл, так как SQLite не может открыть Uri напрямую
+                val tempFile = File(context.cacheDir, "temp_wifiloc.db")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    tempFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                val externalDb = SQLiteDatabase.openDatabase(tempFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+                val cursor = externalDb.query("access_points", null, null, null, null, null, null)
+                
+                val bssidIdx = cursor.getColumnIndex("bssid")
+                val ssidIdx = cursor.getColumnIndex("ssid")
+                val latIdx = cursor.getColumnIndex("latitude")
+                val lonIdx = cursor.getColumnIndex("longitude")
+                val accIdx = cursor.getColumnIndex("accuracy")
+                val timeIdx = cursor.getColumnIndex("lastSeen")
+                val countIdx = cursor.getColumnIndex("scanCount")
+
+                var importedCount = 0
+                dbHelper.writableDatabase.transaction {
+                    while (cursor.moveToNext()) {
+                        val network = PersonalWifiNetwork(
+                            wifiName = if (ssidIdx >= 0) cursor.getString(ssidIdx) else "",
+                            macAddress = if (bssidIdx >= 0) cursor.getString(bssidIdx) else "",
+                            latitude = if (latIdx >= 0) cursor.getDouble(latIdx) else 0.0,
+                            longitude = if (lonIdx >= 0) cursor.getDouble(lonIdx) else 0.0,
+                            accuracy = if (accIdx >= 0) cursor.getFloat(accIdx) else 0f,
+                            timestamp = if (timeIdx >= 0) cursor.getLong(timeIdx) else System.currentTimeMillis(),
+                            isReliable = true,
+                            level = -50, // Дефолтное значение, так как в той базе нет RSSI
+                            measureCount = if (countIdx >= 0) cursor.getInt(countIdx) else 1
+                        )
+                        dbHelper.addPersonalRecord(network)
+                        importedCount++
+                    }
+                }
+                
+                cursor.close()
+                externalDb.close()
+                tempFile.delete()
+
+                updateStats()
+                withContext(Dispatchers.Main) {
+                    onResult(importedCount)
+                }
+            } catch (e: Exception) {
+                Log.e("InAppDatabaseViewModel", "Error importing from WifiLocTracker", e)
+                withContext(Dispatchers.Main) {
+                    onError(e.message ?: "Unknown error")
+                }
             }
         }
     }

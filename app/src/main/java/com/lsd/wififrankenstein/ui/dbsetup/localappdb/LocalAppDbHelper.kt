@@ -522,6 +522,47 @@ class LocalAppDbHelper(private val context: Context) :
         return updatedCount
     }
 
+    fun syncLocationsFromExternalWifiLoc(externalDbPath: String): Int {
+        val db = writableDatabase
+        var updatedCount = 0
+        
+        try {
+            val externalDb = SQLiteDatabase.openDatabase(externalDbPath, null, SQLiteDatabase.OPEN_READONLY)
+            val cursor = externalDb.query("access_points", arrayOf("ssid", "bssid", "latitude", "longitude"), null, null, null, null, null)
+            
+            db.transaction {
+                while (cursor.moveToNext()) {
+                    val ssid = cursor.getString(0)
+                    val bssid = cursor.getString(1)
+                    val lat = cursor.getDouble(2)
+                    val lon = cursor.getDouble(3)
+                    val quadkey = QuadkeyUtils.latLonToQuadkey(lat, lon)
+
+                    val values = ContentValues().apply {
+                        put(COLUMN_LATITUDE, lat)
+                        put(COLUMN_LONGITUDE, lon)
+                        put(COLUMN_QUADKEY, quadkey)
+                    }
+
+                    val affected = db.update(
+                        TABLE_NAME, 
+                        values, 
+                        "$COLUMN_WIFI_NAME = ? AND $COLUMN_MAC_ADDRESS = ?", 
+                        arrayOf(ssid, bssid)
+                    )
+                    updatedCount += affected
+                }
+            }
+            cursor.close()
+            externalDb.close()
+        } catch (e: Exception) {
+            Log.e("LocalAppDbHelper", "Error during direct sync from external DB", e)
+            throw e
+        }
+        
+        return updatedCount
+    }
+
     // --- Original Methods Restored from 58KB version ---
 
     private fun hasIndex(indexName: String): Boolean {

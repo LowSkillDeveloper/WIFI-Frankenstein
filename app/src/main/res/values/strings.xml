@@ -1957,6 +1957,9 @@
     <string name="pwncrack_uploading">Uploading to PWNcrack…</string>
     <string name="pwncrack_invalid_key">Invalid key format</string>
     <string name="import_pwncrack">Import from PWNcrack</string>
+    <string name="import_wifiloctracker">Import from WifiLocTracker (.db)</string>
+    <string name="wifiloctracker_import_success">Successfully imported %d records from WifiLocTracker</string>
+    <string name="wifiloctracker_import_error">Failed to import from WifiLocTracker: %s</string>
     <string name="pwncrack_import_progress">Importing from PWNcrack…</string>
     <string name="pwncrack_import_result">PWNcrack import: %1$d inserted, %2$d duplicates</string>
     <string name="pwncrack_import_failed">PWNcrack import failed: %1$s</string>
@@ -3557,6 +3560,8 @@
     <string name="sync_personal_locations">Sync locations from Personal Map</string>
     <string name="sync_personal_locations_confirm">Update locations in the in-app database using coordinates from your personal map (matching by SSID and MAC)?</string>
     <string name="sync_personal_locations_success">Successfully updated %d records</string>
+    <string name="sync_wifiloctracker_direct">Sync locations from WifiLocTracker directly</string>
+    <string name="sync_wifiloctracker_direct_confirm">Update locations in the in-app database using coordinates from a WifiLocTracker database file (matching by SSID and MAC)?</string>
     <string name="sync_locations_button">Sync Personal → In-App</string>
     <string name="local_positioning_status">Local Positioning: %s</string>
     <string name="scanning_active">Scanning active</string>

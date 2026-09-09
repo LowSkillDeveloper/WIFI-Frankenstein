@@ -1955,7 +1955,6 @@
     <string name="pwncrack_api_key">PWNcrack API 密钥</string>
     <string name="pwncrack_uploading">正在上传到 PWNcrack…</string>
     <string name="pwncrack_invalid_key">密钥格式无效</string>
-    <string name="import_pwncrack">从 PWNcrack 导入</string>
     <string name="pwncrack_import_progress">正在从 PWNcrack 导入…</string>
     <string name="pwncrack_import_result">PWNcrack 导入：%1$d 条已插入，%2$d 条重复</string>
     <string name="pwncrack_import_failed">PWNcrack 导入失败：%1$s</string>
@@ -1992,6 +1991,10 @@
     <string name="export_section">导出</string>
     <string name="backup_restore">备份与恢复</string>
     <string name="import_wpa_sec">从 wpa-sec 导入</string>
+    <string name="import_pwncrack">从 PWNcrack 导入</string>
+    <string name="import_wifiloctracker">从 WifiLocTracker (.db) 导入</string>
+    <string name="wifiloctracker_import_success">成功从 WifiLocTracker 导入 %d 条记录</string>
+    <string name="wifiloctracker_import_error">从 WifiLocTracker 导入失败：%s</string>
     <string name="wpa_sec_api_key">WPA-sec API 密钥</string>
     <string name="wpa_sec_api_key_hint">输入您的 32 位十六进制 API 密钥</string>
     <string name="wpa_sec_import_progress">正在从 wpa-sec 下载…</string>
@@ -3463,5 +3466,7 @@
     <string name="sync_personal_locations">同步个人地图位置</string>
     <string name="sync_personal_locations_confirm">是否使用个人地图中的坐标 update 内置数据库中的位置（按 SSID 和 MAC 匹配）？</string>
     <string name="sync_personal_locations_success">成功更新 %d 条记录</string>
+    <string name="sync_wifiloctracker_direct">直接从 WifiLocTracker 同步位置</string>
+    <string name="sync_wifiloctracker_direct_confirm">是否使用 WifiLocTracker 数据库文件更新内置数据库中的位置（按 SSID 和 MAC 匹配）？</string>
     <string name="sync_locations_button">同步个人 → 内置</string>
 </resources>

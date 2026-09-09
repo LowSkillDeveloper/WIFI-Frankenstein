@@ -3044,6 +3044,10 @@
     <string name="ignore_chroot_check">Игнорировать проверку chroot</string>
     <string name="import_section">Импорт</string>
     <string name="import_wpa_sec">Импорт из wpa-sec</string>
+    <string name="import_pwncrack">Импорт из PWNcrack</string>
+    <string name="import_wifiloctracker">Импорт из WifiLocTracker (.db)</string>
+    <string name="wifiloctracker_import_success">Успешно импортировано %d записей из WifiLocTracker</string>
+    <string name="wifiloctracker_import_error">Ошибка импорта из WifiLocTracker: %s</string>
     <string name="in_app_db_search_tooltip">Поиск работает только по встроенной базе. Для поиска по всем подключённым базам используйте «Поиск по базам» в меню.</string>
     <string name="insert_any_char">□</string>
     <string name="insert_any_string">◯</string>
@@ -3537,6 +3541,8 @@
     <string name="sync_personal_locations">Привязать локации из личной карты</string>
     <string name="sync_personal_locations_confirm">Обновить координаты во встроенной базе, используя данные из вашей личной карты (сопоставление по SSID и MAC)?</string>
     <string name="sync_personal_locations_success">Обновлено записей: %d</string>
+    <string name="sync_wifiloctracker_direct">Синхронизация из WifiLocTracker напрямую</string>
+    <string name="sync_wifiloctracker_direct_confirm">Обновить координаты во встроенной базе, используя файл базы WifiLocTracker (сопоставление по SSID и MAC)?</string>
     <string name="sync_locations_button">Синхронизация Личная → Встроенная</string>
     <string name="local_positioning_status">Локальное позиционирование: %s</string>
     <string name="scanning_active">Сканирование активно</string>
