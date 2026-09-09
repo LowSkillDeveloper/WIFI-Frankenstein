@@ -3440,4 +3440,17 @@
     <string name="needs_setup_dialog_title">Потрібне налаштування бази</string>
     <string name="needs_setup_dialog_message">Деякі завантажені бази потребують вибору таблиці та зіставлення колонок. Відкрийте налаштування баз даних, щоб завершити додавання.</string>
     <string name="needs_setup_dialog_open">Відкрити налаштування</string>
+    <string name="edit_point">Змінити точку</string>
+    <string name="point_updated">Точку оновлено</string>
+    <string name="show_point_names">Показувати назви</string>
+    <string name="follow_me">Слідувати за мною</string>
+    <string name="marker_size">Розмір маркерів</string>
+    <string name="marker_size_value">Розмір маркерів: %d</string>
+    <string name="essid">Назва (SSID)</string>
+    <string name="clear_personal_map">Очистити особисту карту WiFi</string>
+    <string name="clear_personal_map_confirm">Ви впевнені, що хочете очистити особисту карту WiFi? Цю дію не можна скасувати.</string>
+    <string name="sync_personal_locations">Прив’язати локації з особистої карти</string>
+    <string name="sync_personal_locations_confirm">Оновити координати у вбудованій базі, використовуючи дані з вашої особистої карти (зіставлення за SSID та MAC)?</string>
+    <string name="sync_personal_locations_success">Оновлено записів: %d</string>
+    <string name="sync_locations_button">Синхронізація Особиста → Вбудована</string>
 </resources>

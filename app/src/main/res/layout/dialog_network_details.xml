@@ -127,6 +127,17 @@
                     android:padding="8dp"
                     android:src="@drawable/ic_share"
                     app:tint="@android:color/white" />
+
+                <ImageButton
+                    android:id="@+id/buttonEditPoint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/edit_point"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_edit"
+                    android:visibility="gone"
+                    app:tint="@android:color/white" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

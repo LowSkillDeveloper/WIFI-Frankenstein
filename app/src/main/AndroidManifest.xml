@@ -17,6 +17,7 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
@@ -129,6 +130,13 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync"
+            tools:targetApi="29" />
+
+        <service
+            android:name=".service.WiFiMapScanningService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location"
             tools:targetApi="29" />
 
 

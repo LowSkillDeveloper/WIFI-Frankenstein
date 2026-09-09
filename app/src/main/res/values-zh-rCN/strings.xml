@@ -3451,4 +3451,17 @@
     <string name="needs_setup_dialog_title">需要设置数据库</string>
     <string name="needs_setup_dialog_message">部分已下载数据库需要选择数据表并映射列。请打开数据库设置以完成添加。</string>
     <string name="needs_setup_dialog_open">打开设置</string>
+    <string name="edit_point">编辑热点</string>
+    <string name="point_updated">热点已更新</string>
+    <string name="show_point_names">显示名称</string>
+    <string name="follow_me">跟随我</string>
+    <string name="marker_size">标记大小</string>
+    <string name="marker_size_value">标记大小: %d</string>
+    <string name="essid">名称 (SSID)</string>
+    <string name="clear_personal_map">清除个人 WiFi 地图</string>
+    <string name="clear_personal_map_confirm">您确定要清除您的个人 WiFi 地图吗？此操作无法撤销。</string>
+    <string name="sync_personal_locations">同步个人地图位置</string>
+    <string name="sync_personal_locations_confirm">是否使用个人地图中的坐标 update 内置数据库中的位置（按 SSID 和 MAC 匹配）？</string>
+    <string name="sync_personal_locations_success">成功更新 %d 条记录</string>
+    <string name="sync_locations_button">同步个人 → 内置</string>
 </resources>

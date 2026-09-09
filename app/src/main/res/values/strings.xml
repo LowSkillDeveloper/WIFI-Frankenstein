@@ -3532,4 +3532,44 @@
     <string name="needs_setup_dialog_title">Database setup required</string>
     <string name="needs_setup_dialog_message">Some downloaded databases require table selection and column mapping. Open database settings to finish adding them.</string>
     <string name="needs_setup_dialog_open">Open settings</string>
+
+    <!-- WiFi Personal Map & GPS Anti-Spoofing -->
+    <string name="menu_personal_wifi_map">WiFi Personal Map</string>
+    <string name="personal_map_title">WiFi Personal Map</string>
+    <string name="start_scanning">Start Scanning</string>
+    <string name="stop_scanning">Stop Scanning</string>
+    <string name="clear_map">Clear Map</string>
+    <string name="show_map">Show Map</string>
+    <string name="gps_health">GPS Health: %s</string>
+    <string name="gps_health_excellent">Excellent</string>
+    <string name="gps_health_good">Good</string>
+    <string name="gps_health_unreliable">Unreliable (Spoofing risk)</string>
+    <string name="gps_health_bad">Bad / No Signal</string>
+    <string name="networks_found_count">Networks found: %d</string>
+    <string name="scan_interval">Scan interval</string>
+    <string name="scan_interval_2s">2 seconds (Max density)</string>
+    <string name="scan_interval_5s">5 seconds (Walking)</string>
+    <string name="scan_interval_15s">15 seconds (Balanced)</string>
+    <string name="scan_interval_30s">30 seconds (Eco)</string>
+    <string name="save_personal_map">Save map data to database</string>
+    <string name="clear_personal_map">Clear Personal WiFi Map</string>
+    <string name="clear_personal_map_confirm">Are you sure you want to clear your personal WiFi map? This cannot be undone.</string>
+    <string name="sync_personal_locations">Sync locations from Personal Map</string>
+    <string name="sync_personal_locations_confirm">Update locations in the in-app database using coordinates from your personal map (matching by SSID and MAC)?</string>
+    <string name="sync_personal_locations_success">Successfully updated %d records</string>
+    <string name="sync_locations_button">Sync Personal → In-App</string>
+    <string name="local_positioning_status">Local Positioning: %s</string>
+    <string name="scanning_active">Scanning active</string>
+    <string name="scanning_idle">Scanning idle</string>
+    <string name="anti_spoofing_status">Anti-Spoofing: %s</string>
+    <string name="gps_valid">Valid</string>
+    <string name="gps_suspicious">Suspicious</string>
+    <string name="gps_spoofed">Spoofed</string>
+    <string name="edit_point">Edit Point</string>
+    <string name="point_updated">Point updated</string>
+    <string name="show_point_names">Show Point Names</string>
+    <string name="follow_me">Follow Me</string>
+    <string name="marker_size">Marker size</string>
+    <string name="marker_size_value">Marker size: %d</string>
+    <string name="essid">SSID</string>
 </resources>

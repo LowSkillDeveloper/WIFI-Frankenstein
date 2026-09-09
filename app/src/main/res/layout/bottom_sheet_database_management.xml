@@ -185,6 +185,30 @@
             android:background="?attr/colorOnSurfaceVariant" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonSyncPersonalLocations"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/sync_locations_button"
+            android:textColor="@color/orange_500"
+            app:icon="@drawable/swap_horizontal_circle_24px"
+            app:iconTint="@color/orange_500"
+            app:strokeColor="@color/orange_500" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonClearPersonalMap"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/clear_personal_map"
+            android:textColor="?attr/colorError"
+            app:icon="@drawable/ic_delete"
+            app:iconTint="?attr/colorError"
+            app:strokeColor="?attr/colorError" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonClearDatabase"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="match_parent"

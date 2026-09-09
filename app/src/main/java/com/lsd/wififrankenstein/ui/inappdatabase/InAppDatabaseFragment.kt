@@ -360,6 +360,26 @@ class InAppDatabaseFragment : Fragment() {
             showPwncrackImportDialog()
         }
 
+        bottomSheetBinding.buttonSyncPersonalLocations.setOnClickListener {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.sync_personal_locations)
+                .setMessage(R.string.sync_personal_locations_confirm)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.ok) { _, _ ->
+                    bottomSheetDialog.dismiss()
+                    viewModel.syncPersonalLocations { count ->
+                        showSnackbar(getString(R.string.sync_personal_locations_success, count))
+                        adapter.refresh()
+                    }
+                }
+                .show()
+        }
+
+        bottomSheetBinding.buttonClearPersonalMap.setOnClickListener {
+            bottomSheetDialog.dismiss()
+            showClearPersonalMapConfirmation()
+        }
+
         bottomSheetBinding.buttonClearDatabase.setOnClickListener {
             bottomSheetDialog.dismiss()
             showClearDatabaseDialog()
@@ -541,6 +561,20 @@ class InAppDatabaseFragment : Fragment() {
                 showBackupBeforeClearDialog()
             }
             .setNegativeButton(R.string.no, null)
+            .show()
+    }
+
+    private fun showClearPersonalMapConfirmation() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.clear_map)
+            .setMessage(R.string.clear_personal_map_confirm)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                viewModel.clearPersonalMap()
+                showSnackbar(getString(R.string.database_cleared))
+                adapter.refresh()
+                updateStats()
+            }
             .show()
     }
 

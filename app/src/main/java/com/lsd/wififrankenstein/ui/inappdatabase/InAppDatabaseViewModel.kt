@@ -189,6 +189,23 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
+    fun clearPersonalMap() {
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHelper.clearPersonalMap()
+            updateStats()
+        }
+    }
+
+    fun syncPersonalLocations(onResult: (Int) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val count = dbHelper.syncLocationsFromPersonalMap()
+            updateStats()
+            withContext(Dispatchers.Main) {
+                onResult(count)
+            }
+        }
+    }
+
     fun exportToJson(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             try {

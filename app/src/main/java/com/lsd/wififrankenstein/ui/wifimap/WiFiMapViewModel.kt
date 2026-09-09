@@ -107,6 +107,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         if (result.none { it.dbType == DbType.HANDSHAKE_STORAGE }) {
             result = result + getHandshakeStorageItem()
         }
+        if (result.none { it.dbType == DbType.PERSONAL_WIFI_MAP }) {
+            result = result + getPersonalMapItem()
+        }
         return result
     }
 
@@ -145,6 +148,19 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     var showRadiusCircle: Boolean
         get() = settingsPrefs.getBoolean("map_show_radius_circle", false)
         set(value) = settingsPrefs.edit { putBoolean("map_show_radius_circle", value) }
+
+    var markerSize: Float
+        get() = settingsPrefs.getFloat("map_marker_size", 16f)
+        set(value) = settingsPrefs.edit { putFloat("map_marker_size", value) }
+
+    var showMarkerLabels: Boolean
+        get() = settingsPrefs.getBoolean("map_show_marker_labels", false)
+        set(value) = settingsPrefs.edit { putBoolean("map_show_marker_labels", value) }
+
+    var followMeMode: Boolean
+        get() = settingsPrefs.getBoolean("map_follow_me_mode", false)
+        set(value) = settingsPrefs.edit { putBoolean("map_follow_me_mode", value) }
+
     private val _selectedDatabaseIds = mutableSetOf<String>()
     val selectedDatabaseIds: Set<String> get() = _selectedDatabaseIds.toSet()
 
@@ -245,8 +261,12 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             return existing
         }
 
-        val creationLock = helperCreationLocks.computeIfAbsent(database.id) { Mutex() }
-        return creationLock.withLock {
+        val creationLock = helperCreationLocks[database.id] ?: Mutex().also { 
+            val existing = helperCreationLocks.putIfAbsent(database.id, it)
+            if (existing != null) return@also // should not happen with proper lock but safety first
+        }
+        val lockToUse = helperCreationLocks[database.id] ?: creationLock
+        return lockToUse.withLock {
             databaseHelpers[database.id]?.let { existing ->
                 if (existing is SQLite3WiFiHelper && existing.corruptionDetected && existing.database == null) {
                     Log.d(TAG, "Helper for ${database.id} has corruption flag, not using it")
@@ -438,7 +458,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         Log.d(TAG, "Handle DB selection: ${dbItem.id}, isSelected: $isSelected")
 
         if (isSelected) {
-            if ((dbItem.dbType == DbType.LOCAL_APP_DB || dbItem.dbType == DbType.HANDSHAKE_STORAGE) &&
+            if ((dbItem.dbType == DbType.LOCAL_APP_DB || dbItem.dbType == DbType.HANDSHAKE_STORAGE || dbItem.dbType == DbType.PERSONAL_WIFI_MAP) &&
                 selectedDatabases.any { db -> db.dbType == dbItem.dbType }
             ) {
                 Log.d(TAG, "${dbItem.dbType} already selected, skipping")
@@ -490,7 +510,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
 
-                DbType.HANDSHAKE_STORAGE -> {
+                DbType.HANDSHAKE_STORAGE, DbType.PERSONAL_WIFI_MAP -> {
                     _addReadOnlyDb.postValue(dbItem)
                 }
 
@@ -662,7 +682,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                             color = np.color,
                                             clusterCount = np.clusterCount,
                                             isCluster = np.isCluster,
-                                            databaseId = np.databaseId
+                                            databaseId = np.databaseId,
+                                            essid = np.essid
                                         )
                                     }
                                     pointsLock.withLock { points.addAll(mapPoints) }
@@ -807,7 +828,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 color = color,
                 clusterCount = cmp.count,
                 isCluster = cmp.isCluster,
-                databaseId = database.id
+                databaseId = database.id,
+                essid = cmp.essid
             )
         }
     }
@@ -1099,7 +1121,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                     network.latitude!!,
                                     network.longitude!!,
                                     1,
-                                    false
+                                    false,
+                                    network.wifiName
                                 )
                             }
                         }
@@ -1134,7 +1157,47 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                 item.latitude,
                                 item.longitude,
                                 1,
-                                false
+                                false,
+                                item.essid
+                            )
+                        }
+                    }
+                } finally {
+                    dbHelper.close()
+                }
+                result
+            }
+
+            DbType.PERSONAL_WIFI_MAP -> {
+                val dbHelper = LocalAppDbHelper(getApplication())
+                val result = try {
+                    if (tileRange != null) {
+                        dbHelper.getClusteredPersonalPointsByTileRange(
+                            tileRange.minX, tileRange.minY,
+                            tileRange.maxX, tileRange.maxY,
+                            tileZoom, scatterMode
+                        )
+                    } else {
+                        dbHelper.getPersonalPointsInBounds(
+                            boundingBox.latSouth,
+                            boundingBox.latNorth,
+                            boundingBox.lonWest,
+                            boundingBox.lonEast,
+                            getMaxPointsForZoom(zoom)
+                        ).mapNotNull { network ->
+                            val macDecimal = try {
+                                network.macAddress.replace(":", "").replace("-", "")
+                                    .toLongOrNull(16) ?: -1L
+                            } catch (_: Exception) { -1L }
+
+                            if (macDecimal == -1L) null
+                            else ClusteredMapPoint(
+                                macDecimal,
+                                network.latitude,
+                                network.longitude,
+                                1,
+                                false,
+                                network.wifiName
                             )
                         }
                     }
@@ -1248,6 +1311,22 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         }
 
         points
+    }
+
+    fun updatePersonalPoint(id: Long, newName: String, newPassword: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val dbHelper = LocalAppDbHelper(getApplication())
+            try {
+                dbHelper.updatePersonalNetworkInfo(id, newName, newPassword)
+                // После обновления сбрасываем кэш, чтобы изменения отобразились на карте
+                withContext(Dispatchers.Main) {
+                    clearCache()
+                    reloadAvailableDatabases()
+                }
+            } finally {
+                dbHelper.close()
+            }
+        }
     }
 
     fun clearCache() {
@@ -1388,59 +1467,107 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             }
                         }
 
-                        DbType.HANDSHAKE_STORAGE -> {
-                            val dbHelper = HandshakeMetadataDbHelper(getApplication())
-                            try {
-                                val bssidStr = convertBssidToString(point.bssidDecimal)
-                                val results = dbHelper.getByBssid(bssidStr)
-                                if (results.isNotEmpty()) {
-                                    val item = results.first()
-                                    val record = NetworkRecord(
-                                        essid = item.essid,
-                                        password = item.crackedPassword,
-                                        wpsPin = null,
-                                        routerModel = null,
-                                        adminCredentials = emptyList(),
-                                        isHidden = false,
-                                        isWifiDisabled = false,
-                                        timeAdded = null,
-                                        security = null,
-                                        lanMask = null,
-                                        wanMask = null,
-                                        wanGateway = null,
-                                        dns1 = null,
-                                        dns2 = null,
-                                        dns3 = null,
-                                        noWifiKey = null,
-                                        noBssid = null,
-                                        noWps = null,
-                                        ip = null,
-                                        lanIp = null,
-                                        wanIp = null,
-                                        iprange = null,
-                                        port = null,
-                                        time = null,
-                                        cmtid = null,
-                                        source = null,
-                                        sourceRaw = null,
-                                        comment = null,
-                                        rawData = mapOf(
-                                            "essid" to item.essid,
-                                            "bssid" to item.bssid,
-                                            "password" to item.crackedPassword,
-                                            "fileName" to item.fileName
+                        DbType.HANDSHAKE_STORAGE, DbType.PERSONAL_WIFI_MAP -> {
+                            val bssidStr = convertBssidToString(point.bssidDecimal)
+                            val results = if (database.dbType == DbType.HANDSHAKE_STORAGE) {
+                                val dbHelper = HandshakeMetadataDbHelper(getApplication())
+                                try {
+                                    dbHelper.getByBssid(bssidStr).map { item ->
+                                        NetworkRecord(
+                                            essid = item.essid,
+                                            password = item.crackedPassword,
+                                            wpsPin = null,
+                                            routerModel = null,
+                                            adminCredentials = emptyList(),
+                                            isHidden = false,
+                                            isWifiDisabled = false,
+                                            timeAdded = null,
+                                            security = null,
+                                            lanMask = null,
+                                            wanMask = null,
+                                            wanGateway = null,
+                                            dns1 = null,
+                                            dns2 = null,
+                                            dns3 = null,
+                                            noWifiKey = null,
+                                            noBssid = null,
+                                            noWps = null,
+                                            ip = null,
+                                            lanIp = null,
+                                            wanIp = null,
+                                            iprange = null,
+                                            port = null,
+                                            time = null,
+                                            cmtid = null,
+                                            source = null,
+                                            sourceRaw = null,
+                                            comment = null,
+                                            rawData = mapOf(
+                                                "essid" to item.essid,
+                                                "bssid" to item.bssid,
+                                                "password" to item.crackedPassword,
+                                                "fileName" to item.fileName
+                                            )
                                         )
-                                    )
-                                    point.allRecords = listOf(record)
-                                    point.essid = item.essid
-                                    point.password = item.crackedPassword
-                                    point.isDataLoaded = true
-                                    Log.d(TAG, "Retrieved handshake info for BSSID: $bssidStr")
-                                } else {
-                                    Log.w(TAG, "No handshake found for BSSID: $bssidStr")
+                                    }
+                                } finally {
+                                    dbHelper.close()
                                 }
-                            } finally {
-                                dbHelper.close()
+                            } else {
+                                val dbHelper = LocalAppDbHelper(getApplication())
+                                try {
+                                    dbHelper.searchPersonalRecordsByBssid(bssidStr).map { item ->
+                                        NetworkRecord(
+                                            essid = item.wifiName,
+                                            password = null,
+                                            wpsPin = null,
+                                            routerModel = null,
+                                            adminCredentials = emptyList(),
+                                            isHidden = false,
+                                            isWifiDisabled = false,
+                                            timeAdded = item.timestamp.toString(),
+                                            security = null,
+                                            lanMask = null,
+                                            wanMask = null,
+                                            wanGateway = null,
+                                            dns1 = null,
+                                            dns2 = null,
+                                            dns3 = null,
+                                            noWifiKey = null,
+                                            noBssid = null,
+                                            noWps = null,
+                                            ip = null,
+                                            lanIp = null,
+                                            wanIp = null,
+                                            iprange = null,
+                                            port = null,
+                                            time = item.timestamp,
+                                            cmtid = null,
+                                            source = null,
+                                            sourceRaw = null,
+                                            comment = "Personal Map Point",
+                                            rawData = mapOf(
+                                                "level" to item.level,
+                                                "accuracy" to item.accuracy,
+                                                "satellites" to item.satellites,
+                                                "speed" to item.speed,
+                                                "isReliable" to item.isReliable
+                                            )
+                                        )
+                                    }
+                                } finally {
+                                    dbHelper.close()
+                                }
+                            }
+
+                            if (results.isNotEmpty()) {
+                                point.allRecords = results
+                                point.essid = results.firstOrNull()?.essid
+                                point.password = results.firstOrNull()?.password
+                                point.isDataLoaded = true
+                                Log.d(TAG, "Retrieved info for BSSID: $bssidStr")
+                            } else {
+                                Log.w(TAG, "No info found for BSSID: $bssidStr")
                             }
                         }
 
@@ -1917,8 +2044,8 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
         for (point in points) {
             val dbId = point.databaseId
-            _totalPointCounts[dbId] = _totalPointCounts.getOrDefault(dbId, 0) + point.clusterCount
-            _visiblePointCounts[dbId] = _visiblePointCounts.getOrDefault(dbId, 0) + 1
+            _totalPointCounts[dbId] = (_totalPointCounts[dbId] ?: 0) + point.clusterCount
+            _visiblePointCounts[dbId] = (_visiblePointCounts[dbId] ?: 0) + 1
         }
     }
 
@@ -2059,6 +2186,26 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             apiKey = null,
             tableName = null,
             columnMap = null
+        )
+    }
+
+    private fun getPersonalMapItem(): DbItem {
+        val personalDbId = "personal_map"
+        val existing = _availableDatabases.value?.find { it.dbType == DbType.PERSONAL_WIFI_MAP }
+
+        return DbItem(
+            id = personalDbId,
+            path = "personal_map",
+            directPath = getApplication<Application>().getDatabasePath(LocalAppDbHelper.DATABASE_NAME).absolutePath,
+            type = getApplication<Application>().getString(R.string.personal_map_title),
+            dbType = DbType.PERSONAL_WIFI_MAP,
+            originalSizeInMB = existing?.originalSizeInMB ?: 0f,
+            cachedSizeInMB = existing?.cachedSizeInMB ?: 0f,
+            isMain = existing?.isMain ?: true,
+            apiKey = null,
+            tableName = LocalAppDbHelper.TABLE_PERSONAL_MAP,
+            columnMap = emptyMap(),
+            supportsMapApi = false
         )
     }
 
