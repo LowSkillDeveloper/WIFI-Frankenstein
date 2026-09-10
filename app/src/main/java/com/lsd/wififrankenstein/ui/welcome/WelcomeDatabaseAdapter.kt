@@ -81,6 +81,7 @@ class WelcomeDatabaseAdapter(
 
             DbType.HANDSHAKE_STORAGE -> context.getString(R.string.handshake_storage)
             DbType.LOCAL_APP_DB -> context.getString(R.string.db_type_sqlite_custom)
+            DbType.PERSONAL_WIFI_MAP -> context.getString(R.string.personal_map_title)
         }
     }
 

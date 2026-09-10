@@ -5,5 +5,6 @@ data class ClusteredMapPoint(
     val latitude: Double,
     val longitude: Double,
     val count: Int,
-    val isCluster: Boolean
+    val isCluster: Boolean,
+    val essid: String? = null
 )
