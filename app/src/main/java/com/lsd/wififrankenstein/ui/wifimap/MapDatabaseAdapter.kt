@@ -78,6 +78,7 @@ class MapDatabaseAdapter(
             val baseName = when (database.dbType) {
                 DbType.LOCAL_APP_DB -> context.getString(R.string.local_database)
                 DbType.HANDSHAKE_STORAGE -> context.getString(R.string.handshake_storage)
+                DbType.PERSONAL_WIFI_MAP -> context.getString(R.string.personal_map_title)
                 else -> formatSourcePath(database.path)
             }
             text = if (database.dbType == DbType.WIFI_API && database.supportsMapApi) {
@@ -95,7 +96,9 @@ class MapDatabaseAdapter(
                 Log.d(TAG, "Database ${database.id} selection changed to: $isChecked")
 
                 if (isChecked) {
-                    if (database.dbType == DbType.SQLITE_FILE_CUSTOM || database.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM || database.dbType == DbType.LOCAL_APP_DB || database.dbType == DbType.HANDSHAKE_STORAGE) {
+                    if (database.dbType == DbType.SQLITE_FILE_CUSTOM || database.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM || 
+                        database.dbType == DbType.LOCAL_APP_DB || database.dbType == DbType.HANDSHAKE_STORAGE || 
+                        database.dbType == DbType.PERSONAL_WIFI_MAP) {
                         viewModel.handleCustomDbSelection(database, true, selectedDatabases)
                     } else {
                         selectedDatabases.add(database)

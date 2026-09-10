@@ -3025,6 +3025,10 @@
     <string name="ignore_chroot_check">Ігнорувати перевірку chroot</string>
     <string name="import_section">Імпорт</string>
     <string name="import_wpa_sec">Імпорт з wpa-sec</string>
+    <string name="import_pwncrack">Імпорт з PWNcrack</string>
+    <string name="import_wifiloctracker">Імпорт з WifiLocTracker (.db)</string>
+    <string name="wifiloctracker_import_success">Успішно імпортовано %d записів з WifiLocTracker</string>
+    <string name="wifiloctracker_import_error">Помилка імпорту з WifiLocTracker: %s</string>
     <string name="in_app_db_search_tooltip">Пошук працює лише по вбудованій базі. Для пошуку по всіх підключених базах використовуйте «Пошук по базах» у меню.</string>
     <string name="insert_any_char">□</string>
     <string name="insert_any_string">◯</string>
@@ -3440,4 +3444,19 @@
     <string name="needs_setup_dialog_title">Потрібне налаштування бази</string>
     <string name="needs_setup_dialog_message">Деякі завантажені бази потребують вибору таблиці та зіставлення колонок. Відкрийте налаштування баз даних, щоб завершити додавання.</string>
     <string name="needs_setup_dialog_open">Відкрити налаштування</string>
+    <string name="edit_point">Змінити точку</string>
+    <string name="point_updated">Точку оновлено</string>
+    <string name="show_point_names">Показувати назви</string>
+    <string name="follow_me">Слідувати за мною</string>
+    <string name="marker_size">Розмір маркерів</string>
+    <string name="marker_size_value">Розмір маркерів: %d</string>
+    <string name="essid">Назва (SSID)</string>
+    <string name="clear_personal_map">Очистити особисту карту WiFi</string>
+    <string name="clear_personal_map_confirm">Ви впевнені, що хочете очистити особисту карту WiFi? Цю дію не можна скасувати.</string>
+    <string name="sync_personal_locations">Прив’язати локації з особистої карти</string>
+    <string name="sync_personal_locations_confirm">Оновити координати у вбудованій базі, використовуючи дані з вашої особистої карти (зіставлення за SSID та MAC)?</string>
+    <string name="sync_personal_locations_success">Оновлено записів: %d</string>
+    <string name="sync_wifiloctracker_direct">Синхронізація з WifiLocTracker напряму</string>
+    <string name="sync_wifiloctracker_direct_confirm">Оновити координати у вбудованій базі, використовуючи файл бази WifiLocTracker (зіставлення за SSID та MAC)?</string>
+    <string name="sync_locations_button">Синхронізація Особиста → Вбудована</string>
 </resources>

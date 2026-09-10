@@ -36,3 +36,35 @@
 
 -optimizations !code/allocation/variable
 -optimizations method/inlining/*,code/removal/exception
+
+# Kotlin Serialization
+-keepattributes *Annotation*, EnclosingMethod, Signature
+-keepclassmembers class ** {
+    @kotlinx.serialization.SerialName <fields>;
+}
+-keep,allowobfuscation class * implements kotlinx.serialization.KSerializer
+-keepclassmembers class * {
+    *** Companion;
+}
+-keep class **$$serializer { *; }
+-keepclassmembers class ** {
+    *** Companion;
+}
+-keepclasseswithmembers class ** {
+    @kotlinx.serialization.Serializable <init>(...);
+}
+-keepclasseswithmembers class ** {
+    @kotlinx.serialization.Serializable void write$Self(...);
+}
+
+# libsu
+-keep class com.lsd.wififrankenstein.shell.ShellInitializer { *; }
+-keep class com.topjohnwu.superuser.** { *; }
+
+# Osmdroid
+-keep class org.osmdroid.** { *; }
+
+# Glide
+-keep public class * extends com.bumptech.glide.module.AppGlideModule { *; }
+-keep public class * extends com.bumptech.glide.module.LibraryGlideModule { *; }
+-keep class com.bumptech.glide.GeneratedAppGlideModuleImpl { *; }

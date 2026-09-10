@@ -39,7 +39,8 @@ data class MapPoint(
     val color: Int,
     val clusterCount: Int = 1,
     val isCluster: Boolean = false,
-    val databaseId: String
+    val databaseId: String,
+    val essid: String? = null
 )
 
 data class NetworkRecord(

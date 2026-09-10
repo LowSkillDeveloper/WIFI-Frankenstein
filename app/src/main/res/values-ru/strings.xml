@@ -3044,6 +3044,10 @@
     <string name="ignore_chroot_check">Игнорировать проверку chroot</string>
     <string name="import_section">Импорт</string>
     <string name="import_wpa_sec">Импорт из wpa-sec</string>
+    <string name="import_pwncrack">Импорт из PWNcrack</string>
+    <string name="import_wifiloctracker">Импорт из WifiLocTracker (.db)</string>
+    <string name="wifiloctracker_import_success">Успешно импортировано %d записей из WifiLocTracker</string>
+    <string name="wifiloctracker_import_error">Ошибка импорта из WifiLocTracker: %s</string>
     <string name="in_app_db_search_tooltip">Поиск работает только по встроенной базе. Для поиска по всем подключённым базам используйте «Поиск по базам» в меню.</string>
     <string name="insert_any_char">□</string>
     <string name="insert_any_string">◯</string>
@@ -3512,4 +3516,46 @@
     <string name="needs_setup_dialog_title">Требуется настройка базы</string>
     <string name="needs_setup_dialog_message">Некоторые скачанные базы требуют выбора таблицы и сопоставления колонок. Откройте настройки баз данных, чтобы завершить добавление.</string>
     <string name="needs_setup_dialog_open">Открыть настройки</string>
+
+    <!-- WiFi Personal Map & GPS Anti-Spoofing -->
+    <string name="menu_personal_wifi_map">Личная карта WiFi</string>
+    <string name="personal_map_title">Личная карта WiFi</string>
+    <string name="start_scanning">Запустить сканирование</string>
+    <string name="stop_scanning">Остановить сканирование</string>
+    <string name="clear_map">Очистить карту</string>
+    <string name="show_map">Показать карту</string>
+    <string name="gps_health">Состояние GPS: %s</string>
+    <string name="gps_health_excellent">Отлично</string>
+    <string name="gps_health_good">Хорошо</string>
+    <string name="gps_health_unreliable">Ненадежно (риск спуфинга)</string>
+    <string name="gps_health_bad">Плохо / Нет сигнала</string>
+    <string name="networks_found_count">Обнаружено сетей: %d</string>
+    <string name="scan_interval">Интервал сканирования</string>
+    <string name="scan_interval_2s">2 секунды (Макс. плотность)</string>
+    <string name="scan_interval_5s">5 секунд (Пешеход)</string>
+    <string name="scan_interval_15s">15 секунд (Сбалансированно)</string>
+    <string name="scan_interval_30s">30 секунд (Эконом)</string>
+    <string name="save_personal_map">Сохранять данные карты в БД</string>
+    <string name="clear_personal_map">Очистить личную карту WiFi</string>
+    <string name="clear_personal_map_confirm">Вы уверены, что хотите очистить личную карту WiFi? Это действие нельзя отменить.</string>
+    <string name="sync_personal_locations">Привязать локации из личной карты</string>
+    <string name="sync_personal_locations_confirm">Обновить координаты во встроенной базе, используя данные из вашей личной карты (сопоставление по SSID и MAC)?</string>
+    <string name="sync_personal_locations_success">Обновлено записей: %d</string>
+    <string name="sync_wifiloctracker_direct">Синхронизация из WifiLocTracker напрямую</string>
+    <string name="sync_wifiloctracker_direct_confirm">Обновить координаты во встроенной базе, используя файл базы WifiLocTracker (сопоставление по SSID и MAC)?</string>
+    <string name="sync_locations_button">Синхронизация Личная → Встроенная</string>
+    <string name="local_positioning_status">Локальное позиционирование: %s</string>
+    <string name="scanning_active">Сканирование активно</string>
+    <string name="scanning_idle">Сканирование остановлено</string>
+    <string name="anti_spoofing_status">Анти-спуфинг: %s</string>
+    <string name="gps_valid">Валидно</string>
+    <string name="gps_suspicious">Подозрительно</string>
+    <string name="gps_spoofed">Спуфинг!</string>
+    <string name="edit_point">Изменить точку</string>
+    <string name="point_updated">Точка обновлена</string>
+    <string name="show_point_names">Показывать названия</string>
+    <string name="follow_me">Следовать за мной</string>
+    <string name="marker_size">Размер маркеров</string>
+    <string name="marker_size_value">Размер маркеров: %d</string>
+    <string name="essid">Название (SSID)</string>
 </resources>

@@ -15,6 +15,7 @@ import android.os.Bundle
 import android.preference.PreferenceManager
 import android.text.Editable
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -33,6 +34,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentWifiMapBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
@@ -134,6 +136,7 @@ class WiFiMapFragment : Fragment() {
                 PreferenceManager.getDefaultSharedPreferences(requireContext())
             )
             setupMap()
+            setupDisplaySettingsPanel()
             applyNavigationArgs()
         }
 
@@ -143,8 +146,18 @@ class WiFiMapFragment : Fragment() {
     private fun applyNavigationArgs() {
         val lat = arguments?.getFloat("latitude", 0.0f) ?: 0.0f
         val lon = arguments?.getFloat("longitude", 0.0f) ?: 0.0f
+        val selectPersonal = arguments?.getBoolean("select_personal_map", false) ?: false
+
         if (lat != 0.0f || lon != 0.0f) {
             centerOn(lat.toDouble(), lon.toDouble(), 18.0)
+        }
+
+        if (selectPersonal) {
+            viewModel.availableDatabases.value?.find { it.dbType == DbType.PERSONAL_WIFI_MAP }?.let { db ->
+                if (!selectedDatabases.contains(db)) {
+                    viewModel.handleCustomDbSelection(db, true, selectedDatabases)
+                }
+            }
         }
     }
 
@@ -158,7 +171,7 @@ class WiFiMapFragment : Fragment() {
                 position = point
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_marker_default)
-                title = getString(R.string.wm_marker_title, latitude, longitude)
+                title = getString(R.string.wm_marker_title, latitude.toString(), longitude.toString())
             }
             binding.map.overlays.add(marker)
             binding.map.invalidate()
@@ -299,14 +312,28 @@ class WiFiMapFragment : Fragment() {
             zoomController.setVisibility(CustomZoomButtonsController.Visibility.SHOW_AND_FADEOUT)
             setMultiTouchControls(true)
 
-
-            controller.setZoom(DEFAULT_ZOOM)
-            controller.setCenter(GeoPoint(DEFAULT_LAT, DEFAULT_LON))
+            // Устанавливаем начальную позицию только если она еще не была установлена (например, из-за навигации или локации)
+            if (zoomLevelDouble < 3.0) {
+                val lastLoc = userLocationManager.userLocation.value
+                if (lastLoc != null) {
+                    controller.setCenter(lastLoc)
+                    controller.setZoom(18.0)
+                } else {
+                    controller.setZoom(DEFAULT_ZOOM)
+                    controller.setCenter(GeoPoint(DEFAULT_LAT, DEFAULT_LON))
+                }
+            }
 
             addOnFirstLayoutListener { _, _, _, _, _ ->
                 if (zoomLevelDouble < 3.0) {
-                    controller.setZoom(DEFAULT_ZOOM)
-                    controller.setCenter(GeoPoint(DEFAULT_LAT, DEFAULT_LON))
+                    val lastLoc = userLocationManager.userLocation.value
+                    if (lastLoc != null) {
+                        controller.setCenter(lastLoc)
+                        controller.setZoom(18.0)
+                    } else {
+                        controller.setZoom(DEFAULT_ZOOM)
+                        controller.setCenter(GeoPoint(DEFAULT_LAT, DEFAULT_LON))
+                    }
                 }
             }
 
@@ -330,6 +357,16 @@ class WiFiMapFragment : Fragment() {
             }
 
             overlays.add(canvasOverlay)
+
+            binding.map.setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    if (viewModel.followMeMode) {
+                        viewModel.followMeMode = false
+                        binding.switchFollowMe.isChecked = false
+                    }
+                }
+                false
+            }
 
             addMapListener(object : MapListener {
                 override fun onScroll(event: ScrollEvent): Boolean {
@@ -569,10 +606,12 @@ class WiFiMapFragment : Fragment() {
 
         userLocationManager.userLocation.observe(viewLifecycleOwner) { location ->
             location?.let {
+                val isFirstUpdate = userLocationMarker == null
                 updateUserLocationMarker(it)
 
-                if (userLocationMarker == null) {
-                    binding.map.controller.animateTo(it, 18.0, 400L)
+                if (isFirstUpdate || viewModel.followMeMode) {
+                    val targetZoom = if (isFirstUpdate) 18.0 else binding.map.zoomLevelDouble
+                    binding.map.controller.animateTo(it, targetZoom, 400L)
                 }
             }
         }
@@ -906,8 +945,10 @@ class WiFiMapFragment : Fragment() {
         viewModel.updatePointCounts(visiblePoints)
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-            canvasOverlay.updatePoints(visiblePoints)
-            binding.map.postInvalidate()
+            if (::canvasOverlay.isInitialized) {
+                canvasOverlay.updatePoints(visiblePoints)
+                binding.map.postInvalidate()
+            }
         }
     }
 
@@ -927,6 +968,43 @@ class WiFiMapFragment : Fragment() {
         binding.searchButton.setOnClickListener {
             searchIpRanges()
         }
+    }
+
+    private fun setupDisplaySettingsPanel() {
+        binding.switchShowPointNames.isChecked = viewModel.showMarkerLabels
+        binding.switchShowPointNames.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.showMarkerLabels = isChecked
+            canvasOverlay.showLabels = isChecked
+            binding.map.invalidate()
+        }
+
+        binding.switchFollowMe.isChecked = viewModel.followMeMode
+        binding.switchFollowMe.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.followMeMode = isChecked
+            if (isChecked) {
+                userLocationManager.userLocation.value?.let {
+                    binding.map.controller.animateTo(it, binding.map.zoomLevelDouble, 400L)
+                }
+            }
+        }
+
+        binding.sliderMarkerSize.value = viewModel.markerSize
+        updateMarkerSizeText(viewModel.markerSize)
+        
+        binding.sliderMarkerSize.addOnChangeListener { _, value, _ ->
+            viewModel.markerSize = value
+            canvasOverlay.markerRadius = value
+            updateMarkerSizeText(value)
+            binding.map.invalidate()
+        }
+        
+        // Передаем начальные значения в оверлей
+        canvasOverlay.markerRadius = viewModel.markerSize
+        canvasOverlay.showLabels = viewModel.showMarkerLabels
+    }
+
+    private fun updateMarkerSizeText(size: Float) {
+        binding.textMarkerSize.text = getString(R.string.marker_size_value, size.toInt())
     }
 
     private fun setupIpRangesPanel() {
@@ -1128,7 +1206,11 @@ class WiFiMapFragment : Fragment() {
                 onProgress = { progress ->
                     val pct = (progress * 100).toInt()
                     binding.offlineProgress.post {
-                        binding.offlineProgress.setProgress(pct, true)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            binding.offlineProgress.setProgress(pct, true)
+                        } else {
+                            binding.offlineProgress.progress = pct
+                        }
                         binding.offlineProgressText.text =
                             getString(R.string.offline_map_downloading, pct, 100)
                     }
@@ -1385,14 +1467,14 @@ class WiFiMapFragment : Fragment() {
                 }
 
                 if (!opened) {
-                    val fallbackIntent = Intent(Intent.ACTION_VIEW, uri)
-                    val chooserIntent = Intent.createChooser(fallbackIntent, null)
-                    if (chooserIntent.resolveActivity(pm) != null) {
-                        try {
+                    try {
+                        val fallbackIntent = Intent(Intent.ACTION_VIEW, uri)
+                        val chooserIntent = Intent.createChooser(fallbackIntent, null)
+                        if (chooserIntent.resolveActivity(pm) != null) {
                             startActivity(chooserIntent)
                             opened = true
-                        } catch (e: Exception) {
                         }
+                    } catch (_: Exception) {
                     }
                 }
 
@@ -1437,12 +1519,53 @@ class WiFiMapFragment : Fragment() {
                     )
                 )
             }
+
+            // Добавляем обработку кнопки редактирования, если это персональная точка
+            if (database?.dbType == DbType.PERSONAL_WIFI_MAP) {
+                findViewById<ImageButton>(R.id.buttonEditPoint)?.apply {
+                    visibility = View.VISIBLE
+                    setOnClickListener {
+                        dialog.dismiss()
+                        showEditPersonalPointDialog(point)
+                    }
+                }
+            }
         }
 
         dialog.setContentView(dialogView)
         dialog.behavior?.state =
             BottomSheetBehavior.STATE_EXPANDED
         dialog.show()
+    }
+
+    private fun showEditPersonalPointDialog(point: NetworkPoint) {
+        val ctx = context ?: return
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_personal_point, null)
+        val editSsid = dialogView.findViewById<TextInputEditText>(R.id.editSsid)
+        val editPassword = dialogView.findViewById<TextInputEditText>(R.id.editPassword)
+
+        editSsid.setText(point.essid)
+        editPassword.setText(point.password)
+
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle(R.string.edit_point)
+            .setView(dialogView)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val newSsid = editSsid.text?.toString() ?: ""
+                val newPassword = editPassword.text?.toString() ?: ""
+                
+                // Находим ID записи в базе (обычно это передается через rawData или берется первая запись)
+                val recordId = point.allRecords.firstOrNull()?.rawData?.get("id")?.toString()?.toLongOrNull()
+                if (recordId != null) {
+                    viewModel.updatePersonalPoint(recordId, newSsid, newPassword)
+                    Snackbar.make(binding.root, R.string.point_updated, Snackbar.LENGTH_SHORT).show()
+                    
+                    // Обновляем маркеры на карте
+                    scheduleMapUpdate(true)
+                }
+            }
+            .show()
     }
 
     private fun saveRecordToLocalDb(
@@ -1530,8 +1653,10 @@ class WiFiMapFragment : Fragment() {
     private fun clearMarkers() {
         if (_binding == null) return
 
-        canvasOverlay.updatePoints(emptyList())
-        binding.map.postInvalidate()
+        if (::canvasOverlay.isInitialized) {
+            canvasOverlay.updatePoints(emptyList())
+            binding.map.postInvalidate()
+        }
     }
 
     override fun onStart() {

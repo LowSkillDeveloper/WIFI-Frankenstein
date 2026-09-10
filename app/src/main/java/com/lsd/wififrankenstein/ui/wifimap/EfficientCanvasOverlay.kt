@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Point
 import android.graphics.RectF
@@ -16,7 +17,6 @@ import kotlin.math.sqrt
 
 private const val TAG = "EfficientCanvas"
 
-private const val POINT_RADIUS = 18f
 private const val CLICK_TOLERANCE = 30f
 private const val CLUSTER_MIN_RADIUS = 18f
 private const val CLUSTER_MAX_RADIUS = 48f
@@ -27,9 +27,20 @@ class EfficientCanvasOverlay(
     private val onPointClick: (MapPoint) -> Unit
 ) : Overlay() {
 
+    var markerRadius: Float = 18f
+    var showLabels: Boolean = false
+
     private val paint = Paint().apply {
         isAntiAlias = true
         style = Paint.Style.FILL
+    }
+    
+    private val textPaint = Paint().apply {
+        isAntiAlias = true
+        color = Color.WHITE
+        textSize = 24f
+        textAlign = Paint.Align.CENTER
+        setShadowLayer(3f, 0f, 0f, Color.BLACK)
     }
 
     private val clusterBackgroundPaint = Paint().apply {
@@ -64,14 +75,14 @@ class EfficientCanvasOverlay(
     private val clusterRadiusCache = mutableMapOf<Int, Float>()
     private val clusterTextSizeCache = mutableMapOf<Int, Float>()
 
-    private fun drawIndividualPoint(canvas: Canvas, screenPoint: Point, point: MapPoint) {
+    private fun drawIndividualPoint(canvas: Canvas, screenPoint: Point, point: MapPoint, zoom: Double) {
         paint.color = point.color
         paint.alpha = 255
 
         canvas.drawCircle(
             screenPoint.x.toFloat(),
             screenPoint.y.toFloat(),
-            POINT_RADIUS,
+            markerRadius,
             paint
         )
 
@@ -79,9 +90,13 @@ class EfficientCanvasOverlay(
         canvas.drawCircle(
             screenPoint.x.toFloat(),
             screenPoint.y.toFloat(),
-            POINT_RADIUS,
+            markerRadius,
             individualPointBorderPaint
         )
+        
+        if (showLabels && !point.essid.isNullOrBlank() && zoom >= 15.0) {
+            canvas.drawText(point.essid!!, screenPoint.x.toFloat(), screenPoint.y.toFloat() - markerRadius - 5f, textPaint)
+        }
     }
 
     fun updatePoints(newPoints: List<MapPoint>) {
@@ -117,7 +132,7 @@ class EfficientCanvasOverlay(
                     drawClusterMarker(canvas, reusableScreenPoint, pt)
                     clusterCount++
                 } else {
-                    drawIndividualPoint(canvas, reusableScreenPoint, pt)
+                    drawIndividualPoint(canvas, reusableScreenPoint, pt, mapView.zoomLevelDouble)
                     pointCount++
                 }
             }
@@ -166,7 +181,7 @@ class EfficientCanvasOverlay(
         return clusterRadiusCache.getOrPut(count) {
             val maxCount = 500f
             val ratio = count.toFloat() / maxCount
-            min(CLUSTER_MAX_RADIUS, CLUSTER_MIN_RADIUS + 27f * sqrt(ratio))
+            min(CLUSTER_MAX_RADIUS, markerRadius + 27f * sqrt(ratio))
         }
     }
 

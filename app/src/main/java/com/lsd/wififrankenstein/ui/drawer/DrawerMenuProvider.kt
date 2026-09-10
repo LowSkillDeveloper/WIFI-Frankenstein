@@ -53,6 +53,12 @@ object DrawerMenuProvider {
             R.string.menu_in_app_database,
             R.id.nav_in_app_database
         ),
+        DrawerItem.MenuItem(
+            206,
+            R.drawable.ic_menu_mapmode,
+            R.string.menu_personal_wifi_map,
+            R.id.nav_personal_wifi_map
+        ),
 
         DrawerItem.Category(
             3,

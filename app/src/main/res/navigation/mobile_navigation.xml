@@ -102,6 +102,10 @@
             android:name="longitude"
             android:defaultValue="0.0"
             app:argType="float" />
+        <argument
+            android:name="select_personal_map"
+            android:defaultValue="false"
+            app:argType="boolean" />
     </fragment>
     <fragment
         android:id="@+id/nav_mac_location"
@@ -277,5 +281,11 @@
         android:label="@string/menu_net_protection"
         app:route="nav_net_protection"
         tools:layout="@layout/fragment_net_protection" />
+    <fragment
+        android:id="@+id/nav_personal_wifi_map"
+        android:name="com.lsd.wififrankenstein.ui.personalmap.PersonalWiFiMapFragment"
+        android:label="@string/menu_personal_wifi_map"
+        app:route="nav_personal_wifi_map"
+        tools:layout="@layout/fragment_personal_wifi_map" />
 </navigation>
 
