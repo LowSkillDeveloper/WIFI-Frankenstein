@@ -1,0 +1,29 @@
+{
+  "app": {
+    "version": "2.6",
+    "changelog_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/app_changelog.txt",
+    "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.6/WIFI-Frankenstein-2.6.apk"
+  },
+  "files": [
+    {
+      "name": "vendor.db",
+      "version": "1.2",
+      "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/vendor.db"
+    },
+    {
+      "name": "wps_pin.db",
+      "version": "1.1",
+      "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/wps_pin.db"
+    },
+    {
+      "name": "wpspin.html",
+      "version": "1.0",
+      "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/service/wpspin.html"
+    },
+    {
+      "name": "RouterKeygen.dic",
+      "version": "1.0",
+      "download_url": "https://github.com/LowSkillDeveloper/WIFI-Frankenstein/raw/refs/heads/service/RouterKeygen.dic"
+    }
+  ]
+}
