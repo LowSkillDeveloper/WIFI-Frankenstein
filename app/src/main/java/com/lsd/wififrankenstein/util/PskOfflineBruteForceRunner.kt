@@ -56,12 +56,36 @@ class PskOfflineBruteForceRunner(private val context: Context) {
     @Volatile
     var paused = false
 
+    private val totalPausedMs = AtomicLong(0)
+
+    @Volatile
+    private var pauseStartedAt = 0L
+
     fun pause() {
-        paused = true
+        if (!paused) {
+            pauseStartedAt = System.currentTimeMillis()
+            paused = true
+        }
     }
 
     fun resume() {
-        paused = false
+        if (paused) {
+            val started = pauseStartedAt
+            pauseStartedAt = 0
+            if (started > 0) {
+                totalPausedMs.addAndGet(System.currentTimeMillis() - started)
+            }
+            paused = false
+        }
+    }
+
+    private fun activeElapsed(startTime: Long): Long {
+        val now = System.currentTimeMillis()
+        var elapsed = now - startTime - totalPausedMs.get()
+        if (paused && pauseStartedAt > 0) {
+            elapsed -= (now - pauseStartedAt)
+        }
+        return elapsed.coerceAtLeast(0)
     }
 
     private data class ChunkData(
@@ -80,6 +104,8 @@ class PskOfflineBruteForceRunner(private val context: Context) {
     ): OfflineResult = withContext(Dispatchers.IO) {
         cancelled = false
         paused = false
+        pauseStartedAt = 0
+        totalPausedMs.set(0)
         foundDelivered = false
         val startTime = System.currentTimeMillis()
 
@@ -186,8 +212,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                             }"
                         )
                     }
-                    val now = System.currentTimeMillis()
-                    val elapsed = now - startTime
+                    val elapsed = activeElapsed(startTime)
 
                     speedWindow.add(elapsed to attemptsSnapshot)
                     while (speedWindow.size > 2 && speedWindow.last().first - speedWindow.first().first > 5000) {
@@ -246,7 +271,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
             crackJob = null
         }
 
-        val elapsed = System.currentTimeMillis() - startTime
+        val elapsed = activeElapsed(startTime)
         val attempts = totalAttempts.get()
         val avgSpeed = if (elapsed > 0) attempts.toDouble() / elapsed * 1000.0 else 0.0
 
@@ -280,6 +305,8 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         }
         cancelled = false
         paused = false
+        pauseStartedAt = 0
+        totalPausedMs.set(0)
         foundDelivered = false
         val startTime = System.currentTimeMillis()
         val allHashes = (listOf(handshakeHash) + extraHashes).distinctBy { it.dedupKey() }
@@ -326,7 +353,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                 for (p in progressChannel) {
                     if (foundDelivered) continue
                     val attemptsSnapshot = totalAttempts.get()
-                    val elapsed = System.currentTimeMillis() - startTime
+                    val elapsed = activeElapsed(startTime)
                     speedWindow.add(elapsed to attemptsSnapshot)
                     while (speedWindow.size > 2 &&
                         speedWindow.last().first - speedWindow.first().first > 5000) {
@@ -368,7 +395,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
             if (!cancelled) Log.e(TAG, "Mask crack failed", e)
         }
 
-        val elapsed = System.currentTimeMillis() - startTime
+        val elapsed = activeElapsed(startTime)
         val attempts = totalAttempts.get()
         val avgSpeed = if (elapsed > 0) attempts.toDouble() / elapsed * 1000.0 else 0.0
         return OfflineResult(foundPassword, attempts, elapsed, avgSpeed,
