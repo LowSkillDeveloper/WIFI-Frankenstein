@@ -2,6 +2,7 @@
     <dimen name="fab_margin">2dp</dimen>
     <dimen name="fab_margin_bottom">89dp</dimen>
     <dimen name="dp_65">65dp</dimen>
+    <dimen name="sheet_peek_height">36dp</dimen>
     <dimen name="stroke_pixiedust">2dp</dimen>
     <dimen name="stroke_default">2dp</dimen>
 

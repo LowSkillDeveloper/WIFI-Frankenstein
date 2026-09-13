@@ -65,9 +65,6 @@ object TileBasedQueryEngine {
             (bounds.lonWest - lonPadding).coerceAtLeast(minLon)
         )
 
-
-
-
         Log.d(
             TAG,
             "Tile query with padding: zoom=$zoom, padding=$paddingFactor, expanded bounds=[$expandedBounds]"

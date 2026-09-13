@@ -65,7 +65,6 @@ class AdminCredentialsAdapter(
             copyToClipboard(context.getString(R.string.admin_login), credential.login)
         }
 
-
         if (credential.password == "<empty>") {
             holder.buttonCopyPassword.setColorFilter(
                 ContextCompat.getColor(

@@ -40,8 +40,17 @@ data class MapPoint(
     val clusterCount: Int = 1,
     val isCluster: Boolean = false,
     val databaseId: String,
-    val essid: String? = null
-)
+    val essid: String? = null,
+
+    val hasCrossData: Boolean = false,
+
+    val wpasecKnown: Boolean = false,
+
+    val isOpen: Boolean = false
+) {
+    val latitudeBits: Long get() = java.lang.Double.doubleToLongBits(latitude)
+    val longitudeBits: Long get() = java.lang.Double.doubleToLongBits(longitude)
+}
 
 data class NetworkRecord(
     val essid: String?,
@@ -75,6 +84,8 @@ data class NetworkRecord(
     val rawData: Map<String, Any?>,
     val databaseColor: Int = 0,
     val databaseName: String? = null,
+
+    val isPersonal: Boolean = false,
     val ipRaw: Long? = null,
     val lanIpRaw: Long? = null,
     val wanIpRaw: Long? = null,

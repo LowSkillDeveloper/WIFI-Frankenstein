@@ -12,6 +12,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.network.WpaSecClient
 import com.lsd.wififrankenstein.ui.databasefinder.SearchMode
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
@@ -22,10 +23,13 @@ import com.lsd.wififrankenstein.ui.dbsetup.SQLiteCustomHelper
 import com.lsd.wififrankenstein.ui.dbsetup.ThreeWifiAppMapHelper
 import com.lsd.wififrankenstein.ui.dbsetup.ThreeWifiDevMapHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.PersonalMapDbHelper
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.PersonalWifiNetwork
 import com.lsd.wififrankenstein.ui.handshakecapture.HandshakeMetadataDbHelper
 import com.lsd.wififrankenstein.ui.ipranges.IpRangeResult
 import com.lsd.wififrankenstein.util.AdvancedCache
 import com.lsd.wififrankenstein.util.Log
+import com.lsd.wififrankenstein.util.MacAddressUtils
 import com.lsd.wififrankenstein.util.PerformanceManager
 import com.lsd.wififrankenstein.util.QuadkeyUtils
 import com.lsd.wififrankenstein.util.TileRange
@@ -48,6 +52,16 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         private val HEX_PAIR_REGEX = Regex("(.{2})")
 
         private const val SELECTED_DATABASE_IDS_KEY = "map_selected_db_ids"
+        private const val SELECTED_DATABASE_IDS_KEY_PERSONAL = "map_selected_db_ids_personal"
+
+        private const val PERSONAL_MAP_DB_ID = "personal_map"
+        private const val PERSONAL_CROSS_TTL_MS = 7L * 24 * 60 * 60 * 1000
+        private const val PERSONAL_WPASEC_TTL_MS = 24L * 60 * 60 * 1000
+        private const val PERSONAL_WPASEC_MIN_INTERVAL_MS = 6L * 60 * 60 * 1000
+        private const val PERSONAL_WPASEC_MAX_PER_RUN = 300
+        private const val PERSONAL_WPASEC_FAIL_BACKOFF_MS = 30L * 60 * 1000
+        private const val KEY_LAST_WPASEC_RUN = "personal_wpasec_last_run"
+        private const val KEY_LAST_WPASEC_FAIL = "personal_wpasec_last_fail"
     }
 
     private val TAG = "WiFiMapViewModel"
@@ -56,6 +70,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
     private val _points = MutableLiveData<List<MapPoint>>()
     val points: LiveData<List<MapPoint>> = _points
+
+    private val _refreshPoints = MutableLiveData<Unit>()
+    val refreshPoints: LiveData<Unit> = _refreshPoints
 
     private val _selectedPoint = MutableLiveData<NetworkPoint>()
     val selectedPoint: LiveData<NetworkPoint> = _selectedPoint
@@ -97,6 +114,10 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
     private val externalIndexManager = ExternalIndexManager(getApplication())
 
+    private val localAppHelper by lazy { LocalAppDbHelper(getApplication()) }
+    private val personalHelper by lazy { PersonalMapDbHelper(getApplication()) }
+    private val handshakeHelper by lazy { HandshakeMetadataDbHelper(getApplication()) }
+
     private val _addReadOnlyDb = MutableLiveData<DbItem>()
 
     private fun addLocalDbIfMissing(databases: List<DbItem>): List<DbItem> {
@@ -131,7 +152,10 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     private var lastUpdateTime = 0L
     private var currentLoadingJob: Job? = null
     private var ipRangeSearchJob: Job? = null
-    private var isLoadingPoints = false
+    private val personalCrossCheckRunning = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val personalWpaSecRunning = java.util.concurrent.atomic.AtomicBoolean(false)
+    private var lastWpaSecAttemptMs = 0L
+    private var lastPersonalCheckMs = 0L
 
     var enableRdapEnrichment: Boolean
         get() = settingsPrefs.getBoolean("map_rdap_enrichment", false)
@@ -161,17 +185,29 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         get() = settingsPrefs.getBoolean("map_follow_me_mode", false)
         set(value) = settingsPrefs.edit { putBoolean("map_follow_me_mode", value) }
 
+    @Volatile
+    var personalMode: Boolean = false
+        private set
+
+    fun setPersonalMode(enabled: Boolean) {
+        personalMode = enabled
+    }
+
+    private fun selectedDatabaseIdsKey(): String =
+        if (personalMode) SELECTED_DATABASE_IDS_KEY_PERSONAL else SELECTED_DATABASE_IDS_KEY
+
     private val _selectedDatabaseIds = mutableSetOf<String>()
     val selectedDatabaseIds: Set<String> get() = _selectedDatabaseIds.toSet()
 
     fun setSelectedDatabaseIds(ids: Set<String>) {
+        val copy = ids.toSet()
         _selectedDatabaseIds.clear()
-        _selectedDatabaseIds.addAll(ids)
-        settingsPrefs.edit { putStringSet(SELECTED_DATABASE_IDS_KEY, ids) }
+        _selectedDatabaseIds.addAll(copy)
+        settingsPrefs.edit { putStringSet(selectedDatabaseIdsKey(), copy) }
     }
 
     fun getSavedSelectedDatabaseIds(): Set<String> {
-        return settingsPrefs.getStringSet(SELECTED_DATABASE_IDS_KEY, emptySet())
+        return settingsPrefs.getStringSet(selectedDatabaseIdsKey(), emptySet())
             .orEmpty()
             .filterTo(mutableSetOf()) { it.isNotBlank() }
     }
@@ -261,9 +297,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             return existing
         }
 
-        val creationLock = helperCreationLocks[database.id] ?: Mutex().also { 
+        val creationLock = helperCreationLocks[database.id] ?: Mutex().also {
             val existing = helperCreationLocks.putIfAbsent(database.id, it)
-            if (existing != null) return@also // should not happen with proper lock but safety first
+            if (existing != null) return@also
         }
         val lockToUse = helperCreationLocks[database.id] ?: creationLock
         return lockToUse.withLock {
@@ -492,16 +528,20 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
                 DbType.LOCAL_APP_DB -> {
                     try {
-                        viewModelScope.launch {
+                        viewModelScope.launch(Dispatchers.IO) {
                             val dbHelper = LocalAppDbHelper(getApplication())
-                            dbHelper.readableDatabase.use { db ->
-                                if (localDbIndexManager.needsIndexing(db)) {
-                                    Log.d(TAG, "Local database needs indexing, showing dialog")
-                                    _showIndexingDialog.value = dbItem
-                                } else {
-                                    Log.d(TAG, "Local database indexes exist, adding database")
-                                    _addReadOnlyDb.postValue(dbItem)
+                            try {
+                                dbHelper.readableDatabase.use { db ->
+                                    if (localDbIndexManager.needsIndexing(db)) {
+                                        Log.d(TAG, "Local database needs indexing, showing dialog")
+                                        _showIndexingDialog.postValue(dbItem)
+                                    } else {
+                                        Log.d(TAG, "Local database indexes exist, adding database")
+                                        _addReadOnlyDb.postValue(dbItem)
+                                    }
                                 }
+                            } finally {
+                                dbHelper.close()
                             }
                         }
                     } catch (e: Exception) {
@@ -525,7 +565,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    suspend fun createLocalDbIndexes() {
+    suspend fun createLocalDbIndexes() = withContext(Dispatchers.IO) {
         val dbHelper = LocalAppDbHelper(getApplication())
         try {
             dbHelper.writableDatabase.use { db ->
@@ -632,7 +672,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
         val zoomLevelChanged = previousZoom.toInt() != tileZoom
 
-        if (isLoadingPoints) {
+        if (currentLoadingJob?.isActive == true) {
             return
         }
 
@@ -654,7 +694,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
             currentTileRange ?: TileBasedQueryEngine.calculateVisibleTiles(boundingBox, tileZoom)
 
         currentLoadingJob = viewModelScope.launch {
-            isLoadingPoints = true
             try {
                 _loadingProgress.postValue(1)
 
@@ -796,7 +835,6 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                     )
                 )
             } finally {
-                isLoadingPoints = false
                 _loadingProgress.postValue(100)
             }
         }
@@ -829,16 +867,21 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                 clusterCount = cmp.count,
                 isCluster = cmp.isCluster,
                 databaseId = database.id,
-                essid = cmp.essid
+                essid = cmp.essid,
+                hasCrossData = cmp.hasCrossData,
+                wpasecKnown = cmp.wpasecKnown,
+                isOpen = cmp.isOpen
             )
         }
     }
 
+    private data class PointKey(val bssid: Long, val db: String)
+
     private fun deduplicatePoints(points: List<MapPoint>): List<MapPoint> {
-        val seen = HashSet<String>(points.size)
+        val seen = HashSet<PointKey>(points.size)
         val result = ArrayList<MapPoint>(points.size)
         for (p in points) {
-            if (seen.add("${p.bssidDecimal}:${p.databaseId}")) {
+            if (seen.add(PointKey(p.bssidDecimal, p.databaseId))) {
                 result.add(p)
             }
         }
@@ -846,15 +889,15 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun mergePoints(existing: List<MapPoint>, newPoints: List<MapPoint>): List<MapPoint> {
-        val seen = HashSet<String>(existing.size + newPoints.size)
+        val seen = HashSet<PointKey>(existing.size + newPoints.size)
         val result = ArrayList<MapPoint>(existing.size + newPoints.size)
         for (p in existing) {
-            if (seen.add("${p.bssidDecimal}:${p.databaseId}")) {
+            if (seen.add(PointKey(p.bssidDecimal, p.databaseId))) {
                 result.add(p)
             }
         }
         for (p in newPoints) {
-            if (seen.add("${p.bssidDecimal}:${p.databaseId}")) {
+            if (seen.add(PointKey(p.bssidDecimal, p.databaseId))) {
                 result.add(p)
             }
         }
@@ -1084,7 +1127,7 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
     ): List<ClusteredMapPoint> = withContext(Dispatchers.IO) {
         val points = when (database.dbType) {
             DbType.LOCAL_APP_DB -> {
-                val dbHelper = LocalAppDbHelper(getApplication())
+                val dbHelper = localAppHelper
                 val result = try {
                     if (tileRange != null) {
                         dbHelper.getClusteredPointsByTileRange(
@@ -1128,13 +1171,13 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                         }
                     }
                 } finally {
-                    dbHelper.close()
+
                 }
                 result
             }
 
             DbType.HANDSHAKE_STORAGE -> {
-                val dbHelper = HandshakeMetadataDbHelper(getApplication())
+                val dbHelper = handshakeHelper
                 val result = try {
                     val boundsToUse = if (tileRange != null) {
                         QuadkeyUtils.getTileRangeBounds(tileRange, tileZoom)
@@ -1163,13 +1206,13 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                         }
                     }
                 } finally {
-                    dbHelper.close()
+
                 }
                 result
             }
 
             DbType.PERSONAL_WIFI_MAP -> {
-                val dbHelper = LocalAppDbHelper(getApplication())
+                val dbHelper = personalHelper
                 val result = try {
                     if (tileRange != null) {
                         dbHelper.getClusteredPersonalPointsByTileRange(
@@ -1185,24 +1228,24 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             boundingBox.lonEast,
                             getMaxPointsForZoom(zoom)
                         ).mapNotNull { network ->
-                            val macDecimal = try {
-                                network.macAddress.replace(":", "").replace("-", "")
-                                    .toLongOrNull(16) ?: -1L
-                            } catch (_: Exception) { -1L }
+                            val macDecimal = MacAddressUtils.convertToDecimal(network.macAddress)
 
-                            if (macDecimal == -1L) null
+                            if (macDecimal == null || (network.latitude == 0.0 && network.longitude == 0.0)) null
                             else ClusteredMapPoint(
                                 macDecimal,
                                 network.latitude,
                                 network.longitude,
                                 1,
                                 false,
-                                network.wifiName
+                                network.wifiName,
+                                hasCrossData = network.otherDbState == PersonalMapDbHelper.STATE_PRESENT,
+                                wpasecKnown = network.wpasecState == PersonalMapDbHelper.STATE_PRESENT,
+                                isOpen = network.securityType == PersonalMapDbHelper.SECURITY_OPEN
                             )
                         }
                     }
                 } finally {
-                    dbHelper.close()
+
                 }
                 result
             }
@@ -1313,18 +1356,45 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         points
     }
 
-    fun updatePersonalPoint(id: Long, newName: String, newPassword: String?) {
+    fun updatePersonalPoint(id: Long, newName: String, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch(Dispatchers.IO) {
-            val dbHelper = LocalAppDbHelper(getApplication())
-            try {
-                dbHelper.updatePersonalNetworkInfo(id, newName, newPassword)
-                // После обновления сбрасываем кэш, чтобы изменения отобразились на карте
-                withContext(Dispatchers.Main) {
+            val dbHelper = PersonalMapDbHelper(getApplication())
+            val success = try {
+                dbHelper.updatePersonalNetworkInfo(id, newName)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to update personal point $id", e)
+                false
+            } finally {
+                dbHelper.close()
+            }
+
+            withContext(Dispatchers.Main) {
+                if (success) {
                     clearCache()
                     reloadAvailableDatabases()
                 }
+                onResult(success)
+            }
+        }
+    }
+
+    fun deletePersonalPoint(id: Long, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val dbHelper = PersonalMapDbHelper(getApplication())
+            val success = try {
+                dbHelper.deletePersonalRecord(id)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to delete personal point $id", e)
+                false
             } finally {
                 dbHelper.close()
+            }
+            withContext(Dispatchers.Main) {
+                if (success) {
+                    clearCache()
+                    reloadAvailableDatabases()
+                }
+                onResult(success)
             }
         }
     }
@@ -1514,47 +1584,10 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                     dbHelper.close()
                                 }
                             } else {
-                                val dbHelper = LocalAppDbHelper(getApplication())
+                                val dbHelper = PersonalMapDbHelper(getApplication())
                                 try {
-                                    dbHelper.searchPersonalRecordsByBssid(bssidStr).map { item ->
-                                        NetworkRecord(
-                                            essid = item.wifiName,
-                                            password = null,
-                                            wpsPin = null,
-                                            routerModel = null,
-                                            adminCredentials = emptyList(),
-                                            isHidden = false,
-                                            isWifiDisabled = false,
-                                            timeAdded = item.timestamp.toString(),
-                                            security = null,
-                                            lanMask = null,
-                                            wanMask = null,
-                                            wanGateway = null,
-                                            dns1 = null,
-                                            dns2 = null,
-                                            dns3 = null,
-                                            noWifiKey = null,
-                                            noBssid = null,
-                                            noWps = null,
-                                            ip = null,
-                                            lanIp = null,
-                                            wanIp = null,
-                                            iprange = null,
-                                            port = null,
-                                            time = item.timestamp,
-                                            cmtid = null,
-                                            source = null,
-                                            sourceRaw = null,
-                                            comment = "Personal Map Point",
-                                            rawData = mapOf(
-                                                "level" to item.level,
-                                                "accuracy" to item.accuracy,
-                                                "satellites" to item.satellites,
-                                                "speed" to item.speed,
-                                                "isReliable" to item.isReliable
-                                            )
-                                        )
-                                    }
+                                    dbHelper.searchPersonalRecordsByBssid(bssidStr)
+                                        .map { personalRecordFromNetwork(it) }
                                 } finally {
                                     dbHelper.close()
                                 }
@@ -2016,6 +2049,22 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         loadPointInfo(point)
     }
 
+    suspend fun loadPointInfoFromAllSourcesByBssid(
+        bssidDecimal: Long,
+        databaseId: String,
+        latitude: Double = 0.0,
+        longitude: Double = 0.0
+    ) {
+        val point = NetworkPoint(
+            latitude = latitude,
+            longitude = longitude,
+            bssidDecimal = bssidDecimal,
+            source = "",
+            databaseId = databaseId
+        )
+        loadPointInfoFromAllSources(point)
+    }
+
     private fun parseHiddenStatus(value: String?): Boolean {
         return when (value?.lowercase(java.util.Locale.ROOT)?.trim()) {
             "b1", "1", "true", "yes" -> true
@@ -2196,14 +2245,14 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         return DbItem(
             id = personalDbId,
             path = "personal_map",
-            directPath = getApplication<Application>().getDatabasePath(LocalAppDbHelper.DATABASE_NAME).absolutePath,
+            directPath = getApplication<Application>().getDatabasePath(PersonalMapDbHelper.DATABASE_NAME).absolutePath,
             type = getApplication<Application>().getString(R.string.personal_map_title),
             dbType = DbType.PERSONAL_WIFI_MAP,
             originalSizeInMB = existing?.originalSizeInMB ?: 0f,
             cachedSizeInMB = existing?.cachedSizeInMB ?: 0f,
             isMain = existing?.isMain ?: true,
             apiKey = null,
-            tableName = LocalAppDbHelper.TABLE_PERSONAL_MAP,
+            tableName = PersonalMapDbHelper.TABLE_PERSONAL_MAP,
             columnMap = emptyMap(),
             supportsMapApi = false
         )
@@ -2236,6 +2285,478 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         )
     }
 
+    private val personalCrossCheckEnabled: Boolean
+        get() = settingsPrefs.getBoolean("personal_cross_check_enabled", true)
+
+    private val personalWpasecEnabled: Boolean
+        get() = settingsPrefs.getBoolean("personal_wpasec_enabled", true)
+
+    fun runPersonalBackgroundChecks(points: List<MapPoint>) {
+        // Throttle first: updateMarkers() calls this on the main thread on every
+        // map emission (including pan frames), so avoid filtering the whole list
+        // when we are not going to run the check anyway.
+        val now = System.currentTimeMillis()
+        if (now - lastPersonalCheckMs < 5000L) return
+        if (points.isEmpty()) return
+        val personal = points.filter { it.databaseId == PERSONAL_MAP_DB_ID && it.bssidDecimal != 0L }
+        if (personal.isEmpty()) return
+
+        lastPersonalCheckMs = now
+        val bssids = personal.mapNotNull { convertBssidToString(it.bssidDecimal) }.toSet()
+        if (bssids.isEmpty()) return
+        if (personalCrossCheckEnabled) runPersonalCrossCheck(bssids)
+        if (personalWpasecEnabled) runPersonalWpaSecCheck(bssids)
+    }
+
+    private fun runPersonalCrossCheck(visible: Set<String>) {
+        if (!personalCrossCheckRunning.compareAndSet(false, true)) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val personal = PersonalMapDbHelper(getApplication())
+            try {
+                val toCheck = personal.getBssidsNeedingCrossCheckFor(visible, PERSONAL_CROSS_TTL_MS)
+                if (toCheck.isEmpty()) return@launch
+
+                val found = mutableSetOf<String>()
+                var sourceFailed = false
+                val sources = _availableDatabases.value.orEmpty().filter {
+                    it.dbType != DbType.PERSONAL_WIFI_MAP && it.dbType != DbType.WIFI_API
+                }
+
+                if (sources.isEmpty()) return@launch
+
+                for (db in sources) {
+                    try {
+                        when (db.dbType) {
+                            DbType.LOCAL_APP_DB -> {
+                                val helper = LocalAppDbHelper(getApplication())
+                                try {
+                                    val existing = helper.filterExistingMacDecimals(
+                                        toCheck.mapNotNull { MacAddressUtils.convertToDecimal(it) }
+                                    )
+                                    toCheck.forEach { mac ->
+                                        val dec = MacAddressUtils.convertToDecimal(mac)
+                                        if (dec != null && existing.contains(dec)) {
+                                            found.add(PersonalMapDbHelper.normalizeMacKey(mac))
+                                        }
+                                    }
+                                } finally {
+                                    helper.close()
+                                }
+                            }
+
+                            DbType.HANDSHAKE_STORAGE -> {
+                                val helper = HandshakeMetadataDbHelper(getApplication())
+                                try {
+                                    helper.filterExistingBssids(toCheck.toSet()).forEach {
+                                        found.add(PersonalMapDbHelper.normalizeMacKey(it))
+                                    }
+                                } finally {
+                                    helper.close()
+                                }
+                            }
+
+                            DbType.SQLITE_FILE_P3WIFI, DbType.SMARTLINK_SQLITE_FILE_P3WIFI -> {
+                                val helper = getHelper(db)
+                                if (helper is SQLite3WiFiHelper) {
+                                    helper.searchNetworksByBSSIDsAsync(toCheck).forEach { row ->
+                                        (row["BSSID"] as? String)?.let {
+                                            found.add(PersonalMapDbHelper.normalizeMacKey(it))
+                                        }
+                                    }
+                                }
+                            }
+
+                            DbType.SQLITE_FILE_CUSTOM, DbType.SMARTLINK_SQLITE_FILE_CUSTOM -> {
+                                val table = db.tableName
+                                val map = db.columnMap
+                                val helper = getHelper(db)
+                                if (helper is SQLiteCustomHelper && table != null && map != null) {
+
+                                    toCheck.chunked(40).forEach { chunk ->
+                                        helper.searchNetworksByBSSIDsAll(table, map, chunk).keys.forEach {
+                                            found.add(PersonalMapDbHelper.normalizeMacKey(it))
+                                        }
+                                    }
+                                }
+                            }
+
+                            else -> {}
+                        }
+                    } catch (e: Exception) {
+                        sourceFailed = true
+                        Log.w(TAG, "cross-check source ${db.id} failed: ${e.message}")
+                    }
+                }
+
+                val now = System.currentTimeMillis()
+                val states = HashMap<String, Int>(toCheck.size)
+                toCheck.forEach { mac ->
+                    val present = found.contains(PersonalMapDbHelper.normalizeMacKey(mac))
+                    when {
+                        present -> states[mac] = PersonalMapDbHelper.STATE_PRESENT
+                        !sourceFailed -> states[mac] = PersonalMapDbHelper.STATE_ABSENT
+
+                    }
+                }
+                personal.setOtherDbStates(states, now)
+
+                withContext(Dispatchers.Main) { _refreshPoints.postValue(Unit) }
+            } catch (e: Exception) {
+                Log.e(TAG, "personal cross-check failed", e)
+            } finally {
+                personal.close()
+                personalCrossCheckRunning.set(false)
+            }
+        }
+    }
+
+    private data class WpaSecQuery(val mac: String, val bssidHex: String, val essidHex: String)
+
+    private fun runPersonalWpaSecCheck(visible: Set<String>) {
+        val now = System.currentTimeMillis()
+        val lastRun = settingsPrefs.getLong(KEY_LAST_WPASEC_RUN, 0L)
+        if (now - lastRun < PERSONAL_WPASEC_MIN_INTERVAL_MS) return
+
+        val lastFail = settingsPrefs.getLong(KEY_LAST_WPASEC_FAIL, 0L)
+        if (now - lastFail < PERSONAL_WPASEC_FAIL_BACKOFF_MS) return
+        if (!personalWpaSecRunning.compareAndSet(false, true)) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val personal = PersonalMapDbHelper(getApplication())
+            try {
+                val candidates = personal.getWpaSecCandidates(visible, PERSONAL_WPASEC_TTL_MS)
+                if (candidates.isEmpty()) return@launch
+
+                val toCheck = candidates.keys.sorted().take(PERSONAL_WPASEC_MAX_PER_RUN)
+
+                val client = WpaSecClient(getApplication())
+                val queries = toCheck.mapNotNull { mac ->
+                    val ssid = candidates[mac]
+                    if (ssid.isNullOrBlank()) null
+                    else WpaSecQuery(mac, client.bssidToHex(mac), client.essidToHex(ssid))
+                }
+                if (queries.isEmpty()) return@launch
+
+                val results = client.checkPasswordsBatchDetailed(queries.map { it.bssidHex to it.essidHex })
+                val checkedAt = System.currentTimeMillis()
+                val states = HashMap<String, Int>(queries.size)
+                var anyResolved = false
+                queries.forEachIndexed { index, query ->
+                    when (results.getOrNull(index)) {
+                        true -> {
+                            states[query.mac] = PersonalMapDbHelper.STATE_PRESENT
+                            anyResolved = true
+                        }
+                        false -> {
+                            states[query.mac] = PersonalMapDbHelper.STATE_ABSENT
+                            anyResolved = true
+                        }
+                        else -> {
+
+                        }
+                    }
+                }
+                personal.setWpaSecStates(states, checkedAt)
+                if (anyResolved) {
+                    settingsPrefs.edit { putLong(KEY_LAST_WPASEC_RUN, System.currentTimeMillis()) }
+                    lastWpaSecAttemptMs = System.currentTimeMillis()
+                } else if (queries.isNotEmpty()) {
+
+                    settingsPrefs.edit { putLong(KEY_LAST_WPASEC_FAIL, System.currentTimeMillis()) }
+                }
+
+                withContext(Dispatchers.Main) { _refreshPoints.postValue(Unit) }
+            } catch (e: Exception) {
+                Log.e(TAG, "wpa-sec personal check failed", e)
+            } finally {
+                personal.close()
+                personalWpaSecRunning.set(false)
+            }
+        }
+    }
+
+    /**
+     * Builds a record for a saved personal-map point. All personal-specific
+     * values are exposed through [NetworkRecord.rawData] so the map detail card
+     * can render them without a dedicated data model.
+     */
+    private fun personalRecordFromNetwork(item: PersonalWifiNetwork): NetworkRecord =
+        NetworkRecord(
+            essid = item.wifiName,
+            password = null,
+            wpsPin = null,
+            routerModel = null,
+            adminCredentials = emptyList(),
+            isHidden = item.isHidden,
+            isWifiDisabled = false,
+            timeAdded = null,
+            security = item.security,
+            lanMask = null,
+            wanMask = null,
+            wanGateway = null,
+            dns1 = null,
+            dns2 = null,
+            dns3 = null,
+            noWifiKey = null,
+            noBssid = null,
+            noWps = null,
+            ip = null,
+            lanIp = null,
+            wanIp = null,
+            iprange = null,
+            port = null,
+            time = item.timestamp,
+            cmtid = null,
+            source = item.source,
+            sourceRaw = null,
+            comment = "Personal Map Point",
+            isPersonal = true,
+            rawData = mapOf(
+                "id" to item.id,
+                "macAddress" to item.macAddress,
+                "level" to item.level,
+                "accuracy" to item.accuracy,
+                "measureCount" to item.measureCount,
+                "isReliable" to item.isReliable,
+                "security" to item.security,
+                "securityType" to item.securityType,
+                "frequency" to item.frequency,
+                "channel" to item.channel,
+                "band" to item.band,
+                "vendor" to item.vendor,
+                "firstSeen" to item.firstSeen,
+                "lastSeen" to item.timestamp,
+                "isWps" to item.isWps,
+                "isPasspoint" to item.isPasspoint,
+                "isHidden" to item.isHidden,
+                "otherDbState" to item.otherDbState,
+                "wpasecState" to item.wpasecState,
+                "source" to item.source
+            )
+        )
+
+    private suspend fun loadRecordsForDatabase(database: DbItem, bssidDecimal: Long): List<NetworkRecord> {
+        val bssidStr = convertBssidToString(bssidDecimal)
+        return try {
+            when (database.dbType) {
+                DbType.WIFI_API -> emptyList()
+
+                DbType.LOCAL_APP_DB -> {
+                    val helper = LocalAppDbHelper(getApplication())
+                    val results = try {
+                        helper.searchRecordsWithFilters(
+                            bssidStr, filterByName = false, filterByMac = true,
+                            filterByPassword = false, filterByWps = false
+                        )
+                    } finally {
+                        helper.close()
+                    }
+                    results.map { network ->
+                        NetworkRecord(
+                            essid = network.wifiName,
+                            password = network.wifiPassword,
+                            wpsPin = network.wpsCode,
+                            routerModel = null,
+                            adminCredentials = parseAdminCredentials(network.adminPanel),
+                            isHidden = false,
+                            isWifiDisabled = false,
+                            timeAdded = null,
+                            security = null, lanMask = null, wanMask = null, wanGateway = null,
+                            dns1 = null, dns2 = null, dns3 = null,
+                            noWifiKey = null, noBssid = null, noWps = null,
+                            ip = null, lanIp = null, wanIp = null, iprange = null, port = null,
+                            time = null, cmtid = null, source = null, sourceRaw = null, comment = null,
+                            rawData = mapOf(
+                                "id" to network.id,
+                                "wifiName" to network.wifiName,
+                                "macAddress" to network.macAddress,
+                                "wifiPassword" to network.wifiPassword,
+                                "wpsCode" to network.wpsCode,
+                                "adminPanel" to network.adminPanel,
+                                "latitude" to network.latitude,
+                                "longitude" to network.longitude
+                            )
+                        )
+                    }
+                }
+
+                DbType.PERSONAL_WIFI_MAP -> {
+                    val helper = PersonalMapDbHelper(getApplication())
+                    val results = try {
+                        helper.searchPersonalRecordsByBssid(bssidStr)
+                    } finally {
+                        helper.close()
+                    }
+                    results.map { personalRecordFromNetwork(it) }
+                }
+
+                DbType.HANDSHAKE_STORAGE -> {
+                    val helper = HandshakeMetadataDbHelper(getApplication())
+                    val results = try {
+                        helper.getByBssid(bssidStr)
+                    } finally {
+                        helper.close()
+                    }
+                    results.map { item ->
+                        NetworkRecord(
+                            essid = item.essid,
+                            password = item.crackedPassword,
+                            wpsPin = null,
+                            routerModel = null,
+                            adminCredentials = emptyList(),
+                            isHidden = false,
+                            isWifiDisabled = false,
+                            timeAdded = null,
+                            security = null, lanMask = null, wanMask = null, wanGateway = null,
+                            dns1 = null, dns2 = null, dns3 = null,
+                            noWifiKey = null, noBssid = null, noWps = null,
+                            ip = null, lanIp = null, wanIp = null, iprange = null, port = null,
+                            time = null, cmtid = null, source = null, sourceRaw = null, comment = null,
+                            rawData = mapOf(
+                                "essid" to item.essid,
+                                "bssid" to item.bssid,
+                                "password" to item.crackedPassword,
+                                "fileName" to item.fileName
+                            )
+                        )
+                    }
+                }
+
+                DbType.SQLITE_FILE_CUSTOM, DbType.SMARTLINK_SQLITE_FILE_CUSTOM -> {
+                    val directPath = database.directPath
+                    val tableName = database.tableName
+                    val columnMap = database.columnMap
+                    if (!directPath.isNullOrEmpty() && !tableName.isNullOrEmpty() && !columnMap.isNullOrEmpty()) {
+                        val infoList = externalIndexManager.getPointInfo(directPath, tableName, columnMap, bssidDecimal)
+                        infoList.orEmpty().map { info ->
+                            val essid = columnMap["essid"]?.let { info[it]?.toString() }
+                            val password = columnMap["wifi_pass"]?.let { info[it]?.toString() }
+                            val wpsPin = columnMap["wps_pin"]?.let { info[it]?.toString() }
+                            val timeData = info["time"]?.toString() ?: info["timestamp"]?.toString()
+                            NetworkRecord(
+                                essid = essid ?: getApplication<Application>().getString(R.string.unknown_ssid),
+                                password = password, wpsPin = wpsPin,
+                                routerModel = info["name"]?.toString(),
+                                adminCredentials = parseAdminCredentials(resolveAdminAuthData(columnMap, info)),
+                                isHidden = parseHiddenStatus(info["Hidden"]?.toString()),
+                                isWifiDisabled = parseWifiDisabledStatus(info["RadioOff"]?.toString()),
+                                timeAdded = timeData,
+                                security = info["Security"] as? String,
+                                lanMask = info["LANMask"] as? String,
+                                wanMask = info["WANMask"] as? String,
+                                wanGateway = info["WANGateway"] as? String,
+                                dns1 = info["DNS1"] as? String, dns2 = info["DNS2"] as? String, dns3 = info["DNS3"] as? String,
+                                noWifiKey = info["NoWiFiKey"] as? Int, noBssid = info["NoBSSID"] as? Int, noWps = info["NoWPS"] as? Int,
+                                ip = info["ip"] as? String, lanIp = info["LANIP"] as? String, wanIp = info["WANIP"] as? String,
+                                iprange = info["iprange"] as? Int, port = info["port"] as? Int,
+                                time = info["time"] as? Long, cmtid = info["cmtid"] as? Int,
+                                source = (info["source"] as? Int)?.let { getSourceLabel(it) },
+                                sourceRaw = info["source"] as? Int,
+                                comment = info["comment"] as? String,
+                                rawData = info
+                            )
+                        }
+                    } else emptyList()
+                }
+
+                else -> {
+                    val helper = getHelper(database)
+                    when (helper) {
+                        is SQLite3WiFiHelper -> helper.loadAllNetworkInfo(bssidDecimal).map { info ->
+                            val geoSource = info["source"] as? Int
+                            NetworkRecord(
+                                essid = info["ESSID"] as? String,
+                                password = info["WiFiKey"] as? String,
+                                wpsPin = info["WPSPIN"]?.toString(),
+                                routerModel = info["name"] as? String,
+                                adminCredentials = parseAdminCredentials(info["Authorization"] as? String),
+                                isHidden = info["Hidden"]?.toString() == "b1",
+                                isWifiDisabled = info["RadioOff"]?.toString() == "b1",
+                                timeAdded = info["time"] as? String,
+                                security = info["Security"] as? String,
+                                lanMask = info["LANMask"] as? String, wanMask = info["WANMask"] as? String,
+                                wanGateway = info["WANGateway"] as? String,
+                                dns1 = info["DNS1"] as? String, dns2 = info["DNS2"] as? String, dns3 = info["DNS3"] as? String,
+                                noWifiKey = info["NoWiFiKey"] as? Int, noBssid = info["NoBSSID"] as? Int, noWps = info["NoWPS"] as? Int,
+                                ip = info["ip"] as? String, lanIp = info["LANIP"] as? String, wanIp = info["WANIP"] as? String,
+                                iprange = info["iprange"] as? Int, port = info["port"] as? Int,
+                                time = info["time"] as? Long, cmtid = info["cmtid"] as? Int,
+                                source = getSourceLabel(geoSource), sourceRaw = geoSource,
+                                comment = info["comment"] as? String, rawData = info,
+                                ipRaw = info["ip"] as? Long, lanIpRaw = info["LANIP"] as? Long, wanIpRaw = info["WANIP"] as? Long,
+                                lanMaskRaw = info["LANMask"] as? Long, wanMaskRaw = info["WANMask"] as? Long,
+                                wanGatewayRaw = info["WANGateway"] as? Long, dns1Raw = info["DNS1"] as? Long,
+                                dns2Raw = info["DNS2"] as? Long, dns3Raw = info["DNS3"] as? Long
+                            )
+                        }
+                        is SQLiteCustomHelper -> {
+                            val table = database.tableName
+                            val map = database.columnMap
+                            if (table != null && map != null) {
+                                helper.searchNetworksByBSSIDAndFields(table, map, bssidStr, setOf("mac"), SearchMode.EXACT)
+                                    .map { info ->
+                                        val essid = map["essid"]?.let { info[it]?.toString() }
+                                        val password = map["wifi_pass"]?.let { info[it]?.toString() }
+                                        val wpsPin = map["wps_pin"]?.let { info[it]?.toString() }
+                                        NetworkRecord(
+                                            essid = essid,
+                                            password = password, wpsPin = wpsPin,
+                                            routerModel = info["name"]?.toString(),
+                                            adminCredentials = parseAdminCredentials(resolveAdminAuthData(map, info)),
+                                            isHidden = info["Hidden"]?.toString() == "b1",
+                                            isWifiDisabled = info["RadioOff"]?.toString() == "b1",
+                                            timeAdded = info["time"]?.toString(),
+                                            security = info["Security"]?.toString(),
+                                            lanMask = info["LANMask"]?.toString(), wanMask = info["WANMask"]?.toString(),
+                                            wanGateway = info["WANGateway"]?.toString(),
+                                            dns1 = info["DNS1"]?.toString(), dns2 = info["DNS2"]?.toString(), dns3 = info["DNS3"]?.toString(),
+                                            noWifiKey = info["NoWiFiKey"] as? Int, noBssid = info["NoBSSID"] as? Int, noWps = info["NoWPS"] as? Int,
+                                            ip = info["ip"]?.toString(), lanIp = info["LANIP"]?.toString(), wanIp = info["WANIP"]?.toString(),
+                                            iprange = info["iprange"] as? Int, port = info["port"] as? Int,
+                                            time = info["time"] as? Long, cmtid = info["cmtid"] as? Int,
+                                            source = (info["source"] as? Int)?.let { getSourceLabel(it) },
+                                            sourceRaw = info["source"] as? Int,
+                                            comment = info["comment"] as? String, rawData = info
+                                        )
+                                    }
+                            } else emptyList()
+                        }
+                        else -> emptyList()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "loadRecordsForDatabase ${database.id} failed", e)
+            emptyList()
+        }
+    }
+
+    fun loadPointInfoFromAllSources(point: NetworkPoint) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val databases = _availableDatabases.value.orEmpty()
+                    .filter { it.dbType != DbType.WIFI_API }
+                val merged = ArrayList<NetworkRecord>()
+                for (db in databases) {
+                    val color = getColorForDatabase(db.id)
+                    val name = db.type
+                    loadRecordsForDatabase(db, point.bssidDecimal)
+                        .forEach { merged.add(it.copy(databaseColor = color, databaseName = name)) }
+                }
+                point.allRecords = merged
+                point.essid = merged.firstOrNull()?.essid
+                point.password = merged.firstOrNull { !it.password.isNullOrBlank() }?.password
+                point.wpsPin = merged.firstOrNull { !it.wpsPin.isNullOrBlank() }?.wpsPin
+                point.isDataLoaded = true
+                Log.d(TAG, "Aggregated ${merged.size} records from ${databases.size} sources")
+                _selectedPoint.postValue(point)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error aggregating point info", e)
+                _error.postValue(getApplication<Application>().getString(R.string.point_loading_error))
+            }
+        }
+    }
+
     override fun onCleared() {
         dbSetupViewModel.dbList.removeObserver(dbListObserver)
         super.onCleared()
@@ -2243,6 +2764,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
         databaseHelpers.values.forEach { it.close() }
         databaseHelpers.clear()
         mapHelpers.clear()
+        localAppHelper.close()
+        personalHelper.close()
+        handshakeHelper.close()
         externalIndexManager.close()
     }
 }

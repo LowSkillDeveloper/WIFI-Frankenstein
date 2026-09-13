@@ -96,8 +96,8 @@ class MapDatabaseAdapter(
                 Log.d(TAG, "Database ${database.id} selection changed to: $isChecked")
 
                 if (isChecked) {
-                    if (database.dbType == DbType.SQLITE_FILE_CUSTOM || database.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM || 
-                        database.dbType == DbType.LOCAL_APP_DB || database.dbType == DbType.HANDSHAKE_STORAGE || 
+                    if (database.dbType == DbType.SQLITE_FILE_CUSTOM || database.dbType == DbType.SMARTLINK_SQLITE_FILE_CUSTOM ||
+                        database.dbType == DbType.LOCAL_APP_DB || database.dbType == DbType.HANDSHAKE_STORAGE ||
                         database.dbType == DbType.PERSONAL_WIFI_MAP) {
                         viewModel.handleCustomDbSelection(database, true, selectedDatabases)
                     } else {

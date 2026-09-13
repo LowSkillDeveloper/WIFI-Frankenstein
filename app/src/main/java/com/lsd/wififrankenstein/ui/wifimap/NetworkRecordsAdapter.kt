@@ -22,6 +22,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.PersonalMapDbHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -131,6 +132,25 @@ class NetworkRecordsAdapter(
         val textViewHiddenStatus: TextView = view.findViewById(R.id.textViewHiddenStatus)
         val textViewWifiStatus: TextView = view.findViewById(R.id.textViewWifiStatus)
         val layoutNetworkConfig: LinearLayout = view.findViewById(R.id.layoutNetworkConfig)
+        val layoutNetworkStatus: LinearLayout = view.findViewById(R.id.layoutNetworkStatus)
+        val layoutPersonalInfo: LinearLayout = view.findViewById(R.id.layoutPersonalInfo)
+        val layoutSecurity: LinearLayout = view.findViewById(R.id.layoutSecurity)
+
+        val textViewPersonalRssi: TextView = view.findViewById(R.id.textViewPersonalRssi)
+        val textViewPersonalAccuracy: TextView = view.findViewById(R.id.textViewPersonalAccuracy)
+        val textViewPersonalMeasures: TextView = view.findViewById(R.id.textViewPersonalMeasures)
+        val textViewPersonalReliable: TextView = view.findViewById(R.id.textViewPersonalReliable)
+        val textViewPersonalSecurity: TextView = view.findViewById(R.id.textViewPersonalSecurity)
+        val textViewPersonalWps: TextView = view.findViewById(R.id.textViewPersonalWps)
+        val textViewPersonalPasspoint: TextView = view.findViewById(R.id.textViewPersonalPasspoint)
+        val textViewPersonalHidden: TextView = view.findViewById(R.id.textViewPersonalHidden)
+        val textViewPersonalBand: TextView = view.findViewById(R.id.textViewPersonalBand)
+        val textViewPersonalChannel: TextView = view.findViewById(R.id.textViewPersonalChannel)
+        val textViewPersonalVendor: TextView = view.findViewById(R.id.textViewPersonalVendor)
+        val textViewPersonalOtherDb: TextView = view.findViewById(R.id.textViewPersonalOtherDb)
+        val textViewPersonalWpasec: TextView = view.findViewById(R.id.textViewPersonalWpasec)
+        val textViewPersonalFirstSeen: TextView = view.findViewById(R.id.textViewPersonalFirstSeen)
+        val textViewPersonalLastSeen: TextView = view.findViewById(R.id.textViewPersonalLastSeen)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecordViewHolder {
@@ -206,6 +226,7 @@ class NetworkRecordsAdapter(
         setupRouterModel(holder, record)
         setupAdminCredentials(holder, record)
         setupNetworkStatus(holder, record)
+        setupPersonalData(holder, record)
         setupRawData(holder, record)
     }
 
@@ -485,7 +506,145 @@ class NetworkRecordsAdapter(
         }
     }
 
+    private fun setupPersonalData(holder: RecordViewHolder, record: NetworkRecord) {
+        if (!record.isPersonal) {
+            holder.layoutPersonalInfo.visibility = View.GONE
+            holder.buttonSaveToLocalDb.visibility = View.VISIBLE
+            return
+        }
+
+        val data = record.rawData
+        val notAvailable = context.getString(R.string.not_available)
+
+        holder.layoutPersonalInfo.visibility = View.VISIBLE
+        holder.textViewPasswordInfo.visibility = View.GONE
+        holder.textViewWpsInfo.visibility = View.GONE
+        holder.layoutSecurity.visibility = View.GONE
+        holder.layoutNetworkConfig.visibility = View.GONE
+        holder.layoutRouterModel.visibility = View.GONE
+        holder.layoutAdminCredentials.visibility = View.GONE
+        holder.layoutNetworkStatus.visibility = View.GONE
+        holder.layoutDataTimeLong.visibility = View.GONE
+        holder.buttonSaveToLocalDb.visibility = View.GONE
+
+        val level = (data["level"] as? Number)?.toInt()
+        holder.textViewPersonalRssi.text = level?.let { context.getString(R.string.rssi_dbm, it) }
+            ?: notAvailable
+
+        val accuracy = (data["accuracy"] as? Number)?.toFloat()
+        holder.textViewPersonalAccuracy.text = if (accuracy != null && accuracy > 0f) {
+            context.getString(R.string.pm_info_accuracy_value, accuracy)
+        } else {
+            notAvailable
+        }
+
+        val measures = (data["measureCount"] as? Number)?.toInt()
+        holder.textViewPersonalMeasures.text = measures?.toString() ?: notAvailable
+
+        val reliable = data["isReliable"] as? Boolean
+        holder.textViewPersonalReliable.text = reliable?.let {
+            context.getString(if (it) R.string.pm_info_yes else R.string.pm_info_no)
+        } ?: notAvailable
+
+        val securityType = data["securityType"]?.toString()?.takeIf { it.isNotBlank() }
+        val security = data["security"]?.toString()?.takeIf { it.isNotBlank() }
+        holder.textViewPersonalSecurity.text = securityType ?: security ?: notAvailable
+
+        val isWps = data["isWps"] as? Boolean
+        holder.textViewPersonalWps.text = isWps?.let {
+            context.getString(if (it) R.string.pm_info_yes else R.string.pm_info_no)
+        } ?: notAvailable
+
+        val isPasspoint = data["isPasspoint"] as? Boolean
+        holder.textViewPersonalPasspoint.text = isPasspoint?.let {
+            context.getString(if (it) R.string.pm_info_yes else R.string.pm_info_no)
+        } ?: notAvailable
+
+        val isHidden = data["isHidden"] as? Boolean
+        holder.textViewPersonalHidden.text = isHidden?.let {
+            context.getString(if (it) R.string.pm_info_yes else R.string.pm_info_no)
+        } ?: notAvailable
+
+        holder.textViewPersonalBand.text =
+            data["band"]?.toString()?.takeIf { it.isNotBlank() } ?: notAvailable
+
+        val channel = (data["channel"] as? Number)?.toInt() ?: 0
+        val frequency = (data["frequency"] as? Number)?.toInt() ?: 0
+        holder.textViewPersonalChannel.text = when {
+            channel > 0 && frequency > 0 ->
+                context.getString(R.string.channel_with_frequency, channel, frequency)
+
+            channel > 0 -> context.getString(R.string.channel_format, channel)
+            else -> notAvailable
+        }
+
+        holder.textViewPersonalVendor.text =
+            data["vendor"]?.toString()?.takeIf { it.isNotBlank() } ?: notAvailable
+
+        val otherDbState = (data["otherDbState"] as? Number)?.toInt()
+            ?: PersonalMapDbHelper.STATE_UNKNOWN
+        holder.textViewPersonalOtherDb.text = when (otherDbState) {
+            PersonalMapDbHelper.STATE_PRESENT ->
+                context.getString(R.string.pm_info_cross_present)
+            PersonalMapDbHelper.STATE_ABSENT ->
+                context.getString(R.string.pm_info_cross_absent)
+            else -> context.getString(R.string.pm_info_unknown)
+        }
+        holder.textViewPersonalOtherDb.setTextColor(
+            if (otherDbState == PersonalMapDbHelper.STATE_PRESENT) {
+                androidx.core.content.ContextCompat.getColor(context, R.color.signal_good)
+            } else {
+                holder.textViewPersonalVendor.currentTextColor
+            }
+        )
+
+        val wpasecState = (data["wpasecState"] as? Number)?.toInt()
+            ?: PersonalMapDbHelper.STATE_UNKNOWN
+        holder.textViewPersonalWpasec.text = when (wpasecState) {
+            PersonalMapDbHelper.STATE_PRESENT ->
+                context.getString(R.string.pm_info_wpasec_present)
+            PersonalMapDbHelper.STATE_ABSENT ->
+                context.getString(R.string.pm_info_wpasec_absent)
+            else -> context.getString(R.string.pm_info_unknown)
+        }
+        holder.textViewPersonalWpasec.setTextColor(
+            if (wpasecState == PersonalMapDbHelper.STATE_PRESENT) {
+                androidx.core.content.ContextCompat.getColor(context, R.color.signal_good)
+            } else {
+                holder.textViewPersonalVendor.currentTextColor
+            }
+        )
+
+        val firstSeen = (data["firstSeen"] as? Number)?.toLong() ?: 0L
+        val lastSeen = (data["lastSeen"] as? Number)?.toLong() ?: (record.time ?: 0L)
+        holder.textViewPersonalFirstSeen.text = if (firstSeen > 0L) {
+            com.lsd.wififrankenstein.ui.personalmap.PersonalMapUtils.formatDateTime(
+                firstSeen,
+                context.resources
+            )
+        } else {
+            notAvailable
+        }
+        holder.textViewPersonalLastSeen.text = if (lastSeen > 0L) {
+            com.lsd.wififrankenstein.ui.personalmap.PersonalMapUtils.formatDateTime(
+                lastSeen,
+                context.resources
+            )
+        } else {
+            notAvailable
+        }
+
+        holder.detailsContainer.visibility = View.VISIBLE
+        holder.buttonShowMore.text = context.getString(R.string.show_less)
+    }
+
     private fun setupRawData(holder: RecordViewHolder, record: NetworkRecord) {
+        if (record.isPersonal) {
+            holder.layoutDataRawHeader.visibility = View.GONE
+            holder.scrollViewRawData.visibility = View.GONE
+            return
+        }
+
         val displayedFields = setOf(
             "ESSID", "WiFiKey", "WPSPIN", "name", "Authorization", "Hidden", "RadioOff",
             "Security", "LANMask", "WANMask", "WANGateway", "DNS1", "DNS2", "DNS3",

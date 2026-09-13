@@ -460,6 +460,7 @@ class ExternalIndexManager(private val context: Context) {
 
             return@withContext withIndexDb(indexDbPath) { indexDb ->
                 try {
+                    var hasEssidColumn = false
                     val hasGeoColumns =
                         indexDb.rawQuery("PRAGMA table_info(indexed_data)", null).use { cursor ->
                             var hasLat = false
@@ -468,6 +469,7 @@ class ExternalIndexManager(private val context: Context) {
                                 val colName = cursor.getString(1)
                                 if (colName == "latitude") hasLat = true
                                 if (colName == "longitude") hasLon = true
+                                if (colName == "essid") hasEssidColumn = true
                             }
                             hasLat && hasLon
                         }
@@ -483,15 +485,17 @@ class ExternalIndexManager(private val context: Context) {
                         val mask = (2 * (maxZoom.toInt() - groupLevel.toInt())).coerceAtLeast(0)
                         val queryLimit = getZoomBasedLimit(zoom)
 
+                        val essidSelect = if (hasEssidColumn) ", essid" else ""
                         val query =
-                            "SELECT mac, latitude, longitude FROM indexed_data WHERE latitude BETWEEN ? AND ? AND longitude BETWEEN ? AND ? LIMIT ?"
+                            "SELECT mac, latitude, longitude$essidSelect FROM indexed_data WHERE latitude BETWEEN ? AND ? AND longitude BETWEEN ? AND ? LIMIT ?"
 
                         val points = performClustering(
                             indexDb,
                             bounds.latSouth, bounds.latNorth,
                             bounds.lonWest, bounds.lonEast,
                             query, queryLimit,
-                            effectiveScatterMode, mask
+                            effectiveScatterMode, mask,
+                            hasEssidColumn
                         )
                         Log.d(TAG, "Clustered points from $dbId: ${points.size}")
                         points
@@ -513,7 +517,8 @@ class ExternalIndexManager(private val context: Context) {
         lonWest: Double, lonEast: Double,
         query: String, queryLimit: Int,
         effectiveScatterMode: Boolean,
-        mask: Int
+        mask: Int,
+        hasEssid: Boolean
     ): List<ClusteredMapPoint> {
         val points = mutableListOf<ClusteredMapPoint>()
         val clusterMap = mutableMapOf<Long, ClusterAccumulator>()
@@ -528,17 +533,19 @@ class ExternalIndexManager(private val context: Context) {
             )
         ).use { cursor ->
             if (cursor.moveToFirst()) {
+                val essidIdx = if (hasEssid) cursor.getColumnIndex("essid") else -1
                 do {
                     val macStr = cursor.getString(0)
                     val mac = macToDecimal(macStr) ?: continue
                     val lat = cursor.getDouble(1)
                     val lon = cursor.getDouble(2)
+                    val essid = if (essidIdx >= 0) cursor.getString(essidIdx) else null
 
                     val qk = QuadkeyUtils.latLonToQuadkey(lat, lon, 23)
                     val shiftedQk = if (mask > 0 && !effectiveScatterMode) qk ushr mask else mac
 
                     if (effectiveScatterMode) {
-                        points.add(ClusteredMapPoint(mac, lat, lon, 1, false))
+                        points.add(ClusteredMapPoint(mac, lat, lon, 1, false, essid))
                     } else {
                         val acc = clusterMap.getOrPut(shiftedQk) { ClusterAccumulator() }
                         acc.count++
@@ -548,6 +555,9 @@ class ExternalIndexManager(private val context: Context) {
                             acc.bssid = mac
                             acc.lat = lat
                             acc.lon = lon
+                            acc.essid = essid
+                        } else if (acc.essid.isNullOrBlank() && !essid.isNullOrBlank()) {
+                            acc.essid = essid
                         }
 
                         if (clusterMap.size % 1000 == 0) yield()
@@ -563,7 +573,7 @@ class ExternalIndexManager(private val context: Context) {
             val avgLat = acc.sumLat / acc.count
             val avgLon = acc.sumLon / acc.count
             val isCluster = acc.count > 1
-            points.add(ClusteredMapPoint(acc.bssid, avgLat, avgLon, acc.count, isCluster))
+            points.add(ClusteredMapPoint(acc.bssid, avgLat, avgLon, acc.count, isCluster, acc.essid))
         }
         return points
     }
@@ -574,7 +584,8 @@ class ExternalIndexManager(private val context: Context) {
         var lon: Double = 0.0,
         var sumLat: Double = 0.0,
         var sumLon: Double = 0.0,
-        var count: Int = 0
+        var count: Int = 0,
+        var essid: String? = null
     )
 
     private fun getZoomBasedLimit(zoom: Double): Int {
@@ -639,7 +650,6 @@ class ExternalIndexManager(private val context: Context) {
             null
         }
     }
-
 
     suspend fun getPointInfo(
         dbPath: String,
@@ -741,10 +751,21 @@ class ExternalIndexManager(private val context: Context) {
             val mask = (2 * (maxZoom.toInt() - groupLevel.toInt())).coerceAtLeast(0)
             val queryLimit = getZoomBasedLimit(zoom.toDouble())
 
-            val query =
-                "SELECT mac, latitude, longitude FROM indexed_data WHERE latitude >= ? AND latitude <= ? AND longitude >= ? AND longitude <= ? LIMIT ?"
-
             val points = withIndexDb(indexDbPath) { indexDb ->
+                val hasEssidColumn =
+                    indexDb.rawQuery("PRAGMA table_info(indexed_data)", null).use { cursor ->
+                        var found = false
+                        while (cursor.moveToNext()) {
+                            if (cursor.getString(1) == "essid") {
+                                found = true
+                                break
+                            }
+                        }
+                        found
+                    }
+                val essidSelect = if (hasEssidColumn) ", essid" else ""
+                val query =
+                    "SELECT mac, latitude, longitude$essidSelect FROM indexed_data WHERE latitude >= ? AND latitude <= ? AND longitude >= ? AND longitude <= ? LIMIT ?"
                 performClustering(
                     indexDb,
                     bounds.latSouth,
@@ -754,7 +775,8 @@ class ExternalIndexManager(private val context: Context) {
                     query,
                     queryLimit,
                     effectiveScatterMode,
-                    mask
+                    mask,
+                    hasEssidColumn
                 )
             }
             if (points.isEmpty()) {

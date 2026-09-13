@@ -52,9 +52,9 @@ class UserLocationManager(private val context: Context) : LocationListener {
 
     companion object {
         const val LOCATION_TIMEOUT_MS = 30000L
-        const val UPDATE_INTERVAL_MS = 60000L
-        const val FASTEST_UPDATE_INTERVAL_MS = 10000L
-        const val DISPLACEMENT_THRESHOLD_M = 10f
+        const val UPDATE_INTERVAL_MS = 4000L
+        const val FASTEST_UPDATE_INTERVAL_MS = 1500L
+        const val DISPLACEMENT_THRESHOLD_M = 2f
     }
 
     init {
@@ -108,7 +108,7 @@ class UserLocationManager(private val context: Context) : LocationListener {
             if (!hasLocationPermission()) return
 
             currentLocationRequest = LocationRequest.Builder(
-                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                Priority.PRIORITY_HIGH_ACCURACY,
                 UPDATE_INTERVAL_MS
             )
                 .setMinUpdateIntervalMillis(FASTEST_UPDATE_INTERVAL_MS)

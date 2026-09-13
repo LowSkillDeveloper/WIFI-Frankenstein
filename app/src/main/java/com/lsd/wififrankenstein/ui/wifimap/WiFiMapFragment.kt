@@ -19,6 +19,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -26,6 +27,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -36,7 +38,11 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.ui.personalmap.PersonalWiFiMapViewModel
+import com.lsd.wififrankenstein.databinding.BottomSheetPointChooserBinding
 import com.lsd.wififrankenstein.databinding.FragmentWifiMapBinding
+import com.lsd.wififrankenstein.databinding.ItemLegendRowBinding
+import com.lsd.wififrankenstein.databinding.ItemPointChoiceBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
@@ -72,6 +78,11 @@ class WiFiMapFragment : Fragment() {
     private val selectedIpRanges = mutableSetOf<Int>()
     private var updateJob: Job? = null
     private var isClustersPreventMerged = false
+
+    // Shared (activity-scoped) ViewModel used only in personal mode to react to
+    // live scan updates. Accessing the delegate lazily avoids creating it on the
+    // regular map screen.
+    private val personalMapViewModel: PersonalWiFiMapViewModel by activityViewModels()
     private lateinit var canvasOverlay: EfficientCanvasOverlay
 
     private lateinit var userLocationManager: UserLocationManager
@@ -97,7 +108,6 @@ class WiFiMapFragment : Fragment() {
     private var ipRangesAdapter: SimpleIpRangesAdapter? = null
     private var ipRangesLayoutManager: LinearLayoutManager? = null
 
-
     private val MIN_UPDATE_DELAY = 250L
 
     private var lastInteractionTime = 0L
@@ -108,7 +118,6 @@ class WiFiMapFragment : Fragment() {
         private const val DEFAULT_LON = 37.6173
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
     }
-
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -128,6 +137,8 @@ class WiFiMapFragment : Fragment() {
         setupLocationButton()
         setupUserLocation()
         setupIpRangesPanel()
+        applyPersonalModeUi()
+        setupPersonalLiveUpdates()
 
         viewLifecycleOwner.lifecycleScope.launch {
             if (_binding == null) return@launch
@@ -152,12 +163,42 @@ class WiFiMapFragment : Fragment() {
             centerOn(lat.toDouble(), lon.toDouble(), 18.0)
         }
 
-        if (selectPersonal) {
-            viewModel.availableDatabases.value?.find { it.dbType == DbType.PERSONAL_WIFI_MAP }?.let { db ->
-                if (!selectedDatabases.contains(db)) {
-                    viewModel.handleCustomDbSelection(db, true, selectedDatabases)
-                }
+        if (selectPersonal || isPersonalMode()) {
+
+            val personal = viewModel.availableDatabases.value?.find { it.dbType == DbType.PERSONAL_WIFI_MAP }
+            if (personal != null) {
+                selectedDatabases.clear()
+                selectedDatabases.add(personal)
+                syncSelectedDatabaseIds()
+            } else {
+                viewModel.availableDatabases.observe(viewLifecycleOwner, object : androidx.lifecycle.Observer<List<DbItem>> {
+                    override fun onChanged(dbs: List<DbItem>) {
+                        val db = dbs.find { it.dbType == DbType.PERSONAL_WIFI_MAP } ?: return
+                        selectedDatabases.clear()
+                        selectedDatabases.add(db)
+                        syncSelectedDatabaseIds()
+                        viewModel.availableDatabases.removeObserver(this)
+                    }
+                })
             }
+        }
+    }
+
+    private fun isPersonalMode(): Boolean =
+        arguments?.getBoolean("personal_mode", false) == true
+
+    private fun applyPersonalModeUi() {
+        viewModel.setPersonalMode(isPersonalMode())
+        if (!isPersonalMode()) return
+        binding.databaseCard.visibility = View.GONE
+        binding.ipRangesCard.visibility = View.GONE
+    }
+
+    /** In personal mode, refresh the map when the scanner reports new data. */
+    private fun setupPersonalLiveUpdates() {
+        if (!isPersonalMode()) return
+        personalMapViewModel.dataVersion.observe(viewLifecycleOwner) {
+            scheduleMapUpdate(forceUpdate = true)
         }
     }
 
@@ -181,7 +222,7 @@ class WiFiMapFragment : Fragment() {
     private fun setupBottomSheet() {
         bottomSheetBehavior = BottomSheetBehavior.from(binding.bottomPanel)
         bottomSheetBehavior?.apply {
-            peekHeight = resources.getDimensionPixelSize(R.dimen.dp_65)
+            peekHeight = resources.getDimensionPixelSize(R.dimen.sheet_peek_height)
             isHideable = false
             state = BottomSheetBehavior.STATE_COLLAPSED
 
@@ -287,6 +328,88 @@ class WiFiMapFragment : Fragment() {
             clearMarkers()
             scheduleMapUpdate(true)
         }
+
+        binding.fabLegend.setOnClickListener {
+            if (binding.legendCard.visibility != View.VISIBLE) return@setOnClickListener
+            bottomSheetBehavior?.state = BottomSheetBehavior.STATE_EXPANDED
+            binding.legendCard.post {
+                if (_binding != null) {
+                    binding.sheetScroll.smoothScrollTo(0, binding.legendCard.top)
+                }
+            }
+        }
+        setupLegend()
+    }
+
+    private fun setupLegend() {
+        if (_binding == null) return
+        val container = binding.legendRows
+        container.removeAllViews()
+
+        val showLegend = selectedDatabases.any { it.dbType == DbType.PERSONAL_WIFI_MAP }
+        binding.legendCard.visibility = if (showLegend) View.VISIBLE else View.GONE
+        binding.fabLegend.visibility = if (showLegend) View.VISIBLE else View.GONE
+        if (!showLegend) return
+
+        val baseColor = ContextCompat.getColor(requireContext(), R.color.blue_500)
+        addLegendSwatchRow(container, R.string.legend_point_normal, baseColor)
+        addLegendSwatchRow(container, R.string.legend_open_network, baseColor, open = true)
+        addLegendSwatchRow(container, R.string.legend_found_other_db, baseColor, crossData = true)
+        addLegendSwatchRow(container, R.string.legend_found_wpasec, baseColor, wpasec = true)
+        addLegendSwatchRow(container, R.string.legend_cluster, baseColor, clusterCount = 12)
+
+        if (selectedDatabases.isNotEmpty()) {
+            val dividerRes = R.string.legend_databases_title
+            addLegendTextRow(container, dividerRes)
+            selectedDatabases.forEach { db ->
+                val label = databaseDisplayName(db)
+                addLegendSwatchRow(
+                    container,
+                    label,
+                    viewModel.getColorForDatabase(db.id)
+                )
+            }
+        }
+    }
+
+    private fun addLegendSwatchRow(
+        container: LinearLayout,
+        labelRes: Int,
+        color: Int,
+        crossData: Boolean = false,
+        wpasec: Boolean = false,
+        open: Boolean = false,
+        clusterCount: Int = 0
+    ) {
+        val row = ItemLegendRowBinding.inflate(layoutInflater, container, false)
+        row.legendSwatch.bind(color, crossData, wpasec, open, clusterCount)
+        row.legendLabel.setText(labelRes)
+        container.addView(row.root)
+    }
+
+    private fun addLegendSwatchRow(container: LinearLayout, label: String, color: Int) {
+        val row = ItemLegendRowBinding.inflate(layoutInflater, container, false)
+        row.legendSwatch.bind(color)
+        row.legendLabel.text = label
+        container.addView(row.root)
+    }
+
+    private fun addLegendTextRow(container: LinearLayout, labelRes: Int) {
+        val density = resources.displayMetrics.density
+        val text = TextView(requireContext()).apply {
+            setText(labelRes)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(0, (8 * density).toInt(), 0, (4 * density).toInt())
+        }
+        container.addView(text)
+    }
+
+    private fun databaseDisplayName(db: DbItem): String = when (db.dbType) {
+        DbType.LOCAL_APP_DB -> getString(R.string.local_database)
+        DbType.HANDSHAKE_STORAGE -> getString(R.string.handshake_storage)
+        DbType.PERSONAL_WIFI_MAP -> getString(R.string.personal_map_title)
+        else -> formatSourcePath(db.path)
     }
 
     private fun updateFabIcon() {
@@ -312,7 +435,6 @@ class WiFiMapFragment : Fragment() {
             zoomController.setVisibility(CustomZoomButtonsController.Visibility.SHOW_AND_FADEOUT)
             setMultiTouchControls(true)
 
-            // Устанавливаем начальную позицию только если она еще не была установлена (например, из-за навигации или локации)
             if (zoomLevelDouble < 3.0) {
                 val lastLoc = userLocationManager.userLocation.value
                 if (lastLoc != null) {
@@ -338,22 +460,10 @@ class WiFiMapFragment : Fragment() {
             }
 
             canvasOverlay = EfficientCanvasOverlay { point ->
-                if (point.isCluster) {
-                    binding.map.controller.animateTo(
-                        GeoPoint(point.latitude, point.longitude),
-                        zoomLevelDouble + 1.0,
-                        400L
-                    )
-                } else {
-                    lifecycleScope.launch {
-                        viewModel.loadPointInfoByBssid(
-                            point.bssidDecimal,
-                            point.databaseId,
-                            point.latitude,
-                            point.longitude
-                        )
-                    }
-                }
+                handleMapPointClick(point)
+            }
+            canvasOverlay.onMultiplePointsClick = { candidates ->
+                showPointChooser(candidates)
             }
 
             overlays.add(canvasOverlay)
@@ -550,6 +660,19 @@ class WiFiMapFragment : Fragment() {
             if (_binding == null || selectionRestored) return@launch
             selectionRestored = true
 
+            if (isPersonalMode()) {
+                available.find { it.dbType == DbType.PERSONAL_WIFI_MAP }?.let { db ->
+                    selectedDatabases.clear()
+                    selectedDatabases.add(db)
+                    syncSelectedDatabaseIds()
+                    clearMarkers()
+                    resetMapState()
+                    delay(100)
+                    scheduleMapUpdate(true)
+                }
+                return@launch
+            }
+
             val savedIds = viewModel.getSavedSelectedDatabaseIds()
             if (savedIds.isEmpty()) return@launch
 
@@ -677,8 +800,11 @@ class WiFiMapFragment : Fragment() {
     private fun updateUserLocationMarker(location: GeoPoint) {
         if (_binding == null) return
 
-        userLocationMarker?.let { marker ->
-            binding.map.overlays.remove(marker)
+        val existing = userLocationMarker
+        if (existing != null) {
+            existing.position = location
+            binding.map.invalidate()
+            return
         }
 
         userLocationMarker = Marker(binding.map).apply {
@@ -686,7 +812,7 @@ class WiFiMapFragment : Fragment() {
             icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_location)?.apply {
                 setTint(ContextCompat.getColor(requireContext(), R.color.blue_500))
             }
-            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
         }
 
         binding.map.overlays.add(userLocationMarker)
@@ -791,7 +917,6 @@ class WiFiMapFragment : Fragment() {
         }
     }
 
-
     private fun resetMapState() {
         isUserInteracting = false
         lastInteractionTime = 0L
@@ -852,6 +977,21 @@ class WiFiMapFragment : Fragment() {
 
         viewModel.points.observe(viewLifecycleOwner) { points ->
             updateMarkers(points)
+        }
+
+        viewModel.databaseColors.observe(viewLifecycleOwner) {
+            if (_binding != null) setupLegend()
+        }
+
+        viewModel.refreshPoints.observe(viewLifecycleOwner) {
+            viewModel.clearCache()
+            clearMarkers()
+            resetMapState()
+            binding.map.postInvalidate()
+            viewLifecycleOwner.lifecycleScope.launch {
+                delay(80)
+                scheduleMapUpdate(true)
+            }
         }
 
         viewModel.ipRanges.observe(viewLifecycleOwner) { ranges ->
@@ -943,13 +1083,132 @@ class WiFiMapFragment : Fragment() {
 
     private fun updateMarkers(visiblePoints: List<MapPoint>) {
         viewModel.updatePointCounts(visiblePoints)
+        refreshDatabasePointCounts()
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             if (::canvasOverlay.isInitialized) {
+                canvasOverlay.mergeOverlappingPoints = !isClustersPreventMerged
                 canvasOverlay.updatePoints(visiblePoints)
                 binding.map.postInvalidate()
             }
         }
+
+        if (isPersonalMode()) {
+            viewModel.runPersonalBackgroundChecks(visiblePoints)
+        }
+    }
+
+    private var lastDatabaseCounts: Map<String, Int> = emptyMap()
+
+    private fun refreshDatabasePointCounts() {
+        if (!::databaseAdapter.isInitialized) return
+        val counts = selectedDatabases.associate { it.id to viewModel.getTotalPointCount(it.id) }
+        if (counts == lastDatabaseCounts) return
+        lastDatabaseCounts = counts
+        databaseAdapter.notifyDataSetChanged()
+    }
+
+    /** Handles a resolved tap on a single map point. */
+    private fun handleMapPointClick(point: MapPoint) {
+        if (point.isCluster) {
+            binding.map.controller.animateTo(
+                GeoPoint(point.latitude, point.longitude),
+                binding.map.zoomLevelDouble + 1.0,
+                400L
+            )
+        } else {
+            lifecycleScope.launch {
+                if (isPersonalMode()) {
+                    viewModel.loadPointInfoFromAllSourcesByBssid(
+                        point.bssidDecimal,
+                        point.databaseId,
+                        point.latitude,
+                        point.longitude
+                    )
+                } else {
+                    viewModel.loadPointInfoByBssid(
+                        point.bssidDecimal,
+                        point.databaseId,
+                        point.latitude,
+                        point.longitude
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Shown when a tap hits several overlapping points (e.g. exact-coordinate
+     * duplicates): lets the user pick which network to open.
+     */
+    private fun showPointChooser(points: List<MapPoint>) {
+        val ctx = context ?: return
+        val sheet = BottomSheetDialog(ctx)
+        val sheetBinding = BottomSheetPointChooserBinding.inflate(layoutInflater)
+        sheet.setContentView(sheetBinding.root)
+
+        val first = points.firstOrNull()
+        sheetBinding.chooserSubtitle.text = first?.let {
+            String.format(java.util.Locale.US, "%.5f   %.5f", it.latitude, it.longitude)
+        }.orEmpty()
+
+        val databaseById = viewModel.availableDatabases.value.orEmpty().associateBy { it.id }
+
+        points.forEach { point ->
+            val row = ItemPointChoiceBinding.inflate(layoutInflater, sheetBinding.chooserRows, false)
+            val color = point.color.takeIf { it != 0 }
+                ?: getColorForDatabase(point.databaseId)
+
+            row.choiceSwatch.bind(
+                color = color,
+                crossData = point.hasCrossData,
+                wpasec = point.wpasecKnown,
+                open = point.isOpen,
+                clusterCount = if (point.isCluster || point.clusterCount > 1) point.clusterCount else 0
+            )
+
+            val bssid = safeBssidString(point.bssidDecimal)
+            val db = databaseById[point.databaseId]
+            val databaseName = db?.let { databaseDisplayName(it) }
+                ?: getString(R.string.unknown_database)
+
+            val ssid = point.essid?.takeIf { it.isNotBlank() }
+            val isClusterPoint = point.isCluster || point.clusterCount > 1
+            if (isClusterPoint) {
+                row.choiceTitle.text = resources.getQuantityString(
+                    R.plurals.map_cluster_title,
+                    point.clusterCount,
+                    point.clusterCount
+                )
+                row.choiceSubtitle.text = ssid ?: bssid ?: databaseName
+            } else if (ssid != null) {
+                row.choiceTitle.text = ssid
+                row.choiceSubtitle.text = bssid ?: getString(R.string.unknown_ssid)
+            } else {
+                row.choiceTitle.text = getString(R.string.unknown_ssid)
+                row.choiceSubtitle.text = bssid ?: databaseName
+            }
+            row.choiceDatabase.text = databaseName
+            if (point.clusterCount > 1) {
+                row.choiceCount.visibility = View.VISIBLE
+                row.choiceCount.text = "×${point.clusterCount}"
+            } else {
+                row.choiceCount.visibility = View.GONE
+            }
+
+            row.root.setOnClickListener {
+                sheet.dismiss()
+                handleMapPointClick(point)
+            }
+            sheetBinding.chooserRows.addView(row.root)
+        }
+
+        sheet.show()
+    }
+
+    private fun safeBssidString(bssidDecimal: Long): String? {
+        if (bssidDecimal <= 0L || bssidDecimal > 0xFFFFFFFFFFFFL) return null
+        return viewModel.convertBssidToString(bssidDecimal)
     }
 
     private fun setupCollapsibleCards() {
@@ -990,15 +1249,14 @@ class WiFiMapFragment : Fragment() {
 
         binding.sliderMarkerSize.value = viewModel.markerSize
         updateMarkerSizeText(viewModel.markerSize)
-        
+
         binding.sliderMarkerSize.addOnChangeListener { _, value, _ ->
             viewModel.markerSize = value
             canvasOverlay.markerRadius = value
             updateMarkerSizeText(value)
             binding.map.invalidate()
         }
-        
-        // Передаем начальные значения в оверлей
+
         canvasOverlay.markerRadius = viewModel.markerSize
         canvasOverlay.showLabels = viewModel.showMarkerLabels
     }
@@ -1012,7 +1270,6 @@ class WiFiMapFragment : Fragment() {
             updateCenterText()
             if (isRadiusVisible) updateRadiusCircle()
         }
-
 
         isRadiusVisible = viewModel.showRadiusCircle
         binding.switchShowRadius.isChecked = viewModel.showRadiusCircle
@@ -1352,6 +1609,9 @@ class WiFiMapFragment : Fragment() {
         return viewModel.getColorForDatabase(databaseId)
     }
 
+    private fun personalRecord(point: NetworkPoint): NetworkRecord? =
+        point.allRecords.firstOrNull { it.isPersonal }
+
     private fun showNetworkInfo(point: NetworkPoint) {
         val ctx = context ?: return
         val dialog = BottomSheetDialog(ctx)
@@ -1360,7 +1620,7 @@ class WiFiMapFragment : Fragment() {
         val macAddress = viewModel.convertBssidToString(point.bssidDecimal)
         val database = viewModel.availableDatabases.value?.find { it.id == point.databaseId }
         val databaseName =
-            database?.let { formatSourcePath(it.path) } ?: getString(R.string.unknown_database)
+            database?.let { databaseDisplayName(it) } ?: getString(R.string.unknown_database)
         val dbColor = point.color.takeIf { it != 0 } ?: getColorForDatabase(point.databaseId)
 
         dialogView.apply {
@@ -1379,11 +1639,12 @@ class WiFiMapFragment : Fragment() {
             recyclerView.layoutManager = LinearLayoutManager(ctx)
             val records = if (point.allRecords.isNotEmpty()) {
                 point.allRecords.map { record ->
-                    record.copy(
-                        databaseColor = dbColor,
-                        databaseName = databaseName
-                    )
-                }
+                    if (record.databaseColor != 0 || !record.databaseName.isNullOrBlank()) {
+                        record
+                    } else {
+                        record.copy(databaseColor = dbColor, databaseName = databaseName)
+                    }
+                }.sortedByDescending { it.isPersonal }
             } else {
                 listOf(
                     NetworkRecord(
@@ -1520,13 +1781,44 @@ class WiFiMapFragment : Fragment() {
                 )
             }
 
-            // Добавляем обработку кнопки редактирования, если это персональная точка
             if (database?.dbType == DbType.PERSONAL_WIFI_MAP) {
+
+                val isClustered = point.isCluster || point.clusterCount > 1
+                val hasPersonalRecord = personalRecord(point) != null
                 findViewById<ImageButton>(R.id.buttonEditPoint)?.apply {
-                    visibility = View.VISIBLE
+                    visibility = if (isClustered || !hasPersonalRecord) View.GONE else View.VISIBLE
                     setOnClickListener {
                         dialog.dismiss()
                         showEditPersonalPointDialog(point)
+                    }
+                }
+
+                findViewById<ImageButton>(R.id.buttonDeletePoint)?.apply {
+                    visibility = if (isClustered || !hasPersonalRecord) View.GONE else View.VISIBLE
+                    setOnClickListener {
+                        val recordId = personalRecord(point)?.rawData?.get("id")
+                            ?.toString()?.toLongOrNull()
+                        if (recordId == null) {
+                            Toast.makeText(ctx, R.string.point_delete_failed, Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+                        MaterialAlertDialogBuilder(ctx)
+                            .setTitle(R.string.delete_point)
+                            .setMessage(R.string.delete_point_confirm)
+                            .setNegativeButton(R.string.cancel, null)
+                            .setPositiveButton(R.string.delete) { _, _ ->
+                                dialog.dismiss()
+                                viewModel.deletePersonalPoint(recordId) { success ->
+                                    val message = if (success) {
+                                        R.string.point_deleted
+                                    } else {
+                                        R.string.point_delete_failed
+                                    }
+                                    Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
+                                    if (success) scheduleMapUpdate(true)
+                                }
+                            }
+                            .show()
                     }
                 }
             }
@@ -1542,27 +1834,32 @@ class WiFiMapFragment : Fragment() {
         val ctx = context ?: return
         val dialogView = layoutInflater.inflate(R.layout.dialog_edit_personal_point, null)
         val editSsid = dialogView.findViewById<TextInputEditText>(R.id.editSsid)
-        val editPassword = dialogView.findViewById<TextInputEditText>(R.id.editPassword)
 
         editSsid.setText(point.essid)
-        editPassword.setText(point.password)
 
         MaterialAlertDialogBuilder(ctx)
             .setTitle(R.string.edit_point)
             .setView(dialogView)
             .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.save) { _, _ ->
-                val newSsid = editSsid.text?.toString() ?: ""
-                val newPassword = editPassword.text?.toString() ?: ""
-                
-                // Находим ID записи в базе (обычно это передается через rawData или берется первая запись)
-                val recordId = point.allRecords.firstOrNull()?.rawData?.get("id")?.toString()?.toLongOrNull()
-                if (recordId != null) {
-                    viewModel.updatePersonalPoint(recordId, newSsid, newPassword)
-                    Snackbar.make(binding.root, R.string.point_updated, Snackbar.LENGTH_SHORT).show()
-                    
-                    // Обновляем маркеры на карте
-                    scheduleMapUpdate(true)
+                val newSsid = editSsid.text?.toString()?.trim() ?: ""
+
+                if (newSsid.isEmpty()) {
+                    Toast.makeText(ctx, R.string.essid_empty, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                val recordId = personalRecord(point)?.rawData?.get("id")?.toString()?.toLongOrNull()
+                if (recordId == null) {
+                    Toast.makeText(ctx, R.string.point_update_failed, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                viewModel.updatePersonalPoint(recordId, newSsid) { success ->
+                    val message = if (success) R.string.point_updated else R.string.point_update_failed
+                    Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
+
+                    if (success) scheduleMapUpdate(true)
                 }
             }
             .show()
@@ -1649,7 +1946,6 @@ class WiFiMapFragment : Fragment() {
         }
     }
 
-
     private fun clearMarkers() {
         if (_binding == null) return
 
@@ -1657,6 +1953,13 @@ class WiFiMapFragment : Fragment() {
             canvasOverlay.updatePoints(emptyList())
             binding.map.postInvalidate()
         }
+    }
+
+    fun refreshPersonalData() {
+        if (_binding == null || !isAdded) return
+        viewModel.clearCache()
+        clearMarkers()
+        scheduleMapUpdate(true)
     }
 
     override fun onStart() {
@@ -1712,7 +2015,6 @@ class WiFiMapFragment : Fragment() {
         }
     }
 
-
     private fun checkDatabaseValidity() {
         val availableDatabases = viewModel.availableDatabases.value ?: emptyList()
         val availableIds = availableDatabases.map { it.id }.toSet()
@@ -1739,6 +2041,7 @@ class WiFiMapFragment : Fragment() {
 
     private fun syncSelectedDatabaseIds() {
         viewModel.setSelectedDatabaseIds(selectedDatabases.map { it.id }.toSet())
+        setupLegend()
     }
 
     override fun onDestroyView() {

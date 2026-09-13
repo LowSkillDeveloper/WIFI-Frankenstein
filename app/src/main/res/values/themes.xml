@@ -5,6 +5,7 @@
         <item name="windowNoTitle">true</item>
         <item name="colorErrorContainer">@color/error_container_light</item>
         <item name="colorOnErrorContainer">@color/on_error_container_light</item>
+        <item name="colorOutline">@color/divider</item>
     </style>
 
     <style name="Theme.WIFIFrankenstein.Purple" parent="Theme.WIFIFrankenstein.Base">
@@ -18,7 +19,7 @@
         <item name="colorSurface">@color/card_background_light</item>
         <item name="colorOnSurface">@color/text_primary</item>
         <item name="colorOnSurfaceVariant">@color/text_secondary</item>
-        <item name="colorSurfaceVariant">@color/text_color_light</item>
+        <item name="colorSurfaceVariant">@color/gray_200</item>
         <item name="colorPrimaryContainer">@color/purple_200</item>
         <item name="colorOnPrimaryContainer">@color/black</item>
         <item name="colorSecondaryContainer">@color/green_200</item>
@@ -33,7 +34,7 @@
         <item name="colorSurface">@color/card_background_dark</item>
         <item name="colorOnSurface">@color/text_color_dark</item>
         <item name="colorOnSurfaceVariant">@color/text_color_dark</item>
-        <item name="colorSurfaceVariant">@color/text_color_dark</item>
+        <item name="colorSurfaceVariant">@color/card_background_dark</item>
         <item name="colorPrimaryContainer">@color/purple_700</item>
         <item name="colorOnPrimaryContainer">@color/white</item>
         <item name="colorSecondaryContainer">@color/green_700</item>
@@ -54,7 +55,7 @@
         <item name="colorSurface">@color/card_background_light</item>
         <item name="colorOnSurface">@color/text_primary</item>
         <item name="colorOnSurfaceVariant">@color/text_secondary</item>
-        <item name="colorSurfaceVariant">@color/text_color_light</item>
+        <item name="colorSurfaceVariant">@color/gray_200</item>
         <item name="colorPrimaryContainer">@color/green_200</item>
         <item name="colorOnPrimaryContainer">@color/black</item>
         <item name="colorSecondaryContainer">@color/teal_200</item>
@@ -69,7 +70,7 @@
         <item name="colorSurface">@color/card_background_dark</item>
         <item name="colorOnSurface">@color/text_color_dark</item>
         <item name="colorOnSurfaceVariant">@color/text_color_dark</item>
-        <item name="colorSurfaceVariant">@color/text_color_dark</item>
+        <item name="colorSurfaceVariant">@color/card_background_dark</item>
         <item name="colorPrimaryContainer">@color/green_700</item>
         <item name="colorOnPrimaryContainer">@color/white</item>
         <item name="colorSecondaryContainer">@color/teal_700</item>
@@ -90,7 +91,7 @@
         <item name="colorSurface">@color/card_background_light</item>
         <item name="colorOnSurface">@color/text_primary</item>
         <item name="colorOnSurfaceVariant">@color/text_secondary</item>
-        <item name="colorSurfaceVariant">@color/text_color_light</item>
+        <item name="colorSurfaceVariant">@color/gray_200</item>
         <item name="colorPrimaryContainer">@color/blue_200</item>
         <item name="colorOnPrimaryContainer">@color/black</item>
         <item name="colorSecondaryContainer">@color/teal_200</item>
@@ -105,7 +106,7 @@
         <item name="colorSurface">@color/card_background_dark</item>
         <item name="colorOnSurface">@color/text_color_dark</item>
         <item name="colorOnSurfaceVariant">@color/text_color_dark</item>
-        <item name="colorSurfaceVariant">@color/text_color_dark</item>
+        <item name="colorSurfaceVariant">@color/card_background_dark</item>
         <item name="colorPrimaryContainer">@color/blue_700</item>
         <item name="colorOnPrimaryContainer">@color/white</item>
         <item name="colorSecondaryContainer">@color/teal_700</item>
