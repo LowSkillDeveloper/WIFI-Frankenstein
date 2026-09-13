@@ -3,9 +3,11 @@ package com.lsd.wififrankenstein.ui.wpacracker
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -34,6 +36,7 @@ import com.lsd.wififrankenstein.ui.pixiedust.ConsoleAdapter
 import com.lsd.wififrankenstein.util.AuthorizedUseGate
 import com.lsd.wififrankenstein.util.BenchmarkProgress
 import com.lsd.wififrankenstein.util.ChrootCapabilities
+import com.lsd.wififrankenstein.util.HandshakeCaptureRunner
 import com.lsd.wififrankenstein.util.HandshakeHash
 import com.lsd.wififrankenstein.util.HandshakeParser
 import com.lsd.wififrankenstein.util.HandshakeType
@@ -73,8 +76,38 @@ class WpaCrackerFragment : Fragment() {
     ) { uri: Uri? ->
         if (uri != null) {
             viewModel.setWordlistFile(uri)
-            binding.textWordlistInfo.text = uri.lastPathSegment ?: "wordlist.txt"
-            updateStartButton()
+        }
+    }
+
+    private var pendingResolveItem: HandshakeItem? = null
+
+    private val manageStoragePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (!isAdded) return@registerForActivityResult
+        val accessible = try {
+            HandshakeStorageManager.isStorageAccessible(requireContext())
+        } catch (_: Exception) {
+            false
+        }
+        Log.d("WpaCrackerFrag", "Storage permission return: accessible=$accessible")
+        val pending = pendingResolveItem
+        if (accessible && pending != null) {
+            pendingResolveItem = null
+            resolveAndLoadHandshake(pending)
+        }
+    }
+
+    private val readStoragePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!isAdded) return@registerForActivityResult
+        if (granted) {
+            val pending = pendingResolveItem
+            if (pending != null) {
+                pendingResolveItem = null
+                resolveAndLoadHandshake(pending)
+            }
         }
     }
 
@@ -118,9 +151,15 @@ class WpaCrackerFragment : Fragment() {
 
             1 -> viewModel.trySinglePassword(value)
             2 -> {
-                val lines = File(value).readLines()
-                viewModel.setWordlistFromPaste(lines)
-                autoStartWhenReady()
+                try {
+                    val lines = File(value).readLines()
+                    viewModel.setWordlistFromPaste(lines)
+                    autoStartWhenReady()
+                } catch (e: Exception) {
+                    viewModel.setError(
+                        getString(R.string.wpa_error_msg, e.message)
+                    )
+                }
             }
 
             3 -> {
@@ -625,9 +664,6 @@ class WpaCrackerFragment : Fragment() {
                     return@setPositiveButton
                 }
                 viewModel.setWordlistFromPaste(passwords)
-                binding.textWordlistInfo.text =
-                    getString(R.string.wpa_pasted_passwords, passwords.size)
-                updateStartButton()
             }
             .setNegativeButton(R.string.close, null)
             .show()
@@ -659,7 +695,7 @@ class WpaCrackerFragment : Fragment() {
 
         sheetBinding.btnPickerClose.setOnClickListener { bottomSheet.dismiss() }
 
-        val allItems = mutableListOf<HandshakeItem>()
+        val allItems = java.util.Collections.synchronizedList(mutableListOf<HandshakeItem>())
         val adapter = StoragePickerAdapter { item ->
             bottomSheet.dismiss()
             resolveAndLoadHandshake(item)
@@ -670,9 +706,10 @@ class WpaCrackerFragment : Fragment() {
         sheetBinding.editPickerSearch.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 val q = s?.toString()?.lowercase() ?: ""
+                val snapshot = synchronized(allItems) { allItems.toList() }
                 adapter.submitList(
-                    if (q.isBlank()) allItems.toList()
-                    else allItems.filter {
+                    if (q.isBlank()) snapshot
+                    else snapshot.filter {
                         it.essid?.lowercase()?.contains(q) == true ||
                                 it.bssid?.lowercase()?.contains(q) == true ||
                                 it.fileName.lowercase().contains(q)
@@ -695,8 +732,10 @@ class WpaCrackerFragment : Fragment() {
                 Log.e("WpaCrackerFrag", "Failed to list handshakes", e)
                 emptyList()
             }
-            allItems.clear()
-            allItems.addAll(items)
+            synchronized(allItems) {
+                allItems.clear()
+                allItems.addAll(items)
+            }
             withContext(Dispatchers.Main) {
                 sheetBinding.progressPickerLoading.visibility = View.GONE
                 if (items.isEmpty()) {
@@ -712,10 +751,12 @@ class WpaCrackerFragment : Fragment() {
     }
 
     private fun resolveAndLoadHandshake(item: HandshakeItem) {
+        pendingResolveItem = item
         lifecycleScope.launch(Dispatchers.IO) {
             val hashes = resolveHashesFromItem(item)
             if (hashes.isEmpty()) {
                 withContext(Dispatchers.Main) {
+                    if (!isAdded) return@withContext
                     Snackbar.make(
                         binding.root,
                         getString(R.string.wpa_no_valid_hashes_found, item.fileName),
@@ -724,6 +765,7 @@ class WpaCrackerFragment : Fragment() {
                 }
                 return@launch
             }
+            pendingResolveItem = null
             withContext(Dispatchers.Main) {
                 if (hashes.size == 1) {
                     viewModel.loadHandshakeFromStorage(hashes, 0, item.fileName)
@@ -734,7 +776,7 @@ class WpaCrackerFragment : Fragment() {
         }
     }
 
-    private fun resolveHashesFromItem(item: HandshakeItem): List<HandshakeHash> {
+    private suspend fun resolveHashesFromItem(item: HandshakeItem): List<HandshakeHash> {
         val hashText = item.hash22000 ?: item.hashPmkid
         if (hashText != null) {
             val lines = hashText.lines().map { it.trim() }.filter { it.isNotBlank() }
@@ -745,8 +787,36 @@ class WpaCrackerFragment : Fragment() {
             if (!hasLegacyMp && parsed.isNotEmpty()) return parsed
         }
 
-        if (!item.fileExists) return emptyList()
         try {
+            val appContext = try {
+                requireContext().applicationContext
+            } catch (_: Exception) {
+                return emptyList()
+            }
+            val chrootPath = "${HandshakeStorageManager.STORAGE_DIR}/${item.fileName}"
+            val viaPrivileged = try {
+                HandshakeCaptureRunner(appContext).readCapBytesAndParse(chrootPath)
+            } catch (_: Exception) {
+                emptyList()
+            }
+            val privileged = viaPrivileged.filterNot {
+                it.type == HandshakeType.EAPOL && it.messagePair in setOf(
+                    0x80,
+                    0x81,
+                    0x82,
+                    0x85
+                )
+            }
+            if (privileged.isNotEmpty()) return privileged
+
+            if (!item.fileExists) return emptyList()
+
+            if (!HandshakeStorageManager.isStorageAccessible(appContext)) {
+                withContext(Dispatchers.Main) {
+                    if (isAdded) showStoragePermissionNeeded()
+                }
+                return emptyList()
+            }
             val hostPath = HandshakeStorageManager.STORAGE_DIR
                 .replaceFirst("/sdcard", "/storage/emulated/0")
             val file = File(hostPath, item.fileName)
@@ -767,14 +837,53 @@ class WpaCrackerFragment : Fragment() {
         return emptyList()
     }
 
-    private fun showHashSelectionDialog(item: HandshakeItem, hashes: List<HandshakeHash>) {
-        val layout = android.widget.LinearLayout(requireContext()).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 16, 48, 8)
+    private fun showStoragePermissionNeeded() {
+        if (!isAdded) return
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.wpa_storage_permission_title))
+            .setMessage(
+                getString(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                        R.string.wpa_storage_permission_manage_message
+                    else
+                        R.string.wpa_storage_permission_read_message
+                )
+            )
+            .setPositiveButton(R.string.wpa_storage_permission_grant) { _, _ ->
+                requestStorageAccess()
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
+    private fun requestStorageAccess() {
+        if (!isAdded) return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val packageUri =
+                    Uri.fromParts("package", requireContext().packageName, null)
+                try {
+                    manageStoragePermissionLauncher.launch(
+                        Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                            data = packageUri
+                        }
+                    )
+                } catch (_: android.content.ActivityNotFoundException) {
+                    manageStoragePermissionLauncher.launch(
+                        Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                    )
+                }
+            } else {
+                readStoragePermissionLauncher.launch(
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE
+                )
+            }
+        } catch (_: Exception) {
         }
-        val radioGroup = android.widget.RadioGroup(requireContext())
-        hashes.indices.forEach { i ->
-            val h = hashes[i]
+    }
+
+    private fun showHashSelectionDialog(item: HandshakeItem, hashes: List<HandshakeHash>) {
+        val labels = hashes.map { h ->
             val typeStr = when (h.type) {
                 HandshakeType.PMKID -> getString(R.string.wpa_hash_type_pmkid)
                 HandshakeType.EAPOL -> getString(
@@ -787,24 +896,16 @@ class WpaCrackerFragment : Fragment() {
             val essid = if (h.essid.isNotBlank()) h.essid else "?"
             val extra = if (h.type == HandshakeType.PMKID) h.pmkidOrMic.take(20)
             else "${h.anonce?.take(16) ?: ""} ${h.eapol?.take(16) ?: ""}"
-            val radio = RadioButton(requireContext()).apply {
-                id = i
-                isChecked = i == 0
-                setLines(3)
-                text = getString(R.string.wpa_hash_item, essid, h.macAp, typeStr, extra)
-                textSize = 14f
-            }
-            radioGroup.addView(radio)
-        }
-        layout.addView(radioGroup)
+            getString(R.string.wpa_hash_item, essid, h.macAp, typeStr, extra)
+        }.toTypedArray()
+        var selected = 0
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.wpa_select_handshake))
             .setMessage(getString(R.string.wpa_hashes_found_count, item.displayName, hashes.size))
-            .setView(layout)
+            .setSingleChoiceItems(labels, 0) { _, which -> selected = which }
             .setPositiveButton(R.string.wpa_load) { _, _ ->
-                val selected = radioGroup.checkedRadioButtonId
-                if (selected >= 0 && selected < hashes.size) {
+                if (selected in hashes.indices) {
                     viewModel.loadHandshakeFromStorage(hashes, selected, item.fileName)
                 }
             }
@@ -901,6 +1002,9 @@ class WpaCrackerFragment : Fragment() {
         viewModel.isPreparingWordlist.observe(viewLifecycleOwner) {
             updateStartButton()
         }
+        viewModel.hasWordlist.observe(viewLifecycleOwner) {
+            updateStartButton()
+        }
         viewModel.chrootProgress.observe(viewLifecycleOwner) { progress ->
             if (progress != null) {
                 updateChrootProgress(progress)
@@ -947,6 +1051,12 @@ class WpaCrackerFragment : Fragment() {
         viewModel.savedSession.observe(viewLifecycleOwner) { session ->
             if (session != null && isResumed) {
                 showResumeSessionDialog(session)
+            }
+        }
+        viewModel.storagePermissionRequired.observe(viewLifecycleOwner) { required ->
+            if (required && isResumed) {
+                viewModel.clearStoragePermissionRequired()
+                showStoragePermissionNeeded()
             }
         }
     }
@@ -1185,8 +1295,7 @@ class WpaCrackerFragment : Fragment() {
 
     private fun updateStartButton() {
         val hasHandshake = viewModel.state.value is WpaCrackerState.Loaded
-        val hasWordlist =
-            binding.textWordlistInfo.text != getString(R.string.wpa_tap_select_wordlist)
+        val hasWordlist = viewModel.hasWordlist.value == true
         val isPreparing = viewModel.isPreparingWordlist.value ?: false
         binding.buttonStartCrack.isEnabled = hasHandshake && hasWordlist && !isPreparing
     }
@@ -1288,11 +1397,6 @@ class WpaCrackerFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.savedSession.value?.let { session ->
-            if (_binding != null) {
-                showResumeSessionDialog(session)
-            }
-        }
     }
 
     override fun onDestroyView() {
