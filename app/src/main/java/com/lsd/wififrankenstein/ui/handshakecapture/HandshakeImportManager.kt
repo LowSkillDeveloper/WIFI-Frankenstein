@@ -63,9 +63,7 @@ class HandshakeImportManager(private val context: Context) {
 
     private fun canWriteStorage(): Boolean {
         return try {
-            ChrootCapabilities.isRootAvailable(context) ||
-                    android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R ||
-                    android.os.Environment.isExternalStorageManager()
+            com.lsd.wififrankenstein.util.StorageAccess.canWriteStorage(context)
         } catch (_: Exception) {
             false
         }

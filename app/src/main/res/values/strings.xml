@@ -98,6 +98,10 @@
     <string name="wps_result_copy_format">SSID: %1$s\nWPS PIN: %2$s\nPassword (PSK): %3$s</string>
     <string name="change_wifi_state_permission_required">CHANGE_WIFI_STATE permission required</string>
     <string name="close">Close</string>
+    <string name="wpa_storage_permission_title">File access required</string>
+    <string name="wpa_storage_permission_manage_message">Reading handshake files from shared storage requires all-files access. Open settings and enable "Allow access to manage all files" for this app, then select the handshake again.</string>
+    <string name="wpa_storage_permission_read_message">Reading handshake files requires storage permission. Grant it and select the handshake again.</string>
+    <string name="wpa_storage_permission_grant">Grant</string>
     <string name="airodump_proceed">Proceed</string>
     <string name="scanning_wifi">Scanning WiFi…</string>
     <string name="failed_to_start_wifi_scan">Failed to start WiFi scan.</string>

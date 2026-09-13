@@ -91,6 +91,10 @@
     <string name="wps_result_copy_format">SSID: %1$s\nWPS PIN: %2$s\nПароль (PSK): %3$s</string>
     <string name="change_wifi_state_permission_required">Требуется разрешение CHANGE_WIFI_STATE</string>
     <string name="close">Закрыть</string>
+    <string name="wpa_storage_permission_title">Требуется доступ к файлам</string>
+    <string name="wpa_storage_permission_manage_message">Для чтения handshake-файлов из общего хранилища нужен доступ ко всем файлам. Откройте настройки, включите «Доступ к управлению всеми файлами» для этого приложения и выберите handshake снова.</string>
+    <string name="wpa_storage_permission_read_message">Для чтения handshake-файлов нужно разрешение на доступ к хранилищу. Предоставьте его и выберите handshake снова.</string>
+    <string name="wpa_storage_permission_grant">Предоставить</string>
     <string name="airodump_proceed">Продолжить</string>
     <string name="scanning_wifi">Сканирование WiFi…</string>
     <string name="failed_to_start_wifi_scan">Не удалось запустить сканирование WiFi.</string>

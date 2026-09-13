@@ -5,12 +5,18 @@ import com.lsd.wififrankenstein.util.ChrootCapabilities
 import com.lsd.wififrankenstein.util.ChrootManager
 import com.lsd.wififrankenstein.util.HandshakeCaptureRunner
 import com.lsd.wififrankenstein.util.Log
+import com.lsd.wififrankenstein.util.StorageAccess
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
 class HandshakeStorageManager(private val context: Context) {
+
+    sealed class ListingResult {
+        data class Available(val names: Set<String>) : ListingResult()
+        object Unavailable : ListingResult()
+    }
 
     companion object {
         const val STORAGE_DIR = "/sdcard/WIFI-Frankenstein/handshakes-storage"
@@ -19,6 +25,14 @@ class HandshakeStorageManager(private val context: Context) {
         private val MAC_REGEX_COLON = Regex("([0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5})")
         private val MAC_REGEX_RAW = Regex("([0-9A-Fa-f]{12})")
         private val ESSID_MAC_REGEX = Regex("^(.+?)_([0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5})\\.")
+
+        fun isStorageAccessible(context: Context): Boolean {
+            return StorageAccess.canUseFileApi(context)
+        }
+
+        fun canAccessStorage(context: Context): Boolean {
+            return StorageAccess.canAccessExternal(context)
+        }
     }
 
     private val chrootManager = ChrootManager.get(context)
@@ -41,14 +55,94 @@ class HandshakeStorageManager(private val context: Context) {
         }
     }
 
-    fun ensureStorageDir() {
-        if (!chrootOrShell("mkdir -p $STORAGE_DIR").isSuccess) {
+    fun ensureStorageDir(): Boolean {
+        val ok = if (chrootOrShell("mkdir -p $STORAGE_DIR").isSuccess) {
+            true
+        } else {
             try {
-                File(storageDirHost()).mkdirs()
+                val dir = File(storageDirHost())
+                dir.mkdirs()
+                dir.isDirectory
             } catch (_: Exception) {
+                false
             }
         }
         migrateOldJvmFiles()
+        return ok
+    }
+
+    private fun ensureMinimalMetadata(
+        fileName: String,
+        fileSize: Long = 0,
+        lastModified: Long = 0
+    ): HandshakeItem? {
+        try {
+            metadataDb.get(fileName)?.let { existing ->
+                return existing.copy(
+                    filePath = "$STORAGE_DIR/$fileName",
+                    fileExists = true
+                )
+            }
+            val (essid, bssid) = parseFileName(fileName)
+            val stat = shellFileStat(fileName)
+            val size = when {
+                fileSize > 0 -> fileSize
+                else -> {
+                    val jvm = jvmFileSize(fileName)
+                    if (jvm > 0) jvm else stat.first
+                }
+            }
+            val date = when {
+                lastModified > 0 -> lastModified
+                else -> {
+                    val jvm = jvmFileLastModified(fileName)
+                    if (jvm > 0) jvm else if (stat.second > 0) stat.second * 1000 else System.currentTimeMillis()
+                }
+            }
+            val item = HandshakeItem(
+                filePath = "$STORAGE_DIR/$fileName",
+                fileName = fileName,
+                bssid = bssid,
+                essid = essid,
+                fileSize = size,
+                lastModified = date,
+                fileExists = true
+            )
+            saveHandshakeMetadata(item)
+            return item
+        } catch (_: Exception) {
+            return null
+        }
+    }
+
+    private fun shellFileStat(name: String): Pair<Long, Long> {
+        return try {
+            val res = chrootOrShell("stat -c '%s %Y' '$STORAGE_DIR/$name' 2>/dev/null")
+            if (!res.isSuccess) return Pair(0, 0)
+            val parts = res.out.firstOrNull()?.trim()?.split(" ") ?: return Pair(0, 0)
+            if (parts.size < 2) return Pair(0, 0)
+            Pair(parts[0].toLongOrNull() ?: 0, parts[1].toLongOrNull() ?: 0)
+        } catch (_: Exception) {
+            Pair(0, 0)
+        }
+    }
+
+    private fun jvmFileSize(name: String): Long {
+        return try {
+            val f = File(storageDirHost(), name)
+            if (f.isFile) f.length() else 0
+        } catch (_: Exception) {
+            0
+        }
+    }
+
+    private fun jvmFileLastModified(name: String): Long {
+        return try {
+            val f = File(storageDirHost(), name)
+            if (f.isFile) f.lastModified() else 0
+        } catch (_: Exception) {
+            0
+        }
     }
 
     private fun migrateOldJvmFiles() {
@@ -67,6 +161,7 @@ class HandshakeStorageManager(private val context: Context) {
                         chrootOrShell("cp '${HandshakeCaptureRunner.jvmPathToChroot(file.absolutePath)}' '$chrootPath' 2>/dev/null; true")
                     }
                 }
+                ensureMinimalMetadata(file.name, file.length(), file.lastModified())
             }
         } catch (e: Exception) {
             Log.w(TAG, "migrateOldJvmFiles failed", e)
@@ -133,6 +228,7 @@ class HandshakeStorageManager(private val context: Context) {
                     chrootOrShell("cp \"$chrootPath\" \"$resolvedPath\" 2>/dev/null && echo CP_OK")
                 if (cp.isSuccess && cp.out.firstOrNull()?.trim() == "CP_OK") {
                     Log.d(TAG, "ensureChrootCopy: $chrootPath -> $resolvedPath")
+                    ensureMinimalMetadata(fileName)
                     return@withContext resolvedPath
                 }
             }
@@ -205,47 +301,74 @@ class HandshakeStorageManager(private val context: Context) {
     private val CAP_EXTENSIONS = setOf("cap", "pcap", "pcapng", "hccapx", "22000", "pcapdump")
     private val CAP_EXTENSIONS_GREP = "pcapdump|pcapng|pcap|hccapx|22000|cap"
 
-    private suspend fun listStorageFileNames(): Set<String> = listFileNamesIn(STORAGE_DIR)
+    private suspend fun listStorageFileNames(): Set<String> {
+        return when (val r = listStorageFileNamesResult()) {
+            is ListingResult.Available -> r.names
+            ListingResult.Unavailable -> emptySet()
+        }
+    }
 
-    private suspend fun listFileNamesIn(dir: String): Set<String> = withContext(Dispatchers.IO) {
-        val names = mutableSetOf<String>()
+    suspend fun listStorageFileNamesResult(): ListingResult = listFileNamesResultIn(STORAGE_DIR)
+
+    fun isStorageListingAvailable(): Boolean {
+        return StorageAccess.canAccessExternal(context)
+    }
+
+    private suspend fun listFileNamesResultIn(dir: String): ListingResult = withContext(Dispatchers.IO) {
         val lsCmd = "ls -1 '$dir' 2>/dev/null"
 
-        if (ChrootCapabilities.hasChrootTools(context)) {
+        if (StorageAccess.hasChrootTools(context)) {
             try {
                 val result =
                     chrootManager.executeInChroot("$lsCmd | grep -iE '\\.($CAP_EXTENSIONS_GREP)'")
-                if (result.isSuccess && result.out.any { it.isNotBlank() }) {
-                    result.out.map { it.trim() }.filter { it.isNotEmpty() }
-                        .forEach { names.add(it) }
-                    if (names.isNotEmpty()) return@withContext names
+                if (result.isSuccess) {
+                    val names = result.out.map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
+                    return@withContext ListingResult.Available(names)
                 }
             } catch (_: Exception) {
             }
         }
 
         try {
-            val result = Shell.cmd("$lsCmd").exec()
-            if (result.isSuccess && result.out.any { it.isNotBlank() }) {
-                result.out.map { it.trim() }.filter { it.isNotEmpty() }.filter { name ->
+            val result = Shell.cmd(lsCmd).exec()
+            if (result.isSuccess) {
+                val names = result.out.map { it.trim() }.filter { it.isNotEmpty() }.filter { name ->
                     name.substringAfterLast('.').lowercase() in CAP_EXTENSIONS
-                }.forEach { names.add(it) }
-                if (names.isNotEmpty()) return@withContext names
+                }.toMutableSet()
+                return@withContext ListingResult.Available(names)
             }
         } catch (_: Exception) {
         }
 
-        try {
-            val hostDir = File(dir.replaceFirst("/sdcard", "/storage/emulated/0"))
-            if (hostDir.isDirectory) {
-                hostDir.listFiles { f ->
-                    f.isFile && f.extension.lowercase() in CAP_EXTENSIONS
-                }?.forEach { names.add(it.name) }
+        if (StorageAccess.canUseFileApi(context)) {
+            try {
+                val hostDir = File(dir.replaceFirst("/sdcard", "/storage/emulated/0"))
+                if (!hostDir.isDirectory) {
+                    try {
+                        hostDir.mkdirs()
+                    } catch (_: Exception) {
+                    }
+                }
+                if (hostDir.isDirectory) {
+                    val names = mutableSetOf<String>()
+                    hostDir.listFiles { f ->
+                        f.isFile && f.extension.lowercase() in CAP_EXTENSIONS
+                    }?.forEach { names.add(it.name) }
+                    return@withContext ListingResult.Available(names)
+                }
+                return@withContext ListingResult.Unavailable
+            } catch (_: Exception) {
             }
-        } catch (_: Exception) {
         }
 
-        names
+        ListingResult.Unavailable
+    }
+
+    private suspend fun listFileNamesIn(dir: String): Set<String> {
+        return when (val r = listFileNamesResultIn(dir)) {
+            is ListingResult.Available -> r.names
+            ListingResult.Unavailable -> emptySet()
+        }
     }
 
     private var storageInitialized = false
@@ -268,22 +391,33 @@ class HandshakeStorageManager(private val context: Context) {
             seenNames.add(name)
         }
 
-        val capFiles = listStorageFileNames()
-        for (name in capFiles) {
-            if (name in seenNames) continue
-            val (essid, bssid) = parseFileName(name)
-            result.add(
-                HandshakeItem(
-                    filePath = "$STORAGE_DIR/$name",
-                    fileName = name,
-                    bssid = bssid,
-                    essid = essid,
-                    fileSize = 0,
-                    lastModified = 0,
-                    fileExists = true
-                )
-            )
-            seenNames.add(name)
+        when (val listing = listStorageFileNamesResult()) {
+            is ListingResult.Available -> {
+                for (name in listing.names) {
+                    if (name in seenNames) continue
+                    seenNames.add(name)
+                    val minimal = ensureMinimalMetadata(name)
+                    if (minimal != null) {
+                        result.add(minimal)
+                    } else {
+                        val (essid, bssid) = parseFileName(name)
+                        result.add(
+                            HandshakeItem(
+                                filePath = "$STORAGE_DIR/$name",
+                                fileName = name,
+                                bssid = bssid,
+                                essid = essid,
+                                fileSize = 0,
+                                lastModified = 0,
+                                fileExists = true
+                            )
+                        )
+                    }
+                }
+            }
+            ListingResult.Unavailable -> {
+                Log.d(TAG, "listHandshakes: storage listing unavailable, serving metadata only")
+            }
         }
 
         result.sortedByDescending { it.lastModified }
@@ -292,10 +426,15 @@ class HandshakeStorageManager(private val context: Context) {
     suspend fun checkFileExistence(items: List<HandshakeItem>): List<HandshakeItem> =
         withContext(Dispatchers.IO) {
             try {
-                val onDisk = listStorageFileNames()
-                items.map { item ->
-                    val exists = item.fileName in onDisk
-                    if (exists != item.fileExists) item.copy(fileExists = exists) else item
+                when (val listing = listStorageFileNamesResult()) {
+                    ListingResult.Unavailable -> items
+                    is ListingResult.Available -> {
+                        val onDisk = listing.names
+                        items.map { item ->
+                            val exists = item.fileName in onDisk
+                            if (exists != item.fileExists) item.copy(fileExists = exists) else item
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "checkFileExistence failed", e)
@@ -404,6 +543,55 @@ class HandshakeStorageManager(private val context: Context) {
     fun getHandshakeMeta(fileName: String): HandshakeItem? {
         return metadataDb.get(fileName)?.let { item ->
             if (!item.filePath.startsWith("/")) item.copy(filePath = "$STORAGE_DIR/${item.fileName}") else item
+        }
+    }
+
+    fun upsertParsedHashes(
+        fileName: String,
+        hash22000: String?,
+        hashPmkid: String?,
+        eapolCount: Int,
+        pmkidCount: Int,
+        handshakeCount: Int,
+        essid: String?,
+        bssid: String?,
+        keyver: Int?,
+        originalFormat: String?,
+        valid: Boolean?
+    ) {
+        try {
+            val existing = metadataDb.get(fileName)
+            if (existing == null) {
+                saveHandshakeMetadata(
+                    HandshakeItem(
+                        filePath = "$STORAGE_DIR/$fileName",
+                        fileName = fileName,
+                        bssid = bssid,
+                        essid = essid,
+                        fileSize = 0,
+                        lastModified = System.currentTimeMillis(),
+                        hash22000 = hash22000,
+                        hashPmkid = hashPmkid,
+                        fileExists = true,
+                        isValid = valid,
+                        originalFormat = originalFormat,
+                        handshakeCount = handshakeCount,
+                        eapolCount = eapolCount,
+                        pmkidCount = pmkidCount,
+                        keyver = keyver
+                    )
+                )
+                return
+            }
+            if (hash22000 != null) metadataDb.updateHash22000(fileName, hash22000)
+            if (hashPmkid != null) metadataDb.updateHashPmkid(fileName, hashPmkid)
+            if (essid != null) metadataDb.updateEssid(fileName, essid)
+            if (bssid != null) metadataDb.updateBssid(fileName, bssid)
+            metadataDb.updateCounts(fileName, eapolCount, pmkidCount, handshakeCount)
+            metadataDb.updateValid(fileName, valid)
+            if (keyver != null) metadataDb.updateKeyver(fileName, keyver)
+            if (originalFormat != null) metadataDb.updateOriginalFormat(fileName, originalFormat)
+        } catch (_: Exception) {
         }
     }
 
@@ -611,10 +799,14 @@ class HandshakeStorageManager(private val context: Context) {
         val dbEntries = metadataDb.getAll().map { it.fileName }.toSet()
         val orphans = mutableListOf<OrphanFile>()
 
-        val capFiles = listStorageFileNames()
-        for (name in capFiles) {
-            if (name !in dbEntries) {
-                orphans.add(OrphanFile(name, "$STORAGE_DIR/$name"))
+        when (val listing = listStorageFileNamesResult()) {
+            ListingResult.Unavailable -> return@withContext orphans
+            is ListingResult.Available -> {
+                for (name in listing.names) {
+                    if (name !in dbEntries) {
+                        orphans.add(OrphanFile(name, "$STORAGE_DIR/$name"))
+                    }
+                }
             }
         }
         orphans
@@ -622,8 +814,13 @@ class HandshakeStorageManager(private val context: Context) {
 
     suspend fun getRawCaptureOrphans(): List<OrphanFile> = withContext(Dispatchers.IO) {
         val orphans = mutableListOf<OrphanFile>()
-        for (name in listFileNamesIn(CAPTURE_DIR)) {
-            orphans.add(OrphanFile(name, "$CAPTURE_DIR/$name"))
+        when (val listing = listFileNamesResultIn(CAPTURE_DIR)) {
+            ListingResult.Unavailable -> return@withContext orphans
+            is ListingResult.Available -> {
+                for (name in listing.names) {
+                    orphans.add(OrphanFile(name, "$CAPTURE_DIR/$name"))
+                }
+            }
         }
         orphans
     }

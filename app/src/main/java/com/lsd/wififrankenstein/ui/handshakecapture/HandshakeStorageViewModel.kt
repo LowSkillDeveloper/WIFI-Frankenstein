@@ -27,6 +27,7 @@ import com.lsd.wififrankenstein.util.HandshakeHash
 import com.lsd.wififrankenstein.util.HandshakeParser
 import com.lsd.wififrankenstein.util.HandshakeType
 import com.lsd.wififrankenstein.util.Log
+import com.lsd.wififrankenstein.util.StorageAccess
 import com.lsd.wififrankenstein.util.WpaCracker
 import com.lsd.wififrankenstein.util.WpaSecDictManager
 import kotlinx.coroutines.Dispatchers
@@ -145,10 +146,9 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
     val manageStoragePermissionRequired: LiveData<Boolean> = _manageStoragePermissionRequired
 
     fun checkStoragePermission() {
-        val required = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R &&
-                !android.os.Environment.isExternalStorageManager() &&
-                !ChrootCapabilities.hasChrootTools(getApplication()) &&
-                !ChrootCapabilities.isRootAvailable(getApplication())
+        val app = getApplication<Application>()
+        val required = !StorageAccess.canUseFileApi(app) &&
+                !StorageAccess.canUsePrivileged(app)
         _manageStoragePermissionRequired.postValue(required)
     }
 
@@ -161,6 +161,11 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
             try {
                 val items = storageManager.listHandshakes()
                 Log.d(tag, "loadStorage: loaded ${items.size} items")
+                if (storageManager.listStorageFileNamesResult() is HandshakeStorageManager.ListingResult.Unavailable &&
+                    !StorageAccess.canUsePrivileged(getApplication())
+                ) {
+                    _manageStoragePermissionRequired.postValue(true)
+                }
                 val enriched = items.map { item ->
                     val cracked = storageManager.getCrackedPassword(item.bssid)
                     if (cracked != null && item.crackedPassword == null) {
@@ -308,7 +313,10 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                             tag,
                             "extractMissingHashes: ${item.fileName}: no hashes found (native=${nativeHashes.size}, hcx=${hcxHashes.size})"
                         )
-                        storageManager.updateHandshakeValid(item.fileName, false)
+                        if (StorageAccess.canAccessExternal(getApplication())) {
+                            storageManager.updateHandshakeValid(item.fileName, false)
+                            refreshItemFromDb(item.fileName)
+                        }
                         return@launch
                     }
 
@@ -327,24 +335,22 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                         "extractMissingHashes: ${item.fileName}: native=$nativeHashes hcx=$hcxHashes merged=${allHashes.size} has22000=${hash22000 != null} hasPmkid=${hashPmkid != null} has16800=${hash16800 != null}"
                     )
 
-                    if (hash22000 != null) storageManager.updateHandshakeHash22000(
-                        item.fileName,
-                        hash22000
-                    )
-                    if (hashPmkid != null) storageManager.updateHandshakeHashPmkid(
-                        item.fileName,
-                        hashPmkid
-                    )
-                    storageManager.updateHandshakeValid(item.fileName, true)
-
                     val firstHash = allHashes.firstOrNull()
+                    storageManager.upsertParsedHashes(
+                        item.fileName,
+                        hash22000,
+                        hashPmkid,
+                        allHashes.count { it.type == HandshakeType.EAPOL },
+                        allHashes.count { it.type == HandshakeType.PMKID },
+                        allHashes.size,
+                        firstHash?.essid,
+                        firstHash?.macAp?.uppercase(),
+                        firstHash?.keyver,
+                        item.fileName.substringAfterLast('.'),
+                        true
+                    )
+
                     if (firstHash != null) {
-                        storageManager.updateHandshakeEssid(item.fileName, firstHash.essid)
-                        storageManager.updateHandshakeBssid(
-                            item.fileName,
-                            firstHash.macAp.uppercase()
-                        )
-                        storageManager.updateHandshakeKeyver(item.fileName, firstHash.keyver)
                         storageManager.updateHandshakeCounts(
                             item.fileName,
                             allHashes.count { it.type == HandshakeType.EAPOL },
@@ -352,10 +358,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                             allHashes.size
                         )
                     }
-                    storageManager.updateHandshakeOriginalFormat(
-                        item.fileName,
-                        item.fileName.substringAfterLast('.')
-                    )
 
                     try {
                         val meta = captureRunner.readCapApMetadata(chrootPathForFile)
@@ -389,10 +391,31 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                         }
                     } catch (_: Exception) {
                     }
+                    refreshItemFromDb(item.fileName)
                     tryCrackInBackground(item)
                 } catch (_: Exception) {
                 }
             }
+        }
+    }
+
+    private suspend fun refreshItemFromDb(fileName: String) {
+        try {
+            val meta = storageManager.getHandshakeMeta(fileName) ?: return
+            val cracked = storageManager.getCrackedPassword(meta.bssid)
+            val updated = meta.copy(crackedPassword = cracked ?: meta.crackedPassword)
+            val known = allItems.associateBy { it.fileName }
+            allItems = if (known.containsKey(fileName)) {
+                allItems.map { current ->
+                    if (current.fileName == fileName) {
+                        updated.copy(fileExists = current.fileExists)
+                    } else current
+                }
+            } else {
+                allItems + updated
+            }
+            applyFilters()
+        } catch (_: Exception) {
         }
     }
 

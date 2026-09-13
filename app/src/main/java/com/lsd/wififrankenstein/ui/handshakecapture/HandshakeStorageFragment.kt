@@ -71,6 +71,13 @@ class HandshakeStorageFragment : Fragment() {
         viewModel.loadStorage()
     }
 
+    private val legacyStoragePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        viewModel.checkStoragePermission()
+        viewModel.loadStorage()
+    }
+
     private val wordlistFilePicker = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -104,6 +111,21 @@ class HandshakeStorageFragment : Fragment() {
         setupBulkActions()
         observeViewModel()
         viewModel.loadStorage()
+    }
+
+    private var resumedOnce = false
+
+    override fun onResume() {
+        super.onResume()
+        try {
+            com.lsd.wififrankenstein.util.ChrootManager.get(requireContext()).resetChrootCaches()
+        } catch (_: Exception) {
+        }
+        viewModel.checkStoragePermission()
+        if (resumedOnce) {
+            viewModel.loadStorage()
+        }
+        resumedOnce = true
     }
 
     private fun setupRecyclerView() {
@@ -450,6 +472,13 @@ class HandshakeStorageFragment : Fragment() {
                         Uri.parse("package:${requireContext().packageName}")
                     )
                     manageStorageLauncher.launch(intent)
+                } else {
+                    legacyStoragePermissionLauncher.launch(
+                        arrayOf(
+                            android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        )
+                    )
                 }
             }
             .setNegativeButton(R.string.close, null)

@@ -92,6 +92,10 @@
     <string name="wps_result_copy_format">SSID: %1$s\nWPS PIN: %2$s\nПароль (PSK): %3$s</string>
     <string name="change_wifi_state_permission_required">Потрібен дозвіл CHANGE_WIFI_STATE</string>
     <string name="close">Закрити</string>
+    <string name="wpa_storage_permission_title">Потрібен доступ до файлів</string>
+    <string name="wpa_storage_permission_manage_message">Для читання handshake-файлів зі спільного сховища потрібен доступ до всіх файлів. Відкрийте налаштування, увімкніть «Доступ до керування всіма файлами» для цього застосунку та виберіть handshake знову.</string>
+    <string name="wpa_storage_permission_read_message">Для читання handshake-файлів потрібен дозвіл на доступ до сховища. Надайте його та виберіть handshake знову.</string>
+    <string name="wpa_storage_permission_grant">Надати</string>
     <string name="airodump_proceed">Продовжити</string>
     <string name="scanning_wifi">Сканування WiFi…</string>
     <string name="failed_to_start_wifi_scan">Не вдалося запустити сканування WiFi.</string>

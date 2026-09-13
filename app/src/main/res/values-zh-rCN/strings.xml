@@ -98,6 +98,10 @@
     <string name="wps_result_copy_format">SSID: %1$s\nWPS PIN: %2$s\n密码 (PSK): %3$s</string>
     <string name="change_wifi_state_permission_required">需要 CHANGE_WIFI_STATE 权限</string>
     <string name="close">关闭</string>
+    <string name="wpa_storage_permission_title">需要文件访问权限</string>
+    <string name="wpa_storage_permission_manage_message">从共享存储读取握手文件需要所有文件访问权限。请打开设置，为此应用启用“允许管理所有文件”，然后重新选择握手文件。</string>
+    <string name="wpa_storage_permission_read_message">读取握手文件需要存储权限。请授予权限并重新选择握手文件。</string>
+    <string name="wpa_storage_permission_grant">授予</string>
     <string name="airodump_proceed">继续</string>
     <string name="scanning_wifi">正在扫描 WiFi…</string>
     <string name="failed_to_start_wifi_scan">无法启动 WiFi 扫描。</string>
