@@ -101,6 +101,16 @@
             android:text="@string/pm_upload_wigle"
             app:icon="@drawable/ic_cloud_upload" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/pm_button_upload_3wifi_app"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/pm_upload_3wifi_app"
+            android:visibility="gone"
+            app:icon="@drawable/ic_cloud_upload" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"

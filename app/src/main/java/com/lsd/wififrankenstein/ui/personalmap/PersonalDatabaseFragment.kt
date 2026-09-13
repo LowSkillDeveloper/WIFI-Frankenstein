@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -32,6 +33,7 @@ import com.lsd.wififrankenstein.databinding.ItemInfoRowBinding
 import com.lsd.wififrankenstein.databinding.ItemMatchFieldBinding
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.PersonalMapDbHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.PersonalPointDetail
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -223,6 +225,33 @@ class PersonalDatabaseFragment : Fragment() {
         sheetBinding.pmButtonUploadWigle.setOnClickListener {
             sheet.dismiss()
             uploadLauncher.launch(wigleMime)
+        }
+
+        sheetBinding.pmButtonUpload3wifiApp.visibility = View.GONE
+        viewLifecycleOwner.lifecycleScope.launch {
+            val hasAccount = com.lsd.wififrankenstein.network.ThreeWifiAppSession
+                .hasAuthenticated(requireContext())
+            sheetBinding.pmButtonUpload3wifiApp.visibility =
+                if (hasAccount) View.VISIBLE else View.GONE
+        }
+        sheetBinding.pmButtonUpload3wifiApp.setOnClickListener {
+            sheet.dismiss()
+            viewModel.uploadWardrivingTo3WifiApp { report ->
+                if (!isAdded) return@uploadWardrivingTo3WifiApp
+                val message = if (report.uploaded > 0) {
+                    getString(
+                        R.string.pm_upload_3wifi_app_result,
+                        report.uploaded,
+                        report.failed
+                    )
+                } else {
+                    getString(
+                        R.string.pm_upload_3wifi_app_failed,
+                        report.error ?: getString(R.string.unknown_error)
+                    )
+                }
+                safeSnackbar(message)
+            }
         }
 
         sheetBinding.pmButtonImportWifiloc.setOnClickListener {
@@ -417,11 +446,72 @@ class PersonalDatabaseFragment : Fragment() {
             }
         }
 
+        var pointDetail: PersonalPointDetail? = null
+
+        sheetBinding.btnSubmit3WifiApp.visibility = View.GONE
+        viewLifecycleOwner.lifecycleScope.launch {
+            val hasAccount =
+                com.lsd.wififrankenstein.network.ThreeWifiAppSession.hasAuthenticated(requireContext())
+            sheetBinding.btnSubmit3WifiApp.visibility =
+                if (hasAccount) View.VISIBLE else View.GONE
+        }
+        sheetBinding.btnSubmit3WifiApp.setOnClickListener {
+            sheetBinding.btnSubmit3WifiApp.isEnabled = false
+            sheetBinding.btnSubmit3WifiApp.text = getString(R.string.pm_checking)
+            viewLifecycleOwner.lifecycleScope.launch {
+                val server =
+                    com.lsd.wififrankenstein.network.ThreeWifiAppSession.authenticatedServer(
+                        requireContext()
+                    )
+                val token = server?.let {
+                    com.lsd.wififrankenstein.network.ThreeWifiAppSession.currentToken(
+                        requireContext(), it
+                    )
+                }
+                if (server == null || token == null) {
+                    safeSnackbar(R.string.api3_error_auth_required)
+                } else {
+                    val detail = pointDetail
+                    val result =
+                        com.lsd.wififrankenstein.network.ThreeWifiAppUploader.submitAll(
+                            requireContext(),
+                            server,
+                            token,
+                            listOf(
+                                com.lsd.wififrankenstein.network.ThreeWifiAppUploader.SubmitRecord(
+                                    bssid = entry.bssid,
+                                    ssid = entry.ssid.ifBlank { "" },
+                                    security = detail?.securityType ?: detail?.security,
+                                    latitude = detail?.latitude,
+                                    longitude = detail?.longitude
+                                )
+                            )
+                        )
+                    val msg = if (result.uploaded > 0) {
+                        getString(
+                            R.string.pm_upload_3wifi_app_result,
+                            result.uploaded,
+                            result.failed
+                        )
+                    } else {
+                        getString(
+                            R.string.pm_upload_3wifi_app_failed,
+                            result.error ?: getString(R.string.unknown_error)
+                        )
+                    }
+                    safeSnackbar(msg)
+                }
+                sheetBinding.btnSubmit3WifiApp.isEnabled = true
+                sheetBinding.btnSubmit3WifiApp.text = getString(R.string.pm_submit_3wifi_app)
+            }
+        }
+
         viewModel.getPointDetail(entry.id) { detail ->
             if (!isAdded) return@getPointDetail
             if (detail == null) {
                 sheet.dismiss()
             } else {
+                pointDetail = detail
                 bindPointInfo(sheetBinding, detail)
                 if (crossLivePresent) applyCrossLive()
                 if (wpasecLivePresent) applyWpasecLive()

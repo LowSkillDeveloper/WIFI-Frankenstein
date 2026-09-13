@@ -890,6 +890,28 @@
                             android:inputType="number" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/textInputAppVersion"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/app_version_header">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/editTextAppVersion"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="32dp"
+                        android:text="@string/app_version_info"
+                        android:textSize="12sp" />
+
                     <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/switchCacheResults"
                         android:layout_width="match_parent"

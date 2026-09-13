@@ -28,10 +28,15 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentDbSetupBinding
+import com.lsd.wififrankenstein.network.ThreeWifiAppClient
+import com.lsd.wififrankenstein.network.ThreeWifiLoginOutcome
 import com.lsd.wififrankenstein.service.DatabaseDownloadService
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
@@ -392,20 +397,68 @@ class DbSetupFragment : Fragment() {
                                 val login = textInputLogin.editText?.text.toString()
                                 val password = textInputPassword.editText?.text.toString()
                                 if (login.isNotBlank() && password.isNotBlank()) {
-                                    val helper = ThreeWifiAppMapHelper(requireContext(), url)
-                                    val loginSuccess = withContext(Dispatchers.IO) {
-                                        helper.login(login, password)
+                                    val client = ThreeWifiAppClient.get(requireContext(), url)
+                                    val outcome = withContext(Dispatchers.IO) {
+                                        client.login(login, password)
                                     }
-                                    if (loginSuccess) {
-                                        val jwtToken = helper.getJwtToken()
-                                        val dbItem =
-                                            create3wifiAppDbItem(url, jwtToken, login, password)
-                                        viewModel.addDb(dbItem)
-                                        delay(100)
-                                        dialog.dismiss()
-                                        showSnackbar(getString(R.string.login_successful))
-                                    } else {
-                                        showSnackbar(getString(R.string.login_failed))
+                                    when (outcome) {
+                                        is ThreeWifiLoginOutcome.Authenticated -> {
+                                            viewModel.addDb(
+                                                create3wifiAppDbItem(
+                                                    url,
+                                                    outcome.token,
+                                                    login,
+                                                    password
+                                                )
+                                            )
+                                            delay(100)
+                                            dialog.dismiss()
+                                            showSnackbar(getString(R.string.login_successful))
+                                        }
+
+                                        is ThreeWifiLoginOutcome.TwoFactorRequired -> {
+                                            promptForCode(
+                                                client,
+                                                outcome.pendingToken,
+                                                false
+                                            ) { token ->
+                                                viewModel.addDb(
+                                                    create3wifiAppDbItem(
+                                                        url,
+                                                        token,
+                                                        login,
+                                                        password
+                                                    )
+                                                )
+                                                dialog.dismiss()
+                                                showSnackbar(getString(R.string.login_successful))
+                                            }
+                                        }
+
+                                        is ThreeWifiLoginOutcome.DeviceVerificationRequired -> {
+                                            promptForCode(
+                                                client,
+                                                outcome.pendingToken,
+                                                true
+                                            ) { token ->
+                                                viewModel.addDb(
+                                                    create3wifiAppDbItem(
+                                                        url,
+                                                        token,
+                                                        login,
+                                                        password
+                                                    )
+                                                )
+                                                dialog.dismiss()
+                                                showSnackbar(getString(R.string.login_successful))
+                                            }
+                                        }
+
+                                        is ThreeWifiLoginOutcome.Rejected -> {
+                                            showSnackbar(
+                                                describeLoginRejection(outcome.reason)
+                                            )
+                                        }
                                     }
                                 } else {
                                     val dbItem = create3wifiAppDbItem(url, null, null, null)
@@ -1749,6 +1802,89 @@ class DbSetupFragment : Fragment() {
 
             null
         }
+    }
+
+    private fun describeLoginRejection(reason: String): String = when {
+        reason.contains("APP_UPDATE_REQUIRED") -> getString(R.string.login_update_required)
+        reason.isBlank() -> getString(R.string.login_failed)
+        else -> reason
+    }
+
+    private fun promptForCode(
+        client: ThreeWifiAppClient,
+        pendingToken: String,
+        deviceFlow: Boolean,
+        onToken: (String) -> Unit
+    ) {
+        val view = layoutInflater.inflate(R.layout.dialog_two_factor, null)
+        val codeInput = view.findViewById<TextInputEditText>(R.id.twoFactorCode)
+        val channelGroup = view.findViewById<MaterialButtonToggleGroup>(R.id.twoFactorChannel)
+        val sendButton = view.findViewById<MaterialButton>(R.id.twoFactorSend)
+        val hint = view.findViewById<TextView>(R.id.twoFactorHint)
+
+        if (deviceFlow) {
+            hint.setText(R.string.device_verify_hint)
+            sendButton.visibility = View.GONE
+            channelGroup.visibility = View.GONE
+        } else {
+            channelGroup.check(R.id.twoFactorChannelTelegram)
+        }
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(if (deviceFlow) R.string.device_verify_title else R.string.two_factor_title)
+            .setView(view)
+            .setPositiveButton(R.string.verify, null)
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        sendButton.setOnClickListener {
+            val channel =
+                if (channelGroup.checkedButtonId == R.id.twoFactorChannelEmail) "email" else "telegram"
+            viewLifecycleOwner.lifecycleScope.launch {
+                try {
+                    withContext(Dispatchers.IO) {
+                        client.sendTwoFactorCode(pendingToken, channel)
+                    }
+                    showSnackbar(getString(R.string.two_factor_code_sent))
+                } catch (e: Exception) {
+                    showSnackbar(e.message ?: getString(R.string.unknown_error))
+                }
+            }
+        }
+
+        dialog.setOnShowListener {
+            dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+                ?.setOnClickListener {
+                    val code = codeInput.text?.toString()?.trim().orEmpty()
+                    if (code.isEmpty()) {
+                        showSnackbar(getString(R.string.error_empty_input))
+                        return@setOnClickListener
+                    }
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        val outcome = withContext(Dispatchers.IO) {
+                            if (deviceFlow) {
+                                client.verifyDeviceLogin(pendingToken, code)
+                            } else {
+                                client.verifyTwoFactor(pendingToken, code)
+                            }
+                        }
+                        when (outcome) {
+                            is ThreeWifiLoginOutcome.Authenticated -> {
+                                dialog.dismiss()
+                                onToken(outcome.token)
+                            }
+
+                            is ThreeWifiLoginOutcome.Rejected ->
+                                showSnackbar(
+                                    getString(R.string.two_factor_failed, outcome.reason)
+                                )
+
+                            else -> showSnackbar(getString(R.string.login_failed))
+                        }
+                    }
+                }
+        }
+        dialog.show()
     }
 
     private fun create3wifiAppDbItem(

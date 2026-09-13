@@ -259,6 +259,21 @@
                     app:iconSize="16dp" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSubmit3WifiApp"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="@string/pm_submit_3wifi_app"
+                    android:textSize="14sp"
+                    android:visibility="gone"
+                    app:cornerRadius="8dp"
+                    app:icon="@drawable/ic_cloud_upload"
+                    app:iconSize="16dp" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCheckLocalDb"
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="match_parent"

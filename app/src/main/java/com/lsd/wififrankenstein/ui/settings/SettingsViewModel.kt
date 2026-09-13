@@ -396,12 +396,26 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setConnectTimeout(value: Int) {
         api3WiFiPrefs.edit { putInt("connectTimeout", value) }
         _connectTimeout.value = value
+        com.lsd.wififrankenstein.network.ThreeWifiAppClient.invalidate()
     }
 
     fun getReadTimeout() = _readTimeout.value ?: 10000
     fun setReadTimeout(value: Int) {
         api3WiFiPrefs.edit { putInt("readTimeout", value) }
         _readTimeout.value = value
+        com.lsd.wififrankenstein.network.ThreeWifiAppClient.invalidate()
+    }
+
+    fun getAppVersion(): String =
+        api3WiFiPrefs.getString("appVersion", null)?.takeIf { it.isNotBlank() }
+            ?: com.lsd.wififrankenstein.network.ThreeWifiAppClient.DEFAULT_APP_VERSION
+
+    fun setAppVersion(value: String) {
+        val normalized = value.trim().ifBlank {
+            com.lsd.wififrankenstein.network.ThreeWifiAppClient.DEFAULT_APP_VERSION
+        }
+        api3WiFiPrefs.edit { putString("appVersion", normalized) }
+        com.lsd.wififrankenstein.network.ThreeWifiAppClient.invalidate()
     }
 
     fun getCacheResults() = _cacheResults.value != false
@@ -422,6 +436,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setIgnoreSSLCertificate(value: Boolean) {
         api3WiFiPrefs.edit { putBoolean("ignoreSSLCertificate", value) }
         _ignoreSSLCertificate.value = value
+        com.lsd.wififrankenstein.network.ThreeWifiAppClient.invalidate()
     }
 
     fun clearAPI3WiFiCache() {

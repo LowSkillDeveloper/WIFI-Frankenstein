@@ -602,6 +602,7 @@ class SettingsFragment : Fragment() {
         binding.editTextRequestDelay.setText(viewModel.getRequestDelay().toString())
         binding.editTextConnectTimeout.setText(viewModel.getConnectTimeout().toString())
         binding.editTextReadTimeout.setText(viewModel.getReadTimeout().toString())
+        binding.editTextAppVersion.setText(viewModel.getAppVersion())
         binding.switchCacheResults.isChecked = viewModel.getCacheResults()
         binding.switchTryAlternativeUrl.isChecked = viewModel.getTryAlternativeUrl()
         binding.switchIgnoreSSLCertificate.isChecked = viewModel.getIgnoreSSLCertificate()
@@ -638,6 +639,7 @@ class SettingsFragment : Fragment() {
         binding.editTextRequestDelay.setOnClickListener { showInfoToast(R.string.request_delay_info) }
         binding.editTextConnectTimeout.setOnClickListener { showInfoToast(R.string.connect_timeout_info) }
         binding.editTextReadTimeout.setOnClickListener { showInfoToast(R.string.read_timeout_info) }
+        binding.editTextAppVersion.setOnClickListener { showInfoToast(R.string.app_version_info) }
         binding.switchCacheResults.setOnLongClickListener {
             showInfoToast(R.string.cache_results_info)
             true
@@ -711,6 +713,7 @@ class SettingsFragment : Fragment() {
             binding.editTextConnectTimeout.text.toString().toIntOrNull() ?: 5000
         )
         viewModel.setReadTimeout(binding.editTextReadTimeout.text.toString().toIntOrNull() ?: 5000)
+        viewModel.setAppVersion(binding.editTextAppVersion.text.toString())
         viewModel.setCacheResults(binding.switchCacheResults.isChecked)
         viewModel.setTryAlternativeUrl(binding.switchTryAlternativeUrl.isChecked)
         viewModel.setIgnoreSSLCertificate(binding.switchIgnoreSSLCertificate.isChecked)
@@ -1453,6 +1456,7 @@ class SettingsFragment : Fragment() {
         viewModel.setRequestDelay(1000)
         viewModel.setConnectTimeout(5000)
         viewModel.setReadTimeout(10000)
+        viewModel.setAppVersion(com.lsd.wififrankenstein.network.ThreeWifiAppClient.DEFAULT_APP_VERSION)
         viewModel.setCacheResults(true)
         viewModel.setTryAlternativeUrl(true)
         viewModel.setIgnoreSSLCertificate(false)
@@ -1461,6 +1465,9 @@ class SettingsFragment : Fragment() {
         binding.editTextRequestDelay.setText("1000")
         binding.editTextConnectTimeout.setText("5000")
         binding.editTextReadTimeout.setText("10000")
+        binding.editTextAppVersion.setText(
+            com.lsd.wififrankenstein.network.ThreeWifiAppClient.DEFAULT_APP_VERSION
+        )
         binding.switchCacheResults.isChecked = true
         binding.switchTryAlternativeUrl.isChecked = true
         binding.switchIgnoreSSLCertificate.isChecked = false

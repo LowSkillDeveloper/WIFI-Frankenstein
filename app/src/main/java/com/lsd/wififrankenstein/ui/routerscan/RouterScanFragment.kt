@@ -23,6 +23,8 @@ import com.google.android.material.textfield.TextInputLayout
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.data.RouterScanResult
 import com.lsd.wififrankenstein.databinding.FragmentRouterScanBinding
+import com.lsd.wififrankenstein.network.ThreeWifiAppSession
+import com.lsd.wififrankenstein.network.ThreeWifiAppUploader
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
@@ -761,7 +763,11 @@ class RouterScanFragment : Fragment() {
             delay(300)
             val servers = dbSetupViewModel.dbList.value?.filter { it.dbType == DbType.WIFI_API }
                 ?: emptyList()
-            if (servers.isEmpty()) {
+            val uploadServers = servers.filter {
+                !ThreeWifiAppSession.isAppServer(it) ||
+                        ThreeWifiAppSession.isAuthenticatedServer(it)
+            }
+            if (uploadServers.isEmpty()) {
                 Toast.makeText(
                     requireContext(),
                     R.string.router_scan_upload_no_servers,
@@ -770,17 +776,17 @@ class RouterScanFragment : Fragment() {
                 return@launch
             }
 
-            val server = if (servers.size == 1) {
-                servers[0]
+            val server = if (uploadServers.size == 1) {
+                uploadServers[0]
             } else {
-                val names = servers.map { "${it.type} - ${it.path}" }.toTypedArray()
+                val names = uploadServers.map { "${it.type} - ${it.path}" }.toTypedArray()
                 var selectedIndex = -1
                 MaterialAlertDialogBuilder(requireContext())
                     .setTitle(R.string.router_scan_upload_select_server)
                     .setSingleChoiceItems(names, 0) { _, which -> selectedIndex = which }
                     .setPositiveButton(android.R.string.ok) { _, _ ->
                         if (selectedIndex >= 0) {
-                            confirmAndUpload(results, servers[selectedIndex])
+                            confirmAndUpload(results, uploadServers[selectedIndex])
                         }
                     }
                     .setNegativeButton(android.R.string.cancel, null)
@@ -802,10 +808,52 @@ class RouterScanFragment : Fragment() {
                 )
             )
             .setPositiveButton(R.string.router_scan_upload_3wifi) { _, _ ->
-                doUpload(results, server)
+                if (ThreeWifiAppSession.isAppServer(server)) {
+                    doAppUpload(results, server)
+                } else {
+                    doUpload(results, server)
+                }
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun doAppUpload(results: List<RouterScanResult>, server: DbItem) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val token = ThreeWifiAppSession.currentToken(requireContext(), server)
+            if (token == null) {
+                Toast.makeText(
+                    requireContext(), R.string.api3_error_auth_required, Toast.LENGTH_LONG
+                ).show()
+                return@launch
+            }
+            val records = results.map { result ->
+                ThreeWifiAppUploader.SubmitRecord(
+                    bssid = result.bssid,
+                    ssid = result.ssid,
+                    security = result.sec,
+                    password = result.psk,
+                    wpsPin = result.wps,
+                    latitude = result.lat.toDoubleOrNull(),
+                    longitude = result.lon.toDoubleOrNull()
+                )
+            }
+            val report = ThreeWifiAppUploader.submitAll(
+                requireContext(), server, token, records
+            )
+            val msg = if (report.uploaded > 0) {
+                getString(R.string.pm_upload_3wifi_app_result, report.uploaded, report.failed)
+            } else {
+                getString(
+                    R.string.pm_upload_3wifi_app_failed,
+                    report.error ?: getString(R.string.unknown_error)
+                )
+            }
+            Toast.makeText(
+                requireContext(), msg,
+                if (report.uploaded > 0) Toast.LENGTH_SHORT else Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
     private fun doUpload(results: List<RouterScanResult>, server: DbItem) {

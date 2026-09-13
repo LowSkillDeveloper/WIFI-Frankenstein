@@ -137,7 +137,10 @@ class ThreeWifiDevMapHelper(
         }
     }
 
-    override suspend fun getPointDetails(bssidDecimal: Long): Map<String, Any?>? {
+    override suspend fun getPointDetails(
+        bssidDecimal: Long,
+        remotePointId: Long?
+    ): Map<String, Any?>? {
         return withContext(Dispatchers.IO) {
             try {
                 val bssidHex = String.format("%012X", bssidDecimal)

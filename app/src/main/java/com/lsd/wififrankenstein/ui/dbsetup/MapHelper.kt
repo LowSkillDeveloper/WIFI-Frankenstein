@@ -11,7 +11,10 @@ interface MapHelper {
         maxPoints: Int = Int.MAX_VALUE
     ): List<MapPointData>
 
-    suspend fun getPointDetails(bssidDecimal: Long): Map<String, Any?>?
+    suspend fun getPointDetails(
+        bssidDecimal: Long,
+        remotePointId: Long? = null
+    ): Map<String, Any?>?
 }
 
 data class MapPointData(

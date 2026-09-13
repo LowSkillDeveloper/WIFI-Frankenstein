@@ -7,18 +7,17 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.lsd.wififrankenstein.R
+import com.lsd.wififrankenstein.network.ThreeWifiAppClient
+import com.lsd.wififrankenstein.network.ThreeWifiAppException
+import com.lsd.wififrankenstein.network.ThreeWifiAppSession
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
-import com.lsd.wififrankenstein.util.SslHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
 
 class API3WiFiViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsPrefs =
@@ -83,7 +82,7 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
                 if (request is API3WiFiRequest.TrpcGetPoint || request is API3WiFiRequest.TrpcSearchNetworks) {
                     _requestInfo.value = formatTrpcRequestInfo(serverUrl, request)
                     val response = withContext(Dispatchers.IO) {
-                        executeTrpcRequest(server, request)
+                        executeTrpc(server, request)
                     }
                     _requestResult.value = response
                 } else {
@@ -122,123 +121,62 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    private fun buildTrpcUrl(baseUrl: String, endpoint: String, params: JSONObject): String {
-        val wrapped = JSONObject().apply { put("json", params) }
-        val encoded = URLEncoder.encode(wrapped.toString(), "UTF-8")
-        return "$baseUrl/trpc/$endpoint?input=$encoded"
-    }
+    private suspend fun executeTrpc(server: DbItem?, request: API3WiFiRequest): String {
+        val app = getApplication<Application>()
+        if (server == null) return app.getString(R.string.api3_error_no_server)
 
-    private fun executeTrpcHttp(url: String, jwtToken: String?): String {
-        val connection = URL(url).openConnection() as HttpURLConnection
-        SslHelper.configure(connection)
-        connection.requestMethod = "GET"
-        if (jwtToken != null) connection.setRequestProperty("Authorization", "Bearer $jwtToken")
-        connection.connectTimeout = 10000
-        connection.readTimeout = 15000
+        val live = dbSetupViewModel.dbList.value?.find { it.id == server.id } ?: server
+        var token = ThreeWifiAppSession.currentToken(app, live)
+            ?: return app.getString(R.string.api3_error_auth_required)
 
-        val code = connection.responseCode
-        return if (code == HttpURLConnection.HTTP_OK) {
-            connection.inputStream.bufferedReader().use { it.readText() }
-        } else {
-            val err =
-                connection.errorStream?.bufferedReader()?.use { it.readText() } ?: "HTTP $code"
-            connection.disconnect()
-            throw TrpcHttpException(code, err)
+        val client = ThreeWifiAppClient.get(app, live.path)
+        suspend fun perform(): String = when (request) {
+            is API3WiFiRequest.TrpcGetPoint ->
+                client.getAccessPointDetails(request.id.toLong(), token)?.toString(4)
+                    ?: app.getString(R.string.api3_error_no_results)
+
+            is API3WiFiRequest.TrpcSearchNetworks ->
+                client.searchNetworks(
+                    query = request.query,
+                    byBssid = request.type == "bssid",
+                    limit = TRPC_SEARCH_LIMIT,
+                    token = token
+                ).toString(4)
+
+            else -> app.getString(R.string.invalid_request_params)
+        }
+
+        return try {
+            perform()
+        } catch (e: ThreeWifiAppException) {
+            if (e.isUnauthorized) {
+                val renewed = ThreeWifiAppSession.refresh(app, live)
+                if (renewed != null) {
+                    token = renewed
+                    try {
+                        perform()
+                    } catch (e2: ThreeWifiAppException) {
+                        describeTrpcError(app, e2)
+                    }
+                } else {
+                    describeTrpcError(app, e)
+                }
+            } else {
+                describeTrpcError(app, e)
+            }
+        } catch (e: Exception) {
+            app.getString(R.string.api3_error, e.message)
         }
     }
 
-    private class TrpcHttpException(val code: Int, val errorBody: String) :
-        Exception("Server error $code: $errorBody")
+    private fun describeTrpcError(app: Application, e: ThreeWifiAppException): String {
+        return when {
+            e.requiresAppUpdate -> app.getString(R.string.api3_error_update_required)
+            e.isUnauthorized -> app.getString(R.string.api3_error_auth_required)
+            e.isValidationError && e.missingFields.isNotEmpty() ->
+                app.getString(R.string.api3_error_validation, e.missingFields.joinToString(", "))
 
-    private suspend fun performLogin(baseUrl: String, login: String, password: String): String? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val innerParams = JSONObject().apply {
-                    put("usernameOrEmail", login)
-                    put("password", password)
-                }
-                val wrapped = JSONObject().apply { put("json", innerParams) }
-                val conn = URL("$baseUrl/trpc/login").openConnection() as HttpURLConnection
-                SslHelper.configure(conn)
-                conn.requestMethod = "POST"
-                conn.doOutput = true
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.connectTimeout = 10000
-                conn.readTimeout = 15000
-                conn.outputStream.write(wrapped.toString().toByteArray())
-
-                if (conn.responseCode == HttpURLConnection.HTTP_OK) {
-                    val body = conn.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(body)
-                    val result = json.optJSONObject("result")
-                    val data = result?.optJSONObject("data")
-                    val innerJson = data?.optJSONObject("json")
-                    innerJson?.optString("token", null)
-                } else {
-                    null
-                }
-            } catch (_: Exception) {
-                null
-            }
-        }
-    }
-
-    private suspend fun executeTrpcRequest(
-        server: DbItem?,
-        request: API3WiFiRequest,
-        retryAttempt: Boolean = false
-    ): String {
-        return withContext(Dispatchers.IO) {
-            try {
-                val baseUrl = server?.path
-                    ?: return@withContext getApplication<Application>().getString(R.string.api3_error_no_server)
-                var jwtToken = server?.jwtToken
-
-                val (endpoint, params) = when (request) {
-                    is API3WiFiRequest.TrpcGetPoint -> {
-                        "getAccessPointDetails" to JSONObject().apply {
-                            put("id", request.id)
-                            jwtToken?.let { put("token", it) }
-                        }
-                    }
-
-                    is API3WiFiRequest.TrpcSearchNetworks -> {
-                        "searchNetworks" to JSONObject().apply {
-                            if (request.type == "bssid") put("bssid", request.query)
-                            else put("ssid", request.query)
-                            put("limit", 100)
-                            jwtToken?.let { put("token", it) }
-                        }
-                    }
-
-                    else -> throw Exception("Unknown tRPC request type")
-                }
-
-                val url = buildTrpcUrl(baseUrl, endpoint, params)
-                executeTrpcHttp(url, jwtToken)
-            } catch (e: TrpcHttpException) {
-                if (!retryAttempt && e.code == 401 && server?.login != null && server?.password != null) {
-                    val newToken = performLogin(server.path!!, server.login!!, server.password!!)
-                    if (newToken != null) {
-                        val updatedServer = server.copy(jwtToken = newToken)
-                        dbSetupViewModel.updateDbItem(updatedServer)
-
-                        _apiServers.value = dbSetupViewModel.dbList.value?.filter {
-                            it.dbType == DbType.WIFI_API
-                        } ?: emptyList()
-                        executeTrpcRequest(updatedServer, request, retryAttempt = true)
-                    } else {
-                        getApplication<Application>().getString(
-                            R.string.api3_error_relogin,
-                            e.message
-                        )
-                    }
-                } else {
-                    getApplication<Application>().getString(R.string.api3_error, e.message)
-                }
-            } catch (e: Exception) {
-                getApplication<Application>().getString(R.string.api3_error, e.message)
-            }
+            else -> app.getString(R.string.api3_error, e.serverMessage ?: e.message)
         }
     }
 
@@ -546,5 +484,9 @@ class API3WiFiViewModel(application: Application) : AndroidViewModel(application
                 jsonString
             }
         }
+    }
+
+    private companion object {
+        const val TRPC_SEARCH_LIMIT = 100
     }
 }

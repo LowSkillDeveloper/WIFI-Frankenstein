@@ -23,6 +23,9 @@ import com.google.android.material.textfield.TextInputEditText
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.BottomSheetDatabaseManagementBinding
 import com.lsd.wififrankenstein.databinding.FragmentInAppDatabaseBinding
+import com.lsd.wififrankenstein.network.ThreeWifiAppSession
+import com.lsd.wififrankenstein.network.ThreeWifiAppUploader
+import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
@@ -867,30 +870,74 @@ class InAppDatabaseFragment : Fragment() {
         delay(300)
         val servers =
             dbSetupViewModel.dbList.value?.filter { it.dbType == DbType.WIFI_API } ?: emptyList()
-        if (servers.isEmpty()) {
+        val uploadServers = servers.filter {
+            !ThreeWifiAppSession.isAppServer(it) || ThreeWifiAppSession.isAuthenticatedServer(it)
+        }
+        if (uploadServers.isEmpty()) {
             Toast.makeText(requireContext(), R.string.no_3wifi_servers, Toast.LENGTH_SHORT).show()
             return
         }
-        ThreeWiFiUploader.showServerPicker(requireContext(), servers) { server ->
-            val rows = records.map { r ->
-                ThreeWiFiCsvRow(
-                    bssid = r.macAddress,
-                    essid = r.wifiName,
-                    key = r.wifiPassword ?: "",
-                    wps = r.wpsCode ?: "",
-                    title = r.adminPanel ?: "",
+        ThreeWiFiUploader.showServerPicker(requireContext(), uploadServers) { server ->
+            if (ThreeWifiAppSession.isAppServer(server)) {
+                uploadRecordsTo3WifiApp(records, server)
+            } else {
+                val rows = records.map { r ->
+                    ThreeWiFiCsvRow(
+                        bssid = r.macAddress,
+                        essid = r.wifiName,
+                        key = r.wifiPassword ?: "",
+                        wps = r.wpsCode ?: "",
+                        title = r.adminPanel ?: "",
+                    )
+                }
+                val csv = ThreeWiFiUploader.convertToCsv(rows)
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val result = ThreeWiFiUploader.uploadCsv(requireContext(), server, csv)
+                    val msg = if (result.success) getString(R.string.upload_success_text)
+                    else "${getString(R.string.upload_failed_text)}: ${result.message}"
+                    Toast.makeText(
+                        requireContext(), msg,
+                        if (result.success) Toast.LENGTH_SHORT else Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun uploadRecordsTo3WifiApp(records: List<WifiNetwork>, server: DbItem) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val token = ThreeWifiAppSession.currentToken(requireContext(), server)
+            if (token == null) {
+                Toast.makeText(
+                    requireContext(), R.string.api3_error_auth_required, Toast.LENGTH_LONG
+                ).show()
+                return@launch
+            }
+            val submitRecords = records.map { record ->
+                ThreeWifiAppUploader.SubmitRecord(
+                    bssid = record.macAddress,
+                    ssid = record.wifiName,
+                    password = record.wifiPassword,
+                    wpsPin = record.wpsCode,
+                    latitude = record.latitude,
+                    longitude = record.longitude
                 )
             }
-            val csv = ThreeWiFiUploader.convertToCsv(rows)
-            viewLifecycleOwner.lifecycleScope.launch {
-                val result = ThreeWiFiUploader.uploadCsv(requireContext(), server, csv)
-                val msg = if (result.success) getString(R.string.upload_success_text)
-                else "${getString(R.string.upload_failed_text)}: ${result.message}"
-                Toast.makeText(
-                    requireContext(), msg,
-                    if (result.success) Toast.LENGTH_SHORT else Toast.LENGTH_LONG
-                ).show()
+            val result = ThreeWifiAppUploader.submitAll(
+                requireContext(), server, token, submitRecords
+            )
+            val msg = if (result.uploaded > 0) {
+                getString(R.string.pm_upload_3wifi_app_result, result.uploaded, result.failed)
+            } else {
+                getString(
+                    R.string.pm_upload_3wifi_app_failed,
+                    result.error ?: getString(R.string.unknown_error)
+                )
             }
+            Toast.makeText(
+                requireContext(), msg,
+                if (result.uploaded > 0) Toast.LENGTH_SHORT else Toast.LENGTH_LONG
+            ).show()
         }
     }
 

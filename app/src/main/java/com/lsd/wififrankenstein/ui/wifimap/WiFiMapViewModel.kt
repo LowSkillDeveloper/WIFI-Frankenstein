@@ -93,7 +93,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
     private val helperCreationLocks = java.util.concurrent.ConcurrentHashMap<String, Mutex>()
 
-    private val mapHelpers = mutableMapOf<String, MapHelper>()
+    private val mapHelpers = java.util.concurrent.ConcurrentHashMap<String, MapHelper>()
+
+    private val remotePointIds = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     private val _showIndexingDialog = MutableLiveData<DbItem?>()
     val showIndexingDialog: LiveData<DbItem?> = _showIndexingDialog
@@ -951,6 +953,12 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
 
             Log.d(TAG, "Map API returned ${mapPoints.size} points for ${database.id}")
 
+            mapPoints.forEach { mp ->
+                mp.id.toLongOrNull()?.let { remoteId ->
+                    remotePointIds["${database.id}:${mp.bssidDecimal}"] = remoteId
+                }
+            }
+
             mapPoints.mapIndexed { index, mapPoint ->
                 if (index % 1000 == 0) {
                     yield()
@@ -1259,6 +1267,12 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                             zoom,
                             getMaxPointsForZoom(zoom)
                         )
+
+                        mapPoints.forEach { mp ->
+                            mp.id.toLongOrNull()?.let { remoteId ->
+                                remotePointIds["${database.id}:${mp.bssidDecimal}"] = remoteId
+                            }
+                        }
 
                         mapPoints.map { mapPoint ->
                             ClusteredMapPoint(
@@ -1679,7 +1693,9 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                         TAG,
                                         "Loading point info via map API for ${database.id}"
                                     )
-                                    val info = mapHelper.getPointDetails(point.bssidDecimal)
+                                    val remoteId =
+                                        remotePointIds["${database.id}:${point.bssidDecimal}"]
+                                    val info = mapHelper.getPointDetails(point.bssidDecimal, remoteId)
 
                                     if (info != null) {
                                         Log.d(TAG, "Retrieved info via map API: $info")
@@ -1723,6 +1739,15 @@ class WiFiMapViewModel(application: Application) : AndroidViewModel(application)
                                         point.isDataLoaded = true
                                     } else {
                                         Log.w(TAG, "No info found via map API")
+                                        if (database.apiProtocol == "3wifi_app" &&
+                                            database.jwtToken.isNullOrBlank()
+                                        ) {
+                                            _error.postValue(
+                                                getApplication<Application>().getString(
+                                                    R.string.api3_error_auth_required
+                                                )
+                                            )
+                                        }
                                     }
                                 }
                             } else {

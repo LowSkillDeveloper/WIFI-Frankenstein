@@ -723,6 +723,11 @@ class API3WiFiFragment : Fragment() {
             }
 
             try {
+                if (trimmedResponse.startsWith("[")) {
+                    foundValidJson = parseTrpcItems(JSONArray(trimmedResponse)) || foundValidJson
+                    continue
+                }
+
                 val json = JSONObject(trimmedResponse)
 
                 if (json.has("result") && json.optJSONObject("result")?.has("data") == true) {
@@ -733,11 +738,16 @@ class API3WiFiFragment : Fragment() {
                     continue
                 }
 
-                if (!json.optBoolean("result", false)) {
+                if (json.has("error")) {
                     val errorMessage = json.optString("error", getString(R.string.unknown_error))
                     if (!foundValidJson) {
                         addErrorCard(errorMessage)
                     }
+                    continue
+                }
+
+                if (!json.optBoolean("result", false)) {
+                    foundValidJson = parseTrpcItems(json) || foundValidJson
                     continue
                 }
 

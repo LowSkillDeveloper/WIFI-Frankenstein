@@ -1503,6 +1503,49 @@ class PersonalWiFiMapViewModel(application: Application) : AndroidViewModel(appl
         return MATCH_COLORS[index]
     }
 
+    fun uploadWardrivingTo3WifiApp(onResult: (com.lsd.wififrankenstein.network.ThreeWifiAppUploader.UploadReport) -> Unit) {
+        launchBusy {
+            val app = getApplication<Application>()
+            val report = try {
+                val server =
+                    com.lsd.wififrankenstein.network.ThreeWifiAppSession.authenticatedServer(app)
+                if (server == null) {
+                    com.lsd.wififrankenstein.network.ThreeWifiAppUploader.UploadReport(
+                        0,
+                        0,
+                        app.getString(R.string.pm_no_api_server)
+                    )
+                } else {
+                    val token =
+                        com.lsd.wififrankenstein.network.ThreeWifiAppSession.currentToken(app, server)
+                    if (token == null) {
+                        com.lsd.wififrankenstein.network.ThreeWifiAppUploader.UploadReport(
+                            0,
+                            0,
+                            app.getString(R.string.api3_error_auth_required)
+                        )
+                    } else {
+                        val networks = dbHelper.getPersonalRecords()
+                        com.lsd.wififrankenstein.network.ThreeWifiAppUploader.uploadWardriving(
+                            app,
+                            server,
+                            token,
+                            networks
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "3wifi.app wardriving upload failed: ${e.message}")
+                com.lsd.wififrankenstein.network.ThreeWifiAppUploader.UploadReport(
+                    0,
+                    0,
+                    e.message ?: "Error"
+                )
+            }
+            withContext(Dispatchers.Main) { onResult(report) }
+        }
+    }
+
     fun check3WifiApiForPoint(
         bssid: String,
         onResult: (Boolean, String) -> Unit
