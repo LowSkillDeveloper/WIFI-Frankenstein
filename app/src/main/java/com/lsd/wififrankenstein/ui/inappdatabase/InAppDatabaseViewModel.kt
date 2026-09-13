@@ -13,6 +13,7 @@ import androidx.paging.cachedIn
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.network.WpaSecClient
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
+import com.lsd.wififrankenstein.ui.dbsetup.localappdb.PersonalMapDbHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.PwncrackImporter
@@ -186,6 +187,15 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch(Dispatchers.IO) {
             dbHelper.clearDatabase()
             updateStats()
+        }
+    }
+
+    fun syncFromPersonalMap(onResult: (Int) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val app = getApplication<Application>()
+            val personalPath = app.getDatabasePath(PersonalMapDbHelper.DATABASE_NAME).absolutePath
+            val count = dbHelper.syncLocationsFromPersonalMap(personalPath)
+            withContext(Dispatchers.Main) { onResult(count) }
         }
     }
 

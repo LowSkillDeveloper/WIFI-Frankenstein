@@ -3786,6 +3786,7 @@
     <string name="sync_personal_locations">Sync locations from Personal Map</string>
     <string name="sync_personal_locations_confirm">Update locations in the in-app database using coordinates from your personal map (matching by SSID and MAC)?</string>
     <string name="sync_personal_locations_success">Successfully updated %d records</string>
+    <string name="sync_personal_to_local">Sync coordinates to local database</string>
     <string name="sync_wifiloctracker_direct">Sync locations from WifiLocTracker directly</string>
     <string name="sync_wifiloctracker_direct_confirm">Update locations in the in-app database using coordinates from a WifiLocTracker database file (matching by SSID and MAC)?</string>
     <string name="sync_locations_button">Sync Personal → In-App</string>

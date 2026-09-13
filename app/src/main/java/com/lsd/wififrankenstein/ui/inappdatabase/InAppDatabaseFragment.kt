@@ -329,6 +329,22 @@ class InAppDatabaseFragment : Fragment() {
             updateStats()
         }
 
+        bottomSheetBinding.buttonSyncCoords.setOnClickListener {
+            bottomSheetDialog.dismiss()
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.sync_personal_locations)
+                .setMessage(R.string.sync_personal_locations_confirm)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.ok) { _, _ ->
+                    viewModel.syncFromPersonalMap { count ->
+                        showSnackbar(getString(R.string.sync_personal_locations_success, count))
+                        adapter.refresh()
+                        updateStats()
+                    }
+                }
+                .show()
+        }
+
         bottomSheetBinding.buttonImport.setOnClickListener {
             bottomSheetDialog.dismiss()
             showImportDialog()

@@ -51,6 +51,15 @@
             android:text="@string/pm_open_stats"
             app:icon="@drawable/ic_analytics" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/pm_button_sync_coords"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/sync_personal_to_local"
+            app:icon="@drawable/ic_location" />
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"

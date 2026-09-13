@@ -3744,6 +3744,7 @@
     <string name="sync_personal_locations">Привязать локации из личной карты</string>
     <string name="sync_personal_locations_confirm">Обновить координаты во встроенной базе, используя данные из вашей личной карты (сопоставление по SSID и MAC)?</string>
     <string name="sync_personal_locations_success">Обновлено записей: %d</string>
+    <string name="sync_personal_to_local">Синхронизировать координаты в локальную базу</string>
     <string name="sync_wifiloctracker_direct">Синхронизация из WifiLocTracker напрямую</string>
     <string name="sync_wifiloctracker_direct_confirm">Обновить координаты во встроенной базе, используя файл базы WifiLocTracker (сопоставление по SSID и MAC)?</string>
     <string name="sync_locations_button">Синхронизация Личная → Встроенная</string>

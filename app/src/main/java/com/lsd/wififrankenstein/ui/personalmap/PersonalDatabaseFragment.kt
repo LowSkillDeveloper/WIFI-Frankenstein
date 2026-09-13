@@ -284,6 +284,19 @@ class PersonalDatabaseFragment : Fragment() {
             sheet.dismiss()
             findNavController().navigate(R.id.nav_personal_map_stats)
         }
+        sheetBinding.pmButtonSyncCoords.setOnClickListener {
+            sheet.dismiss()
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.sync_personal_to_local)
+                .setMessage(R.string.sync_personal_locations_confirm)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.ok) { _, _ ->
+                    viewModel.syncPersonalToInApp { count ->
+                        safeSnackbar(getString(R.string.sync_personal_locations_success, count))
+                    }
+                }
+                .show()
+        }
         sheetBinding.pmButtonClear.setOnClickListener {
             sheet.dismiss()
             MaterialAlertDialogBuilder(requireContext())

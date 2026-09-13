@@ -3692,6 +3692,7 @@
     <string name="sync_personal_locations">同步个人地图位置</string>
     <string name="sync_personal_locations_confirm">是否使用个人地图中的坐标 update 内置数据库中的位置（按 SSID 和 MAC 匹配）？</string>
     <string name="sync_personal_locations_success">成功更新 %d 条记录</string>
+    <string name="sync_personal_to_local">同步坐标到内置数据库</string>
     <string name="sync_wifiloctracker_direct">直接从 WifiLocTracker 同步位置</string>
     <string name="sync_wifiloctracker_direct_confirm">是否使用 WifiLocTracker 数据库文件更新内置数据库中的位置（按 SSID 和 MAC 匹配）？</string>
     <string name="sync_locations_button">同步个人 → 内置</string>
