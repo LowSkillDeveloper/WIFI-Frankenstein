@@ -14,6 +14,39 @@ import java.io.FileOutputStream
 
 object VendorChecker {
 
+    private val localCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    fun lookupLocalSync(context: Context, bssid: String): String? {
+        val prefix = bssid
+            .replace(":", "")
+            .replace("-", "")
+            .replace(".", "")
+            .uppercase()
+            .take(6)
+        if (prefix.length < 6) return null
+        localCache[prefix]?.let { return it }
+        return try {
+            val dbFile = getFileFromInternalStorageOrAssets(context, "vendor.db")
+            SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
+                .use { localDB ->
+                    localDB.rawQuery(
+                        "SELECT vendor FROM oui WHERE mac = ?",
+                        arrayOf(prefix)
+                    ).use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            cursor.getString(0)?.takeIf { it.isNotBlank() }?.also {
+                                localCache[prefix] = it
+                            }
+                        } else {
+                            null
+                        }
+                    }
+                }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private fun getFileFromInternalStorageOrAssets(context: Context, fileName: String): File {
         val file = File(context.filesDir, fileName)
         if (!file.exists()) {

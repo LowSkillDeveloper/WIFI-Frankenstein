@@ -6,9 +6,7 @@ import com.lsd.wififrankenstein.ui.databasefinder.SearchMode
 object DatabaseIndices {
     private const val TAG = "DatabaseIndices"
 
-
     const val GEO_QUADKEY = "idx_geo_quadkey"
-
 
     const val NETS_BSSID = "idx_nets_bssid"
     const val NETS_ESSID = "idx_nets_essid"
@@ -17,14 +15,12 @@ object DatabaseIndices {
     const val NETS_WIFIKEY = "idx_nets_wifipin"
     const val NETS_WPSPIN = "idx_nets_wpspin"
 
-
     const val BASE_BSSID = "idx_base_bssid"
     const val BASE_ESSID = "idx_base_essid"
     const val BASE_TIME = "idx_base_time"
     const val BASE_WIFI = "idx_base_wifi"
     const val BASE_WIFIKEY = "idx_base_wifipin"
     const val BASE_WPSPIN = "idx_base_wpspin"
-
 
     const val MAIN_TABLE_COLUMNS =
         "BSSID, ESSID, WiFiKey, WPSPIN, name, Authorization, RadioOff, Hidden, LANIP, WANIP, time, cmtid, iprange, ip, port, Security, NoWiFiKey, NoWPS, NoBSSID, LANMask, WANMask, WANGateway, DNS1, DNS2, DNS3"
@@ -182,7 +178,6 @@ object DatabaseIndices {
 
             Log.d(TAG, "Required full indexes: $fullIndexes")
 
-
             val hasAnyIndex = existingIndices.any { !it.startsWith("sqlite_autoindex_") }
             Log.d(TAG, "hasAnyIndex: $hasAnyIndex")
 
@@ -204,6 +199,7 @@ object DatabaseIndices {
             "nets" -> listOf(
                 "CREATE INDEX IF NOT EXISTS $NETS_BSSID ON nets(BSSID)",
                 "CREATE INDEX IF NOT EXISTS $NETS_ESSID ON nets(ESSID)",
+                "CREATE INDEX IF NOT EXISTS $NETS_TIME ON nets(time)",
                 "CREATE INDEX IF NOT EXISTS $NETS_WIFIKEY ON nets(WiFiKey)",
                 "CREATE INDEX IF NOT EXISTS $NETS_WPSPIN ON nets(WPSPIN)"
             )
@@ -211,6 +207,7 @@ object DatabaseIndices {
             "base" -> listOf(
                 "CREATE INDEX IF NOT EXISTS $BASE_BSSID ON base(BSSID)",
                 "CREATE INDEX IF NOT EXISTS $BASE_ESSID ON base(ESSID)",
+                "CREATE INDEX IF NOT EXISTS $BASE_TIME ON base(time)",
                 "CREATE INDEX IF NOT EXISTS $BASE_WIFIKEY ON base(WiFiKey)",
                 "CREATE INDEX IF NOT EXISTS $BASE_WPSPIN ON base(WPSPIN)"
             )

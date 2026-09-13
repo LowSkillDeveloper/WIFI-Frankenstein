@@ -219,13 +219,13 @@ class RootlessRouterScanExecutor(
                 }
             }
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            process.destroyForcibly()
-            process.waitFor(1, TimeUnit.SECONDS)
+            ProcessCompat.destroyForcibly(process)
+            ProcessCompat.waitFor(process, 1, TimeUnit.SECONDS)
             val elapsed = System.currentTimeMillis() - startTime
             Log.w(TAG, "Command timed out after ${elapsed}ms (timeout=$timeoutMs)")
             ""
         } catch (e: Exception) {
-            process.destroyForcibly()
+            ProcessCompat.destroyForcibly(process)
             val elapsed = System.currentTimeMillis() - startTime
             Log.e(TAG, "Command failed after ${elapsed}ms", e)
             ""
@@ -414,8 +414,8 @@ class RootlessRouterScanExecutor(
                         }
                     }
                 } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                    process.destroyForcibly()
-                    process.waitFor(1, TimeUnit.SECONDS)
+                    ProcessCompat.destroyForcibly(process)
+                    ProcessCompat.waitFor(process, 1, TimeUnit.SECONDS)
                     Log.w(TAG, "Nmap ping batch timed out")
                     ""
                 }

@@ -33,17 +33,14 @@ class PixiePinProvider(private val context: Context) {
         val normalized =
             MacAddressUtils.formatToColonSeparated(bssid)?.uppercase() ?: bssid
 
-
         generator.generateSuggestedPins(normalized).forEach {
             val normalizedPin = if (it.pin == "<empty>" || it.pin.isEmpty()) "" else it.pin
             pins.add(ScoredPin(normalizedPin, 100, "suggested"))
         }
 
-
         getPinsFromLocalDb(normalized).forEach {
             pins.add(ScoredPin(it, 90, "local_db"))
         }
-
 
         if (dbItems != null) {
             find3WiFiPins(context, normalized, dbItems).forEach {
@@ -56,20 +53,17 @@ class PixiePinProvider(private val context: Context) {
             }
         }
 
-
         generator.generateAllPins(normalized).filter { !it.isExperimental }.forEach {
             if (pins.none { p -> p.pin == it.pin }) {
                 pins.add(ScoredPin(it.pin, 80, "algorithm"))
             }
         }
 
-
         getPinsFromWpsDb(normalized).forEach {
             if (pins.none { p -> p.pin == it }) {
                 pins.add(ScoredPin(it, 70, "wps_db"))
             }
         }
-
 
         if (dbItems != null) {
             val neighborPins = find3WiFiNeighborPins(context, normalized, dbItems)
@@ -79,13 +73,11 @@ class PixiePinProvider(private val context: Context) {
             }
         }
 
-
         searchNeighborPinsWpsDb(normalized).forEach {
             if (pins.none { p -> p.pin == it }) {
                 pins.add(ScoredPin(it, 50, "neighbor"))
             }
         }
-
 
         if (pins.isEmpty()) {
             generator.generateAllPins(normalized).filter { it.isExperimental }.forEach {
@@ -100,7 +92,6 @@ class PixiePinProvider(private val context: Context) {
         )
         return best
     }
-
 
     companion object {
 
@@ -240,14 +231,14 @@ class PixiePinProvider(private val context: Context) {
                     val tableName =
                         DatabaseTypeUtils.getMainTableName(helper.database!!)
                     val sql = """
-                        SELECT BSSID, WPSPIN 
-                        FROM $tableName 
-                        WHERE BSSID BETWEEN ? AND ? 
+                        SELECT BSSID, WPSPIN
+                        FROM $tableName
+                        WHERE BSSID BETWEEN ? AND ?
                         AND BSSID != ?
-                        AND WPSPIN IS NOT NULL 
-                        AND WPSPIN != '0' 
+                        AND WPSPIN IS NOT NULL
+                        AND WPSPIN != '0'
                         AND WPSPIN != '1'
-                        ORDER BY ABS(BSSID - ?) 
+                        ORDER BY ABS(BSSID - ?)
                         LIMIT 50
                     """.trimIndent()
 
@@ -294,7 +285,6 @@ class PixiePinProvider(private val context: Context) {
             return pin.length in 4..8 && pin.all { it.isDigit() }
         }
     }
-
 
     private fun getPinsFromWpsDb(bssid: String): List<String> {
         val pins = mutableListOf<String>()

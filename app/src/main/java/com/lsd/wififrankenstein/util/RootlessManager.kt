@@ -12,7 +12,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.nio.file.Files
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
@@ -470,10 +469,7 @@ class RootlessManager(private val context: Context) {
             val libc6 = File(libDir, "libc.so.6")
             if (!libc6.exists()) {
                 try {
-                    Files.createSymbolicLink(
-                        libc6.toPath(),
-                        java.nio.file.Paths.get("libc.musl-aarch64.so.1")
-                    )
+                    SymlinkCompat.createSymbolicLink(libc6, "libc.musl-aarch64.so.1")
                 } catch (e: Exception) {
                     muslLdSrc.copyTo(libc6, overwrite = true)
                 }
@@ -545,12 +541,14 @@ class RootlessManager(private val context: Context) {
                 pb.environment().putAll(testEnv)
 
                 val proc = pb.start()
-                val completed = proc.waitFor(10, TimeUnit.SECONDS)
+                val completed = ProcessCompat.waitFor(proc, 10, TimeUnit.SECONDS)
                 val exitCode = if (completed) proc.exitValue() else -1
                 val stdout = if (completed) {
                     proc.inputStream.bufferedReader().readText().take(200)
                 } else {
-                    proc.destroyForcibly(); proc.waitFor(1, TimeUnit.SECONDS); ""
+                    ProcessCompat.destroyForcibly(proc)
+                    ProcessCompat.waitFor(proc, 1, TimeUnit.SECONDS)
+                    ""
                 }
 
                 val muslOk = approach.type == RuntimeType.MUSL_LD &&
@@ -708,7 +706,6 @@ class RootlessManager(private val context: Context) {
             }
         }
 
-
         onStatusUpdate(context.getString(R.string.rootless_downloading_rootfs))
         onProgress(10)
 
@@ -788,10 +785,7 @@ class RootlessManager(private val context: Context) {
                     "libdl.so.2 missing, creating via symlink or copy from ${libcTarget.absolutePath}"
                 )
                 try {
-                    Files.createSymbolicLink(
-                        libDlSymlink.toPath(),
-                        java.nio.file.Paths.get("libc.so.6")
-                    )
+                    SymlinkCompat.createSymbolicLink(libDlSymlink, "libc.so.6")
                     Log.d(TAG, "Created libdl.so.2 symlink -> libc.so.6")
                 } catch (e: NoSuchMethodError) {
                     Log.w(TAG, "NIO not available (API < 26), copying libc.so.6 to libdl.so.2")
@@ -852,17 +846,14 @@ class RootlessManager(private val context: Context) {
                 return@withContext false
             }
 
-
             val rsInRootfs = File(rootfsDir, "opt/RouterScan/rs").exists()
             if (rsInRootfs) {
                 extractRsToCache(rootfsDir)
                 Log.d(TAG, "rs binaries cached to ${getRsCacheDir().absolutePath}")
             }
 
-
             val fullProbeCandidates = if (rsInRootfs && RuntimeType.MUSL_LD !in candidates)
                 candidates + RuntimeType.MUSL_LD else candidates
-
 
             val allApproaches = getAllProbeApproaches()
             val filteredApproaches = allApproaches.filter { it.type in fullProbeCandidates }
@@ -910,7 +901,6 @@ class RootlessManager(private val context: Context) {
 
             saveRuntimeConfig(config)
             Log.d(TAG, "Saved runtime config: $config")
-
 
             if (config.type == RuntimeType.MUSL_LD && rootfsDir.exists()) {
                 rootfsDir.deleteRecursively()
@@ -994,8 +984,7 @@ class RootlessManager(private val context: Context) {
                             }
                             outputFile.parentFile?.mkdirs()
                             try {
-                                val linkTarget = File(entry.linkName)
-                                Files.createSymbolicLink(outputFile.toPath(), linkTarget.toPath())
+                                SymlinkCompat.createSymbolicLink(outputFile, entry.linkName)
                             } catch (e: Exception) {
                                 symlinkFails++
                                 Log.w(

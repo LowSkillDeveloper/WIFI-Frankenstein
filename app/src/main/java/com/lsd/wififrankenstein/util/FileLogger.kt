@@ -240,7 +240,8 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
             val name = listResult.out.firstOrNull()?.trim()?.substringAfterLast('/')
             if (name.isNullOrEmpty()) return null
 
-            val cachedFile = File(context?.cacheDir, "last_log.txt")
+            val cacheDir = context?.cacheDir ?: return null
+            val cachedFile = File(cacheDir, "last_log.txt")
             cachedFile.parentFile?.mkdirs()
             val cpResult =
                 Shell.cmd("cp '$LOG_DIR_CHROOT/$name' '${cachedFile.absolutePath}'").exec()
@@ -622,6 +623,7 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
         rootShellProcess = null
 
         logWriter = null
+        context = null
         isInitialized = false
     }
 
@@ -632,7 +634,7 @@ Max Memory: ${Runtime.getRuntime().maxMemory() / 1024 / 1024} MB
         val memoryInfo = """
 Memory Info:
 - Used Memory: ${(runtime.totalMemory() - runtime.freeMemory()) / 1024 / 1024} MB
-- Free Memory: ${runtime.freeMemory() / 1024 / 1024} MB  
+- Free Memory: ${runtime.freeMemory() / 1024 / 1024} MB
 - Total Memory: ${runtime.totalMemory() / 1024 / 1024} MB
 - Max Memory: ${runtime.maxMemory() / 1024 / 1024} MB
 """.trimIndent()

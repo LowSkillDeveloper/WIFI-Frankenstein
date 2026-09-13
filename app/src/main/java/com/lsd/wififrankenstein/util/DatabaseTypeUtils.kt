@@ -39,8 +39,13 @@ object DatabaseTypeUtils {
 
     fun hasColumn(db: SQLiteDatabase, tableName: String, columnName: String): Boolean {
         return try {
-            db.rawQuery("SELECT * FROM $tableName LIMIT 0", null).use { cursor ->
-                cursor.getColumnIndex(columnName) >= 0
+            db.rawQuery("PRAGMA table_info($tableName)", null).use { cursor ->
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(cursor.getColumnIndexOrThrow("name")) == columnName) {
+                        return true
+                    }
+                }
+                false
             }
         } catch (e: Exception) {
             false

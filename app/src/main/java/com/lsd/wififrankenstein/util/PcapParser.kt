@@ -2,6 +2,19 @@ package com.lsd.wififrankenstein.util
 
 import android.util.Log
 import java.io.File
+import java.io.InputStream
+
+private fun InputStream.readNBytesCompat(len: Int): ByteArray {
+    require(len >= 0) { "len < 0" }
+    val buffer = ByteArray(len)
+    var offset = 0
+    while (offset < len) {
+        val read = read(buffer, offset, len - offset)
+        if (read < 0) break
+        offset += read
+    }
+    return if (offset == len) buffer else buffer.copyOf(offset)
+}
 
 data class ParsedHandshake(
     val bssid: String,
@@ -185,7 +198,7 @@ class PcapParser {
             Log.d(TAG, "canParse: bad extension '$ext'"); return false
         }
         val magic = try {
-            val header = file.inputStream().use { it.readNBytes(4) }
+            val header = file.inputStream().use { it.readNBytesCompat(4) }
             header.toInt32LE(0)
         } catch (e: Exception) {
             Log.w(TAG, "canParse: read error", e); return false
@@ -203,12 +216,38 @@ class PcapParser {
         onProgress: ((Float) -> Unit)? = null
     ): List<ParsedHandshake> {
         Log.d(TAG, "extractHandshakes: ${file.name} (${file.length()}B)")
-        val bytes = try {
-            file.readBytes()
+        return try {
+            file.inputStream().buffered(65536).use { input ->
+                val magicBuf = input.readNBytesCompat(4)
+                if (magicBuf.size < 4) {
+                    Log.w(TAG, "extractHandshakes: file too small"); return@use emptyList()
+                }
+                val magic = magicBuf.toInt32LE(0)
+                val fileSize = file.length()
+                when {
+                    magic == PCAP_MAGIC.toInt() || magic == PCAP_MAGIC_NANO.toInt() -> {
+                        val rest = input.readNBytesCompat(20)
+                        val globalHeader = magicBuf + rest
+                        parsePcapFromStream(input, globalHeader, false, fileSize, onProgress)
+                    }
+
+                    magic == PCAP_MAGIC_SWAPPED.toInt() || magic == PCAP_MAGIC_NANO_SWAPPED.toInt() -> {
+                        val rest = input.readNBytesCompat(20)
+                        val globalHeader = magicBuf + rest
+                        parsePcapFromStream(input, globalHeader, true, fileSize, onProgress)
+                    }
+
+                    magic == PCAPNG_MAGIC.toInt() ->
+                        parsePcapngFromStream(magicBuf, input, fileSize, onProgress)
+
+                    else -> {
+                        Log.w(TAG, "  unknown magic"); emptyList()
+                    }
+                }
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "extractHandshakes: read failed", e); return emptyList()
+            Log.e(TAG, "extractHandshakes: read failed", e); emptyList()
         }
-        return parseBytes(bytes, onProgress)
     }
 
     fun extractApMetadata(file: File): Map<String, ApMetadata> {
@@ -293,14 +332,15 @@ class PcapParser {
                             )
                         }
 
-                        blockType == BLOCK_SPB && offset + 16 <= data.size -> {
-                            val caplen = data.toInt32LE(offset + 12)
-                            processPacket(
-                                data.copyOfRange(
-                                    offset + 16,
-                                    offset + 16 + caplen.coerceAtMost(totalLen - 16)
-                                ), linktype, ctx
-                            )
+                        blockType == BLOCK_SPB && offset + 12 <= data.size -> {
+                            val origLen = data.toInt32LE(offset + 8)
+                            val capturedLen = origLen.coerceAtMost(totalLen - 12)
+                            if (capturedLen > 0 && offset + 12 + capturedLen <= data.size) {
+                                processPacket(
+                                    data.copyOfRange(offset + 12, offset + 12 + capturedLen),
+                                    linktype, ctx
+                                )
+                            }
                         }
                     }
                     offset += totalLen; if (totalLen == 0) break
@@ -461,13 +501,13 @@ class PcapParser {
                     processPacket(packetData, linktype, ctx)
                 }
 
-                blockType == BLOCK_SPB && offset + 16 <= data.size -> {
-                    val caplen = data.toInt32LE(offset + 12)
-                    val packetData = data.copyOfRange(
-                        offset + 16,
-                        offset + 16 + caplen.coerceAtMost(totalLen - 16)
-                    )
-                    processPacket(packetData, linktype, ctx)
+                blockType == BLOCK_SPB && offset + 12 <= data.size -> {
+                    val origLen = data.toInt32LE(offset + 8)
+                    val capturedLen = origLen.coerceAtMost(totalLen - 12)
+                    if (capturedLen > 0 && offset + 12 + capturedLen <= data.size) {
+                        val packetData = data.copyOfRange(offset + 12, offset + 12 + capturedLen)
+                        processPacket(packetData, linktype, ctx)
+                    }
                 }
             }
             offset += totalLen
@@ -480,6 +520,154 @@ class PcapParser {
         pairMessages(ctx.eapolMessages, ctx.records, ctx.essidMap)
         val distinct = ctx.records.distinctBy { it.to22000Line() }
         Log.d(TAG, "  parsePcapng: $blockCount blocks, ${distinct.size} distinct")
+        return distinct
+    }
+
+    private fun parsePcapFromStream(
+        input: java.io.InputStream,
+        globalHeader: ByteArray,
+        swapped: Boolean,
+        fileSize: Long,
+        onProgress: ((Float) -> Unit)? = null
+    ): List<ParsedHandshake> {
+        val linktype = if (swapped) globalHeader.toInt32BE(20) else globalHeader.toInt32LE(20)
+        Log.d(TAG, "  parsePcapFromStream: linktype=$linktype, fileSize=$fileSize")
+        val ctx = ProcContext(
+            records = mutableListOf(),
+            eapolMessages = mutableMapOf(),
+            essidMap = mutableMapOf(),
+            channelMap = mutableMapOf(),
+            rsnInfoMap = mutableMapOf(),
+            clientsPerBssid = mutableMapOf(),
+            frameCounts = mutableMapOf()
+        )
+        var packetCount = 0
+        var bytesRead = 24L
+
+        while (true) {
+            val header = input.readNBytesCompat(16)
+            if (header.size < 16) break
+            bytesRead += 16
+
+            val inclLen = if (swapped) header.toInt32BE(8) else header.toInt32LE(8)
+            if (inclLen <= 0 || inclLen > MAX_PCAP_INCL_LEN) {
+                Log.w(TAG, "  parsePcapFromStream: bad inclLen=$inclLen at bytesRead=$bytesRead")
+                break
+            }
+
+            val packetData = input.readNBytesCompat(inclLen)
+            if (packetData.size < inclLen) {
+                Log.w(TAG, "  parsePcapFromStream: truncated packet (got ${packetData.size} of $inclLen)")
+                break
+            }
+            bytesRead += inclLen
+
+            processPacket(packetData, linktype, ctx)
+            packetCount++
+            if (onProgress != null && packetCount % 512 == 0 && fileSize > 0) {
+                onProgress(bytesRead.toFloat() / fileSize)
+            }
+        }
+        onProgress?.invoke(1f)
+        if (macParseWarnCount > 5) {
+            Log.w(
+                TAG,
+                "  suppressed ${macParseWarnCount - 5} MAC-frame warnings; not-EAPOL frames: $notEapolLogCount"
+            )
+        }
+        pairMessages(ctx.eapolMessages, ctx.records, ctx.essidMap)
+        val distinct = ctx.records.distinctBy { it.to22000Line() }
+        Log.d(TAG, "  parsePcapFromStream: $packetCount packets, ${distinct.size} distinct")
+        return distinct
+    }
+
+    private fun parsePcapngFromStream(
+        shbTypeBytes: ByteArray,
+        input: java.io.InputStream,
+        fileSize: Long,
+        onProgress: ((Float) -> Unit)? = null
+    ): List<ParsedHandshake> {
+        Log.d(TAG, "  parsePcapngFromStream: fileSize=$fileSize")
+        val ctx = ProcContext(
+            records = mutableListOf(),
+            eapolMessages = mutableMapOf(),
+            essidMap = mutableMapOf(),
+            channelMap = mutableMapOf(),
+            rsnInfoMap = mutableMapOf(),
+            clientsPerBssid = mutableMapOf(),
+            frameCounts = mutableMapOf()
+        )
+        var linktype = DLT_IEEE802_11_RADIO
+        var blockCount = 0
+        var bytesRead = 0L
+
+        val shbTotalLenBytes = input.readNBytesCompat(4)
+        if (shbTotalLenBytes.size < 4) return emptyList()
+        bytesRead += 8
+        val shbTotalLen = shbTotalLenBytes.toInt32LE(0)
+        val shbBodyLen = shbTotalLen - 8
+        if (shbBodyLen > 0) {
+            val shbBody = input.readNBytesCompat(shbBodyLen)
+            bytesRead += shbBody.size
+            if (shbBody.size >= 4) {
+                val bom = shbBody.toInt32LE(0)
+                if (bom == 0x4d3c2b1a) linktype = -1
+            }
+        }
+        blockCount++
+
+        while (true) {
+            val blockHeader = input.readNBytesCompat(8)
+            if (blockHeader.size < 8) break
+            bytesRead += 8
+
+            val blockType = blockHeader.toInt32LE(0)
+            val totalLen = blockHeader.toInt32LE(4)
+            if (totalLen < 12) break
+
+            val bodyLen = totalLen - 8
+            val blockData = input.readNBytesCompat(bodyLen)
+            if (blockData.size < bodyLen) break
+            bytesRead += bodyLen
+
+            blockCount++
+            when {
+                blockType == BLOCK_IDB && blockData.size >= 8 -> {
+                    linktype = blockData.toInt16LE(0).toInt()
+                }
+
+                blockType == BLOCK_EPB && blockData.size >= 20 -> {
+                    val caplen = blockData.toInt32LE(12)
+                    val actualCaplen = caplen.coerceAtMost(bodyLen - 20)
+                    if (actualCaplen > 0 && blockData.size >= 20 + actualCaplen) {
+                        processPacket(
+                            blockData.copyOfRange(20, 20 + actualCaplen),
+                            linktype, ctx
+                        )
+                    }
+                }
+
+                blockType == BLOCK_SPB && blockData.size >= 4 -> {
+                    val origLen = blockData.toInt32LE(0)
+                    val capturedLen = origLen.coerceAtMost(bodyLen - 4)
+                    if (capturedLen > 0 && blockData.size >= 4 + capturedLen) {
+                        processPacket(
+                            blockData.copyOfRange(4, 4 + capturedLen),
+                            linktype, ctx
+                        )
+                    }
+                }
+            }
+
+            if (onProgress != null && blockCount % 512 == 0 && fileSize > 0) {
+                onProgress(bytesRead.toFloat() / fileSize)
+            }
+        }
+
+        onProgress?.invoke(1f)
+        pairMessages(ctx.eapolMessages, ctx.records, ctx.essidMap)
+        val distinct = ctx.records.distinctBy { it.to22000Line() }
+        Log.d(TAG, "  parsePcapngFromStream: $blockCount blocks, ${distinct.size} distinct")
         return distinct
     }
 
@@ -740,10 +928,9 @@ class PcapParser {
                     )
                     if (msg != null) {
                         ctx.clientsPerBssid.getOrPut(bssid) { mutableSetOf() }.add(msg.clientMac)
-                        if (radiotapChannel != null) ctx.channelMap.putIfAbsent(
-                            bssid,
+                        if (radiotapChannel != null) ctx.channelMap.getOrPut(bssid) {
                             radiotapChannel
-                        )
+                        }
                         countFrame("eapol_${msg.messageNum}")
                     }
                 }

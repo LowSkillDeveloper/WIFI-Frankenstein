@@ -1,6 +1,5 @@
 package com.lsd.wififrankenstein.util
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.location.GnssStatus
 import android.location.Location
@@ -40,22 +39,33 @@ class GpsValidator(context: Context) {
     }
 
     fun validateLocation(location: Location): GpsHealth {
+
+        if (location.isFromMockProvider) return GpsHealth.BAD
+
         var suspicious = false
 
-        // 1. Check speed jumps
         lastLocation?.let { last ->
             val distance = last.distanceTo(location)
-            val timeDiff = (location.time - last.time) / 1000.0 // seconds
+            val timeDiff = (location.time - last.time) / 1000.0
             if (timeDiff > 0) {
-                val speed = distance / timeDiff // m/s
-                if (speed > 500) { // > 1800 km/h
+                val speed = distance / timeDiff
+                val accuracySum = last.accuracy + location.accuracy
+
+                if (speed > 300 + accuracySum / maxOf(timeDiff, 1.0)) {
                     suspicious = true
                 }
             }
         }
+
+        if (!location.latitude.isFinite() || !location.longitude.isFinite()) return GpsHealth.BAD
+        if (location.latitude == 0.0 && location.longitude == 0.0) return GpsHealth.BAD
+        if (location.accuracy > 16000f) return GpsHealth.BAD
+
+        if (location.accuracy <= 0f || location.time == 0L) {
+            return GpsHealth.UNRELIABLE
+        }
         lastLocation = location
 
-        // 2. Check GnssStatus (API 24+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             gnssStatus?.let { status ->
                 var usedInFixCount = 0
@@ -66,31 +76,36 @@ class GpsValidator(context: Context) {
                         avgCn0 += status.getCn0DbHz(i)
                     }
                 }
-                
+
                 if (usedInFixCount > 0) {
                     avgCn0 /= usedInFixCount
                 }
 
-                // Criteria for unreliable: too few satellites OR abnormal noise
                 if (usedInFixCount < 4 || avgCn0 < 15f || avgCn0 > 55f) {
                     suspicious = true
                 }
-                
+
                 if (usedInFixCount >= 8 && avgCn0 > 25f && !suspicious) return GpsHealth.EXCELLENT
                 if (usedInFixCount >= 4 && avgCn0 > 20f && !suspicious) return GpsHealth.GOOD
             }
         }
 
-        // 3. Fallback for older versions or if GNSS data is missing
         if (location.accuracy > 100f) return GpsHealth.BAD
         if (suspicious) return GpsHealth.UNRELIABLE
-        
+
         return GpsHealth.GOOD
     }
 
     fun getSatelliteCount(): Int {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            return gnssStatus?.satelliteCount ?: 0
+
+            return gnssStatus?.let { status ->
+                var used = 0
+                for (i in 0 until status.satelliteCount) {
+                    if (status.usedInFix(i)) used++
+                }
+                used
+            } ?: 0
         }
         return 0
     }

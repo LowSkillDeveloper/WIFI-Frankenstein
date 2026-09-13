@@ -203,7 +203,6 @@ class WiFiConnectionHelper(private val context: Context) {
             cleanup()
         }
 
-
         Log.d(TAG, "[connectToNetwork] branch=LEGACY_FIRST (sdk=$sdkInt) $dev")
         connectWithWifiConfiguration(
             scanResult,
@@ -221,6 +220,14 @@ class WiFiConnectionHelper(private val context: Context) {
         continuation: kotlin.coroutines.Continuation<Boolean>,
         originalNetwork: String?
     ) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            completeWithFailure(
+                callback,
+                continuation,
+                context.getString(R.string.wifi_suggestion_api_unavailable)
+            )
+            return
+        }
         try {
             val caps = scanResult.capabilities
             Log.d(TAG, "[connectWithNetworkSuggestion] caps='$caps' pwdLen=${password.length} $dev")
@@ -407,7 +414,10 @@ class WiFiConnectionHelper(private val context: Context) {
                 "[tryAddOrUpdateExisting] ssid='$ssid' configured=${configurations.size} existing=${existing != null} $dev"
             )
             if (existing != null) {
-                val updateConfig = WifiConfiguration(config)
+                // WifiConfiguration(WifiConfiguration) copy ctor requires API 30.
+                val updateConfig =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) WifiConfiguration(config)
+                    else config
                 updateConfig.networkId = existing.networkId
                 val updatedId = wifiManager.addNetwork(updateConfig)
                 Log.d(
@@ -723,7 +733,12 @@ class WiFiConnectionHelper(private val context: Context) {
         return try {
             val locationManager =
                 context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-            val enabled = locationManager?.isLocationEnabled ?: false
+            val enabled = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                locationManager?.isLocationEnabled ?: false
+            } else {
+                (locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) ||
+                        (locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true)
+            }
             Log.d(TAG, "[isLocationEnabled] enabled=$enabled $dev")
             enabled
         } catch (e: Exception) {

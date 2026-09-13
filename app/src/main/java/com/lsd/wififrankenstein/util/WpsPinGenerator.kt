@@ -937,7 +937,6 @@ class WpsPinGenerator {
         )
     }
 
-
     private fun computeChecksum(pin: Long): Int {
         var accum = 0
         var tempPin = pin
@@ -1037,7 +1036,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinComputePIN",
@@ -1052,7 +1050,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1071,7 +1068,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinTrendNetSum",
@@ -1088,7 +1084,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1109,7 +1104,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinHuaweiMul10",
@@ -1128,7 +1122,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1154,7 +1147,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinRalinkSum",
@@ -1172,7 +1164,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinRealtekXOR",
@@ -1188,7 +1179,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1215,7 +1205,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinTPLinkBits",
@@ -1239,7 +1228,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinBroadcomXOR",
@@ -1259,7 +1247,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1284,7 +1271,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinZTEXOR",
@@ -1307,7 +1293,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinBillionXOR",
@@ -1326,7 +1311,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1356,7 +1340,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinFiberhomeXOR",
@@ -1377,7 +1360,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinActiontecMul7",
@@ -1397,7 +1379,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1424,7 +1405,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinSitecomMul4",
@@ -1441,7 +1421,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinPlanexAdd",
@@ -1457,7 +1436,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1491,7 +1469,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinHitronXOR",
@@ -1512,7 +1489,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinObservaMul11",
@@ -1528,7 +1504,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1550,7 +1525,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinUbeeMul20",
@@ -1569,7 +1543,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1604,7 +1577,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinCelenoTable",
@@ -1630,7 +1602,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1679,7 +1650,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinAliceAGPF",
@@ -1711,7 +1681,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinSpeedportXOR",
@@ -1737,7 +1706,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinFTEMaxCom",
@@ -1758,7 +1726,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1783,7 +1750,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinIntelbrasMul7",
@@ -1802,7 +1768,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1826,7 +1791,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinAiroconSquare",
@@ -1842,7 +1806,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1870,7 +1833,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinComtrendMul4",
@@ -1889,7 +1851,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1914,7 +1875,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinBlinkMul3",
@@ -1930,7 +1890,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1954,7 +1913,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinCameoMul3",
@@ -1970,7 +1928,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -1993,7 +1950,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(
@@ -2022,7 +1978,6 @@ class WpsPinGenerator {
             )
         )
 
-
         algorithms.add(
             WpsAlgorithm(
                 id = "pinCBNSum",
@@ -2043,7 +1998,6 @@ class WpsPinGenerator {
                 isExperimental = true
             )
         )
-
 
         algorithms.add(
             WpsAlgorithm(

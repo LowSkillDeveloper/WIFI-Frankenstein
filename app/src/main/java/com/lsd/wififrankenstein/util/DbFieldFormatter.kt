@@ -6,8 +6,9 @@ import com.lsd.wififrankenstein.R
 object DbFieldFormatter {
 
     private val DATE_REGEX = Regex("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")
-    private val DATE_FORMATTER = ThreadLocal.withInitial {
-        java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+    private val DATE_FORMATTER = object : ThreadLocal<java.text.SimpleDateFormat>() {
+        override fun initialValue(): java.text.SimpleDateFormat =
+            java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
     }
 
     fun longToIp(ipLong: Long?): String? {

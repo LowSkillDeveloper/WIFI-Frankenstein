@@ -11,6 +11,7 @@ class AdvancedCache<K, V> private constructor(
 ) {
     private val cache = ConcurrentHashMap<K, CacheEntry<V>>()
     private val accessOrder = ConcurrentHashMap<K, Long>()
+    private val orderIndex = java.util.TreeMap<Long, K>()
     private val lock = Mutex()
     private var accessCounter = AtomicLong(0)
 
@@ -35,35 +36,56 @@ class AdvancedCache<K, V> private constructor(
     }
 
     suspend fun get(key: K): V? {
-        val entry = cache[key]
-        if (entry != null && !entry.isExpired(expireAfterMs)) {
-            return entry.value
+        val entry = cache[key] ?: return null
+        if (entry.isExpired(expireAfterMs)) {
+            lock.withLock { removeEntryLocked(key) }
+            return null
         }
-        return null
+        lock.withLock {
+            val newOrder = accessCounter.incrementAndGet()
+            val oldOrder = accessOrder.put(key, newOrder)
+            if (oldOrder != null) {
+                orderIndex.remove(oldOrder)
+            }
+            orderIndex[newOrder] = key
+        }
+        return entry.value
     }
 
     suspend fun put(key: K, value: V) {
         lock.withLock {
+            removeEntryLocked(key)
             if (cache.size >= maxSize) {
                 evictLRU()
             }
             cache[key] = CacheEntry(value)
-            accessOrder[key] = accessCounter.incrementAndGet()
+            val order = accessCounter.incrementAndGet()
+            accessOrder[key] = order
+            orderIndex[order] = key
         }
     }
 
-    private fun evictLRU() {
-        val lruKey = accessOrder.minByOrNull { it.value }?.key
-        if (lruKey != null) {
-            cache.remove(lruKey)
-            accessOrder.remove(lruKey)
+    private fun removeEntryLocked(key: K) {
+        val oldOrder = accessOrder.remove(key)
+        if (oldOrder != null) {
+            orderIndex.remove(oldOrder)
         }
+        cache.remove(key)
+    }
+
+    private fun evictLRU() {
+        val oldest = orderIndex.firstEntry() ?: return
+        val key = oldest.value
+        orderIndex.remove(oldest.key)
+        accessOrder.remove(key)
+        cache.remove(key)
     }
 
     suspend fun clear() {
         lock.withLock {
             cache.clear()
             accessOrder.clear()
+            orderIndex.clear()
         }
     }
 

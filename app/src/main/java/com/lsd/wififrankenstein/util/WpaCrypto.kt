@@ -1,6 +1,5 @@
 package com.lsd.wififrankenstein.util
 
-import java.nio.ByteBuffer
 import java.security.MessageDigest
 import javax.crypto.Cipher
 import javax.crypto.Mac
@@ -52,10 +51,13 @@ object WpaCrypto {
 
     fun sha1Prf(key: ByteArray, label: ByteArray, data: ByteArray, outputLen: Int): ByteArray {
         val out = ByteArray(outputLen)
+        val msg = ByteArray(label.size + data.size + 1)
+        System.arraycopy(label, 0, msg, 0, label.size)
+        System.arraycopy(data, 0, msg, label.size, data.size)
         var pos = 0
         var counter = 0
         while (pos < outputLen) {
-            val msg = label + data + byteArrayOf(counter.toByte())
+            msg[msg.size - 1] = counter.toByte()
             val block = hmacSha1(key, msg)
             val copyLen = minOf(block.size, outputLen - pos)
             System.arraycopy(block, 0, out, pos, copyLen)
@@ -73,14 +75,22 @@ object WpaCrypto {
     ): ByteArray {
         val outputLenBytes = (outputLenBits + 7) / 8
         val out = ByteArray(outputLenBytes)
-        val lengthBytes = ByteBuffer.allocate(2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
-            .putShort(outputLenBits.toShort()).array()
+        val lengthBytes = ByteArray(2)
+        lengthBytes[0] = (outputLenBits and 0xFF).toByte()
+        lengthBytes[1] = ((outputLenBits shr 8) and 0xFF).toByte()
+        val counterBytes = ByteArray(2)
+        val msg = ByteArray(2 + label.size + data.size + lengthBytes.size)
+        System.arraycopy(label, 0, msg, 2, label.size)
+        System.arraycopy(data, 0, msg, 2 + label.size, data.size)
+        System.arraycopy(lengthBytes, 0, msg, 2 + label.size + data.size, lengthBytes.size)
         var pos = 0
         var counter = 1
         while (pos < outputLenBytes) {
-            val counterBytes = ByteBuffer.allocate(2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
-                .putShort(counter.toShort()).array()
-            val block = hmacSha256(key, counterBytes + label + data + lengthBytes)
+            counterBytes[0] = (counter and 0xFF).toByte()
+            counterBytes[1] = ((counter shr 8) and 0xFF).toByte()
+            msg[0] = counterBytes[0]
+            msg[1] = counterBytes[1]
+            val block = hmacSha256(key, msg)
             val copyLen = minOf(block.size, outputLenBytes - pos)
             System.arraycopy(block, 0, out, pos, copyLen)
             pos += copyLen
@@ -149,11 +159,32 @@ object WpaCrypto {
         return result
     }
 
+    private val HEX_CHARS = "0123456789abcdef".toCharArray()
+
     fun hexToBytes(hex: String): ByteArray {
-        val clean = hex.filter { it in "0123456789abcdefABCDEF" }
-        return clean.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        val cleanLen = hex.count { it.isLetterOrDigit() }
+        val result = ByteArray(cleanLen / 2)
+        var j = 0
+        var i = 0
+        while (i < hex.length) {
+            if (!hex[i].isLetterOrDigit()) { i++; continue }
+            val hi = hex[i].digitToInt(16) shl 4
+            i++
+            while (i < hex.length && !hex[i].isLetterOrDigit()) i++
+            if (i < hex.length) {
+                result[j++] = (hi or hex[i].digitToInt(16)).toByte()
+                i++
+            }
+        }
+        return result
     }
 
-    fun bytesToHex(bytes: ByteArray): String =
-        bytes.joinToString("") { "%02x".format(it) }
+    fun bytesToHex(bytes: ByteArray): String {
+        val sb = StringBuilder(bytes.size * 2)
+        for (b in bytes) {
+            sb.append(HEX_CHARS[(b.toInt() ushr 4) and 0xF])
+            sb.append(HEX_CHARS[b.toInt() and 0xF])
+        }
+        return sb.toString()
+    }
 }

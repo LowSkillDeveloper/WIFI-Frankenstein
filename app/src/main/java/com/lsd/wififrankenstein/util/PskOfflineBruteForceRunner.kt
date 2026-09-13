@@ -8,14 +8,14 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
-import java.util.concurrent.atomic.LongAdder
+import java.util.concurrent.atomic.AtomicLong
 
 data class OfflineProgress(
     val currentPassword: String,
@@ -86,7 +86,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         val allHashes = (listOf(handshakeHash) + extraHashes).distinctBy { it.dedupKey() }
 
         val totalPasswords = countLines(wordlistUri)
-        val totalAttempts = LongAdder()
+        val totalAttempts = AtomicLong()
         var foundPassword: String? = null
         var fileOffset = startOffset
         val speedWindow = mutableListOf<Pair<Long, Long>>()
@@ -176,7 +176,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
                 Log.d(TAG, "progressConsumerJob started on IO")
                 var progressCount = 0
                 for (p in progressChannel) {
-                    val attemptsSnapshot = totalAttempts.sum()
+                    val attemptsSnapshot = totalAttempts.get()
                     progressCount++
                     if (progressCount % 10 == 1) {
                         Log.d(
@@ -247,7 +247,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         }
 
         val elapsed = System.currentTimeMillis() - startTime
-        val attempts = totalAttempts.sum()
+        val attempts = totalAttempts.get()
         val avgSpeed = if (elapsed > 0) attempts.toDouble() / elapsed * 1000.0 else 0.0
 
         Log.d(TAG, "=== OFFLINE BRUTE FORCE END ===")
@@ -284,7 +284,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         val startTime = System.currentTimeMillis()
         val allHashes = (listOf(handshakeHash) + extraHashes).distinctBy { it.dedupKey() }
         val totalPasswords = parsed.totalCombinations
-        val totalAttempts = LongAdder()
+        val totalAttempts = AtomicLong()
         var foundPassword: String? = null
         var currentIndex = startOffset
         val speedWindow = mutableListOf<Pair<Long, Long>>()
@@ -325,7 +325,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
             val progressConsumerJob = scope.launch(Dispatchers.IO) {
                 for (p in progressChannel) {
                     if (foundDelivered) continue
-                    val attemptsSnapshot = totalAttempts.sum()
+                    val attemptsSnapshot = totalAttempts.get()
                     val elapsed = System.currentTimeMillis() - startTime
                     speedWindow.add(elapsed to attemptsSnapshot)
                     while (speedWindow.size > 2 &&
@@ -369,7 +369,7 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         }
 
         val elapsed = System.currentTimeMillis() - startTime
-        val attempts = totalAttempts.sum()
+        val attempts = totalAttempts.get()
         val avgSpeed = if (elapsed > 0) attempts.toDouble() / elapsed * 1000.0 else 0.0
         return OfflineResult(foundPassword, attempts, elapsed, avgSpeed,
             cancelled = cancelled && foundPassword == null, offset = currentIndex)
@@ -381,10 +381,10 @@ class PskOfflineBruteForceRunner(private val context: Context) {
         progressChannel: Channel<OfflineProgress>,
         resultChannel: Channel<String?>,
         chunkOffset: Long,
-        attemptsAccumulator: LongAdder
+        attemptsAccumulator: AtomicLong
     ) {
         suspend fun report(p: OfflineProgress) {
-            attemptsAccumulator.add(p.attempts)
+            attemptsAccumulator.addAndGet(p.attempts)
             if (!foundDelivered) progressChannel.send(p)
         }
 

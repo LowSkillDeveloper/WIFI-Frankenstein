@@ -52,32 +52,22 @@ class PskBruteForceRunner(private val context: Context) {
         var totalLines = 0
 
         try {
+            val passwords = mutableListOf<String>()
             val inputStream = context.contentResolver.openInputStream(wordlistUri)
                 ?: return@withContext PskBruteForceResult(null, false, 0)
-
-            val reader = BufferedReader(InputStreamReader(inputStream))
-
-            reader.use { br ->
+            BufferedReader(InputStreamReader(inputStream)).use { br ->
                 var line: String?
                 while (br.readLine().also { line = it } != null) {
-                    totalLines++
+                    val trimmed = line!!.trim()
+                    if (trimmed.isNotEmpty() && !trimmed.startsWith("#")) {
+                        passwords.add(trimmed)
+                    }
                 }
             }
-            Log.d(TAG, "Wordlist total lines: $totalLines")
+            totalLines = passwords.size
+            Log.d(TAG, "Wordlist total valid passwords: $totalLines")
 
-            val inputStream2 = context.contentResolver.openInputStream(wordlistUri)
-                ?: return@withContext PskBruteForceResult(null, false, 0)
-
-            val reader2 = BufferedReader(InputStreamReader(inputStream2))
-
-            reader2.use { br ->
-                var line: String?
-                while (br.readLine().also { line = it } != null) {
-                    val password = line!!.trim()
-                    if (password.isEmpty() || password.startsWith("#")) {
-                        attempts++
-                        continue
-                    }
+            for (password in passwords) {
 
                     attempts++
                     Log.d(TAG, "Attempt $attempts/$totalLines: trying '$password'")
@@ -118,7 +108,6 @@ class PskBruteForceRunner(private val context: Context) {
                         Log.d(TAG, "Progress: $attempts/$totalLines attempts")
                     }
                 }
-            }
 
             Log.d(TAG, "=== PSK BRUTE FORCE END (not found after $attempts attempts) ===")
             PskBruteForceResult(null, false, attempts)
