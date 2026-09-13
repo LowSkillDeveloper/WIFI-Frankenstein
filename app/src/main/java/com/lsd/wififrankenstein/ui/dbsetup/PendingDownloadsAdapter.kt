@@ -10,11 +10,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.lsd.wififrankenstein.R
 
-/**
- * Adapter for the "Active downloads" card in the Database Setup screen.
- * Renders the background download queue with per-item status, progress and
- * context actions (retry / resume / setup / cancel).
- */
 class PendingDownloadsAdapter(
     private val onRetry: (PendingDownload) -> Unit,
     private val onCancel: (PendingDownload) -> Unit,

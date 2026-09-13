@@ -248,11 +248,6 @@ class SmartLinkDbHelper(private val context: Context) {
     private lateinit var jsonUrl: String
     private var currentUrlType: UrlType? = null
 
-    private val _sources = MutableLiveData<List<DbSource>>()
-    val sources: LiveData<List<DbSource>> = _sources
-
-    private var currentSource: DbSource? = null
-
     private fun getMetadataFile(dbId: String): File {
         return File(context.cacheDir, "${dbId}_download.metadata")
     }
@@ -396,38 +391,6 @@ class SmartLinkDbHelper(private val context: Context) {
         }
     }
 
-    suspend fun fetchSources(url: String) {
-        withContext(Dispatchers.IO) {
-            val request = Request.Builder().url(url).build()
-            val response = client.newCall(request).execute()
-            if (response.isSuccessful) {
-                val jsonString = response.body.string()
-                try {
-                    val sourcesResponse =
-                        json.decodeFromString<RecommendedSourcesResponse>(jsonString)
-                    _sources.postValue(sourcesResponse.sources ?: emptyList())
-                } catch (e: Exception) {
-                    Log.e("SmartLinkDbHelper", "Error parsing sources JSON", e)
-                    _sources.postValue(emptyList())
-                }
-            } else {
-                throw Exception(context.getString(R.string.ds_failed_fetch_sources_info))
-            }
-        }
-    }
-
-    fun setCurrentSource(source: DbSource) {
-        currentSource = source
-    }
-
-    fun getCurrentSource(): DbSource? = currentSource
-
-    /**
-     * Sets the origin URL context (jsonUrl/currentUrlType) without refetching,
-     * mirroring what [fetchDatabases] assigns. Used by the background download
-     * manager so that updateUrl is preserved for databases downloaded outside
-     * of a fragment lifecycle.
-     */
     fun setDownloadOrigin(url: String?) {
         if (url.isNullOrBlank()) return
         jsonUrl = url
@@ -535,8 +498,7 @@ class SmartLinkDbHelper(private val context: Context) {
                     cachedSizeInMB = actualFileSize,
                     idJson = dbInfo.id,
                     version = dbInfo.version,
-                    updateUrl = currentSource?.smartlinkUrl
-                        ?: if (currentUrlType == UrlType.JSON_API) jsonUrl else null,
+                    updateUrl = if (currentUrlType == UrlType.JSON_API) jsonUrl else null,
                     smartlinkType = dbInfo.type,
                     tableName = validatedTableName,
                     columnMap = validatedColumnMap,

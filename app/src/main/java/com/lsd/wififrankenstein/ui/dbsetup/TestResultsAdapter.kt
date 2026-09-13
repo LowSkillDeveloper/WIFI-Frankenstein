@@ -13,7 +13,6 @@ import com.lsd.wififrankenstein.R
 import org.json.JSONException
 import org.json.JSONObject
 
-
 class TestResultsAdapter(private val results: List<Pair<String, Pair<Boolean, String>>>) :
     RecyclerView.Adapter<TestResultsAdapter.ViewHolder>() {
 

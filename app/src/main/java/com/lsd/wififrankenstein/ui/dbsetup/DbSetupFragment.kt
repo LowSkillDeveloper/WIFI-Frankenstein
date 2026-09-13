@@ -94,7 +94,6 @@ class DbSetupFragment : Fragment() {
     }
 
     private fun setupCardClicks() {
-        binding.cardDownload.setOnClickListener { showRecommendedBottomSheet() }
         binding.cardAddFile.setOnClickListener { pickFile() }
         binding.cardAddUrl.setOnClickListener { showUrlInputBottomSheet() }
         binding.cardAddApiServer.setOnClickListener { showApiConfigBottomSheet() }
@@ -535,63 +534,6 @@ class DbSetupFragment : Fragment() {
         dialog.show()
     }
 
-    private fun showRecommendedBottomSheet() {
-        val dialog = BottomSheetDialog(requireContext())
-        val view = layoutInflater.inflate(R.layout.bottom_sheet_recommended_dbs, null)
-        dialog.setContentView(view)
-
-        val progressBar = view.findViewById<ProgressBar>(R.id.progressBar)
-        val textViewStatus = view.findViewById<TextView>(R.id.textViewStatus)
-        val buttonCancel =
-            view.findViewById<com.google.android.material.button.MaterialButton>(R.id.buttonCancel)
-        var isCancelled = false
-
-        buttonCancel.setOnClickListener { isCancelled = true; dialog.dismiss() }
-
-        val sourcesUrl =
-            "https://raw.githubusercontent.com/LowSkillDeveloper/WIFI-Frankenstein/refs/heads/service/recommended-databases.json"
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val sources = viewModel.fetchSources(sourcesUrl) ?: emptyList()
-                if (sources.isEmpty()) {
-                    textViewStatus.text = getString(R.string.no_recommended_sources_skip)
-                    progressBar.visibility = View.GONE
-                    return@launch
-                }
-
-                textViewStatus.text = getString(R.string.loading_recommended_databases)
-                val allDatabases = mutableListOf<SmartLinkDbInfo>()
-                for (source in sources) {
-                    if (isCancelled) return@launch
-                    val databases = viewModel.fetchSmartLinkDatabases(source.smartlinkUrl)
-                    if (databases != null) {
-                        allDatabases.addAll(databases)
-                    }
-                }
-
-                dialog.dismiss()
-
-                if (allDatabases.isNotEmpty()) {
-                    showMultiSelectDialog(
-                        allDatabases.distinctBy { it.id },
-                        sources.mapNotNull { it.description }.distinct().joinToString("\n"),
-                        originUrl = sources.lastOrNull()?.smartlinkUrl
-                    )
-                } else {
-                    showSnackbar(getString(R.string.db_step1_no_databases))
-                }
-            } catch (e: Exception) {
-                if (!isCancelled) {
-                    textViewStatus.text = getString(R.string.db_error_loading)
-                    progressBar.visibility = View.GONE
-                }
-            }
-        }
-
-        dialog.show()
-    }
-
     private fun showMultiSelectDialog(
         databases: List<SmartLinkDbInfo>,
         description: String? = null,
@@ -605,6 +547,15 @@ class DbSetupFragment : Fragment() {
         if (!description.isNullOrBlank()) {
             sourceDescription.text = description
             sourceDescription.visibility = View.VISIBLE
+        }
+        if (originUrl != null) {
+            val notice = "\n\n⚠️ ${getString(R.string.smartlink_community_notice)}"
+            if (!description.isNullOrBlank()) {
+                sourceDescription.append(notice)
+            } else {
+                sourceDescription.text = getString(R.string.smartlink_community_notice)
+                sourceDescription.visibility = View.VISIBLE
+            }
         }
 
         fun updateSelectionCount() {
@@ -682,7 +633,7 @@ class DbSetupFragment : Fragment() {
                         getString(R.string.db_dl_needs_setup_snackbar, event.pending.name)
                     )
 
-                    is DatabaseDownloadManager.Event.Failed -> Unit // visible in the card
+                    is DatabaseDownloadManager.Event.Failed -> Unit
                 }
             }
         }

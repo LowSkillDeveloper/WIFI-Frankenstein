@@ -680,12 +680,13 @@ class SQLite3WiFiHelper(
 
         if (!hasQuadkey || database == null) {
             Log.d(TAG, "[No Quadkey] Falling back to standard bounding box query")
-            return@withContext getPointsInBoundingBox(
+            val mapped = getPointsInBoundingBox(
                 bounds,
                 effectiveLimit
             ).map { (bssid, lat, lon) ->
                 ClusteredMapPoint(bssid, lat, lon, 1, false)
             }
+            return@withContext enrichWithEssid(mapped)
         }
 
         try {
@@ -795,7 +796,7 @@ class SQLite3WiFiHelper(
                     TAG,
                     "[Cluster] Retrieved ${points.size} clustered points in ${System.currentTimeMillis() - queryStart}ms"
                 )
-                points
+                enrichWithEssidLocked(db, points)
             }
         } catch (e: OutOfMemoryError) {
             Log.e(TAG, "OutOfMemoryError in clustered query", e)
@@ -821,12 +822,13 @@ class SQLite3WiFiHelper(
                 TileRange(tileX1, tileY1, tileX2, tileY2),
                 zoom
             )
-            return@withContext getPointsInBoundingBox(
+            val mapped = getPointsInBoundingBox(
                 bounds,
                 Int.MAX_VALUE
             ).map { (bssid, lat, lon) ->
                 ClusteredMapPoint(bssid, lat, lon, 1, false)
             }
+            return@withContext enrichWithEssid(mapped)
         }
 
         try {
@@ -935,7 +937,7 @@ class SQLite3WiFiHelper(
                 }
 
                 Log.d(TAG, "[TileQuery] Retrieved ${points.size} clustered points")
-                points
+                enrichWithEssidLocked(db, points)
             }
         } catch (e: OutOfMemoryError) {
             Log.e(TAG, "OutOfMemoryError in tile query", e)
@@ -975,11 +977,94 @@ class SQLite3WiFiHelper(
     }
 
     private suspend fun getPointsInBoundingBoxFallback(bounds: BoundingBox): List<ClusteredMapPoint> {
-        return getPointsInBoundingBox(
+        val mapped = getPointsInBoundingBox(
             bounds,
             PerformanceManager.MAX_POINTS_PER_QUERY
         ).map { (bssid, lat, lon) ->
             ClusteredMapPoint(bssid, lat, lon, 1, false)
+        }
+        return enrichWithEssid(mapped)
+    }
+
+    private fun enrichWithEssidLocked(
+        db: SQLiteDatabase,
+        points: List<ClusteredMapPoint>
+    ): List<ClusteredMapPoint> {
+        if (points.isEmpty() || points.all { !it.essid.isNullOrBlank() }) return points
+        return try {
+            val tableName = DatabaseTypeUtils.getMainTableName(db)
+            if (!DatabaseTypeUtils.hasColumn(db, tableName, "BSSID") ||
+                !DatabaseTypeUtils.hasColumn(db, tableName, "ESSID")
+            ) {
+                return points
+            }
+
+            val pending = LinkedHashSet<Long>()
+            for (p in points) {
+                if (p.essid.isNullOrBlank() && p.bssidDecimal > 0) pending.add(p.bssidDecimal)
+            }
+            if (pending.isEmpty()) return points
+
+            val essidByBssid = HashMap<Long, String>(pending.size)
+            val chunk = ArrayList<Long>(ESSID_LOOKUP_CHUNK)
+
+            fun flushChunk() {
+                if (chunk.isEmpty()) return
+                val placeholders = chunk.joinToString(",") { "?" }
+                try {
+                    db.rawQuery(
+                        "SELECT BSSID, ESSID FROM $tableName WHERE BSSID IN ($placeholders)",
+                        chunk.map { it.toString() }.toTypedArray()
+                    ).use { cursor ->
+                        val bssidIdx = cursor.getColumnIndex("BSSID")
+                        val essidIdx = cursor.getColumnIndex("ESSID")
+                        if (bssidIdx >= 0 && essidIdx >= 0) {
+                            while (cursor.moveToNext()) {
+                                if (cursor.isNull(essidIdx)) continue
+                                val essid = cursor.getString(essidIdx)?.takeIf { it.isNotBlank() }
+                                    ?: continue
+                                essidByBssid[cursor.getLong(bssidIdx)] = essid
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "ESSID lookup chunk failed: ${e.message}")
+                } finally {
+                    chunk.clear()
+                }
+            }
+
+            for (bssid in pending) {
+                chunk.add(bssid)
+                if (chunk.size >= ESSID_LOOKUP_CHUNK) flushChunk()
+            }
+            flushChunk()
+
+            if (essidByBssid.isEmpty()) points
+            else points.map { p ->
+                if (p.essid.isNullOrBlank()) {
+                    essidByBssid[p.bssidDecimal]?.let { p.copy(essid = it) } ?: p
+                } else {
+                    p
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "ESSID enrichment failed: ${e.message}")
+            points
+        }
+    }
+
+    /** Convenience wrapper that acquires [databaseLock]; do not call while holding it. */
+    private suspend fun enrichWithEssid(points: List<ClusteredMapPoint>): List<ClusteredMapPoint> {
+        if (points.isEmpty() || points.all { !it.essid.isNullOrBlank() }) return points
+        return try {
+            databaseLock.withLock {
+                val db = database ?: return@withLock points
+                enrichWithEssidLocked(db, points)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "ESSID enrichment failed: ${e.message}")
+            points
         }
     }
 
@@ -1027,7 +1112,6 @@ class SQLite3WiFiHelper(
     private fun atanh(x: Double): Double {
         return 0.5 * Math.log((1 + x) / (1 - x))
     }
-
 
     private fun saveCachedLastModified(cachedFile: File, lastModified: Long) {
         val metadataFile = File(cachedFile.parentFile, "${cachedFile.name}.metadata")
@@ -2237,6 +2321,7 @@ class SQLite3WiFiHelper(
         private const val TAG = "SQLite3WiFiHelper"
         private const val SEARCH_CHUNK_ROWS = 1_000_000L
         private const val MAX_PREFIX_VARIANTS = 256
+        private const val ESSID_LOOKUP_CHUNK = 900
         private val DECIMAL_REGEX = Regex("[0-9]+")
         private val HEX_CLEAN_REGEX = Regex("[^a-fA-F0-9]")
         private val MAC_FORMAT_REGEX = Regex("([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})")
@@ -2246,7 +2331,6 @@ class SQLite3WiFiHelper(
         private val HEX_PAIR_REGEX = Regex("(.{2})")
 
         private val copyLocksPerFile = ConcurrentHashMap<String, Any>()
-
 
         fun deleteCachedDatabase(context: Context, dbUri: Uri) {
             val cacheDir = File(context.cacheDir, "CacheDB")

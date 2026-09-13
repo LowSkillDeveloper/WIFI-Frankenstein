@@ -83,8 +83,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
     private val smartLinkDbHelper = SmartLinkDbHelper(application)
     val smartLinkDatabases = smartLinkDbHelper.databases
 
-    val sources = smartLinkDbHelper.sources
-
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
@@ -94,26 +92,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
 
     private var loadJob: Job? = null
     private val loadMutex = Mutex()
-
-    suspend fun fetchSources(url: String): List<DbSource>? {
-        return try {
-            smartLinkDbHelper.fetchSources(url)
-            smartLinkDbHelper.sources.value
-        } catch (e: Exception) {
-            _errorEvent.value =
-                e.message
-                    ?: getApplication<Application>().getString(R.string.ds_failed_fetch_sources)
-            null
-        }
-    }
-
-    fun setCurrentSource(source: DbSource) {
-        smartLinkDbHelper.setCurrentSource(source)
-    }
-
-    fun getCurrentSource(): DbSource? {
-        return smartLinkDbHelper.getCurrentSource()
-    }
 
     private val _indexingProgress = MutableLiveData<Pair<String, Int>>()
     val indexingProgress: LiveData<Pair<String, Int>> = _indexingProgress
@@ -153,7 +131,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
 
     private val _showColumnMappingEvent = MutableLiveData<ColumnMappingEvent>()
     val showColumnMappingEvent: LiveData<ColumnMappingEvent> = _showColumnMappingEvent
-
 
     private var sqliteCustomHelper: SQLiteCustomHelper? = null
     private val _columnNames = MutableLiveData<List<String>>()
@@ -229,7 +206,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-
     fun deleteDbIndexes(dbItem: DbItem): Boolean {
         Log.d("DbSetupViewModel", "deleteDbIndexes: id=${dbItem.id}, dbType=${dbItem.dbType}")
         if (dbItem.dbType != DbType.SQLITE_FILE_CUSTOM && dbItem.dbType != DbType.SMARTLINK_SQLITE_FILE_CUSTOM) return false
@@ -240,7 +216,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         }
         return result
     }
-
 
     private fun updateDbIndexStatus(dbId: String, indexLevel: DbIndexLevel) {
         val currentList = _dbList.value.orEmpty().toMutableList()
@@ -353,7 +328,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-
     fun refreshLight() {
         updateAllDbIndexStatuses()
     }
@@ -422,7 +396,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-
     fun getWifiApiDatabases(): List<DbItem> {
         return dbList.value?.filter { it.dbType == DbType.WIFI_API } ?: emptyList()
     }
@@ -442,7 +415,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                     _isLoading.postValue(true)
                     try {
                         val jsonString = prefs.getString("db_list", null)
-                        Log.d("DbSetupViewModel", "Loaded DB list string: $jsonString")
                         if (jsonString != null) {
                             val dbList = Json.decodeFromString<List<DbItem>>(jsonString)
                             withContext(Dispatchers.Main) {
@@ -451,7 +423,7 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                                 updateMainApi()
                                 validateCachedDatabases()
                             }
-                            Log.d("DbSetupViewModel", "Loaded DB list: $dbList")
+                            Log.d("DbSetupViewModel", "Loaded DB list: ${dbList.size} items")
                         } else {
                             withContext(Dispatchers.Main) {
                                 _dbList.value = emptyList()
@@ -498,13 +470,11 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-
     private fun saveDbList() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val jsonString = Json.encodeToString(_dbList.value?.toList() ?: emptyList())
                 prefs.edit { putString("db_list", jsonString) }
-                Log.d("DbSetupViewModel", "Saved DB list: $jsonString")
             } catch (e: Exception) {
                 Log.e("DbSetupViewModel", "Error saving DB list: ${e.message}")
             }
@@ -713,7 +683,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
-
         if (newItem.dbType == DbType.SQLITE_FILE_P3WIFI && newItem.oldFormatWarning == null) {
             val db = sqlite3WiFiHelper?.database
             if (db != null) {
@@ -742,7 +711,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         }
 
         needDataRefresh = true
-
 
         forceUpdateIndexStatus(newItem.id)
 
@@ -963,7 +931,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-
     fun checkAndUpdateDatabasesWithIndexes() {
         viewModelScope.launch(Dispatchers.IO) {
             val currentList = _dbList.value ?: return@launch
@@ -1043,7 +1010,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
 
     private fun updateMainApi() {
         val currentList = _dbList.value.orEmpty().toMutableList()
-        Log.d("DbSetupViewModel", "List at start of updateMainApi: $currentList")
         currentList.forEachIndexed { index, item ->
             if (item.dbType == DbType.WIFI_API) {
                 item.isMain = index == currentList.indexOfFirst { it.dbType == DbType.WIFI_API }
@@ -1051,7 +1017,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
                 item.isMain = false
             }
         }
-        Log.d("DbSetupViewModel", "List at end of updateMainApi: $currentList")
         _dbList.value = currentList
     }
 
@@ -1314,10 +1279,6 @@ class DbSetupViewModel(application: Application) : AndroidViewModel(application)
 
         for (i in updatedList.indices) {
             val dbItem = updatedList[i]
-            Log.d(
-                "DbSetupViewModel",
-                "validateCachedDatabases: id=${dbItem.id}, dbType=${dbItem.dbType}"
-            )
             if (dbItem.dbType !in listOf(
                     DbType.SQLITE_FILE_P3WIFI,
                     DbType.SQLITE_FILE_CUSTOM,

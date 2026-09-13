@@ -68,8 +68,15 @@ class SafeDatabaseErrorHandler(private val appContext: Context? = null) : Databa
         val context = appContext ?: return false
         return try {
             val canonical = file.canonicalPath
-            listOf(context.cacheDir, context.filesDir).any { root ->
-                canonical.startsWith(root.canonicalPath + File.separator)
+            val roots = listOf(
+                context.cacheDir,
+                context.filesDir,
+                context.noBackupFilesDir,
+                File(context.applicationInfo.dataDir, "databases")
+            )
+            roots.any { root ->
+                canonical.startsWith(root.canonicalPath + File.separator) ||
+                        canonical == root.canonicalPath
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to resolve app-managed paths", e)

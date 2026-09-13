@@ -22,30 +22,17 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Process-wide orchestrator of background SmartLink database downloads.
- *
- * - Owns a sequential download queue exposed via [downloads] StateFlow.
- * - Persists the queue so it survives process death; on the next app start
- *   interrupted items are re-queued and SmartLinkDbHelper resumes from the
- *   partial .tmp/.metadata files automatically.
- * - When MEGA reports a bandwidth limit (HTTP 509 / MegaQuotaException) the
- *   item is parked in WAITING_QUOTA and retried automatically:
- *   the first 2 retries after 15 minutes, then every 6 hours.
- * - Custom SQLite databases that require interactive table/column mapping are
- *   parked in NEEDS_SETUP instead of being registered directly.
- */
 class DatabaseDownloadManager private constructor(private val appContext: Context) {
 
     companion object {
         private const val TAG = "DatabaseDownloadManager"
 
-        private const val QUOTA_RETRY_SHORT_MS = 15L * 60L * 1000L   // first 2 retries: every 15 min
-        private const val QUOTA_RETRY_LONG_MS = 6L * 60L * 60L * 1000L // then: every 6 hours
+        private const val QUOTA_RETRY_SHORT_MS = 15L * 60L * 1000L
+        private const val QUOTA_RETRY_LONG_MS = 6L * 60L * 60L * 1000L
         private const val QUOTA_SHORT_RETRY_LIMIT = 2
         private const val IDLE_POLL_MS = 1000L
 
@@ -58,15 +45,13 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
             }
         }
 
-        /** Returns the already-initialized instance, if any (does not create one). */
         fun peek(): DatabaseDownloadManager? = instance
     }
 
     sealed class Event {
-        /** A regular database finished downloading and was registered into db_list. */
+
         data class Completed(val dbItem: DbItem) : Event()
 
-        /** A custom SQLite database was downloaded but requires interactive setup. */
         data class NeedsSetupReady(val pending: PendingDownload, val dbItem: DbItem) : Event()
 
         data class Failed(val name: String, val reason: String?) : Event()
@@ -83,7 +68,8 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
     private val _events = MutableSharedFlow<Event>(extraBufferCapacity = 32)
     val events: SharedFlow<Event> = _events.asSharedFlow()
 
-    private val userCancelledIds = ConcurrentHashMap.newKeySet<String>()
+    private val userCancelledIds: MutableSet<String> =
+        Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
     private var queueRestored = false
 
     @Volatile
@@ -98,13 +84,6 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
         scope.launch { queueWorker() }
     }
 
-    // ------------------------------------------------------------------ state
-
-    /**
-     * Loads the persisted queue from disk (idempotent). Stale RUNNING items
-     * left by a killed process are re-queued; SmartLinkDbHelper resumes them
-     * from partial files on the next worker pass.
-     */
     fun restoreFromDisk() {
         synchronized(this) {
             if (queueRestored) return
@@ -128,26 +107,14 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
         }
     }
 
-    /** True if any download is queued/running/waiting for MEGA quota. */
     fun hasNetworkWork(): Boolean = _downloads.value.any { it.hasNetworkWork() }
 
-    /** True if anything is unfinished at all (incl. downloaded-but-unconfigured). */
     fun hasActiveWork(): Boolean = _downloads.value.any {
         it.hasNetworkWork() || it.status == DownloadStatus.NEEDS_SETUP
     }
 
     fun hasNeedsSetup(): Boolean = _downloads.value.any { it.status == DownloadStatus.NEEDS_SETUP }
 
-    // ---------------------------------------------------------------- enqueue
-
-    /**
-     * Adds databases to the background queue. Skips entries that are already
-     * queued or already registered in the database list.
-     *
-     * @param originUrl catalog/page URL the databases came from; stored on the
-     * helper so `updateUrl` is preserved (same as the in-dialog flow).
-     * @return number of items actually enqueued.
-     */
     suspend fun enqueue(
         databases: List<SmartLinkDbInfo>,
         originUrl: String? = null
@@ -194,8 +161,6 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
         }
     }
 
-    // ------------------------------------------------------- user actions
-
     fun retry(dbId: String) {
         scope.launch {
             mutationMutex.withLock {
@@ -237,7 +202,6 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
         }
     }
 
-    /** Called after the user finished interactive setup of a NEEDS_SETUP item. */
     fun markSetupCompleted(dbId: String) {
         scope.launch {
             mutationMutex.withLock {
@@ -247,13 +211,6 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
         }
     }
 
-    // ----------------------------------------------------------------- worker
-
-    /**
-     * Single permanent consumer of the queue. When nothing is due it polls
-     * every [IDLE_POLL_MS] — this keeps the design race-free: enqueue/retry/
-     * quota timers only mutate state, the worker always picks up what is due.
-     */
     private suspend fun queueWorker() {
         while (currentCoroutineContext().isActive) {
             val next = pickNext()
@@ -274,7 +231,7 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
     }
 
     private suspend fun processItem(item: PendingDownload) {
-        // Item may have been cancelled right before we picked it up
+
         if (_downloads.value.none { it.dbId == item.dbId }) return
 
         val info = item.decodeDbInfo() ?: run {
@@ -286,7 +243,6 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
         }
         Log.d(TAG, "Starting download: ${item.name} (${item.dbId})")
 
-        // Child job so cancelling one item does not kill the queue worker.
         val job = scope.launch { runDownload(item, info) }
         currentItemJob = job
         currentItemId = item.dbId
@@ -312,7 +268,7 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
                 helper.clearDownloadMetadata(item.dbId)
                 Log.d(TAG, "Cancelled by user: ${item.name}")
             } else {
-                // Scope shutdown (app killed): leave partials for next-start resume
+
                 updateItem(item.dbId) { it.copy(status = DownloadStatus.QUEUED, progressPercent = 0) }
             }
         } catch (e: MegaQuotaException) {
@@ -341,7 +297,7 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
                         totalBytes = total
                     )
 
-                    else -> current // PROGRESS_RESUME / PART / MERGE: keep last percent
+                    else -> current
                 }
             }
         }
@@ -401,8 +357,6 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
         }
     }
 
-    // -------------------------------------------------------------- helpers
-
     private fun updateItem(dbId: String, transform: (PendingDownload) -> PendingDownload) {
         _downloads.update { list -> list.map { if (it.dbId == dbId) transform(it) else it } }
     }
@@ -431,10 +385,6 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
         PendingDownloadStore.save(appContext, _downloads.value)
     }
 
-    /**
-     * Persists the queue on every change, throttled to at most once per 2 s
-     * (progress callbacks can arrive very frequently).
-     */
     private suspend fun persistWatcher() {
         var lastSave = 0L
         downloads.collect { list ->
@@ -446,11 +396,6 @@ class DatabaseDownloadManager private constructor(private val appContext: Contex
         }
     }
 
-    /**
-     * Appends a finished DbItem to the persisted "db_list" JSON directly.
-     * UI instances reload via [DbSetupViewModel.loadDbList] when they receive
-     * the Completed event or observe needDataRefresh.
-     */
     private suspend fun appendToPersistedDbList(dbItem: DbItem) {
         dbListFileMutex.withLock {
             try {

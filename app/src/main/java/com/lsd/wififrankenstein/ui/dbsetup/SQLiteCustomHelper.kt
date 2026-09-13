@@ -309,8 +309,8 @@ class SQLiteCustomHelper(
                 if (hasCoordsIndex) {
                     val limitClause = if (limit != Int.MAX_VALUE) " LIMIT $limit" else ""
                     """
-SELECT $macColumn, $latColumn, $lonColumn 
-FROM $tableName 
+SELECT $macColumn, $latColumn, $lonColumn
+FROM $tableName
 WHERE $latColumn >= ? AND $latColumn <= ?
 AND $lonColumn >= ? AND $lonColumn <= ?
 ORDER BY $latColumn, $lonColumn$limitClause
@@ -318,8 +318,8 @@ ORDER BY $latColumn, $lonColumn$limitClause
                 } else {
                     val limitClause = if (limit != Int.MAX_VALUE) " LIMIT $limit" else ""
                     """
-SELECT $macColumn, $latColumn, $lonColumn 
-FROM $tableName 
+SELECT $macColumn, $latColumn, $lonColumn
+FROM $tableName
 WHERE $latColumn >= ? AND $latColumn <= ?
 AND $lonColumn >= ? AND $lonColumn <=?$limitClause
 """
@@ -328,8 +328,8 @@ AND $lonColumn >= ? AND $lonColumn <=?$limitClause
 
             else -> {
                 """
-            SELECT $macColumn, $latColumn, $lonColumn 
-            FROM $tableName 
+            SELECT $macColumn, $latColumn, $lonColumn
+            FROM $tableName
             WHERE $latColumn >= ? AND $latColumn <= ?
             AND $lonColumn >= ? AND $lonColumn <= ?
             """

@@ -4,18 +4,8 @@ import android.content.Context
 import androidx.core.content.edit
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-/**
- * Status of a background database download.
- *
- * Lifecycle:
- * QUEUED -> RUNNING -> EXTRACTING -> DONE (removed from the queue on success)
- *                     \-> WAITING_QUOTA (MEGA bandwidth limit, retried automatically)
- *                     \-> FAILED (shown in the card with a Retry action)
- * RUNNING -> NEEDS_SETUP (custom SQLite downloaded; requires interactive table/column mapping)
- */
 @Serializable
 enum class DownloadStatus {
     QUEUED,
@@ -27,15 +17,8 @@ enum class DownloadStatus {
     DONE
 }
 
-/**
- * Lenient Json instance shared by pending-download helpers.
- */
 val pendingDownloadJson: Json = Json { ignoreUnknownKeys = true }
 
-/**
- * Persisted entry of the background download queue. Survives process death;
- * byte-accurate resume is provided by [SmartLinkDbHelper] (.tmp/.metadata files).
- */
 @Serializable
 data class PendingDownload(
     val dbId: String,
@@ -73,10 +56,6 @@ data class PendingDownload(
             status == DownloadStatus.WAITING_QUOTA
 }
 
-/**
- * SharedPreferences-backed storage for the pending download queue.
- * Uses the same prefs file as the registered database list ("db_setup_prefs").
- */
 object PendingDownloadStore {
 
     private const val TAG = "PendingDownloadStore"

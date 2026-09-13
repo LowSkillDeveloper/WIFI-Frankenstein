@@ -98,7 +98,6 @@ class DbListAdapter(
 
             binding.buttonDbDetails.setOnClickListener { onShowDetails(item) }
 
-
             if (item.isMain && item.dbType == DbType.WIFI_API) {
                 binding.textViewMain.visibility = ViewGroup.VISIBLE
             } else {

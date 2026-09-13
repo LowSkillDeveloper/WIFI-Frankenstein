@@ -375,6 +375,23 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
         }
     }
 
+    fun filterExistingBssids(bssids: Set<String>): Set<String> {
+        if (bssids.isEmpty()) return emptySet()
+        return lock.withLock {
+            val result = mutableSetOf<String>()
+            bssids.map { it.uppercase() }.distinct().chunked(500).forEach { chunk ->
+                val placeholders = chunk.joinToString(",") { "?" }
+                readableDatabase.rawQuery(
+                    "SELECT DISTINCT UPPER($COL_BSSID) FROM $TABLE_HANDSHAKES WHERE UPPER($COL_BSSID) IN ($placeholders)",
+                    chunk.toTypedArray()
+                ).use { cursor ->
+                    while (cursor.moveToNext()) cursor.getString(0)?.let { result.add(it) }
+                }
+            }
+            result
+        }
+    }
+
     fun get(fileName: String): HandshakeItem? {
         return lock.withLock {
             readableDatabase.rawQuery(

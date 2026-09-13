@@ -40,7 +40,6 @@ class API3WiFiHelper(
         get() = sharedPreferences.getBoolean("includeAppIdentifier", true)
         set(value) = sharedPreferences.edit { putBoolean("includeAppIdentifier", value) }
 
-
     var maxPointsPerRequest: Int
         get() = sharedPreferences.getInt("maxPointsPerRequest", 99)
         set(value) = sharedPreferences.edit { putInt("maxPointsPerRequest", value) }
