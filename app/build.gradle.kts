@@ -25,8 +25,8 @@ android {
         applicationId = "com.lsd.wififrankenstein"
         minSdk = 21
         targetSdk = 37
-        versionCode = 8
-        versionName = "2.5"
+        versionCode = 9
+        versionName = "2.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true
@@ -74,6 +74,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -105,10 +106,7 @@ kotlin {
     }
 }
 
-tasks.withType<KotlinJvmCompile>().configureEach {
-    compilerOptions {
-    }
-}
+
 
 dependencies {
     implementation(libs.ipaddress)
@@ -118,6 +116,7 @@ dependencies {
     implementation(libs.libsu.service)
     implementation(libs.libsu.nio)
     implementation(libs.androidx.core.ktx)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
