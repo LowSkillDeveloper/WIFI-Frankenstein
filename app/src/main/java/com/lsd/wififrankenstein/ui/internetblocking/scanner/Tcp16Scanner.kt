@@ -36,7 +36,6 @@ class Tcp16Scanner {
         private const val PAUSE_BETWEEN_REQUESTS_MS = 50L
         private const val FAT_DEFAULT_SNI = "example.com"
 
-
         private val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
             override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
             override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
@@ -72,11 +71,9 @@ class Tcp16Scanner {
 
         val scheme = if (target.port == 80) "http" else "https"
 
-
         val sni = target.sni?.takeIf { it.isNotBlank() } ?: FAT_DEFAULT_SNI
         val url = "$scheme://$sni:${target.port}/"
         val pinnedIp = target.ip
-
 
         val randomPool = buildString(100000) {
             val chars = "abcdefghijklmnopqrstuvwxyz0123456789"
@@ -95,7 +92,6 @@ class Tcp16Scanner {
         val eventListener = DpiTraceEventListener(dpiTraceState)
         dpiTraceState.setStage("tcp_connect")
 
-
         var currentClient =
             createClient(INITIAL_TIMEOUT_MS, defaultTimeoutMs, eventListener, pinnedIp)
 
@@ -109,7 +105,6 @@ class Tcp16Scanner {
                 currentClient.newCall(request).execute().use { response ->
                     val elapsed = System.currentTimeMillis() - start
 
-
                     if (i == 0) {
                         alive = true
                         measuredRttMs = elapsed
@@ -121,7 +116,6 @@ class Tcp16Scanner {
                         currentClient =
                             createClient(adjustedTimeout, defaultTimeoutMs, eventListener, pinnedIp)
                     }
-
 
                     if (i < MAX_CHUNKS - 1) {
                         kotlinx.coroutines.delay(PAUSE_BETWEEN_REQUESTS_MS)
@@ -135,7 +129,6 @@ class Tcp16Scanner {
                     TAG,
                     "Chunk $i failed for ${target.provider}: ${e.javaClass.simpleName}: ${e.message}"
                 )
-
 
                 val (label, detail) = ErrorClassifier.classifyProbeErrorStageAware(e, i, stage)
                 blockDetail = detail
@@ -220,7 +213,6 @@ class Tcp16Scanner {
             .connectTimeout(connectTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
             .readTimeout(readTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
 
-
             .followRedirects(false)
             .followSslRedirects(false)
 
@@ -281,5 +273,3 @@ class Tcp16Scanner {
         return minOf(dynamicTimeout, defaultTimeoutMs)
     }
 }
-
-

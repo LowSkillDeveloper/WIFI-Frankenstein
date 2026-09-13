@@ -3,8 +3,10 @@ package com.lsd.wififrankenstein.ui.localnetwork
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
+import android.os.Build
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.util.Log
+import com.lsd.wififrankenstein.util.ProcessCompat
 import jcifs.netbios.NbtAddress
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +48,8 @@ class NativeLocalNetworkScanner(private val context: Context) {
 
                 if (cm != null) {
                     val activeNetwork: Network? = try {
-                        cm.activeNetwork
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) cm.activeNetwork
+                        else null
                     } catch (_: Throwable) {
                         null
                     }
@@ -69,7 +72,7 @@ class NativeLocalNetworkScanner(private val context: Context) {
                             }
 
                             for (route in lp.routes) {
-                                if (route.hasGateway() && route.isDefaultRoute) {
+                                if (route.gateway != null && route.isDefaultRoute) {
                                     gateway = route.gateway?.hostAddress ?: ""
                                 }
                             }
@@ -202,7 +205,6 @@ class NativeLocalNetworkScanner(private val context: Context) {
                 )
             }
 
-
             val initialArp = readArpCache()
             Log.d(TAG, "Phase 1: ARP cache = ${initialArp.size} entries (${elapsed(startTime)}ms)")
             onProgress(
@@ -219,7 +221,6 @@ class NativeLocalNetworkScanner(private val context: Context) {
                     addDevice(ip, mac, "ARP")
                 }
             }
-
 
             val remainingForPing = targetIps.filter { !seenIps.contains(it) }
             var pingAliveCount = 0
@@ -286,7 +287,6 @@ class NativeLocalNetworkScanner(private val context: Context) {
                     )
                 )
             }
-
 
             val remainingForTcp = targetIps.filter { !seenIps.contains(it) }
             if (remainingForTcp.isNotEmpty()) {
@@ -359,7 +359,6 @@ class NativeLocalNetworkScanner(private val context: Context) {
                 }
             }
 
-
             val remainingForArp = targetIps.filter { !seenIps.contains(it) }
             if (remainingForArp.isNotEmpty()) {
                 sendUdpProbes(remainingForArp)
@@ -381,7 +380,6 @@ class NativeLocalNetworkScanner(private val context: Context) {
                 }
             }
 
-
             val arpEnrich = readArpCacheCached()
             if (arpEnrich.isNotEmpty()) {
                 val arpMap = arpEnrich.associate { it.ip to it.mac }
@@ -394,7 +392,6 @@ class NativeLocalNetworkScanner(private val context: Context) {
                     }
                 }
             }
-
 
             for (device in devices.toList()) {
                 try {
@@ -441,14 +438,12 @@ class NativeLocalNetworkScanner(private val context: Context) {
             val process =
                 Runtime.getRuntime().exec(arrayOf("/system/bin/ping", "-c", "1", "-W", "1", ip))
             val output = process.inputStream.bufferedReader().readText()
-            process.waitFor(3, TimeUnit.SECONDS)
+            ProcessCompat.waitFor(process, 3, TimeUnit.SECONDS)
 
             if (process.exitValue() != 0) return null
 
-
             val rttMatch = Regex("""[tT]ime[=<\s]*([\d.]+)\s*ms""").find(output)
             val rtt = rttMatch?.groupValues?.get(1)?.toFloatOrNull()?.toLong() ?: 0L
-
 
             val ttlMatch = Regex("""[tT][tT][lL][=:\s]*(\d+)""").find(output)
             val ttl = ttlMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
@@ -508,7 +503,6 @@ class NativeLocalNetworkScanner(private val context: Context) {
                 (if (mac.isNotEmpty()) OuiDatabase.lookupByMac(mac) ?: "" else "")
             val osType = guessOsByPorts(sortedPorts, vendor, device.ttl)
             val netbiosName = resolveNetbiosName(device.ip)
-
 
             var bannerVersion = ""
             val bannerSemaphore = Semaphore(10)
@@ -581,12 +575,9 @@ class NativeLocalNetworkScanner(private val context: Context) {
 
         val portSet = ports.toSet()
 
-
         if (portSet.contains(8008) && portSet.contains(8009)) return OSType.ANDROID
 
-
         if (portSet.contains(7000) || portSet.contains(7100)) return OSType.MACOS
-
 
         if (portSet.any { it in 135..139 } || portSet.contains(445) || portSet.contains(3389) || portSet.contains(
                 5357
@@ -594,31 +585,22 @@ class NativeLocalNetworkScanner(private val context: Context) {
             return OSType.WINDOWS
         }
 
-
         if (portSet.contains(5555)) return OSType.ANDROID
-
 
         if (portSet.contains(62078)) return OSType.IOS
 
-
         if (portSet.contains(53) && portSet.contains(23)) return OSType.ROUTER
-
 
         if (portSet.contains(9100) || portSet.contains(515) || portSet.contains(631)) return OSType.PRINTER
 
-
         if (portSet.contains(554) || portSet.contains(37777)) return OSType.CAMERA
-
 
         if ((portSet.contains(80) || portSet.contains(443)) && portSet.contains(22)) return OSType.LINUX
         if (portSet.contains(22) && !portSet.contains(445) && !portSet.contains(3389)) return OSType.LINUX
 
-
         if (portSet.contains(23) && portSet.contains(80)) return OSType.EMBEDDED
 
-
         if (portSet.contains(548)) return OSType.MACOS
-
 
         if (ports.isEmpty() && ttl > 0) {
             return when {
@@ -840,7 +822,6 @@ class NativeLocalNetworkScanner(private val context: Context) {
     private fun readArpCache(): List<ArpEntry> {
         val entries = mutableListOf<ArpEntry>()
 
-
         try {
             val br = BufferedReader(FileReader("/proc/net/arp"))
             br.use { reader ->
@@ -861,7 +842,6 @@ class NativeLocalNetworkScanner(private val context: Context) {
             }
         } catch (_: Exception) {
         }
-
 
         try {
             val process = Runtime.getRuntime().exec(arrayOf("ip", "neigh", "show"))
@@ -897,7 +877,7 @@ class NativeLocalNetworkScanner(private val context: Context) {
                     }
                 }
                 process.errorStream.bufferedReader().readText()
-                process.waitFor(3, TimeUnit.SECONDS)
+                ProcessCompat.waitFor(process, 3, TimeUnit.SECONDS)
             } finally {
                 process.destroy()
             }
@@ -947,7 +927,6 @@ class NativeLocalNetworkScanner(private val context: Context) {
             val baseParts = parts[0].split(".")
             if (baseParts.size != 4) return emptyList()
             val prefix = parts[1].toIntOrNull() ?: 24
-
 
             val effectivePrefix = if (prefix < 22) 24.coerceAtMost(prefix) else prefix
 

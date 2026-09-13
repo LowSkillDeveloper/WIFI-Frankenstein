@@ -53,7 +53,7 @@ class WiFiScannerViewModel(
     val prefs = application.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     private val wifiManagerWrapper: WiFiManagerWrapper by lazy {
-        WiFiManagerWrapper(application.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager)
+        WiFiManagerWrapper(application.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager, application.applicationContext)
     }
 
     private val locationManager: LocationManager by lazy {
@@ -89,7 +89,6 @@ class WiFiScannerViewModel(
 
     private val _locationEnabled = MutableLiveData<Boolean>()
     val locationEnabled: LiveData<Boolean> = _locationEnabled
-
 
     private var sqlite3WiFiHelper: SQLite3WiFiHelper? = null
 
@@ -250,7 +249,6 @@ class WiFiScannerViewModel(
                         }
                     }
                 }
-
 
                 when {
                     networks.isNotEmpty() -> {
@@ -708,13 +706,17 @@ class WiFiScannerViewModel(
             result
         } catch (e: Exception) {
             Log.w("WiFiScannerViewModel", "Unsafe ScanResult creation failed, using fallback", e)
-            ScanResult().apply {
-                SSID = ssid
-                BSSID = bssid
-                this.capabilities = capabilities
-                this.level = level
-                this.frequency = frequency
-                timestamp = System.currentTimeMillis() * 1000
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                ScanResult().apply {
+                    SSID = ssid
+                    BSSID = bssid
+                    this.capabilities = capabilities
+                    this.level = level
+                    this.frequency = frequency
+                    timestamp = System.currentTimeMillis() * 1000
+                }
+            } else {
+                throw e
             }
         }
     }

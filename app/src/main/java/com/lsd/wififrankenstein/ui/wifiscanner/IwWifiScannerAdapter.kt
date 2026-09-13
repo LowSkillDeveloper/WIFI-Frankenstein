@@ -65,10 +65,47 @@ class IwWifiScannerAdapter(
             isDatabaseResultsApplied = false
             networksWithDatabaseData.clear()
         }
-        val sorted = sortNetworks(newList)
-        val diffCallback = IwNetworkDiffCallback(networkList, sorted)
+        val deduped = dedupByBssid(newList)
+        val sorted = sortNetworks(deduped)
+        applySortedList(sorted)
+    }
+
+    private fun dedupByBssid(list: List<IwWifiNetwork>): List<IwWifiNetwork> {
+        if (list.size < 2) return list
+        val byBssid = LinkedHashMap<String, IwWifiNetwork>(list.size)
+        for (item in list) {
+            val key = item.bssid.lowercase(Locale.ROOT)
+            val prev = byBssid[key]
+            if (prev == null || item.signalStrength > prev.signalStrength) byBssid[key] = item
+        }
+        return if (byBssid.size == list.size) list else byBssid.values.toList()
+    }
+
+    private var lastDispatchedHasData: Set<String> = emptySet()
+
+    private fun snapshotHasData(): Set<String> = networksWithDatabaseData.toSet()
+
+    private fun applySortedList(sorted: List<IwWifiNetwork>) {
+        val hasData = snapshotHasData()
+        if (networkList.size == sorted.size && hasData == lastDispatchedHasData) {
+            var identical = true
+            for (i in networkList.indices) {
+                val a = networkList[i]
+                val b = sorted[i]
+                if (a.bssid.lowercase(Locale.ROOT) != b.bssid.lowercase(Locale.ROOT) || a != b) {
+                    identical = false
+                    break
+                }
+            }
+            if (identical) {
+                networkList = sorted
+                return
+            }
+        }
+        val diffCallback = IwNetworkDiffCallback(networkList, sorted, hasData, hasData)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         networkList = sorted
+        lastDispatchedHasData = hasData
         diffResult.dispatchUpdatesTo(this)
     }
 
@@ -156,16 +193,14 @@ class IwWifiScannerAdapter(
         val shouldAutoScroll =
             settings?.getBoolean("auto_scroll_to_networks_with_data", true) ?: true
 
-        val diffCallback = IwNetworkDiffCallback(networkList, sortedList)
+        // Single dispatch (see WifiAdapter): no extra notifyItemChanged loop.
+        val oldHasData = lastDispatchedHasData
+        val newHasData = snapshotHasData()
+        val diffCallback = IwNetworkDiffCallback(networkList, sortedList, oldHasData, newHasData)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         networkList = sortedList
+        lastDispatchedHasData = newHasData
         diffResult.dispatchUpdatesTo(this)
-
-        networkList.forEachIndexed { index, network ->
-            if (network.bssid.lowercase(Locale.ROOT) in networksWithDatabaseData) {
-                notifyItemChanged(index)
-            }
-        }
 
         if (shouldPrioritize && hasNetworksWithData && shouldAutoScroll) {
             onScrollToTopListener?.invoke()
@@ -247,7 +282,6 @@ class IwWifiScannerAdapter(
                     )
                 )
 
-
                 val modelText = if (network.wpsModel.isNotBlank()) {
                     itemView.context.getString(R.string.iw_model_suffix, network.wpsModel)
                 } else ""
@@ -266,7 +300,6 @@ class IwWifiScannerAdapter(
                 frequencyInfo.text = itemView.context.getString(
                     frequencyToBand(freqInt).displayNameRes
                 )
-
 
                 val channelWidth = getChannelWidthInfo(network)
                 if (channelWidth != null) {
@@ -303,7 +336,6 @@ class IwWifiScannerAdapter(
                     wpsInfo.visibility = View.GONE
                     wpsIcon.visibility = View.GONE
                 }
-
 
                 if (PixieDustChecker.isPixieDustVulnerable(network)) {
                     pixieDustInfo.visibility = View.VISIBLE
@@ -472,7 +504,6 @@ class IwWifiScannerAdapter(
                 }
             }
 
-
             val caps = network.capabilities.uppercase(Locale.ROOT)
             if (caps.contains("VHT")) {
                 return when {
@@ -483,7 +514,6 @@ class IwWifiScannerAdapter(
                     else -> null
                 }
             }
-
 
             return when {
                 network.htHt20Ht40 -> itemView.context.getString(R.string.iw_bw_ht2040)
@@ -745,7 +775,9 @@ class IwWifiScannerAdapter(
 
     private class IwNetworkDiffCallback(
         private val oldList: List<IwWifiNetwork>,
-        private val newList: List<IwWifiNetwork>
+        private val newList: List<IwWifiNetwork>,
+        private val oldHasData: Set<String> = emptySet(),
+        private val newHasData: Set<String> = emptySet()
     ) : DiffUtil.Callback() {
         override fun getOldListSize() = oldList.size
         override fun getNewListSize() = newList.size
@@ -757,7 +789,11 @@ class IwWifiScannerAdapter(
         }
 
         override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean {
-            return oldList[oldPos] == newList[newPos]
+            val a = oldList[oldPos]
+            val b = newList[newPos]
+            if (a != b) return false
+            val key = a.bssid.lowercase(Locale.ROOT)
+            return oldHasData.contains(key) == newHasData.contains(key)
         }
     }
 

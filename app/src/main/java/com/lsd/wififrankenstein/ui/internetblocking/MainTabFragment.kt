@@ -119,7 +119,6 @@ class MainTabFragment : Fragment() {
     private fun bindResult(r: MainTabResult) {
         val ctx = requireContext()
 
-
         val bannerColor = r.overallStatus.colorRes()
         binding.statusBanner.setBackgroundColor(ContextCompat.getColor(ctx, bannerColor))
 
@@ -134,11 +133,9 @@ class MainTabFragment : Fragment() {
         val sec = r.totalDurationMs / 1000f
         binding.durationText.text = getString(R.string.ib_duration_sec, sec)
 
-
         binding.domainText.text = getString(R.string.ib_domain_label, r.domain)
         binding.resolvedIpText.text =
             getString(R.string.ib_resolved_ip, r.resolvedIp ?: getString(R.string.ib_unresolvable))
-
 
         binding.conclusionText.text = r.conclusion.ifBlank { "—" }
         val isError = r.overallStatus == CheckStatus.Error
@@ -158,7 +155,6 @@ class MainTabFragment : Fragment() {
         }.trimEnd(' ', '·', '—')
         binding.blockStageText.text = stageText
         binding.blockStageText.setTextColor(ContextCompat.getColor(ctx, stageColor))
-
 
         val dnsOk =
             r.dnsStatus == CheckStatus.Ok || r.dnsStatus == CheckStatus.NotBlocked || r.dnsStatus == CheckStatus.Redirect
@@ -182,7 +178,6 @@ class MainTabFragment : Fragment() {
             binding.dnsDetailText.visibility = View.VISIBLE
         }
 
-
         setTlsRow(binding.tls13Dot, binding.tls13Text, r.tls13Status)
         setTlsRow(binding.tls12Dot, binding.tls12Text, r.tls12Status)
         setTlsRow(binding.httpDot, binding.httpText, r.httpStatus)
@@ -190,7 +185,6 @@ class MainTabFragment : Fragment() {
         bindTlsDetail(binding.tls13DetailText, r.tls13Detail, r.tls13Trace)
         bindTlsDetail(binding.tls12DetailText, r.tls12Detail, r.tls12Trace)
         bindTlsDetail(binding.httpDetailText, r.httpDetail, r.httpTrace)
-
 
         if (r.tcpReachable) {
             val gd = binding.tcpDot.background as GradientDrawable
@@ -216,7 +210,6 @@ class MainTabFragment : Fragment() {
             if (r.sniBlocked) append(getString(R.string.ib_sni_blocked_suffix))
         }
         binding.tcpText.append("  ·  " + portLine)
-
 
         val tcp16Ok = r.tcp16Status == CheckStatus.NotBlocked || r.tcp16Status == CheckStatus.Ok
         val tcp16Timeout = r.tcp16Status == CheckStatus.ReadTimeout

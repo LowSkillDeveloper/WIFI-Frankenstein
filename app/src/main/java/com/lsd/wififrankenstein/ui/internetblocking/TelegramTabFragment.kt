@@ -60,7 +60,6 @@ class TelegramTabFragment : Fragment() {
     private fun bindResult(result: TelegramCheckResult) {
         val ctx = requireContext()
 
-
         val bannerColor = result.status.colorRes()
         binding.statusBanner.setBackgroundColor(ContextCompat.getColor(ctx, bannerColor))
 
@@ -75,14 +74,12 @@ class TelegramTabFragment : Fragment() {
         val sec = result.totalDurationMs / 1000f
         binding.durationText.text = getString(R.string.ib_duration_sec, sec)
 
-
         binding.dcSummaryText.text =
             getString(R.string.ib_count_reachable, result.dcReachableCount, result.dcTotal)
         binding.dcContainer.removeAllViews()
         for (dc in result.dcResults) {
             binding.dcContainer.addView(createDcRow(dc))
         }
-
 
         if (result.downloadSpeedKbps != null) {
             binding.downloadText.text = getString(R.string.ib_speed_kbps, result.downloadSpeedKbps)
@@ -97,7 +94,6 @@ class TelegramTabFragment : Fragment() {
             binding.downloadBytesText.visibility = View.GONE
         }
 
-
         if (result.uploadSpeedKbps != null) {
             binding.uploadText.text = getString(R.string.ib_speed_kbps, result.uploadSpeedKbps)
             binding.uploadText.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
@@ -110,7 +106,6 @@ class TelegramTabFragment : Fragment() {
             binding.uploadText.setTextColor(ContextCompat.getColor(ctx, R.color.error_red))
             binding.uploadBytesText.visibility = View.GONE
         }
-
 
         val sourceParts = mutableListOf<String>()
         if (result.downloadUrlUsed != null) {

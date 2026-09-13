@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -31,7 +32,6 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
                 ContextCompat.getColor(binding.root.context, colorRes)
             )
 
-
             binding.udpIpsContainer.removeAllViews()
             if (result.udpIps.isNotEmpty()) {
                 result.udpIps.forEach { ip ->
@@ -42,14 +42,12 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
                 binding.udpIpsContainer.visibility = android.view.View.GONE
             }
 
-
             binding.udpStatus.text = result.udpStatus?.let {
                 binding.root.context.getString(
                     R.string.ib_dns_status_prefix,
                     it
                 )
             }
-
 
             binding.jsonIpsContainer.removeAllViews()
             if (result.jsonIps.isNotEmpty()) {
@@ -61,14 +59,12 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
                 binding.jsonIpsContainer.visibility = android.view.View.GONE
             }
 
-
             binding.jsonStatus.text = result.jsonStatus?.let {
                 binding.root.context.getString(
                     R.string.ib_dns_status_prefix,
                     it
                 )
             }
-
 
             binding.wireIpsContainer.removeAllViews()
             if (result.wireIps.isNotEmpty()) {
@@ -80,14 +76,12 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
                 binding.wireIpsContainer.visibility = android.view.View.GONE
             }
 
-
             binding.wireStatus.text = result.wireStatus?.let {
                 binding.root.context.getString(
                     R.string.ib_dns_status_prefix,
                     it
                 )
             }
-
 
             val analysis = when (result.status) {
                 CheckStatus.Ok -> binding.root.context.getString(R.string.ib_dns_analysis_ok)
@@ -104,7 +98,6 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
             }
             binding.analysisText.text = analysis
 
-
             if (result.totalUniqueIps > 0) {
                 binding.extraInfo.visibility = android.view.View.VISIBLE
                 binding.extraInfo.text = binding.root.context.getString(
@@ -114,7 +107,6 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
             } else {
                 binding.extraInfo.visibility = android.view.View.GONE
             }
-
 
             if (!result.jsonIps.isNullOrEmpty() && result.jsonRawResponse != null) {
                 binding.jsonMoreInfo.visibility = android.view.View.VISIBLE
@@ -142,7 +134,6 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
                 binding.jsonMoreInfo.visibility = android.view.View.GONE
             }
 
-
             binding.detailsContainer.visibility =
                 if (expanded) android.view.View.VISIBLE else android.view.View.GONE
             binding.expandIcon.rotation = if (expanded) 180f else 0f
@@ -167,7 +158,7 @@ class DnsResultAdapter : ListAdapter<DnsCheckResult, DnsResultAdapter.ViewHolder
             }
             return TextView(context).apply {
                 text = ip
-                setTextAppearance(android.R.style.TextAppearance_Material_Caption)
+                TextViewCompat.setTextAppearance(this, android.R.style.TextAppearance_Material_Caption)
                 setCompoundDrawablePadding(8)
                 background = drawable
                 setTextColor(if (isFake) Color.parseColor("#D32F2F") else Color.parseColor("#1565C0"))

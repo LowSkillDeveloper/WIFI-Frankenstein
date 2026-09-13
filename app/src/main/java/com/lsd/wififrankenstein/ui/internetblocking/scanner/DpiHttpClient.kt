@@ -27,14 +27,12 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
-
 data class ProxyConfig(
     val host: String,
     val port: Int,
     val username: String? = null,
     val password: String? = null
 )
-
 
 class DpiHttpClient(
     private val context: android.content.Context,
@@ -46,7 +44,6 @@ class DpiHttpClient(
         private const val TAG = "DpiHttpClient"
         private const val CONNECT_TIMEOUT = 8L
         private const val READ_TIMEOUT = 8L
-
 
         private val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
             override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
@@ -63,7 +60,6 @@ class DpiHttpClient(
 
     private fun pinnedClient(ip: String): OkHttpClient =
         pinnedClients.getOrPut(ip) { createClient(pinnedIp = ip) }
-
 
     fun shutdown() {
         fun quiet(c: OkHttpClient?) {
@@ -92,7 +88,6 @@ class DpiHttpClient(
         val sslContext = SSLContext.getInstance("TLS")
         sslContext.init(null, trustAllCerts, SecureRandom())
 
-
         val connectionSpec = when (tlsVersion) {
             "TLSv1.2" -> ConnectionSpec.Builder(ConnectionSpec.RESTRICTED_TLS)
                 .tlsVersions(TlsVersion.TLS_1_2)
@@ -110,26 +105,18 @@ class DpiHttpClient(
             .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
             .hostnameVerifier { _, _ -> true }
 
-
             .protocols(listOf(Protocol.HTTP_1_1))
-
 
             .connectionSpecs(listOf(connectionSpec))
 
-
             .followRedirects(false)
             .followSslRedirects(false)
-
 
             .connectTimeout(CONNECT_TIMEOUT, TimeUnit.SECONDS)
             .readTimeout(READ_TIMEOUT, TimeUnit.SECONDS)
             .writeTimeout(READ_TIMEOUT, TimeUnit.SECONDS)
 
-
             .proxy(if (proxyConfig != null) createProxy() else Proxy.NO_PROXY)
-
-
-
 
         if (pinnedIp != null) {
             builder.dns(object : okhttp3.Dns {
@@ -137,7 +124,6 @@ class DpiHttpClient(
                     listOf(InetAddress.getByName(pinnedIp))
             })
         }
-
 
         if (proxyConfig?.username != null && proxyConfig?.password != null) {
             builder.proxyAuthenticator(object : Authenticator {
@@ -163,7 +149,6 @@ class DpiHttpClient(
         )
     }
 
-
     suspend fun checkHttps(
         domain: String,
         resolvedIp: String? = null,
@@ -174,7 +159,6 @@ class DpiHttpClient(
         val url = "https://$domain"
         val connectionState = DpiTraceState()
         val activeClient = if (pinnedIp != null) pinnedClient(pinnedIp) else client
-
 
         if (resolvedIp != null) {
             if (fakeIpType == "isp" && stubIps.contains(resolvedIp)) {
@@ -207,7 +191,6 @@ class DpiHttpClient(
             }
         }
 
-
         val request = Request.Builder()
             .url(url)
             .get()
@@ -234,7 +217,6 @@ class DpiHttpClient(
                 val statusCode = response.code
                 val location = response.header("Location", "")
                 val contentLength = response.body?.contentLength() ?: 0
-
 
                 var actualBytesRead = 0L
                 val bodyBuf = okio.Buffer()
@@ -269,7 +251,6 @@ class DpiHttpClient(
 
                 response.close()
                 val bytesRead = maxOf(actualBytesRead, contentLength)
-
 
                 if (statusCode == 451) {
                     Log.d(
@@ -433,7 +414,6 @@ class DpiHttpClient(
         }
     }
 
-
     suspend fun checkHttpsWithPinnedIp(
         sniHost: String,
         pinnedIp: String
@@ -445,13 +425,11 @@ class DpiHttpClient(
         pinnedIp = pinnedIp
     )
 
-
     suspend fun checkHttp(
         domain: String,
     ): DpiResult = withContext(Dispatchers.IO) {
         val url = "http://$domain"
         val connectionState = DpiTraceState()
-
 
         val httpClient = httpClientLazy.value
 
@@ -480,7 +458,6 @@ class DpiHttpClient(
                 val statusCode = response.code
                 val location = response.header("Location", "")
                 val contentLength = response.body?.contentLength() ?: 0
-
 
                 var actualBytes = 0L
                 var stubDetected = false
@@ -669,7 +646,6 @@ class DpiHttpClient(
         stubDetected = stubDetected
     )
 
-
     internal fun classifyTimeout(stage: String): Pair<CheckStatus, String> = when (stage) {
         "tcp_connect" -> CheckStatus.SynDrop to "TCP SYN timeout (blackhole)"
         "tls_handshake", "tls_connected" -> CheckStatus.TlsDrop to "TLS handshake timeout"
@@ -678,7 +654,6 @@ class DpiHttpClient(
         else -> CheckStatus.Timeout to context.getString(R.string.ib_ec_timeout_stage, stage)
     }
 }
-
 
 class DpiTraceState {
     private val startMs = System.currentTimeMillis()
@@ -694,7 +669,6 @@ class DpiTraceState {
         _events += StageTrace(newStage, System.currentTimeMillis() - startMs, note)
     }
 }
-
 
 class DpiTraceEventListener(
     private val state: DpiTraceState
@@ -748,7 +722,6 @@ class DpiTraceEventListener(
         state.setStage("reading_data")
     }
 }
-
 
 data class DpiResult(
     val status: CheckStatus,

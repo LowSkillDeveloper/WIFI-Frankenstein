@@ -33,7 +33,6 @@ class NativeArpSpoof(private val context: Context) {
                 )
             }
 
-
             cachedTargetMac = readArpCache().firstOrNull { it.ip == targetIp }?.mac
             cachedGatewayMac = readArpCache().firstOrNull { it.ip == gatewayIp }?.mac
 

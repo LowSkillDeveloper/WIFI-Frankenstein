@@ -4,14 +4,12 @@ import android.content.Context
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.ui.internetblocking.model.CheckStatus
 
-
 data class BlockDiagnosisResult(
     val blockStage: String,
     val blockMechanism: String,
     val conclusion: String,
     val confidence: String
 )
-
 
 internal object BlockDiagnosis {
 
@@ -29,7 +27,6 @@ internal object BlockDiagnosis {
         CheckStatus.NotBlocked,
         CheckStatus.Redirect
     )
-
 
     fun diagnose(
         context: Context,

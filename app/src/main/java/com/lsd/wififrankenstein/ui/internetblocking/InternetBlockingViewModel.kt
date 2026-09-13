@@ -190,7 +190,6 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 val fakeEmpty = results.count { it.status == CheckStatus.FakeEmpty }
                 val dohBlocked = results.count { it.status == CheckStatus.DohBlocked }
 
-
                 val ipCount = mutableMapOf<String, Int>()
                 for (result in results) {
                     for (ip in result.udpIps) {
@@ -366,7 +365,6 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 _sweepResults.value = emptyList()
                 _sweepStatus.postValue("")
                 addConsole(appContext.getString(R.string.ib_console_sni_start, sniListType.name))
-
 
                 var failedTargets = (_tcpResults.value ?: emptyList())
                     .filter { it.status != CheckStatus.Ok }
@@ -773,7 +771,6 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
             )
         )
 
-
         updateProgress(8, appContext.getString(R.string.ib_progress_baseline))
         val baselineResults = tcpPingScanner.pingTargets(
             BASELINE_TARGETS,
@@ -790,7 +787,6 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
                 baselineResults.size
             )
         )
-
 
         updateProgress(12, appContext.getString(R.string.ib_progress_tcp_tls))
         val targetTcpTargets = if (resolvedIp != null) {
@@ -844,7 +840,6 @@ class InternetBlockingViewModel(application: Application) : AndroidViewModel(app
         val tls13Status = domainResult?.tls13Status ?: CheckStatus.Error
         val tls12Status = domainResult?.tls12Status ?: CheckStatus.Error
         val httpStatus = domainResult?.httpStatus ?: CheckStatus.Error
-
 
         val isThrottle = listOf(tls13Status, tls12Status, httpStatus).any {
             it == CheckStatus.ReadTimeout

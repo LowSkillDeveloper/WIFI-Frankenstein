@@ -100,7 +100,6 @@ class LocalNetworkScanner(private val chrootManager: ChrootManager) {
         }
     }
 
-
     suspend fun pingSweep(
         subnet: String,
         onProgress: (ScanProgress) -> Unit = {}
@@ -358,7 +357,6 @@ class LocalNetworkScanner(private val chrootManager: ChrootManager) {
 
             else -> null
         }
-
 
         val ven = vendor.lowercase()
         val vendorGuess = when {

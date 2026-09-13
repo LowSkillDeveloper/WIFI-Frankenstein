@@ -90,7 +90,6 @@ class DnsScanner(
         DnsServer("https://dns.mullvad.net/dns-query", "Mullvad")
     )
 
-
     private data class FullProbeResult(
         val ok: Int,
         val timeout: Int,
@@ -99,9 +98,7 @@ class DnsScanner(
         val results: Map<String, Any>
     )
 
-
     private data class ServerQuickResult(val server: DnsServer, val ips: List<String>?)
-
 
     private data class ServerFullResult(val server: DnsServer, val probe: FullProbeResult)
 
@@ -114,7 +111,6 @@ class DnsScanner(
             Log.d(TAG, "Starting DNS spoofing check for ${domains.size} domains")
             val probeDomain = domains.firstOrNull() ?: "example.com"
             onProgress?.invoke(0, context.getString(R.string.ib_dns_progress_prepare))
-
 
             onProgress?.invoke(5, context.getString(R.string.ib_dns_progress_ping))
             val udpPhase1 = quickPingAllUdp(probeDomain)
@@ -141,7 +137,6 @@ class DnsScanner(
                 )
             }
             onProgress?.invoke(25, context.getString(R.string.ib_dns_progress_ping_done))
-
 
             val silentUdp = udpPhase1.filter { it.ips == null }
             val silentJson = jsonPhase1.filter { it.ips == null }
@@ -196,7 +191,6 @@ class DnsScanner(
                 "Phase 2 Results - UDP: ${fullUdp.map { "${it.server.ip}: ok=${it.probe.ok}" }}, JSON: ${fullJson.map { "${it.server.ip}: ok=${it.probe.ok}" }}, Wire: ${fullWire.map { "${it.server.ip}: ok=${it.probe.ok}" }}"
             )
 
-
             val udpWorking = udpPhase1.filter { it.ips != null }.map { it.server } +
                     fullUdp.filter { it.probe.ok > 0 }.map { it.server }
             val jsonWorking = jsonPhase1.filter { it.ips != null }.map { it.server } +
@@ -209,7 +203,6 @@ class DnsScanner(
                 "Working servers - UDP: ${udpWorking.map { it.ip }}, JSON: ${jsonWorking.map { it.ip }}, Wire: ${wireWorking.map { it.ip }}"
             )
 
-
             val udpServer = pickServer(udpWorking, udpServers)
             val jsonServer = pickServer(jsonWorking, dohJsonServers)
             val wireServer = pickServer(wireWorking, dohWireServers)
@@ -218,7 +211,6 @@ class DnsScanner(
                 TAG,
                 "Selected servers - UDP: ${udpServer?.ip} (${udpServer?.name}), JSON: ${jsonServer?.ip} (${jsonServer?.name}), Wire: ${wireServer?.ip} (${wireServer?.name})"
             )
-
 
             onProgress?.invoke(50, context.getString(R.string.ib_dns_progress_full_udp))
             val udpProbe = if (udpServer != null) {
@@ -282,7 +274,6 @@ class DnsScanner(
                 "Wire probe: ok=${wireProbe.ok}, timeout=${wireProbe.timeout}, error=${wireProbe.error}, blocked=${wireProbe.blocked}"
             )
 
-
             val results = domains.map { domain ->
                 val udpRes = udpProbe.results[domain]
                 val jsonRes = jsonProbe.results[domain]
@@ -299,14 +290,11 @@ class DnsScanner(
                 val jsonStatus = if (jsonRes is String) jsonRes else null
                 val wireStatus = if (wireRes is String) wireRes else null
 
-
                 val trusted = mutableSetOf<String>()
                 trusted.addAll(jsonIps)
                 trusted.addAll(wireIps)
 
-
                 val udpIsFakeIp = udpIps.any { isFakeIp(it) }
-
 
                 val status = when {
                     trusted.isNotEmpty() && udpIps.isNotEmpty() -> {
@@ -316,7 +304,6 @@ class DnsScanner(
                         } else if (udpIsFakeIp) {
                             CheckStatus.FakeIp
                         } else {
-
 
                             val udpIsStub = udpIps.any { it in stubIps }
                             if (udpIsStub) CheckStatus.DnsSpoof else CheckStatus.Ok
@@ -334,7 +321,6 @@ class DnsScanner(
                     }
 
                     udpIps.isNotEmpty() && trusted.isEmpty() -> {
-
 
                         val dohFailedStatuses = listOf("BLOCKED", "TIMEOUT", "UNAVAIL")
                         val dohFailed = (jsonStatus in dohFailedStatuses) ||
@@ -402,7 +388,6 @@ class DnsScanner(
         }
     }
 
-
     suspend fun quickCheckDns(domain: String, timeoutMs: Long = 3000): QuickDnsVerdict {
         return withContext(Dispatchers.IO) {
             Log.d(TAG, "Quick DNS check for $domain")
@@ -419,7 +404,6 @@ class DnsScanner(
             classifyDnsVerdict(udpIps, dohIps)
         }
     }
-
 
     internal fun classifyDnsVerdict(udpIps: List<String>, dohIps: List<String>): QuickDnsVerdict {
         val details = buildString {
@@ -448,7 +432,6 @@ class DnsScanner(
         )
     }
 
-
     private fun pickServer(working: List<DnsServer>, allServers: List<DnsServer>): DnsServer? {
         if (working.isEmpty()) return null
         val firstPreferred = allServers.firstOrNull()?.ip
@@ -457,7 +440,6 @@ class DnsScanner(
         }
         return working.first()
     }
-
 
     private suspend fun quickPingAllUdp(domain: String): List<ServerQuickResult> = coroutineScope {
         udpServers.map { server ->
@@ -476,7 +458,6 @@ class DnsScanner(
             async { ServerQuickResult(server, probeDoHWireSingle(server.ip, domain)) }
         }.awaitAll()
     }
-
 
     private suspend fun probeUdpSingle(serverIp: String, domain: String): List<String>? {
         var lastResult = emptyList<String>()
@@ -539,7 +520,6 @@ class DnsScanner(
         Log.d(TAG, "[Phase1] Wire $url $domain: all attempts failed")
         return null
     }
-
 
     private suspend fun probeUdpAll(
         serverIp: String,
@@ -794,7 +774,6 @@ class DnsScanner(
         return FullProbeResult(ok, timeoutCnt, 0, blocked, results)
     }
 
-
     internal fun resolveUdpSingle(serverIp: String, domain: String, timeoutMs: Long): List<String> =
         resolveUdp(serverIp, 53, domain, timeoutMs)
 
@@ -961,7 +940,6 @@ class DnsScanner(
         }
     }
 }
-
 
 data class QuickDnsVerdict(
     val udpIps: List<String>,

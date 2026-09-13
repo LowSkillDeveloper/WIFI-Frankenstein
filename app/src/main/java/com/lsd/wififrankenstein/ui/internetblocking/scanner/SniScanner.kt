@@ -32,7 +32,6 @@ class SniScanner {
         private const val CONNECT_TIMEOUT = 8L
         private const val READ_TIMEOUT = 8L
 
-
         private val CONNECT_FAILED_STATUSES = setOf(
             CheckStatus.SynDrop,
             CheckStatus.Refused,
@@ -355,7 +354,6 @@ class SniScanner {
                 "Starting SNI sweep for ${targets.size} targets with ${sniWhitelist.size} SNIs"
             )
 
-
             val candidates = targets.filter { isSweepCandidate(it) }
 
             if (candidates.isEmpty()) {
@@ -368,7 +366,6 @@ class SniScanner {
             val semaphore = Semaphore(4)
             val allResults = mutableListOf<SweepResult>()
 
-
             val grouped = candidates.groupBy { it.asn ?: it.ip }
             for ((_, groupTargets) in grouped) {
                 val target = groupTargets.minByOrNull { it.rtt ?: Float.MAX_VALUE }
@@ -380,7 +377,6 @@ class SniScanner {
             allResults
         }
     }
-
 
     internal fun isSweepCandidate(target: TcpCheckResult): Boolean {
         return target.port == 443 &&
@@ -397,7 +393,6 @@ class SniScanner {
         semaphore: Semaphore
     ): List<SweepResult> = withContext(Dispatchers.IO) {
         val results = mutableListOf<SweepResult>()
-
 
         val client = createClient(pinnedIp = target.ip)
         try {
@@ -429,7 +424,6 @@ class SniScanner {
 
             if (results.size >= topN) return@withContext results
 
-
             val batches = sniWhitelist.chunked(batchSize)
 
             for (batch in batches) {
@@ -459,7 +453,6 @@ class SniScanner {
                     }
                     batchResults.addAll(deferred.awaitAll().filterNotNull())
                 }
-
 
                 for ((sni, dpiResult) in batchResults) {
                     if (results.size >= topN) break
@@ -502,7 +495,6 @@ class SniScanner {
         client: OkHttpClient
     ): DpiResult = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
-
 
         val url = if (sni.isNotEmpty()) {
             "https://$sni:${target.port}/"

@@ -99,7 +99,6 @@ class LocalDeviceAdapter(
                 binding.latencyLayout.visibility = android.view.View.GONE
             }
 
-
             val ports = device.openPorts
             val hasWeb = ports.any { it == 80 || it == 443 || it == 8080 || it == 8443 }
             val hasSsh = ports.contains(22)

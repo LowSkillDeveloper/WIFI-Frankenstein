@@ -162,11 +162,9 @@ class LocalNetworkFragment : Fragment() {
             bottomPadding
         )
 
-
         if (state.chrootAvailable && binding.modeSpinner.count > 0) {
             binding.modeSpinner.setSelection(if (state.scanMode == ScanMode.CHROOT) 1 else 0)
         }
-
 
         if (binding.interfaceSpinner.count == 0 && state.availableInterfaces.isNotEmpty()) {
             val ifaceAdapter = ArrayAdapter(

@@ -34,7 +34,6 @@ class SniTabFragment : Fragment() {
         binding.recyclerViewSweep.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerViewSweep.adapter = sweepAdapter
 
-
         val savedType = viewModel.getCurrentSniListType()
         val checkedId = when (savedType) {
             SniListType.BASE -> binding.sniButtonBase.id
@@ -44,7 +43,6 @@ class SniTabFragment : Fragment() {
             SniListType.BELARUS -> binding.sniButtonBelarus.id
         }
         binding.sniToggleGroup.check(checkedId)
-
 
         binding.sniToggleGroup.addOnButtonCheckedListener { group, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener

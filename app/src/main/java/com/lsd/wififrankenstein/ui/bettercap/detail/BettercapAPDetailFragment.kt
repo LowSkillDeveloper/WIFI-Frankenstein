@@ -16,6 +16,7 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentBettercapApDetailBinding
 import com.lsd.wififrankenstein.network.bettercap.BettercapAP
 import com.lsd.wififrankenstein.ui.bettercap.BettercapViewModel
+import com.lsd.wififrankenstein.util.AuthorizedUseGate
 import com.lsd.wififrankenstein.util.Log
 
 class BettercapAPDetailFragment : Fragment() {
@@ -78,33 +79,47 @@ class BettercapAPDetailFragment : Fragment() {
 
         binding.buttonDeauthSelected.setOnClickListener {
             val ap = viewModel.selectedAp.value ?: return@setOnClickListener
-            val checked = clientAdapter.getCheckedClients()
-            if (checked.isEmpty()) {
-                viewModel.deauthAp(ap.mac)
-                Toast.makeText(
-                    requireContext(),
-                    getString(R.string.bc_deauth_all_clients_of, ap.hostname),
-                    Toast.LENGTH_SHORT
-                ).show()
-            } else {
-                viewModel.deauthSelectedClients(ap.mac, checked)
-                Toast.makeText(
-                    requireContext(),
-                    getString(R.string.bc_deauth_clients_count, checked.size),
-                    Toast.LENGTH_SHORT
-                ).show()
+            AuthorizedUseGate.confirm(
+                this,
+                featureKey = "deauth",
+                featureName = getString(R.string.feature_deauth),
+                extraWarningRes = R.string.authgate_rf_warning
+            ) {
+                val checked = clientAdapter.getCheckedClients()
+                if (checked.isEmpty()) {
+                    viewModel.deauthAp(ap.mac)
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.bc_deauth_all_clients_of, ap.hostname),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    viewModel.deauthSelectedClients(ap.mac, checked)
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.bc_deauth_clients_count, checked.size),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
 
         binding.buttonDeauthAll.setOnClickListener {
             val ap = viewModel.selectedAp.value ?: return@setOnClickListener
-            viewModel.deauthAp(ap.mac)
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.bc_deauth_all, ap.hostname),
-                Toast.LENGTH_SHORT
-            )
-                .show()
+            AuthorizedUseGate.confirm(
+                this,
+                featureKey = "deauth",
+                featureName = getString(R.string.feature_deauth),
+                extraWarningRes = R.string.authgate_rf_warning
+            ) {
+                viewModel.deauthAp(ap.mac)
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.bc_deauth_all, ap.hostname),
+                    Toast.LENGTH_SHORT
+                )
+                    .show()
+            }
         }
 
         binding.buttonAssoc.setOnClickListener {

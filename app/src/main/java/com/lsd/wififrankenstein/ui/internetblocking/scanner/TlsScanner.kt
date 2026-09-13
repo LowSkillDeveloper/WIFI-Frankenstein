@@ -14,7 +14,6 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.withContext
 import java.net.InetAddress
 
-
 class TlsScanner(
     private val context: android.content.Context,
     private val callTracker: ((okhttp3.Call) -> Unit)? = null
@@ -57,16 +56,13 @@ class TlsScanner(
             val first = parts[0].toInt()
             val second = parts[1].toInt()
 
-
             if (first == FAKEIP_START && (second == FAKEIP_START || second == FAKEIP_END)) {
                 return "fakeip"
             }
 
-
             if (first == 100 && second in 64..95) {
                 return "isp"
             }
-
 
             if (first == 10 ||
                 (first == 172 && second in 16..31) ||
@@ -106,7 +102,6 @@ class TlsScanner(
         return null
     }
 
-
     suspend fun checkSniDifferential(resolvedIp: String): DpiResult = withContext(Dispatchers.IO) {
         Log.d(TAG, "SNI differential probe to $resolvedIp with benign SNI")
         differentialClient.checkHttpsWithPinnedIp("www.google.com", resolvedIp)
@@ -137,11 +132,9 @@ class TlsScanner(
         val tls12Results: MutableList<DpiResult> = mutableListOf()
         val httpResults: MutableList<DpiResult> = mutableListOf()
 
-
         val tls13Client = DpiHttpClient(context, tlsVersion = "TLSv1.3", callTracker = callTracker)
         val tls12Client = DpiHttpClient(context, tlsVersion = "TLSv1.2", callTracker = callTracker)
         val httpClient = DpiHttpClient(context, tlsVersion = null, callTracker = callTracker)
-
 
         onProgress?.invoke(5, context.getString(R.string.ib_tls_progress_phase0))
         Log.d(TAG, "Phase 0/4: DNS resolution for ${domains.size} domains")
@@ -168,7 +161,6 @@ class TlsScanner(
                 }
             }.awaitAll())
         }
-
 
         onProgress?.invoke(25, context.getString(R.string.ib_tls_progress_phase1))
         Log.d(TAG, "Phase 1/4: TLS 1.3 probing for ${domains.size} domains")
@@ -200,7 +192,6 @@ class TlsScanner(
             }.awaitAll())
         }
 
-
         onProgress?.invoke(50, context.getString(R.string.ib_tls_progress_phase2))
         Log.d(TAG, "Phase 2/4: TLS 1.2 probing for ${domains.size} domains")
         coroutineScope {
@@ -231,7 +222,6 @@ class TlsScanner(
             }.awaitAll())
         }
 
-
         onProgress?.invoke(75, context.getString(R.string.ib_tls_progress_phase3))
         Log.d(TAG, "Phase 3/4: HTTP probing for ${domains.size} domains")
         coroutineScope {
@@ -258,7 +248,6 @@ class TlsScanner(
         }
 
         onProgress?.invoke(95, context.getString(R.string.ib_tls_progress_collect))
-
 
         Log.d(TAG, "Merging results for ${domains.size} domains")
         return dnsResults.mapIndexed { i, dnsResult ->
@@ -302,7 +291,6 @@ class TlsScanner(
             )
         }
     }
-
 
     suspend fun checkDomainParallel(
         domain: String,
