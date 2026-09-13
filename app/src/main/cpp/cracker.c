@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include <jni.h>
 
 
@@ -721,11 +722,18 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_debugPbkdf2Hex(
 
     const char *password = (*env)->GetStringUTFChars(env, jPassword, NULL);
     const char *ssid = (*env)->GetStringUTFChars(env, jSsid, NULL);
+    if (!password || !ssid) {
+        if (password) (*env)->ReleaseStringUTFChars(env, jPassword, password);
+        if (ssid) (*env)->ReleaseStringUTFChars(env, jSsid, ssid);
+        return (*env)->NewStringUTF(env, "");
+    }
     jsize pw_len = (*env)->GetStringUTFLength(env, jPassword);
     jsize ssid_len = (*env)->GetStringUTFLength(env, jSsid);
+    if (pw_len < 0) pw_len = 0;
+    if (ssid_len < 0) ssid_len = 0;
+    if (ssid_len > 32) ssid_len = 32;
 
     uint8_t pmk[32];
-    if (ssid_len > 64) ssid_len = 64;
     pbkdf2_sha1((const uint8_t *) password, pw_len,
                 (const uint8_t *) ssid, ssid_len, pmk);
 
@@ -759,8 +767,22 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_tryPasswordHex(
     const char *eapolHex = (*env)->GetStringUTFChars(env, jEapolHex, NULL);
     const char *micHex = (*env)->GetStringUTFChars(env, jMicHex, NULL);
 
+    if (!password || !ssid || !macApHex || !macStaHex || !anonceHex || !eapolHex || !micHex) {
+        if (password) (*env)->ReleaseStringUTFChars(env, jPassword, password);
+        if (ssid) (*env)->ReleaseStringUTFChars(env, jSsid, ssid);
+        if (macApHex) (*env)->ReleaseStringUTFChars(env, jMacApHex, macApHex);
+        if (macStaHex) (*env)->ReleaseStringUTFChars(env, jMacStaHex, macStaHex);
+        if (anonceHex) (*env)->ReleaseStringUTFChars(env, jAnonceHex, anonceHex);
+        if (eapolHex) (*env)->ReleaseStringUTFChars(env, jEapolHex, eapolHex);
+        if (micHex) (*env)->ReleaseStringUTFChars(env, jMicHex, micHex);
+        return JNI_FALSE;
+    }
+
     jsize pw_len = (*env)->GetStringUTFLength(env, jPassword);
     jsize ssid_len = (*env)->GetStringUTFLength(env, jSsid);
+    if (pw_len < 0) pw_len = 0;
+    if (ssid_len < 0) ssid_len = 0;
+    if (ssid_len > 32) ssid_len = 32;
 
     uint8_t pmk[32];
     pbkdf2_sha1((const uint8_t *) password, pw_len,
@@ -840,7 +862,19 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_crackBatchHex(
     const char *eapolHex = (*env)->GetStringUTFChars(env, jEapolHex, NULL);
     const char *micHex = (*env)->GetStringUTFChars(env, jMicHex, NULL);
 
+    if (!ssid || !macApHex || !macStaHex || !anonceHex || !eapolHex || !micHex) {
+        if (ssid) (*env)->ReleaseStringUTFChars(env, jSsid, ssid);
+        if (macApHex) (*env)->ReleaseStringUTFChars(env, jMacApHex, macApHex);
+        if (macStaHex) (*env)->ReleaseStringUTFChars(env, jMacStaHex, macStaHex);
+        if (anonceHex) (*env)->ReleaseStringUTFChars(env, jAnonceHex, anonceHex);
+        if (eapolHex) (*env)->ReleaseStringUTFChars(env, jEapolHex, eapolHex);
+        if (micHex) (*env)->ReleaseStringUTFChars(env, jMicHex, micHex);
+        return -1;
+    }
+
     jsize ssid_len = (*env)->GetStringUTFLength(env, jSsid);
+    if (ssid_len < 0) ssid_len = 0;
+    if (ssid_len > 32) ssid_len = 32;
     jsize count = (*env)->GetArrayLength(env, jPasswords);
     int type = jType, keyver = jKeyver;
 
@@ -880,7 +914,9 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_crackBatchHex(
         jstring jpw = (jstring) (*env)->GetObjectArrayElement(env, jPasswords, i);
         if (!jpw) continue;
         const char *password = (*env)->GetStringUTFChars(env, jpw, NULL);
+        if (!password) { (*env)->DeleteLocalRef(env, jpw); continue; }
         jsize pw_len = (*env)->GetStringUTFLength(env, jpw);
+        if (pw_len < 0) pw_len = 0;
 
         uint8_t pmk[32];
         pbkdf2_sha1((const uint8_t *) password, pw_len,
@@ -938,15 +974,37 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_crackBatchMultiHex(
         jobjectArray jMicArr, jintArray jKeyvers, jintArray jTypes) {
 
     const char *ssid = (*env)->GetStringUTFChars(env, jSsid, NULL);
+    if (!ssid) return -1;
     jsize ssid_len = (*env)->GetStringUTFLength(env, jSsid);
+    if (ssid_len < 0) ssid_len = 0;
+    if (ssid_len > 32) ssid_len = 32;
+
     jsize count = (*env)->GetArrayLength(env, jPasswords);
     jsize hn = (*env)->GetArrayLength(env, jApArr);
+    if ((*env)->GetArrayLength(env, jStaArr) < hn) hn = (*env)->GetArrayLength(env, jStaArr);
+    if ((*env)->GetArrayLength(env, jAnonceArr) < hn) hn = (*env)->GetArrayLength(env, jAnonceArr);
+    if ((*env)->GetArrayLength(env, jEapolArr) < hn) hn = (*env)->GetArrayLength(env, jEapolArr);
+    if ((*env)->GetArrayLength(env, jMicArr) < hn) hn = (*env)->GetArrayLength(env, jMicArr);
+    if ((*env)->GetArrayLength(env, jKeyvers) < hn) hn = (*env)->GetArrayLength(env, jKeyvers);
+    if ((*env)->GetArrayLength(env, jTypes) < hn) hn = (*env)->GetArrayLength(env, jTypes);
     if (hn > 32) hn = 32;
 
     jint *kvs = (*env)->GetIntArrayElements(env, jKeyvers, NULL);
     jint *tps = (*env)->GetIntArrayElements(env, jTypes, NULL);
+    if (!kvs || !tps) {
+        if (kvs) (*env)->ReleaseIntArrayElements(env, jKeyvers, kvs, JNI_ABORT);
+        if (tps) (*env)->ReleaseIntArrayElements(env, jTypes, tps, JNI_ABORT);
+        (*env)->ReleaseStringUTFChars(env, jSsid, ssid);
+        return -1;
+    }
 
-    nh_target tg[32];
+    nh_target *tg = (nh_target *) calloc(32, sizeof(nh_target));
+    if (!tg) {
+        (*env)->ReleaseIntArrayElements(env, jKeyvers, kvs, JNI_ABORT);
+        (*env)->ReleaseIntArrayElements(env, jTypes, tps, JNI_ABORT);
+        (*env)->ReleaseStringUTFChars(env, jSsid, ssid);
+        return -1;
+    }
     for (int h = 0; h < hn; h++) {
         memset(&tg[h], 0, sizeof(nh_target));
         tg[h].type = tps[h];
@@ -956,32 +1014,42 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_crackBatchMultiHex(
         const char *p;
 
         s = (jstring) (*env)->GetObjectArrayElement(env, jApArr, h);
+        if (!s) continue;
         p = (*env)->GetStringUTFChars(env, s, NULL);
+        if (!p) { (*env)->DeleteLocalRef(env, s); continue; }
         hex_to_bytes_tolerant(p, tg[h].apMac, 6);
         (*env)->ReleaseStringUTFChars(env, s, p);
         (*env)->DeleteLocalRef(env, s);
 
         s = (jstring) (*env)->GetObjectArrayElement(env, jStaArr, h);
+        if (!s) continue;
         p = (*env)->GetStringUTFChars(env, s, NULL);
+        if (!p) { (*env)->DeleteLocalRef(env, s); continue; }
         hex_to_bytes_tolerant(p, tg[h].staMac, 6);
         (*env)->ReleaseStringUTFChars(env, s, p);
         (*env)->DeleteLocalRef(env, s);
 
         s = (jstring) (*env)->GetObjectArrayElement(env, jMicArr, h);
+        if (!s) continue;
         p = (*env)->GetStringUTFChars(env, s, NULL);
+        if (!p) { (*env)->DeleteLocalRef(env, s); continue; }
         tg[h].micOk = (strlen(p) >= 32) ? 1 : 0;
         if (tg[h].micOk) hex_to_bytes(p, 32, tg[h].mic);
         (*env)->ReleaseStringUTFChars(env, s, p);
         (*env)->DeleteLocalRef(env, s);
 
         s = (jstring) (*env)->GetObjectArrayElement(env, jAnonceArr, h);
+        if (!s) continue;
         p = (*env)->GetStringUTFChars(env, s, NULL);
+        if (!p) { (*env)->DeleteLocalRef(env, s); continue; }
         if (strlen(p) >= 64) hex_to_bytes(p, 64, tg[h].anonce);
         (*env)->ReleaseStringUTFChars(env, s, p);
         (*env)->DeleteLocalRef(env, s);
 
         s = (jstring) (*env)->GetObjectArrayElement(env, jEapolArr, h);
+        if (!s) continue;
         p = (*env)->GetStringUTFChars(env, s, NULL);
+        if (!p) { (*env)->DeleteLocalRef(env, s); continue; }
         size_t elen = strlen(p) / 2;
         if (elen > 512) elen = 512;
         if (elen >= 97) {
@@ -1005,7 +1073,9 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_crackBatchMultiHex(
         jstring jpw = (jstring) (*env)->GetObjectArrayElement(env, jPasswords, i);
         if (!jpw) continue;
         const char *password = (*env)->GetStringUTFChars(env, jpw, NULL);
+        if (!password) { (*env)->DeleteLocalRef(env, jpw); continue; }
         jsize pw_len = (*env)->GetStringUTFLength(env, jpw);
+        if (pw_len < 0) pw_len = 0;
 
         pbkdf2_sha1((const uint8_t *) password, pw_len,
                     (const uint8_t *) ssid, ssid_len, pmk);
@@ -1029,5 +1099,6 @@ Java_com_lsd_wififrankenstein_util_NativeCracker_crackBatchMultiHex(
     }
 
     (*env)->ReleaseStringUTFChars(env, jSsid, ssid);
+    free(tg);
     return result;
 }
