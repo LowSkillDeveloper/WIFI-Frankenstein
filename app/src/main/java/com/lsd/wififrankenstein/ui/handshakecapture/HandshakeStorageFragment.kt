@@ -25,6 +25,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.TooltipCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -39,6 +40,7 @@ import com.lsd.wififrankenstein.databinding.FragmentHandshakeStorageBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.util.ChrootCapabilities
+import com.lsd.wififrankenstein.util.ThirdPartyUploadGate
 import com.lsd.wififrankenstein.util.ThreeWiFiCsvRow
 import com.lsd.wififrankenstein.util.ThreeWiFiUploader
 import kotlinx.coroutines.delay
@@ -609,7 +611,7 @@ class HandshakeStorageFragment : Fragment() {
                 requireContext().theme.resolveAttribute(
                     android.R.attr.selectableItemBackground, attr, true
                 )
-                if (attr.resourceId != 0) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && attr.resourceId != 0) {
                     foreground = ContextCompat.getDrawable(
                         requireContext(), attr.resourceId
                     )
@@ -638,7 +640,7 @@ class HandshakeStorageFragment : Fragment() {
 
             val text = TextView(requireContext()).apply {
                 text = option.title
-                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
+                TextViewCompat.setTextAppearance(this, com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
                 layoutParams = LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
                 ).also { it.marginStart = dp16 }
@@ -760,6 +762,12 @@ class HandshakeStorageFragment : Fragment() {
     }
 
     private fun uploadHandshakeTo3WiFi(items: List<HandshakeItem>) {
+        ThirdPartyUploadGate.confirm(requireContext(), "3WiFi") {
+            uploadHandshakeTo3WiFiConfirmed(items)
+        }
+    }
+
+    private fun uploadHandshakeTo3WiFiConfirmed(items: List<HandshakeItem>) {
         viewLifecycleOwner.lifecycleScope.launch {
             dbSetupViewModel.loadDbList()
             delay(300)
@@ -1128,6 +1136,12 @@ class HandshakeStorageFragment : Fragment() {
     }
 
     private fun onBulkUploadToWpaSec(items: List<HandshakeItem>) {
+        ThirdPartyUploadGate.confirm(requireContext(), "wpa-sec.stanev.org") {
+            bulkUploadToWpaSecConfirmed(items)
+        }
+    }
+
+    private fun bulkUploadToWpaSecConfirmed(items: List<HandshakeItem>) {
         val withHash = items.filter { it.hash22000 != null }
         if (withHash.isEmpty()) {
             Toast.makeText(requireContext(), R.string.handshake_no_hash, Toast.LENGTH_SHORT).show()
@@ -1160,6 +1174,12 @@ class HandshakeStorageFragment : Fragment() {
     }
 
     private fun onBulkUploadToOhc(items: List<HandshakeItem>) {
+        ThirdPartyUploadGate.confirm(requireContext(), "onlinehashcrack.com") {
+            onBulkUploadToOhcConfirmed(items)
+        }
+    }
+
+    private fun onBulkUploadToOhcConfirmed(items: List<HandshakeItem>) {
         val withHash = items.filter { it.hash22000 != null }
         if (withHash.isEmpty()) {
             Toast.makeText(requireContext(), R.string.handshake_no_hash, Toast.LENGTH_SHORT).show()
@@ -1210,8 +1230,13 @@ class HandshakeStorageFragment : Fragment() {
             .show()
     }
 
-
     private fun showOnlineHashCrackDialog(item: HandshakeItem) {
+        ThirdPartyUploadGate.confirm(requireContext(), "onlinehashcrack.com") {
+            showOnlineHashCrackDialogConfirmed(item)
+        }
+    }
+
+    private fun showOnlineHashCrackDialogConfirmed(item: HandshakeItem) {
         val savedEmail = viewModel.getSavedEmail().orEmpty()
         val input = android.widget.EditText(requireContext()).apply {
             hint = getString(R.string.handshake_upload_email_prompt)
@@ -1251,6 +1276,12 @@ class HandshakeStorageFragment : Fragment() {
     }
 
     private fun showWpaSecUploadDialog(item: HandshakeItem) {
+        ThirdPartyUploadGate.confirm(requireContext(), "wpa-sec.stanev.org") {
+            showWpaSecUploadDialogInternal(item)
+        }
+    }
+
+    private fun showWpaSecUploadDialogInternal(item: HandshakeItem) {
         val savedKey = viewModel.getSavedWpaSecKey()
         if (savedKey.isNullOrBlank()) {
             MaterialAlertDialogBuilder(requireContext())
@@ -1310,6 +1341,12 @@ class HandshakeStorageFragment : Fragment() {
     }
 
     private fun onBulkUploadToPwncrack(items: List<HandshakeItem>) {
+        ThirdPartyUploadGate.confirm(requireContext(), "pwncrack.org") {
+            onBulkUploadToPwncrackConfirmed(items)
+        }
+    }
+
+    private fun onBulkUploadToPwncrackConfirmed(items: List<HandshakeItem>) {
         val withHash = items.filter { it.hash22000 != null }
         if (withHash.isEmpty()) {
             Toast.makeText(requireContext(), R.string.handshake_no_hash, Toast.LENGTH_SHORT).show()
@@ -1329,6 +1366,12 @@ class HandshakeStorageFragment : Fragment() {
     }
 
     private fun showPwncrackUploadDialog(item: HandshakeItem) {
+        ThirdPartyUploadGate.confirm(requireContext(), "pwncrack.org") {
+            showPwncrackUploadDialogConfirmed(item)
+        }
+    }
+
+    private fun showPwncrackUploadDialogConfirmed(item: HandshakeItem) {
         val savedKey = viewModel.getSavedPwncrackKey()
         if (savedKey.isNullOrBlank()) {
             showPwncrackKeyDialog { viewModel.uploadToPwncrack(item) }
@@ -1522,7 +1565,6 @@ class HandshakeStorageFragment : Fragment() {
     private fun showHandshakeDetails(item: HandshakeItem) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_handshake_details, null)
 
-
         dialogView.findViewById<TextView>(R.id.detailFileName).text = item.fileName
         dialogView.findViewById<TextView>(R.id.detailFilePath).text = item.filePath
         dialogView.findViewById<TextView>(R.id.detailFileSize).text = item.formattedSize
@@ -1539,7 +1581,6 @@ class HandshakeStorageFragment : Fragment() {
             existsView.text = getString(R.string.handshake_file_not_found)
             existsView.setTextColor(ContextCompat.getColor(requireContext(), R.color.error_red))
         }
-
 
         if (item.essid != null) {
             dialogView.findViewById<TextView>(R.id.detailEssid).text = item.essid
@@ -1591,7 +1632,6 @@ class HandshakeStorageFragment : Fragment() {
             apsView.visibility = View.VISIBLE
         }
 
-
         val validityView = dialogView.findViewById<TextView>(R.id.detailValidity)
         if (item.isValid != null) {
             validityView.text =
@@ -1626,7 +1666,6 @@ class HandshakeStorageFragment : Fragment() {
             item.nonceErrorCorrection?.let { getString(R.string.hsc_nc, it) }
                 ?: getString(R.string.hsc_nc_not_detected)
 
-
         dialogView.findViewById<TextView>(R.id.detailM1).text = item.eapolM1Count.toString()
         dialogView.findViewById<TextView>(R.id.detailM2).text = item.eapolM2Count.toString()
         dialogView.findViewById<TextView>(R.id.detailM3).text = item.eapolM3Count.toString()
@@ -1648,7 +1687,6 @@ class HandshakeStorageFragment : Fragment() {
             clientsView.visibility = View.VISIBLE
         }
 
-
         val locSection = dialogView.findViewById<View>(R.id.detailLocationSection)
         if (item.latitude != null && item.longitude != null) {
             locSection.visibility = View.VISIBLE
@@ -1661,7 +1699,6 @@ class HandshakeStorageFragment : Fragment() {
                 openOnMap(item.latitude, item.longitude)
             }
         }
-
 
         val hash22000Section = dialogView.findViewById<View>(R.id.detailHash22000Section)
         if (item.hash22000 != null) {
@@ -1707,7 +1744,6 @@ class HandshakeStorageFragment : Fragment() {
         } else {
             md5Section.visibility = View.GONE
         }
-
 
         val wpaSecText = buildString {
             if (item.uploadedToWpaSec) {
@@ -1786,7 +1822,6 @@ class HandshakeStorageFragment : Fragment() {
             }
         }
 
-
         dialogView.findViewById<View>(R.id.btnDetailVerify).apply {
             isEnabled = item.fileExists
             alpha = if (item.fileExists) 1f else 0.4f
@@ -1861,7 +1896,6 @@ class HandshakeStorageFragment : Fragment() {
                 .show()
         }
 
-
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(item.displayName)
             .setView(dialogView)
@@ -1869,7 +1903,6 @@ class HandshakeStorageFragment : Fragment() {
 
         dialog.show()
     }
-
 
     private fun copyToClipboard(text: String, label: String) {
         val clipboard =

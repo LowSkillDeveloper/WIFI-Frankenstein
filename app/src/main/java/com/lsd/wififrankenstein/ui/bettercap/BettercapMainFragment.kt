@@ -33,6 +33,7 @@ import com.lsd.wififrankenstein.ui.bettercap.dashboard.BettercapDashboardAdapter
 import com.lsd.wififrankenstein.ui.bettercap.dashboard.SortMode
 import com.lsd.wififrankenstein.ui.bettercap.eventlog.BettercapEventAdapter
 import com.lsd.wififrankenstein.ui.iwwifi.IwWifiManager
+import com.lsd.wififrankenstein.util.AuthorizedUseGate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -111,7 +112,16 @@ class BettercapMainFragment : Fragment() {
                 } catch (_: Exception) {
                 }
             },
-            onDeauthAll = { ap -> viewModel.deauthAp(ap.mac) },
+            onDeauthAll = { ap ->
+                AuthorizedUseGate.confirm(
+                    this,
+                    featureKey = "deauth",
+                    featureName = getString(R.string.feature_deauth),
+                    extraWarningRes = R.string.authgate_rf_warning
+                ) {
+                    viewModel.deauthAp(ap.mac)
+                }
+            },
             onAssoc = { ap -> viewModel.assoc(ap.mac) }
         )
         binding.recyclerViewAps.apply {
@@ -445,7 +455,6 @@ class BettercapMainFragment : Fragment() {
             binding.layoutInterfaceStatus.visibility = if (isRunning) View.VISIBLE else View.GONE
             updateStatusDot(status)
             binding.textInterfaceName.text = currentIface
-
 
             if (status == DaemonStatus.RUNNING) {
                 startInterfaceMonitor()

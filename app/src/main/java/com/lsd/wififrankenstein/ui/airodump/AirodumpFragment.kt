@@ -44,6 +44,7 @@ import com.lsd.wififrankenstein.ui.iwwifi.IwWifiManager
 import com.lsd.wififrankenstein.ui.iwwifi.models.IwWifiNetwork
 import com.lsd.wififrankenstein.ui.pixiedust.ConsoleAdapter
 import com.lsd.wififrankenstein.ui.pixiedust.PixieDustAdapter
+import com.lsd.wififrankenstein.util.AuthorizedUseGate
 import com.lsd.wififrankenstein.util.CaptureFormat
 import com.lsd.wififrankenstein.util.CaptureStats
 import com.lsd.wififrankenstein.util.ChrootManager
@@ -681,7 +682,16 @@ class AirodumpFragment : Fragment() {
         }
         binding.buttonBackToScan.setOnClickListener { goToStep(Step.INTERFACE, forward = false) }
         binding.buttonStopCapture.setOnClickListener { stopCapture() }
-        binding.buttonManualDeauth.setOnClickListener { showManualDeauthSheet() }
+        binding.buttonManualDeauth.setOnClickListener {
+            AuthorizedUseGate.confirm(
+                this,
+                featureKey = "deauth",
+                featureName = getString(R.string.feature_deauth),
+                extraWarningRes = R.string.authgate_rf_warning
+            ) {
+                showManualDeauthSheet()
+            }
+        }
         binding.buttonStatClients.setOnClickListener { showClientsSheet() }
         binding.buttonVerify.setOnClickListener { verifyHandshake() }
         binding.buttonExportHashcat.setOnClickListener { exportHashcat() }
@@ -991,6 +1001,16 @@ class AirodumpFragment : Fragment() {
     }
 
     private fun startCapture() {
+        AuthorizedUseGate.confirm(
+            this,
+            featureKey = "handshake_capture",
+            featureName = getString(R.string.feature_handshake_capture)
+        ) {
+            startCaptureInternal()
+        }
+    }
+
+    private fun startCaptureInternal() {
         if (HandshakeCaptureService.isActive()) {
             Toast.makeText(
                 requireContext(),

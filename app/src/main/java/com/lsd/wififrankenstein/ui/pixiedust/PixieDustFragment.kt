@@ -32,12 +32,14 @@ import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.ui.iwwifi.IwWifiManager
 import com.lsd.wififrankenstein.ui.iwwifi.models.IwWifiNetwork
+import com.lsd.wififrankenstein.util.AuthorizedUseGate
 import com.lsd.wififrankenstein.util.ChrootManager
 import com.lsd.wififrankenstein.util.ChrootType
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.MacAddressUtils
 import com.lsd.wififrankenstein.util.NativeWifiHelper
 import com.lsd.wififrankenstein.util.PixieDustResult
+import com.lsd.wififrankenstein.util.ThirdPartyUploadGate
 import com.lsd.wififrankenstein.util.ThreeWiFiCsvRow
 import com.lsd.wififrankenstein.util.ThreeWiFiUploader
 import kotlinx.coroutines.delay
@@ -497,6 +499,16 @@ class PixieDustFragment : Fragment() {
     }
 
     private fun startAttack(network: IwWifiNetwork?) {
+        AuthorizedUseGate.confirm(
+            this,
+            featureKey = "pixiedust",
+            featureName = getString(R.string.feature_pixiedust)
+        ) {
+            launchAttackInternal(network)
+        }
+    }
+
+    private fun launchAttackInternal(network: IwWifiNetwork?) {
         binding.cardFailureResult.visibility = View.GONE
         val net = network ?: selectedNetwork ?: run {
             Toast.makeText(
@@ -982,6 +994,17 @@ class PixieDustFragment : Fragment() {
     }
 
     private fun uploadPixieTo3WiFi(essid: String, bssid: String, psk: String?, wpsPin: String?) {
+        ThirdPartyUploadGate.confirm(requireContext(), "3WiFi") {
+            uploadPixieTo3WiFiConfirmed(essid, bssid, psk, wpsPin)
+        }
+    }
+
+    private fun uploadPixieTo3WiFiConfirmed(
+        essid: String,
+        bssid: String,
+        psk: String?,
+        wpsPin: String?
+    ) {
         viewLifecycleOwner.lifecycleScope.launch {
             dbSetupViewModel.loadDbList()
             delay(300)

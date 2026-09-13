@@ -15,7 +15,6 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.Spinner
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
@@ -30,24 +29,22 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.WelcomeActivity
 import com.lsd.wififrankenstein.WelcomeViewModel
 import com.lsd.wififrankenstein.databinding.FragmentWelcomeDatabasesBinding
+import com.lsd.wififrankenstein.service.DatabaseDownloadService
 import com.lsd.wififrankenstein.ui.dbsetup.ApiServerHelper
 import com.lsd.wififrankenstein.ui.dbsetup.AuthMethod
 import com.lsd.wififrankenstein.ui.dbsetup.ColumnAutoMapper
+import com.lsd.wififrankenstein.ui.dbsetup.DatabaseDownloadManager
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
-import com.lsd.wififrankenstein.ui.dbsetup.DatabaseDownloadManager
 import com.lsd.wififrankenstein.ui.dbsetup.PendingDownload
 import com.lsd.wififrankenstein.ui.dbsetup.SmartLinkDbInfo
-import com.lsd.wififrankenstein.service.DatabaseDownloadService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
-import kotlin.coroutines.cancellation.CancellationException
 
 class WelcomeDatabasesFragment : Fragment() {
 
@@ -104,7 +101,6 @@ class WelcomeDatabasesFragment : Fragment() {
     }
 
     private fun setupCardClicks() {
-        binding.cardDownload.setOnClickListener { showRecommendedBottomSheet() }
         binding.cardAddFile.setOnClickListener { pickFile() }
         binding.cardAddUrl.setOnClickListener { showUrlInputBottomSheet() }
         binding.cardAddApiServer.setOnClickListener { showApiConfigBottomSheet() }
@@ -564,65 +560,6 @@ class WelcomeDatabasesFragment : Fragment() {
         dialog.show()
     }
 
-    @SuppressLint("LongLogTag")
-    private fun showRecommendedBottomSheet() {
-        val dialog = BottomSheetDialog(requireContext())
-        val view = layoutInflater.inflate(R.layout.bottom_sheet_recommended_dbs, null)
-        dialog.setContentView(view)
-
-        val progressBar = view.findViewById<ProgressBar>(R.id.progressBar)
-        val textViewStatus = view.findViewById<TextView>(R.id.textViewStatus)
-        val buttonCancel =
-            view.findViewById<com.google.android.material.button.MaterialButton>(R.id.buttonCancel)
-        var isCancelled = false
-
-        buttonCancel.setOnClickListener { isCancelled = true; dialog.dismiss() }
-
-        val sourcesUrl =
-            "https://raw.githubusercontent.com/LowSkillDeveloper/WIFI-Frankenstein/refs/heads/service/recommended-databases.json"
-
-        lifecycleScope.launch {
-            try {
-                val sources = dbSetupViewModel.fetchSources(sourcesUrl)
-                    ?: emptyList<com.lsd.wififrankenstein.ui.dbsetup.DbSource>()
-                if (sources.isEmpty()) {
-                    textViewStatus.text = getString(R.string.no_recommended_sources_skip)
-                    progressBar.visibility = View.GONE
-                    return@launch
-                }
-
-                textViewStatus.text = getString(R.string.loading_recommended_databases)
-                val allDatabases = mutableListOf<SmartLinkDbInfo>()
-                for (source in sources) {
-                    if (isCancelled) return@launch
-                    val databases = dbSetupViewModel.fetchSmartLinkDatabases(source.smartlinkUrl)
-                    if (databases != null) {
-                        allDatabases.addAll(databases)
-                    }
-                }
-
-                dialog.dismiss()
-
-                if (allDatabases.isNotEmpty()) {
-                    showMultiSelectDialog(
-                        allDatabases.distinctBy { it.id },
-                        sources.mapNotNull { it.description }.distinct().joinToString("\n"),
-                        originUrl = sources.lastOrNull()?.smartlinkUrl
-                    )
-                } else {
-                    showError(getString(R.string.db_step1_no_databases))
-                }
-            } catch (e: Exception) {
-                if (!isCancelled) {
-                    textViewStatus.text = getString(R.string.db_error_loading)
-                    progressBar.visibility = View.GONE
-                }
-            }
-        }
-
-        dialog.show()
-    }
-
     private fun showMultiSelectDialog(
         databases: List<SmartLinkDbInfo>,
         description: String? = null,
@@ -688,8 +625,7 @@ class WelcomeDatabasesFragment : Fragment() {
             manager.events.collect { event ->
                 when (event) {
                     is DatabaseDownloadManager.Event.Completed -> {
-                        // The item was appended to the persisted db list by the
-                        // manager; reload and sync the welcome selection.
+
                         if (_binding == null) return@collect
                         dbSetupViewModel.loadDbList(force = true)
                         refreshDbList()
@@ -702,7 +638,7 @@ class WelcomeDatabasesFragment : Fragment() {
                         )
                     }
 
-                    is DatabaseDownloadManager.Event.Failed -> Unit // user informed elsewhere
+                    is DatabaseDownloadManager.Event.Failed -> Unit
                 }
             }
         }

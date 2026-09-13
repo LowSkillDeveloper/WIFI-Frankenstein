@@ -55,7 +55,7 @@ object DrawerMenuProvider {
         ),
         DrawerItem.MenuItem(
             206,
-            R.drawable.ic_menu_mapmode,
+            R.drawable.ic_wardriving,
             R.string.menu_personal_wifi_map,
             R.id.nav_personal_wifi_map
         ),

@@ -19,6 +19,7 @@ import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.databinding.FragmentUploadRouterscanBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
+import com.lsd.wififrankenstein.util.ThirdPartyUploadGate
 
 class UploadRouterScanFragment : Fragment() {
 
@@ -246,7 +247,9 @@ class UploadRouterScanFragment : Fragment() {
         val noWait = binding.checkBoxNoWait.isChecked
 
         binding.textViewResult.visibility = View.GONE
-        viewModel.uploadFile(server, comment, checkExisting, noWait)
+        ThirdPartyUploadGate.confirm(requireContext(), "3WiFi") {
+            viewModel.uploadFile(server, comment, checkExisting, noWait)
+        }
     }
 
     private fun showAddServerDialog() {
@@ -365,21 +368,23 @@ class UploadRouterScanFragment : Fragment() {
         val comment = binding.editTextComment.text?.toString()?.trim() ?: ""
 
         binding.textViewResult.visibility = View.GONE
-        viewModel.uploadManualData(
-            server,
-            essid,
-            bssid,
-            password,
-            wpsPin,
-            ip,
-            portStr,
-            auth,
-            sec,
-            title,
-            latText,
-            lonText,
-            comment
-        )
+        ThirdPartyUploadGate.confirm(requireContext(), "3WiFi") {
+            viewModel.uploadManualData(
+                server,
+                essid,
+                bssid,
+                password,
+                wpsPin,
+                ip,
+                portStr,
+                auth,
+                sec,
+                title,
+                latText,
+                lonText,
+                comment
+            )
+        }
     }
 
     override fun onDestroyView() {

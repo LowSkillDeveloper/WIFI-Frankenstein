@@ -35,6 +35,7 @@ import com.lsd.wififrankenstein.ui.iwwifi.models.IwWifiNetwork
 import com.lsd.wififrankenstein.ui.pixiedust.ConsoleAdapter
 import com.lsd.wififrankenstein.ui.pixiedust.PixieDustAdapter
 import com.lsd.wififrankenstein.ui.settings.WlanInterfaceManagerViewModel
+import com.lsd.wififrankenstein.util.AuthorizedUseGate
 import com.lsd.wififrankenstein.util.ChrootCapabilities
 import com.lsd.wififrankenstein.util.ChrootManager
 import com.lsd.wififrankenstein.util.Log
@@ -494,7 +495,6 @@ class BruteForceFragment : Fragment() {
             }
         }
 
-
         if (ChrootCapabilities.isRootAvailable(requireContext())) {
             try {
                 if (nativeWifiHelper.ensureReady()) {
@@ -509,7 +509,6 @@ class BruteForceFragment : Fragment() {
                 Log.w(TAG, "In-app iw scan failed, falling back", e)
             }
         }
-
 
         val systemNets = iwWifiManager.scanWifiNetworksNative()
         Log.d(TAG, "Scan source: system WifiManager (${systemNets.size} networks)")
@@ -583,6 +582,16 @@ class BruteForceFragment : Fragment() {
         }
         if (isAttackRunning) return
 
+        AuthorizedUseGate.confirm(
+            this,
+            featureKey = "bruteforce",
+            featureName = getString(R.string.feature_bruteforce_attack)
+        ) {
+            proceedToAttackInternal()
+        }
+    }
+
+    private fun proceedToAttackInternal() {
         if (attackMode == AttackMode.WPS_BRUTE) {
             val bssid = getTargetBssid() ?: return
             if (!validateBssid(bssid)) return

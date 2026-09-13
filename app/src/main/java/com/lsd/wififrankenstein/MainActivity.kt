@@ -9,6 +9,8 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.os.ConfigurationCompat
@@ -19,8 +21,6 @@ import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
-import androidx.biometric.BiometricPrompt
-import androidx.biometric.BiometricManager
 import com.lsd.wififrankenstein.databinding.ActivityMainBinding
 import com.lsd.wififrankenstein.databinding.DialogUsbWifiDetectedBinding
 import com.lsd.wififrankenstein.databinding.ViewAppLockBinding
@@ -32,8 +32,9 @@ import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.settings.UsbDeviceInfo
 import com.lsd.wififrankenstein.ui.settings.WlanInterfaceManagerViewModel
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
-import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.AppLockManager
+import com.lsd.wififrankenstein.util.EulaManager
+import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.SignatureVerifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -59,6 +60,21 @@ class MainActivity : AppCompatActivity() {
 
     private var lockBinding: ViewAppLockBinding? = null
     private var biometricPrompt: BiometricPrompt? = null
+
+    private fun maybeShowEulaDialog() {
+        if (EulaManager.isAccepted(this)) return
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.eula_dialog_title)
+            .setMessage(R.string.eula_dialog_text)
+            .setCancelable(false)
+            .setPositiveButton(R.string.eula_agree) { _, _ ->
+                EulaManager.markAccepted(this)
+            }
+            .setNegativeButton(R.string.eula_decline) { _, _ ->
+                finishAffinity()
+            }
+            .show()
+    }
 
     private fun handleStartPage() {
         val prefs = getSharedPreferences("settings", MODE_PRIVATE)
@@ -124,6 +140,8 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        maybeShowEulaDialog()
 
         setupAppLock()
 
@@ -246,9 +264,6 @@ class MainActivity : AppCompatActivity() {
         settingsViewModel.hasProot.observe(this) { hp ->
             drawerAdapter.updateChrootState(settingsViewModel.hasChroot.value ?: false, hp)
         }
-
-
-
 
         binding.appBarMain.fabStub.setOnInflateListener { _, inflated ->
             val fab1 =
@@ -446,11 +461,6 @@ class MainActivity : AppCompatActivity() {
         handleNotificationIntent(intent)
     }
 
-    /**
-     * If background downloads finished with custom SQLite databases that still
-     * need interactive table/column mapping, offer to open the Database Setup
-     * screen (once per launch).
-     */
     private fun maybeShowNeedsSetupPrompt(savedInstanceState: Bundle?) {
         if (savedInstanceState?.getBoolean(KEY_NEEDS_SETUP_PROMPT_SHOWN) == true) return
         val manager = com.lsd.wififrankenstein.ui.dbsetup.DatabaseDownloadManager.peek()
@@ -537,10 +547,6 @@ class MainActivity : AppCompatActivity() {
         Log.d("MainActivity", "onResume called")
         wlanInterfaceViewModel.startPolling()
         settingsViewModel.refreshChrootState()
-        lifecycleScope.launch {
-            delay(1500)
-            settingsViewModel.refreshChrootState()
-        }
     }
 
     override fun onPause() {

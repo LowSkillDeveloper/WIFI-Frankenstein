@@ -63,6 +63,7 @@ import com.lsd.wififrankenstein.ui.settings.WlanInterfaceManagerViewModel
 import com.lsd.wififrankenstein.ui.updates.UpdateChecker
 import com.lsd.wififrankenstein.ui.wpagenerator.WpaAlgorithmsHelper
 import com.lsd.wififrankenstein.ui.wpsgenerator.WPSPin
+import com.lsd.wififrankenstein.util.AuthorizedUseGate
 import com.lsd.wififrankenstein.util.BottomSheetMenu
 import com.lsd.wififrankenstein.util.BottomSheetMenuItem
 import com.lsd.wififrankenstein.util.ChrootManager
@@ -89,7 +90,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
-
 class WiFiScannerFragment : Fragment() {
 
     @Suppress("DEPRECATION")
@@ -115,12 +115,16 @@ class WiFiScannerFragment : Fragment() {
             result
         } catch (e: Exception) {
             Log.w("WiFiScannerFragment", "Unsafe ScanResult creation failed, using fallback", e)
-            ScanResult().apply {
-                SSID = ssid
-                BSSID = bssid
-                this.capabilities = capabilities
-                this.level = level
-                this.frequency = frequency
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                ScanResult().apply {
+                    SSID = ssid
+                    BSSID = bssid
+                    this.capabilities = capabilities
+                    this.level = level
+                    this.frequency = frequency
+                }
+            } else {
+                throw e
             }
         }
     }
@@ -177,7 +181,6 @@ class WiFiScannerFragment : Fragment() {
             }
         }
     }
-
 
     private val settingsViewModel: SettingsViewModel by viewModels()
 
@@ -263,6 +266,7 @@ class WiFiScannerFragment : Fragment() {
             wlanInterfaceViewModel.startPolling()
             startModePolling()
 
+            if (!isAdded) return@launch
             if (shouldScanOnStartup() && !hasScanned) {
                 startWifiScan()
             }
@@ -270,7 +274,6 @@ class WiFiScannerFragment : Fragment() {
 
         wlanInterfaceViewModel.interfaceStatuses.observe(viewLifecycleOwner) { statuses ->
             val currentNames = statuses.map { it.name }.toSet()
-
 
             if (scanInterface !in currentNames) {
                 val fallback = currentNames.firstOrNull()
@@ -620,12 +623,14 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun shouldCheckUpdates(): Boolean {
-        return requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val ctx = context ?: return false
+        return ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
             .getBoolean("check_updates_on_open", true)
     }
 
     private fun shouldScanOnStartup(): Boolean {
-        val prefs = requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val ctx = context ?: return false
+        val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
         return prefs.getBoolean("scan_on_startup", true)
     }
 
@@ -660,6 +665,8 @@ class WiFiScannerFragment : Fragment() {
         binding.recyclerViewWifi.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = wifiAdapter
+            (itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)
+                ?.supportsChangeAnimations = false
         }
 
         wifiAdapter.setOnItemClickListener { view, scanResult ->
@@ -794,14 +801,14 @@ class WiFiScannerFragment : Fragment() {
     private fun observeViewModel() {
         viewModel.wifiList.observe(viewLifecycleOwner) { wifiList ->
             if (_binding == null) return@observe
-            wifiAdapter.updateData(wifiList)
+            postAdapterUpdate { wifiAdapter.updateData(wifiList) }
             binding.swipeRefreshLayout.isRefreshing = false
             binding.buttonScanWifi.isEnabled = true
         }
 
         viewModel.iwWifiList.observe(viewLifecycleOwner) { iwList ->
             if (_binding == null) return@observe
-            iwWifiAdapter.updateData(iwList)
+            postAdapterUpdate { iwWifiAdapter.updateData(iwList) }
             binding.swipeRefreshLayout.isRefreshing = false
             binding.buttonScanWifi.isEnabled = true
         }
@@ -856,8 +863,10 @@ class WiFiScannerFragment : Fragment() {
 
         viewModel.databaseResults.observe(viewLifecycleOwner) { results ->
             if (_binding == null) return@observe
-            wifiAdapter.mergeDatabaseResults(results)
-            iwWifiAdapter.mergeDatabaseResults(results)
+            postAdapterUpdate {
+                wifiAdapter.mergeDatabaseResults(results)
+                iwWifiAdapter.mergeDatabaseResults(results)
+            }
             hideProgressBar()
         }
 
@@ -997,7 +1006,6 @@ class WiFiScannerFragment : Fragment() {
         } else {
             imageView.visibility = View.GONE
         }
-
 
         if (notification.linkUrl != null && notification.getLocalizedLinkText(language) != null) {
             linkView.visibility = View.VISIBLE
@@ -1444,8 +1452,35 @@ class WiFiScannerFragment : Fragment() {
     }
 
     private fun mergeResultsToBothAdapters(results: Map<String, List<NetworkDatabaseResult>>) {
-        wifiAdapter.mergeDatabaseResults(results)
-        iwWifiAdapter.mergeDatabaseResults(results)
+        postAdapterUpdate {
+            wifiAdapter.mergeDatabaseResults(results)
+            iwWifiAdapter.mergeDatabaseResults(results)
+        }
+    }
+
+    private fun postAdapterUpdate(block: () -> Unit) {
+        if (_binding == null) return
+        val rv = binding.recyclerViewWifi
+        rv.post {
+            if (_binding == null) return@post
+            if (rv.isComputingLayout || rv.isAnimating) {
+                rv.post { postAdapterUpdate(block) }
+                return@post
+            }
+            try {
+                block()
+            } catch (e: IllegalArgumentException) {
+                com.lsd.wififrankenstein.util.Log.e("WiFiScannerFragment", "Adapter update race, retrying", e)
+                rv.post {
+                    if (_binding == null) return@post
+                    try {
+                        block()
+                    } catch (e2: Exception) {
+                        com.lsd.wififrankenstein.util.Log.e("WiFiScannerFragment", "Adapter retry failed", e2)
+                    }
+                }
+            }
+        }
     }
 
     private fun showProgressBar() {
@@ -1626,22 +1661,28 @@ class WiFiScannerFragment : Fragment() {
                 val ssid = selectedWifi?.SSID ?: selectedIwNetwork?.ssid ?: bssid
                 dialog.dismiss()
 
-                val infoView = layoutInflater.inflate(R.layout.dialog_bruteforce_progress, null)
-                infoView.findViewById<TextView>(R.id.textBruteInfo).text = "$ssid\n$bssid"
+                AuthorizedUseGate.confirm(
+                    this@WiFiScannerFragment,
+                    featureKey = "wps_bruteforce",
+                    featureName = getString(R.string.feature_wps_bruteforce)
+                ) {
+                    val infoView = layoutInflater.inflate(R.layout.dialog_bruteforce_progress, null)
+                    infoView.findViewById<TextView>(R.id.textBruteInfo).text = "$ssid\n$bssid"
 
-                MaterialAlertDialogBuilder(requireContext())
-                    .setTitle(R.string.wps_brute_force)
-                    .setView(infoView)
-                    .setPositiveButton(R.string.run_in_background) { _, _ ->
-                        ForegroundAttackService.startWpsBruteForce(requireContext(), bssid)
-                        Toast.makeText(
-                            requireContext(),
-                            R.string.wps_brute_force_start,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
+                    MaterialAlertDialogBuilder(requireContext())
+                        .setTitle(R.string.wps_brute_force)
+                        .setView(infoView)
+                        .setPositiveButton(R.string.run_in_background) { _, _ ->
+                            ForegroundAttackService.startWpsBruteForce(requireContext(), bssid)
+                            Toast.makeText(
+                                requireContext(),
+                                R.string.wps_brute_force_start,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
+                }
             }
         }
 
@@ -2056,7 +2097,6 @@ class WiFiScannerFragment : Fragment() {
             requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showSoftInput(passwordEditText, InputMethodManager.SHOW_IMPLICIT)
     }
-
 
     private fun forgetNetwork(scanResult: ScanResult) {
         Log.d(

@@ -27,6 +27,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.DbItem
 import com.lsd.wififrankenstein.ui.dbsetup.DbSetupViewModel
 import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.ui.pixiedust.ConsoleAdapter
+import com.lsd.wififrankenstein.util.AuthorizedUseGate
 import com.lsd.wififrankenstein.util.ChrootManager
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.RootlessManager
@@ -239,7 +240,13 @@ class RouterScanFragment : Fragment() {
             if (viewModel.state.value?.isScanning == true) {
                 viewModel.cancelScan()
             } else {
-                startScan()
+                AuthorizedUseGate.confirm(
+                    this,
+                    featureKey = "router_scan",
+                    featureName = getString(R.string.feature_router_scan)
+                ) {
+                    startScan()
+                }
             }
         }
 
@@ -657,8 +664,10 @@ class RouterScanFragment : Fragment() {
 
     private fun copyField(label: String, value: String) {
         try {
-            val clipboard =
-                requireContext().getSystemService(android.content.ClipboardManager::class.java)
+            val clipboard = ContextCompat.getSystemService(
+                requireContext(),
+                android.content.ClipboardManager::class.java
+            )
             clipboard?.setPrimaryClip(android.content.ClipData.newPlainText(label, value))
             Toast.makeText(requireContext(), getString(R.string.copied, label), Toast.LENGTH_SHORT)
                 .show()
@@ -693,8 +702,10 @@ class RouterScanFragment : Fragment() {
             .setPositiveButton(getString(R.string.ok), null)
             .setOnDismissListener {
                 try {
-                    val clipboard =
-                        requireContext().getSystemService(android.content.ClipboardManager::class.java)
+                    val clipboard = ContextCompat.getSystemService(
+                        requireContext(),
+                        android.content.ClipboardManager::class.java
+                    )
                     val clip =
                         android.content.ClipData.newPlainText("full_output", result.fullOutput)
                     clipboard?.setPrimaryClip(clip)

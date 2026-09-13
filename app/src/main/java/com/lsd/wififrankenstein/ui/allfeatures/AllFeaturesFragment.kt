@@ -191,6 +191,13 @@ class AllFeaturesFragment : Fragment() {
                 FeatureCategory.CORE_TOOLS
             ),
             FeatureItem(
+                R.string.menu_personal_wifi_map,
+                R.string.feature_desc_wardriving,
+                R.drawable.ic_wardriving,
+                R.id.nav_personal_wifi_map,
+                FeatureCategory.CORE_TOOLS
+            ),
+            FeatureItem(
                 R.string.menu_mac_location,
                 R.string.feature_desc_mac_location,
                 R.drawable.ic_location,

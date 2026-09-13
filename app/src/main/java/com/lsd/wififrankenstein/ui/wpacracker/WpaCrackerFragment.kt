@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -15,6 +16,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
+import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -29,6 +31,7 @@ import com.lsd.wififrankenstein.databinding.FragmentWpaCrackerBinding
 import com.lsd.wififrankenstein.ui.handshakecapture.HandshakeItem
 import com.lsd.wififrankenstein.ui.handshakecapture.HandshakeStorageManager
 import com.lsd.wififrankenstein.ui.pixiedust.ConsoleAdapter
+import com.lsd.wififrankenstein.util.AuthorizedUseGate
 import com.lsd.wififrankenstein.util.BenchmarkProgress
 import com.lsd.wififrankenstein.util.ChrootCapabilities
 import com.lsd.wififrankenstein.util.HandshakeHash
@@ -220,7 +223,13 @@ class WpaCrackerFragment : Fragment() {
                 is WpaCrackerState.Paused -> viewModel.resumeCracking()
                 is WpaCrackerState.ChrootCracking -> viewModel.cancel()
                 else -> {
-                    viewModel.startCracking()
+                    AuthorizedUseGate.confirm(
+                        this,
+                        featureKey = "cracking",
+                        featureName = getString(R.string.feature_handshake_cracking)
+                    ) {
+                        viewModel.startCracking()
+                    }
                 }
             }
         }
@@ -313,7 +322,7 @@ class WpaCrackerFragment : Fragment() {
                 requireContext().theme.resolveAttribute(
                     android.R.attr.selectableItemBackground, attr, true
                 )
-                if (attr.resourceId != 0) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && attr.resourceId != 0) {
                     foreground = androidx.core.content.ContextCompat.getDrawable(
                         requireContext(), attr.resourceId
                     )
@@ -342,7 +351,7 @@ class WpaCrackerFragment : Fragment() {
 
             val text = android.widget.TextView(requireContext()).apply {
                 text = option.title
-                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
+                TextViewCompat.setTextAppearance(this, com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
                 layoutParams = android.widget.LinearLayout.LayoutParams(
                     0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f
                 ).also { it.marginStart = dp16 }
@@ -471,14 +480,14 @@ class WpaCrackerFragment : Fragment() {
         layout.addView(maskInput)
         val countLabel = android.widget.TextView(context).apply {
             setPadding(48, 8, 48, 8)
-            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
+            TextViewCompat.setTextAppearance(this, com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
         }
         layout.addView(countLabel)
 
         val legendLabel = android.widget.TextView(context).apply {
             text = getString(R.string.brute_mask_legend_title)
             setPadding(48, 16, 48, 4)
-            setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelSmall)
+            TextViewCompat.setTextAppearance(this, com.google.android.material.R.style.TextAppearance_Material3_LabelSmall)
         }
         layout.addView(legendLabel)
 
@@ -514,7 +523,7 @@ class WpaCrackerFragment : Fragment() {
             val tokView = android.widget.TextView(context).apply {
                 text = token
                 setPadding(0, 0, 24, 0)
-                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
+                TextViewCompat.setTextAppearance(this, com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
                 setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.notice_icon_tint))
                 layoutParams = android.widget.LinearLayout.LayoutParams(
                     android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -523,7 +532,7 @@ class WpaCrackerFragment : Fragment() {
             }
             val descView = android.widget.TextView(context).apply {
                 text = desc
-                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
+                TextViewCompat.setTextAppearance(this, com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
                 layoutParams = android.widget.LinearLayout.LayoutParams(
                     0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f
                 )
@@ -1113,7 +1122,11 @@ class WpaCrackerFragment : Fragment() {
         if (progress.totalPasswords > 0) {
             val pct = (progress.attempts.toFloat() / progress.totalPasswords * 100).toInt()
             binding.progressBar.isIndeterminate = false
-            binding.progressBar.setProgress(pct, true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                binding.progressBar.setProgress(pct, true)
+            } else {
+                binding.progressBar.progress = pct
+            }
         }
     }
 
@@ -1123,7 +1136,12 @@ class WpaCrackerFragment : Fragment() {
         if (pct >= 0) {
             binding.chrootProgressBar.isIndeterminate = false
             binding.chrootProgressBar.max = 10000
-            binding.chrootProgressBar.setProgress((pct * 100).toInt().coerceIn(0, 10000), true)
+            val value = (pct * 100).toInt().coerceIn(0, 10000)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                binding.chrootProgressBar.setProgress(value, true)
+            } else {
+                binding.chrootProgressBar.progress = value
+            }
         } else {
             binding.chrootProgressBar.isIndeterminate = true
         }

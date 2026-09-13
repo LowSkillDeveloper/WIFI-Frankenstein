@@ -8,6 +8,7 @@ import android.view.animation.DecelerateInterpolator
 import androidx.fragment.app.Fragment
 import com.lsd.wififrankenstein.WelcomeActivity
 import com.lsd.wififrankenstein.databinding.FragmentWelcomeDisclaimerBinding
+import com.lsd.wififrankenstein.util.EulaManager
 
 class WelcomeDisclaimerFragment : Fragment() {
 
@@ -29,10 +30,22 @@ class WelcomeDisclaimerFragment : Fragment() {
         (activity as? WelcomeActivity)?.setBottomHint(null)
         (activity as? WelcomeActivity)?.updateNavigationButtons(false, false)
 
+        binding.checkBoxEulaAccept.setOnCheckedChangeListener { _, _ ->
+            updateNextButtonState()
+        }
+
         binding.buttonNext.setOnClickListener {
+            EulaManager.markAccepted(requireContext())
             (activity as? WelcomeActivity)?.navigateToNextFragment()
         }
+        updateNextButtonState()
         setupAnimations()
+    }
+
+    private fun updateNextButtonState() {
+        val enabled = binding.checkBoxEulaAccept.isChecked
+        binding.buttonNext.isEnabled = enabled
+        binding.buttonNext.alpha = if (enabled) 1f else 0.5f
     }
 
     private fun setupAnimations() {
@@ -46,10 +59,12 @@ class WelcomeDisclaimerFragment : Fragment() {
         )
 
         animatedViews.forEach { (view, delay) ->
+            val targetAlpha =
+                if (view === binding.buttonNext && !binding.buttonNext.isEnabled) 0.5f else 1f
             view.alpha = 0f
             view.translationY = 30f
             view.animate()
-                .alpha(1f)
+                .alpha(targetAlpha)
                 .translationY(0f)
                 .setDuration(600)
                 .setStartDelay(delay)
