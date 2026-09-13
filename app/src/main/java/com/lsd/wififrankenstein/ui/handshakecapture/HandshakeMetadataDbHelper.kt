@@ -143,10 +143,6 @@ class HandshakeMetadataDbHelper(context: Context) : SQLiteOpenHelper(
         )
     """.trimIndent()
 
-    init {
-        lock.withLock { writableDatabase }
-    }
-
     override fun onCreate(db: SQLiteDatabase?) {
         db?.execSQL(CREATE_TABLE)
         db?.execSQL(IDX_ESSID)

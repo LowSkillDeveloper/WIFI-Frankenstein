@@ -23,10 +23,6 @@ class CrackSessionManager(context: Context) {
         return dbHelper.getSession(handshakeLine, wordlistUri)
     }
 
-    fun hasSession(handshakeLine: String, wordlistUri: String): Boolean {
-        return dbHelper.hasSession(handshakeLine, wordlistUri)
-    }
-
     fun getLatestSession(): CrackSessionData? {
         return dbHelper.getLatestSession()
     }

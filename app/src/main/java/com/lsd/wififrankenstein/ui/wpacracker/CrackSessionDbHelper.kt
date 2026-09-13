@@ -28,10 +28,6 @@ class CrackSessionDbHelper(context: Context) :
 
     private val lock = ReentrantLock()
 
-    init {
-        lock.withLock { writableDatabase }
-    }
-
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
             "CREATE TABLE $TABLE_NAME (" +
@@ -82,16 +78,6 @@ class CrackSessionDbHelper(context: Context) :
                 if (cursor.moveToFirst()) parseCursor(cursor)
                 else null
             }
-        }
-    }
-
-    fun hasSession(handshakeLine: String, wordlistUri: String): Boolean {
-        return lock.withLock {
-            val key = sessionKey(handshakeLine, wordlistUri)
-            readableDatabase.rawQuery(
-                "SELECT 1 FROM $TABLE_NAME WHERE $COLUMN_SESSION_KEY = ? LIMIT 1",
-                arrayOf(key)
-            ).use { cursor -> cursor.moveToFirst() }
         }
     }
 
