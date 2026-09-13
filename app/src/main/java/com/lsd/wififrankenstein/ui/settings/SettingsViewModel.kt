@@ -165,10 +165,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         refreshChrootState()
     }
 
-    fun refreshChrootState() {
+    fun refreshChrootState(force: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
             val cm = ChrootManagerSingleton.get(getApplication())
-            cm.resetChrootCaches()
+            if (force) cm.resetChrootCaches()
             val ct = cm.getChrootType()
             _hasChroot.postValue(ct is ChrootType.Root)
             _hasProot.postValue(ct is ChrootType.Rootless || ct is ChrootType.RootWithoutChroot)
@@ -278,7 +278,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         prefs.edit { putBoolean("scan_on_startup", isChecked) }
         _scanOnStartup.value = isChecked
     }
-
 
     fun setAppIcon(icon: String) {
         if (icon != _currentAppIcon.value) {

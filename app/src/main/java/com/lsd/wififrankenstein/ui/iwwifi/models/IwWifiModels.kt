@@ -6,7 +6,6 @@ data class IwInterface(
     val addr: String = ""
 )
 
-
 data class IwWifiNetwork(
 
     val ssid: String,

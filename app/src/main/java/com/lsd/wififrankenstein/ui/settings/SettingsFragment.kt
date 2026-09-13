@@ -43,7 +43,6 @@ import com.lsd.wififrankenstein.ui.iwwifi.IwWifiManager
 import com.lsd.wififrankenstein.util.AppLockManager
 import com.lsd.wififrankenstein.util.ChrootDiagnostics
 import com.lsd.wififrankenstein.util.ChrootManager
-import com.lsd.wififrankenstein.util.ChrootManagerSingleton
 import com.lsd.wififrankenstein.util.RootlessManager
 import com.lsd.wififrankenstein.util.WiFiManagerWrapper
 import com.topjohnwu.superuser.Shell
@@ -666,7 +665,7 @@ class SettingsFragment : Fragment() {
             @Suppress("DEPRECATION")
             requireContext().getSystemService(Context.WIFI_SERVICE) as WifiManager
         }
-        val wrapper = WiFiManagerWrapper(wifiManager)
+        val wrapper = WiFiManagerWrapper(wifiManager, requireContext())
         val isThrottleEnabled = wrapper.isScanThrottleEnabled()
 
         if (isThrottleEnabled && !hideWarning) {
@@ -804,8 +803,7 @@ class SettingsFragment : Fragment() {
                         viewModel.setEnableRoot(true)
                         Toast.makeText(requireContext(), R.string.root_granted, Toast.LENGTH_SHORT)
                             .show()
-                        ChrootManagerSingleton.get(requireContext()).resetChrootCaches()
-                        viewModel.refreshChrootState()
+                        viewModel.refreshChrootState(force = true)
                         updateChrootUI(ChrootManager(requireContext()))
                     } else {
                         Toast.makeText(requireContext(), R.string.root_denied, Toast.LENGTH_SHORT)
@@ -824,8 +822,17 @@ class SettingsFragment : Fragment() {
     }
 
     private fun updateChrootUI(chrootManager: ChrootManager) {
-        val chrootType = chrootManager.getChrootType()
+        // getChrootType() runs blocking shell calls — resolve off the main thread.
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val chrootType = chrootManager.getChrootType()
+            withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
+                renderChrootType(chrootType)
+            }
+        }
+    }
 
+    private fun renderChrootType(chrootType: com.lsd.wififrankenstein.util.ChrootType) {
         when (chrootType) {
             is com.lsd.wififrankenstein.util.ChrootType.Root -> {
                 binding.textViewChrootStatus.text = getString(R.string.chroot_is_installed)
@@ -1118,17 +1125,25 @@ class SettingsFragment : Fragment() {
     }
 
     private fun mountChroot(chrootManager: ChrootManager) {
-        try {
-            chrootManager.mountChroot()
-            Toast.makeText(requireContext(), R.string.chroot_mounted, Toast.LENGTH_SHORT).show()
-            viewModel.refreshChrootState()
-            updateChrootUI(chrootManager)
-        } catch (e: Exception) {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.chroot_mount_error, e.message),
-                Toast.LENGTH_LONG
-            ).show()
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                chrootManager.mountChroot()
+                withContext(Dispatchers.Main) {
+                    if (_binding == null) return@withContext
+                    Toast.makeText(requireContext(), R.string.chroot_mounted, Toast.LENGTH_SHORT).show()
+                    viewModel.refreshChrootState()
+                    updateChrootUI(chrootManager)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    if (_binding == null) return@withContext
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.chroot_mount_error, e.message),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
         }
     }
 

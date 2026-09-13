@@ -88,12 +88,49 @@ class WifiAdapter(
             isDatabaseResultsApplied = false
             networksWithDatabaseData.clear()
         }
-        val sortedNewWifiList = sortWifiList(newWifiList)
-        val diffCallback = WifiDiffCallback(wifiList, sortedNewWifiList)
+        val deduped = dedupByBssid(newWifiList)
+        val sortedNewWifiList = sortWifiList(deduped)
+        applySortedList(sortedNewWifiList)
+    }
+
+    private fun dedupByBssid(list: List<ScanResult>): List<ScanResult> {
+        if (list.size < 2) return list
+        val byBssid = LinkedHashMap<String, ScanResult>(list.size)
+        for (item in list) {
+            val key = item.BSSID?.lowercase(Locale.ROOT) ?: item.SSID.orEmpty()
+            val prev = byBssid[key]
+            if (prev == null || item.level > prev.level) byBssid[key] = item
+        }
+        return if (byBssid.size == list.size) list else byBssid.values.toList()
+    }
+
+    private fun applySortedList(sortedNewWifiList: List<ScanResult>) {
+        val hasData = snapshotHasData()
+        if (wifiList.size == sortedNewWifiList.size && hasData == lastDispatchedHasData) {
+            var identical = true
+            for (i in wifiList.indices) {
+                val a = wifiList[i]
+                val b = sortedNewWifiList[i]
+                if (!sameItem(a, b) || !sameContent(a, b)) {
+                    identical = false
+                    break
+                }
+            }
+            if (identical) {
+                wifiList = sortedNewWifiList
+                return
+            }
+        }
+        val diffCallback = WifiDiffCallback(wifiList, sortedNewWifiList, hasData, hasData)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         wifiList = sortedNewWifiList
+        lastDispatchedHasData = hasData
         diffResult.dispatchUpdatesTo(this)
     }
+
+    private var lastDispatchedHasData: Set<String> = emptySet()
+
+    private fun snapshotHasData(): Set<String> = networksWithDatabaseData.toSet()
 
     private fun sortWifiList(wifiList: List<ScanResult>): List<ScanResult> {
         if (wifiList.isEmpty()) {
@@ -192,22 +229,19 @@ class WifiAdapter(
             isDatabaseResultsApplied = true
         }
 
+        val oldHasData = lastDispatchedHasData
+        val newHasData = snapshotHasData()
         val sortedList = sortWifiList(wifiList)
 
         val shouldPrioritize = settings?.getBoolean("prioritize_networks_with_data", true) ?: true
         val shouldAutoScroll =
             settings?.getBoolean("auto_scroll_to_networks_with_data", true) ?: true
 
-        val diffCallback = WifiDiffCallback(wifiList, sortedList)
+        val diffCallback = WifiDiffCallback(wifiList, sortedList, oldHasData, newHasData)
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         wifiList = sortedList
+        lastDispatchedHasData = newHasData
         diffResult.dispatchUpdatesTo(this)
-
-        wifiList.forEachIndexed { index, scanResult ->
-            if ((scanResult.BSSID?.lowercase(Locale.ROOT) ?: "") in networksWithDatabaseData) {
-                notifyItemChanged(index)
-            }
-        }
 
         if (shouldPrioritize && hasNetworksWithData && shouldAutoScroll) {
             onScrollToTopListener?.invoke()
@@ -755,7 +789,9 @@ class WifiAdapter(
 
     class WifiDiffCallback(
         private val oldList: List<ScanResult>,
-        private val newList: List<ScanResult>
+        private val newList: List<ScanResult>,
+        private val oldHasData: Set<String> = emptySet(),
+        private val newHasData: Set<String> = emptySet()
     ) : DiffUtil.Callback() {
         override fun getOldListSize() = oldList.size
         override fun getNewListSize() = newList.size
@@ -764,8 +800,15 @@ class WifiAdapter(
             (oldList[oldItemPosition].BSSID?.lowercase(Locale.ROOT) ?: "") ==
                     (newList[newItemPosition].BSSID?.lowercase(Locale.ROOT) ?: "")
 
-        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
-            oldList[oldItemPosition] == newList[newItemPosition]
+        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            val a = oldList[oldItemPosition]
+            val b = newList[newItemPosition]
+            val key = (a.BSSID ?: b.BSSID)?.lowercase(Locale.ROOT) ?: ""
+            return a.SSID == b.SSID && a.BSSID == b.BSSID &&
+                    a.capabilities == b.capabilities && a.level == b.level &&
+                    a.frequency == b.frequency &&
+                    (oldHasData.contains(key) == newHasData.contains(key))
+        }
     }
 
     companion object {
@@ -773,6 +816,16 @@ class WifiAdapter(
         private const val TYPE_WPA = 1
         private const val TYPE_WPS = 2
         private const val TYPE_WPASEC = 3
+
+        private fun bssidKey(r: ScanResult): String =
+            r.BSSID?.lowercase(Locale.ROOT) ?: ""
+
+        private fun sameItem(a: ScanResult, b: ScanResult): Boolean =
+            bssidKey(a) == bssidKey(b)
+
+        private fun sameContent(a: ScanResult, b: ScanResult): Boolean =
+            a.SSID == b.SSID && a.BSSID == b.BSSID && a.capabilities == b.capabilities &&
+                    a.level == b.level && a.frequency == b.frequency
     }
 
     class CredentialsDiffCallback : DiffUtil.ItemCallback<NetworkDatabaseResult>() {

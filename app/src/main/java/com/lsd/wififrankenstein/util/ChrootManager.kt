@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.util
 
 import android.content.Context
+import com.lsd.wififrankenstein.BuildConfig
 import com.lsd.wififrankenstein.R
 import com.lsd.wififrankenstein.data.ChrootInfo
 import com.lsd.wififrankenstein.data.RouterScanResult
@@ -259,6 +260,8 @@ class ChrootManager(private val context: Context) {
         var isChrootMounted = false
         private val mountLock = Any()
         private val lifecycleLock = Any()
+        @Volatile
+        private var mountInProgress = false
         private const val MOUNT_FAILURE_COOLDOWN_MS = 60000L
 
         @Volatile
@@ -289,17 +292,38 @@ class ChrootManager(private val context: Context) {
 
         fun incrementMountRef() = mountRefCounter.incrementAndGet()
         fun decrementMountRef(): Boolean {
-            val val1 = mountRefCounter.decrementAndGet()
-            return val1 <= 0
+            while (true) {
+                val cur = mountRefCounter.get()
+                if (cur <= 0) return true
+                if (mountRefCounter.compareAndSet(cur, cur - 1)) {
+                    return cur - 1 <= 0
+                }
+            }
         }
 
+        fun findStaleChrootMounts(): List<String> {
+            return try {
+                val mountsFile = File("/proc/mounts")
+                if (!mountsFile.exists()) return emptyList()
+                val content = mountsFile.readText()
+                content.split('\n').distinct().mapNotNull { line ->
+                    val firstSpace = line.indexOf(' ')
+                    if (firstSpace == -1) return@mapNotNull null
+                    val secondSpaceOffset = line.substring(firstSpace + 1).indexOf(' ')
+                    if (secondSpaceOffset == -1) return@mapNotNull null
+                    val mp = line.substring(firstSpace + 1, firstSpace + 1 + secondSpaceOffset)
+                    if (mp.startsWith(CHROOT_PATH) && mp != CHROOT_PATH) mp else null
+                }.distinct()
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
 
         fun isPathMounted(path: String): Boolean {
             return try {
                 val mountsFile = File("/proc/mounts")
                 if (!mountsFile.exists()) return false
                 val content = mountsFile.readText()
-
 
                 content.split('\n').any { line ->
                     val firstSpace = line.indexOf(' ')
@@ -316,7 +340,6 @@ class ChrootManager(private val context: Context) {
                 false
             }
         }
-
 
         fun cleanupStaleMounts() {
             try {
@@ -922,7 +945,6 @@ class ChrootManager(private val context: Context) {
 
         destination.parentFile?.mkdirs()
 
-
         val chunks = (0 until CHUNK_COUNT).map { i ->
             val start = i * CHUNK_SIZE
             val end = if (i == CHUNK_COUNT - 1) totalSize - 1 else (i + 1) * CHUNK_SIZE - 1
@@ -930,7 +952,6 @@ class ChrootManager(private val context: Context) {
                 File(context.cacheDir, "chroot_chunk_${i}_${System.currentTimeMillis()}.tmp")
             Chunk(i, start, end, tempFile)
         }
-
 
         val downloaded = AtomicLong(0)
         var allSuccess = true
@@ -1021,7 +1042,6 @@ class ChrootManager(private val context: Context) {
                 return false
             }
 
-
             Log.d(TAG, "Merging ${chunks.size} chunks sequentially")
             FileOutputStream(destination).use { output ->
                 for (chunk in chunks) {
@@ -1036,7 +1056,6 @@ class ChrootManager(private val context: Context) {
                     }
                 }
             }
-
 
             chunks.forEach { it.tempFile.delete() }
 
@@ -1203,18 +1222,30 @@ class ChrootManager(private val context: Context) {
     }
 
     fun mountChroot(): Boolean {
-        synchronized(mountLock) {
-
-            val now = System.currentTimeMillis()
-            if (mountFailedAt > 0 && now - mountFailedAt < MOUNT_FAILURE_COOLDOWN_MS) {
-                val remaining = MOUNT_FAILURE_COOLDOWN_MS - (now - mountFailedAt)
-                Log.d(TAG, "Mount skipped — cooldown active (${remaining}ms remaining)")
-                return false
+        if (isChrootMounted) {
+            if (isPathMounted("$CHROOT_PATH/dev") && isPathMounted("$CHROOT_PATH/proc")) {
+                synchronized(mountLock) {
+                    // Re-check under lock before inflating the ref count.
+                    if (isChrootMounted) {
+                        incrementMountRef()
+                        return true
+                    }
+                }
             }
-
+        }
+        synchronized(mountLock) {
+            // Single-flight: another thread is already mounting — wait for its
+            // result instead of running the whole ~60s sequence a second time.
+            while (mountInProgress) {
+                try {
+                    (mountLock as Object).wait()
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    return false
+                }
+            }
             if (isChrootMounted) {
                 if (isPathMounted("$CHROOT_PATH/dev") && isPathMounted("$CHROOT_PATH/proc")) {
-                    Log.d(TAG, "Chroot already mounted")
                     incrementMountRef()
                     return true
                 }
@@ -1224,69 +1255,82 @@ class ChrootManager(private val context: Context) {
                 )
             }
 
+            val now = System.currentTimeMillis()
+            if (mountFailedAt > 0 && now - mountFailedAt < MOUNT_FAILURE_COOLDOWN_MS) {
+                val remaining = MOUNT_FAILURE_COOLDOWN_MS - (now - mountFailedAt)
+                Log.d(TAG, "Mount skipped — cooldown active (${remaining}ms remaining)")
+                return false
+            }
 
-
-            cleanupStaleMounts()
-
-
-            Log.d(TAG, "Cleaning up orphaned chroot processes...")
-            Shell.cmd(
-                "CHROOT='$CHROOT_PATH'; " +
-                        "for p in /proc/[0-9]*; do " +
-                        "  r=\"$(readlink \"\$p/root\" 2>/dev/null)\"; " +
-                        "  if [ -n \"\$r\" ] && [ \"\$r\" = \"\$CHROOT\" ] 2>/dev/null; then " +
-                        "    pid=\"\$(basename \"\$p\")\"; " +
-                        "    if [ \"\$pid\" != \"\$\$\" ] && [ \"\$pid\" != \"1\" ]; then " +
-                        "      kill -9 \"\$pid\" 2>/dev/null; " +
-                        "    fi; " +
-                        "  fi; " +
-                        "done; " +
-                        "echo CLEANUP_DONE"
-            ).exec()
-
-            Log.d(TAG, "Mounting chroot with external busybox")
-
-
-            Shell.cmd("$BUSYBOX_PATH mount -o bind,exec $CHROOT_PATH $CHROOT_PATH 2>/dev/null || true")
-                .exec()
-                .also { Log.d(TAG, "bind,exec mount → ${if (it.isSuccess) "OK" else "SKIP"}") }
-
-
-            if (now - mountCheckTimestamp < mountCheckCooldownMs) {
+            if (now - mountCheckTimestamp >= mountCheckCooldownMs) {
+                mountCheckTimestamp = now
+                val mountPaths = listOf(
+                    "$CHROOT_PATH/dev",
+                    "$CHROOT_PATH/dev/pts",
+                    "$CHROOT_PATH/proc",
+                    "$CHROOT_PATH/sys"
+                )
+                var allMounted = true
+                for (path in mountPaths) {
+                    if (!isPathMounted(path)) {
+                        allMounted = false
+                        break
+                    }
+                }
+                if (allMounted) {
+                    Log.d(TAG, "All filesystems already mounted")
+                    isChrootMounted = true
+                    incrementMountRef()
+                    return true
+                }
+            } else {
                 Log.d(
                     TAG,
                     "Mount check skipped (cooldown ${now - mountCheckTimestamp}ms < ${mountCheckCooldownMs}ms)"
                 )
-                return true
             }
-            mountCheckTimestamp = now
 
+            mountInProgress = true
+            try {
+                return mountChrootInternal()
+            } finally {
+                mountInProgress = false
+                (mountLock as java.lang.Object).notifyAll()
+            }
+        }
+    }
 
-            val mountPaths = listOf(
-                "$CHROOT_PATH/dev",
-                "$CHROOT_PATH/dev/pts",
-                "$CHROOT_PATH/dev/shm",
-                "$CHROOT_PATH/proc",
-                "$CHROOT_PATH/sys",
-                "$CHROOT_PATH/system"
-            )
+    private fun mountChrootInternal(): Boolean {
 
-            var allMounted = true
-            for (path in mountPaths) {
-                if (!isPathMounted(path)) {
-                    allMounted = false
-                    Log.d(TAG, "Mount check: $path not found in /proc/mounts")
-                    break
+            val staleMounts = findStaleChrootMounts()
+            if (staleMounts.isNotEmpty()) {
+                Log.d(TAG, "Found ${staleMounts.size} stale mounts from previous process")
+                staleMounts.forEach { mp ->
+                    Shell.cmd("$BUSYBOX_PATH umount -l '$mp' 2>/dev/null || true").exec()
                 }
+                Log.d(TAG, "Stale mount cleanup completed")
+
+                Log.d(TAG, "Cleaning up orphaned chroot processes...")
+                Shell.cmd(
+                    "CHROOT='$CHROOT_PATH'; " +
+                            "for p in /proc/[0-9]*; do " +
+                            "  r=\"$(readlink \"\$p/root\" 2>/dev/null)\"; " +
+                            "  if [ -n \"\$r\" ] && [ \"\$r\" = \"\$CHROOT\" ] 2>/dev/null; then " +
+                            "    pid=\"\$(basename \"\$p\")\"; " +
+                            "    if [ \"\$pid\" != \"\$\$\" ] && [ \"\$pid\" != \"1\" ]; then " +
+                            "      kill -9 \"\$pid\" 2>/dev/null; " +
+                            "    fi; " +
+                            "  fi; " +
+                            "done; " +
+                            "echo CLEANUP_DONE"
+                ).exec()
             }
 
-            if (allMounted) {
-                Log.d(TAG, "All filesystems already mounted")
-                isChrootMounted = true
-                incrementMountRef()
-                return true
-            }
+            Log.d(TAG, "Mounting chroot with external busybox")
 
+            Shell.cmd("$BUSYBOX_PATH mount -o bind,exec $CHROOT_PATH $CHROOT_PATH 2>/dev/null || true")
+                .exec()
+                .also { Log.d(TAG, "bind,exec mount → ${if (it.isSuccess) "OK" else "SKIP"}") }
 
             val coreMounts = listOf(
                 "$BUSYBOX_PATH mount --bind /dev $CHROOT_PATH/dev",
@@ -1304,7 +1348,6 @@ class ChrootManager(private val context: Context) {
                 }
             }
 
-
             val optionalMounts = listOf(
                 "$BUSYBOX_PATH mkdir -p $CHROOT_PATH/tmp",
                 "$BUSYBOX_PATH mount -t tmpfs tmpfs $CHROOT_PATH/tmp",
@@ -1319,9 +1362,6 @@ class ChrootManager(private val context: Context) {
 
             }
 
-
-
-
             Shell.cmd("$BUSYBOX_PATH mkdir -p $CHROOT_PATH/proc").exec()
             val procMount =
                 Shell.cmd("$BUSYBOX_PATH mount -t proc proc $CHROOT_PATH/proc 2>/dev/null").exec()
@@ -1334,13 +1374,11 @@ class ChrootManager(private val context: Context) {
             }
             Log.d(TAG, "Proc mounted: ${isPathMounted("$CHROOT_PATH/proc")}")
 
-
             val procDevCheck =
                 Shell.cmd("$BUSYBOX_PATH cat $CHROOT_PATH/proc/net/dev 2>/dev/null | $BUSYBOX_PATH grep -Eo 'wlan[0-9]+' | $BUSYBOX_PATH sort -u | $BUSYBOX_PATH head -5")
                     .exec()
             val interfaces = procDevCheck.out.filter { it.isNotBlank() }
             Log.d(TAG, "Chroot /proc/net/dev wifi interfaces: ${interfaces.joinToString(", ")}")
-
 
             val postMountSetup = listOf(
                 "ln -sf /proc/self/fd $CHROOT_PATH/dev/fd",
@@ -1356,11 +1394,9 @@ class ChrootManager(private val context: Context) {
                 Log.d(TAG, "Post-mount setup: $cmd → ${if (result.isSuccess) "OK" else "WARN"}")
             }
 
-
             val systemResult =
                 Shell.cmd("$BUSYBOX_PATH mount -o bind /system $CHROOT_PATH/system").exec()
             Log.d(TAG, "mount /system → ${if (systemResult.isSuccess) "OK" else "SKIP"}")
-
 
             Shell.cmd("$BUSYBOX_PATH mkdir -p $CHROOT_PATH/sdcard").exec()
 
@@ -1388,7 +1424,6 @@ class ChrootManager(private val context: Context) {
                 Log.d(TAG, "sdcard will be mounted per-command via unshare namespace isolation")
             }
 
-
             val tunResult =
                 Shell.cmd("[ ! -e \"/dev/net/tun\" ] && (mkdir -p /dev/net && mknod /dev/net/tun c 10 200)")
                     .exec()
@@ -1399,7 +1434,6 @@ class ChrootManager(private val context: Context) {
             Log.d(TAG, "Chroot mounted successfully")
 
             return true
-        }
     }
 
     fun unmountChroot(): Boolean {
@@ -1435,14 +1469,15 @@ class ChrootManager(private val context: Context) {
     }
 
     fun executeInChroot(command: String): Shell.Result {
-        Log.d(TAG, "Executing in chroot: $command")
+        // Hot path (pollers call this every few seconds): keep logging cheap.
+        // Full command + full output logging allocates per line and drives GC churn.
+        val debug = BuildConfig.DEBUG
+        if (debug) Log.d(TAG, "Executing in chroot: $command")
         if (!isChrootMounted) {
             if (!mountChroot()) {
                 Log.w(TAG, "Mount failed, returning failure for: $command")
                 return mountFailedResult()
             }
-        } else {
-            Log.d(TAG, "Chroot already mounted, executing directly")
         }
 
         val shellCmd = if (checkUnshare()) {
@@ -1463,11 +1498,11 @@ class ChrootManager(private val context: Context) {
             "$chrootBin $CHROOT_PATH /bin/busybox sh -c '$fullCmd'"
         }
 
-        Log.d(TAG, "Shell command: $shellCmd")
+        if (debug) Log.d(TAG, "Shell command: $shellCmd")
         shellSemaphore.acquire()
         return try {
             Shell.cmd(shellCmd).exec().also { result ->
-                Log.d(TAG, "Result: code=${result.code}, out=${result.out.take(3)}")
+                if (debug) Log.d(TAG, "Result: code=${result.code}, out=${result.out.take(3)}")
             }
         } finally {
             shellSemaphore.release()
@@ -1703,12 +1738,10 @@ class ChrootManager(private val context: Context) {
                     "/tmp/rs_${ip.replace(".", "_")}.out"
                 }
 
-
                 val baseDeadline = System.currentTimeMillis() + timeout
                 val ipDeadlines = commands.keys.associateWith { baseDeadline }.toMutableMap()
                 val ipPids = mutableMapOf<String, Int>()
                 val collectedTargets = mutableSetOf<String>()
-
 
                 for ((ip, cmd) in commands) {
                     val tmpFile = tmpFiles[ip]!!
@@ -1748,7 +1781,6 @@ class ChrootManager(private val context: Context) {
                     }
                 }
                 Log.d(TAG, "Captured PIDs: $ipPids")
-
 
                 val batchJob = SupervisorJob()
                 val batchContext = batchJob + CoroutineExceptionHandler { _, t ->
@@ -1823,7 +1855,6 @@ class ChrootManager(private val context: Context) {
                     }
                 }
 
-
                 suspend fun deliverCompletedTarget(ipPort: String) {
                     val cb = onTargetCompleted ?: return
                     val tmpFile = tmpFiles[ipPort] ?: return
@@ -1871,7 +1902,6 @@ class ChrootManager(private val context: Context) {
                         val pidList = ipPids.values.filter { it != 0 }
                         if (pidList.isEmpty()) break
 
-
                         for (pid in pidList) {
                             try {
                                 stdin.write("kill -0 $pid 2>/dev/null && echo PID_${pid}_ALIVE || echo PID_${pid}_DEAD\n".toByteArray())
@@ -1890,7 +1920,6 @@ class ChrootManager(private val context: Context) {
                                 stdoutLines.any { it.contains("PID_${pid}_ALIVE") }
                             }
                             stdoutLines.clear()
-
 
                             for (pid in pidList) {
                                 if (!alivePids.contains(pid)) {
@@ -1927,9 +1956,7 @@ class ChrootManager(private val context: Context) {
                     batchJob.cancel()
                     delay(500)
 
-
                     synchronized(stdoutLines) { stdoutLines.clear() }
-
 
                     val results = mutableMapOf<String, List<String>>()
                     val pendingTmpFiles = tmpFiles.filterKeys { it !in collectedTargets }
@@ -1980,7 +2007,6 @@ class ChrootManager(private val context: Context) {
                             }
                         }
                     }
-
 
                     val rmCmd = "rm -f ${tmpFiles.values.joinToString(" ")}"
                     try {
@@ -2140,7 +2166,6 @@ class ChrootManager(private val context: Context) {
         Log.d(TAG, "=== executePersistentSession START ===")
         Log.d(TAG, "Command: $command")
 
-
         sessionCancelled = false
         sessionCleaned = false
 
@@ -2163,7 +2188,6 @@ class ChrootManager(private val context: Context) {
             stdoutReader = BufferedReader(InputStreamReader(process.inputStream))
             stderrReader = BufferedReader(InputStreamReader(process.errorStream))
             Log.d(TAG, "Step 2: su process started")
-
 
             stdoutThread = Thread {
                 Log.d(TAG, "stdoutThread: started")
@@ -2245,13 +2269,11 @@ class ChrootManager(private val context: Context) {
             stdin.flush()
             delay(50)
 
-
             val sanitizedCommand = sanitizeCommand(command)
             Log.d(TAG, "Step 5: Executing command: $sanitizedCommand")
             stdin.write(sanitizedCommand.toByteArray())
             stdin.write("\n".toByteArray())
             stdin.flush()
-
 
             try {
                 stdin.write("exit\n".toByteArray())
@@ -2324,10 +2346,9 @@ class ChrootManager(private val context: Context) {
                 forceCleanup()
             }
 
-
             Log.d(TAG, "Destroying process tree after command completion")
             try {
-                process.destroyForcibly()
+                ProcessCompat.destroyForcibly(process)
                 Shell.cmd("killall -9 airodump-ng 2>/dev/null; killall -9 aireplay-ng 2>/dev/null")
                     .exec()
             } catch (e: Exception) {
@@ -2344,7 +2365,6 @@ class ChrootManager(private val context: Context) {
             }
             stdoutThread.join(5000)
             stderrThread.join(5000)
-
 
             try {
                 val exitCode = process.exitValue()
@@ -2540,8 +2560,6 @@ class ChrootManager(private val context: Context) {
             stdin.write("\n".toByteArray())
             stdin.flush()
 
-
-
             daemonRunning = true
             Log.d(TAG, "=== executeDaemonSession STARTED (daemon running) ===")
             return@withContext true
@@ -2562,7 +2580,8 @@ class ChrootManager(private val context: Context) {
         }
     }
 
-    fun isDaemonRunning(): Boolean = daemonRunning && daemonProcess?.isAlive == true
+    fun isDaemonRunning(): Boolean =
+        daemonRunning && daemonProcess?.let { ProcessCompat.isAlive(it) } == true
 
     suspend fun stopDaemonSession() = withContext(Dispatchers.IO) {
         if (stopDaemonInProgress) {
@@ -2594,7 +2613,7 @@ class ChrootManager(private val context: Context) {
             }
 
             try {
-                daemonProcess?.destroyForcibly()
+                daemonProcess?.let { ProcessCompat.destroyForcibly(it) }
             } catch (_: Exception) {
             }
 
@@ -2964,7 +2983,6 @@ class ChrootManager(private val context: Context) {
         }
     }
 
-
     suspend fun disableWifiOnHost(): Boolean = withContext(Dispatchers.IO) {
         val cmd = "svc wifi disable"
         Log.d(TAG, "Disabling WiFi on host: $cmd")
@@ -3004,7 +3022,6 @@ class ChrootManager(private val context: Context) {
             false
         }
     }
-
 
     private fun cleanupFailedInstall() {
         Log.d(TAG, "Cleaning up failed installation")
@@ -3065,7 +3082,6 @@ class ChrootManager(private val context: Context) {
                     TAG,
                     "Kill chroot processes by root dir: ${if (killResult.isSuccess) "OK" else "WARN"}"
                 )
-
 
                 Shell.cmd(
                     "for pid_dir in /proc/[0-9]*; do " +

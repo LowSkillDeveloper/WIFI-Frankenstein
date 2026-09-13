@@ -529,14 +529,12 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
 
             textBssid.text = network.bssid
 
-
             if (network.frequency.isNotEmpty()) {
                 textFrequency.text = network.frequency
                 textFrequency.visibility = View.VISIBLE
             } else {
                 textFrequency.visibility = View.GONE
             }
-
 
             if (network.channel.isNotEmpty()) {
                 textChannel.text = network.channel
@@ -555,9 +553,7 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             textSecurityType.text = network.securityType
             textSignal.text = network.signal
 
-
             updateSignalIndicator(network.signalStrength)
-
 
             setRowText(binding.rowGroupCipher, R.string.iw_wifi_group_cipher, network.groupCipher)
             setRowText(
@@ -567,13 +563,11 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             )
             setRowText(binding.rowAuthSuite, R.string.iw_wifi_auth_suite, network.authSuite)
 
-
             textWpsStatus.text = when {
                 network.wpsLocked -> getString(R.string.iw_wifi_wps_locked)
                 network.wpsEnabled -> getString(R.string.iw_wifi_wps_available)
                 else -> getString(R.string.iw_wifi_wps_not_supported)
             }
-
 
             setRowText(
                 binding.rowDeviceInfo,
@@ -602,10 +596,8 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 network.wpsConfigMethods
             )
 
-
             binding.cardDevice.visibility =
                 if (network.wpsManufacturer.isEmpty() && network.wpsModel.isEmpty()) View.GONE else View.VISIBLE
-
 
             val countryText =
                 if (network.country.isNotEmpty() && network.environment.isNotEmpty()) {
@@ -658,7 +650,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 if (network.probeResponse) getString(R.string.iw_probe_response) else ""
             )
 
-
             binding.cardNetwork.visibility = if (
                 countryText.isNotEmpty() || network.supportedRates.isNotEmpty() ||
                 network.extendedRates.isNotEmpty() || network.channelsAvailable.isNotEmpty() ||
@@ -666,7 +657,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 network.tpcTxPower.isNotEmpty() || network.beaconInterval.isNotEmpty() ||
                 network.dtimPeriod.isNotEmpty() || network.dtimCount.isNotEmpty()
             ) View.VISIBLE else View.GONE
-
 
             if (network.stationCount.isNotEmpty()) {
                 binding.textStationCount.text = network.stationCount
@@ -689,7 +679,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
 
             binding.cardBssLoad.visibility =
                 if (network.stationCount.isEmpty() && network.channelUtilisation.isEmpty() && network.admissionCapacity.isEmpty()) View.GONE else View.VISIBLE
-
 
             setRowText(
                 binding.rowHtCaps,
@@ -719,10 +708,8 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             )
             setRowText(binding.rowOrigCaps, R.string.iw_wifi_orig_caps, network.capabilities)
 
-
             setRowText(binding.rowTsf, R.string.iw_wifi_tsf, network.tsf)
             binding.cardTsf.visibility = if (network.tsf.isNotEmpty()) View.VISIBLE else View.GONE
-
 
             if (network.rmCapabilities.isNotEmpty()) {
                 binding.rowRmCapabilities.root.visibility = View.VISIBLE
@@ -767,7 +754,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             binding.cardRm.visibility =
                 if (network.rmCapabilities.isNotEmpty() || network.rmCapabilitiesHex.isNotEmpty()) View.VISIBLE else View.GONE
 
-
             setRowText(
                 binding.rowNetworkOptions,
                 R.string.iw_wifi_network_options,
@@ -786,7 +772,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             )
 
             binding.card11u.visibility = if (network.interworking) View.VISIBLE else View.GONE
-
 
             setRowText(binding.rowOpClass, R.string.iw_wifi_operating_class, network.operatingClass)
             setRowText(
@@ -846,7 +831,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 network.txPowerEnvelope160.isNotEmpty()
             ) View.VISIBLE else View.GONE
 
-
             setRowText(
                 binding.rowHeMacCaps,
                 R.string.iw_wifi_he_mac_caps,
@@ -861,7 +845,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             setRowText(binding.rowHeTxMcs, R.string.iw_wifi_he_tx_mcs, network.heTcMcs)
             setRowText(binding.rowHePpe, R.string.iw_wifi_he_ppe, network.hePpeThreshold)
 
-
             val hePhyFeatures = buildHePhyFeaturesString(network)
             if (hePhyFeatures.isNotEmpty()) {
                 setRowText(
@@ -871,7 +854,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 )
             }
 
-
             val heMacFeatures = buildHeMacFeaturesString(network)
             if (heMacFeatures.isNotEmpty()) {
                 setRowText(
@@ -880,7 +862,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                     heMacFeatures
                 )
             }
-
 
             setRowText(
                 binding.rowHeOpParameters,
@@ -939,7 +920,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 network.heOpBasicMcsSet.isNotEmpty()
             ) View.VISIBLE else View.GONE
 
-
             setRowText(
                 binding.rowVhtCaps,
                 R.string.iw_wifi_vht_caps,
@@ -988,7 +968,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 network.vhtOpChannelWidth.isNotEmpty()
             ) View.VISIBLE else View.GONE
 
-
             setRowText(binding.rowHtAmpduMax, R.string.iw_wifi_ht_ampdu_max, network.htAmpduMaxLen)
             setRowText(
                 binding.rowHtAmpduSpacing,
@@ -1000,7 +979,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             binding.cardHtAmpdu.visibility = if (
                 network.htAmpduMaxLen.isNotEmpty() || network.htAmpduMinSpacing.isNotEmpty() || network.htTxMcs.isNotEmpty()
             ) View.VISIBLE else View.GONE
-
 
             setRowText(
                 binding.rowObssPassiveDwell,
@@ -1034,7 +1012,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 network.obssScanThreshold.isNotEmpty()
             ) View.VISIBLE else View.GONE
 
-
             setRowText(binding.rowRifs, R.string.iw_wifi_rifs, network.rifs)
             setRowText(binding.rowNonGf, R.string.iw_wifi_non_gf, network.nonGfPresent)
             setRowText(binding.rowObssNonGf, R.string.iw_wifi_obss_non_gf, network.obssNonGfPresent)
@@ -1051,7 +1028,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
                 network.erpProtection.isNotEmpty()
             ) View.VISIBLE else View.GONE
 
-
             val hasCaps =
                 network.htCapabilities.isNotEmpty() || network.heCapabilities.isNotEmpty() || network.capabilities.isNotEmpty()
             binding.cardCaps.visibility = if (hasCaps) View.VISIBLE else View.GONE
@@ -1067,7 +1043,6 @@ class IwWifiDetailsFragment : BottomSheetDialogFragment() {
             textSignalStrength.text = label
 
             signalBarIndicator.setBackgroundResource(drawableRes)
-
 
             val tintColor = when {
                 signalDbm >= -50 -> R.color.green_500

@@ -18,6 +18,8 @@ import com.lsd.wififrankenstein.util.NetworkFrequencyBand
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class IwWifiManager(private val context: Context) {
@@ -27,14 +29,6 @@ class IwWifiManager(private val context: Context) {
 
     var lastModeSwitchError: String? = null
         private set
-
-    private var cachedIwList: String? = null
-    private var cachedIwListTime: Long = 0
-
-    private var cachedModes: Map<String, String>? = null
-    private var cachedModesTime: Long = 0
-    private var cachedInterfaces: List<IwInterface>? = null
-    private var cachedInterfacesTime: Long = 0
 
     companion object {
         private const val TAG = "IwWifiManager"
@@ -47,8 +41,24 @@ class IwWifiManager(private val context: Context) {
         private const val KEY_SCAN_IFACE = "scan_interface"
         private const val KEY_CAPTURE_IFACE = "capture_interface"
         private const val IW_LIST_CACHE_TTL_MS = 60_000L
-        private const val MODE_CACHE_TTL_MS = 2000L
-        private const val IFACE_CACHE_TTL_MS = 2000L
+        private const val MODE_CACHE_TTL_MS = 10_000L
+        private const val IFACE_CACHE_TTL_MS = 10_000L
+
+        @Volatile
+        private var sharedIwList: String? = null
+        @Volatile
+        private var sharedIwListTime: Long = 0
+
+        @Volatile
+        private var sharedModes: Map<String, String>? = null
+        @Volatile
+        private var sharedModesTime: Long = 0
+        @Volatile
+        private var sharedInterfaces: List<IwInterface>? = null
+        @Volatile
+        private var sharedInterfacesTime: Long = 0
+
+        private val iwDevFetchMutex = Mutex()
 
         private val BSSID_PATTERN =
             Regex("""([0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2})""")
@@ -84,6 +94,23 @@ class IwWifiManager(private val context: Context) {
         return chrootManager.unmountChroot()
     }
 
+    private suspend fun fetchAllModesCoalesced(): Map<String, String>? {
+        iwDevFetchMutex.withLock {
+            val now = System.currentTimeMillis()
+            val cached = sharedModes
+            if (cached != null && now - sharedModesTime < MODE_CACHE_TTL_MS) {
+                return cached
+            }
+            val result = chrootManager.executeInChroot("$iwBinary dev")
+            if (!result.isSuccess || result.out.isEmpty()) return null
+            val output = result.out.joinToString("\n")
+            val modeMap = IwOutputParser.parseAllInterfaceModes(output)
+            sharedModes = modeMap
+            sharedModesTime = System.currentTimeMillis()
+            return modeMap
+        }
+    }
+
     suspend fun getInterfaceMode(interfaceName: String): String = withContext(Dispatchers.IO) {
         try {
             val chrootType = chrootManager.getChrootType()
@@ -91,23 +118,10 @@ class IwWifiManager(private val context: Context) {
                 Log.d(TAG, "Chroot not installed, returning MODE_UNKNOWN")
                 return@withContext MODE_UNKNOWN
             }
-            val now = System.currentTimeMillis()
-            val cached = cachedModes
-            if (cached != null && now - cachedModesTime < MODE_CACHE_TTL_MS) {
-                val monIface = "${interfaceName}mon"
-                val mode = cached[interfaceName] ?: cached[monIface]
-                if (mode != null) return@withContext mode
-            }
-            val result = chrootManager.executeInChroot("$iwBinary dev")
-            if (!result.isSuccess || result.out.isEmpty()) return@withContext MODE_UNKNOWN
-
-            val output = result.out.joinToString("\n")
-            val monIface = "${interfaceName}mon"
-            val block = IwOutputParser.extractInterfaceBlock(output, interfaceName)
-                ?: IwOutputParser.extractInterfaceBlock(output, monIface)
+            val modeMap = fetchAllModesCoalesced()
                 ?: return@withContext MODE_UNKNOWN
-
-            IwOutputParser.modeFromTypeText(block)
+            val monIface = "${interfaceName}mon"
+            modeMap[interfaceName] ?: modeMap[monIface] ?: MODE_UNKNOWN
         } catch (e: Exception) {
             Log.e(TAG, "Error getting interface mode", e)
             MODE_UNKNOWN
@@ -120,14 +134,7 @@ class IwWifiManager(private val context: Context) {
             if (chrootType !is com.lsd.wififrankenstein.util.ChrootType.Root) {
                 return@withContext emptyMap()
             }
-            val result = chrootManager.executeInChroot("$iwBinary dev")
-            if (!result.isSuccess || result.out.isEmpty()) return@withContext emptyMap()
-
-            val output = result.out.joinToString("\n")
-            val modeMap = IwOutputParser.parseAllInterfaceModes(output)
-            cachedModes = modeMap
-            cachedModesTime = System.currentTimeMillis()
-            modeMap
+            fetchAllModesCoalesced() ?: emptyMap()
         } catch (e: Exception) {
             Log.e(TAG, "Error getting all interface modes", e)
             emptyMap()
@@ -139,28 +146,18 @@ class IwWifiManager(private val context: Context) {
             val baseName = baseInterface.removeSuffix("mon")
             val monIface = "${baseName}mon"
 
-            val now = System.currentTimeMillis()
-            val cached = cachedModes
-            if (cached != null && now - cachedModesTime < MODE_CACHE_TTL_MS) {
-                val baseMode = cached[baseName]
-                val monMode = cached[monIface]
-                if (baseMode == MODE_MONITOR) return@withContext baseName
-                if (monMode == MODE_MONITOR) return@withContext monIface
-                if (baseMode != null && monMode != null) return@withContext null
-            }
+            val modeMap = fetchAllModesCoalesced()
+                ?: return@withContext null
+            val baseMode = modeMap[baseName]
+            val monMode = modeMap[monIface]
+            if (baseMode == MODE_MONITOR) return@withContext baseName
+            if (monMode == MODE_MONITOR) return@withContext monIface
+            // If the map is fresh and contains both entries but neither is monitor,
+            // there is no monitor interface — avoid an extra shell call.
+            if (baseMode != null && monMode != null) return@withContext null
 
-            val result = chrootManager.executeInChroot("$iwBinary dev")
-            if (!result.isSuccess || result.out.isEmpty()) return@withContext null
-            val output = result.out.joinToString("\n")
-
-            val block = IwOutputParser.extractInterfaceBlock(output, baseName)
-                ?.takeIf { it.contains("type monitor", ignoreCase = true) }
-            if (block != null) return@withContext baseName
-
-            val monBlock = IwOutputParser.extractInterfaceBlock(output, monIface)
-                ?.takeIf { it.contains("type monitor", ignoreCase = true) }
-            if (monBlock != null) return@withContext monIface
-
+            // Partial map (e.g. one entry missing): fall back to raw parse of one
+            // coalesced fetch result already in cache; no extra shell call here.
             null
         } catch (e: Exception) {
             Log.e(TAG, "Error finding monitor interface", e)
@@ -203,14 +200,15 @@ class IwWifiManager(private val context: Context) {
     suspend fun runIwList(interfaceName: String): String = withContext(Dispatchers.IO) {
         try {
             val now = System.currentTimeMillis()
-            if (cachedIwList != null && now - cachedIwListTime < IW_LIST_CACHE_TTL_MS) {
-                return@withContext cachedIwList!!
+            val cached = sharedIwList
+            if (cached != null && now - sharedIwListTime < IW_LIST_CACHE_TTL_MS) {
+                return@withContext cached
             }
             val command = "$iwBinary list"
             val result = chrootManager.executeInChroot(command)
             val output = result.out.joinToString("\n")
-            cachedIwList = output
-            cachedIwListTime = now
+            sharedIwList = output
+            sharedIwListTime = now
             output
         } catch (e: Exception) {
             Log.e(TAG, "runIwList failed", e)
@@ -362,8 +360,8 @@ class IwWifiManager(private val context: Context) {
     suspend fun getAvailableInterfaces(): List<IwInterface> = withContext(Dispatchers.IO) {
         try {
             val now = System.currentTimeMillis()
-            val cached = cachedInterfaces
-            if (cached != null && now - cachedInterfacesTime < IFACE_CACHE_TTL_MS) {
+            val cached = sharedInterfaces
+            if (cached != null && now - sharedInterfacesTime < IFACE_CACHE_TTL_MS) {
                 return@withContext cached
             }
 
@@ -372,18 +370,15 @@ class IwWifiManager(private val context: Context) {
                 Log.d(TAG, "Chroot not installed, using default wlan0")
                 return@withContext listOf(IwInterface("wlan0"))
             }
-            val command = "$iwBinary dev"
-            val result = chrootManager.executeInChroot(command)
-
-            if (result.isSuccess && result.out.isNotEmpty()) {
-                val interfaces = parseInterfacesList(result.out.joinToString("\n"))
-                cachedInterfaces = interfaces
-                cachedInterfacesTime = now
-                interfaces
-            } else {
+            val modeMap = fetchAllModesCoalesced()
+            if (modeMap == null) {
                 Log.w(TAG, "Command failed or no output, using default wlan0")
-                listOf(IwInterface("wlan0"))
+                return@withContext listOf(IwInterface("wlan0"))
             }
+            val interfaces = modeMap.keys.sorted().map { IwInterface(it) }
+            sharedInterfaces = interfaces
+            sharedInterfacesTime = now
+            interfaces
         } catch (e: Exception) {
             Log.e(TAG, "Error getting interfaces", e)
             listOf(IwInterface("wlan0"))
@@ -410,7 +405,6 @@ class IwWifiManager(private val context: Context) {
                 emptyList()
             }
         }
-
 
     suspend fun scanWifiNetworksNative(): List<IwWifiNetwork> = withContext(Dispatchers.IO) {
         try {
@@ -455,7 +449,12 @@ class IwWifiManager(private val context: Context) {
     private fun isLocationEnabled(): Boolean {
         return try {
             val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-            lm?.isLocationEnabled ?: false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                lm?.isLocationEnabled ?: false
+            } else {
+                (lm?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true) ||
+                        (lm?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true)
+            }
         } catch (e: Exception) {
             Log.w(TAG, "isLocationEnabled check failed", e)
             false

@@ -18,6 +18,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -52,6 +53,7 @@ class WlanInterfaceManagerViewModel(application: Application) : AndroidViewModel
     private var previousUsbDevices = emptySet<String>()
     private var pollingJob: Job? = null
     private var consecutiveChrootFailures = 0
+    private val pollMutex = Mutex()
 
     companion object {
         private const val PREFS_NAME = "wlan_interface_manager"
@@ -137,7 +139,7 @@ class WlanInterfaceManagerViewModel(application: Application) : AndroidViewModel
         pollingJob = viewModelScope.launch {
             var currentInterval = getEffectivePollIntervalMs()
             while (isActive) {
-                pollInterfaceStatus()
+                pollInterfaceStatusSuspend()
                 if (consecutiveChrootFailures >= MAX_CONSECUTIVE_FAILURES) {
                     Log.d(
                         tag,
@@ -167,7 +169,17 @@ class WlanInterfaceManagerViewModel(application: Application) : AndroidViewModel
 
     fun pollInterfaceStatus(): Boolean {
         viewModelScope.launch {
-            try {
+            pollInterfaceStatusSuspend()
+        }
+        return false
+    }
+
+    suspend fun pollInterfaceStatusSuspend(): Boolean {
+        if (!pollMutex.tryLock()) {
+            Log.d(tag, "Poll skipped — previous run still in progress")
+            return false
+        }
+        try {
                 val (systemNames, customNames, anyAvailable) = withContext(Dispatchers.IO) {
                     val systemIfaces = iwWifiManager.getAvailableInterfaces()
                     val sysNames = systemIfaces.map { it.name }.toSet()
@@ -236,18 +248,19 @@ class WlanInterfaceManagerViewModel(application: Application) : AndroidViewModel
 
                 _interfaceStatuses.postValue(statuses)
 
-
                 if (anyAvailable) {
                     consecutiveChrootFailures = 0
                 } else {
                     consecutiveChrootFailures++
                 }
+                return true
             } catch (e: Exception) {
                 Log.e(tag, "Failed to poll interface status", e)
                 consecutiveChrootFailures++
+                return false
+            } finally {
+                pollMutex.unlock()
             }
-        }
-        return false
     }
 
     private suspend fun pollUsbDevices() {
@@ -364,7 +377,6 @@ class WlanInterfaceManagerViewModel(application: Application) : AndroidViewModel
                 if (deviceVid == vid && devicePid == pid) {
                     Log.d(tag, "Found USB device at ${usbDev.name}")
 
-
                     val netDir = File(usbDev, "net")
                     if (netDir.exists()) {
                         val netIfaces = netDir.listFiles()
@@ -374,7 +386,6 @@ class WlanInterfaceManagerViewModel(application: Application) : AndroidViewModel
                             return ifaceName
                         }
                     }
-
 
                     val subDirs = usbDev.listFiles()
                     if (subDirs != null) {
@@ -486,7 +497,6 @@ class WlanInterfaceManagerViewModel(application: Application) : AndroidViewModel
                     .firstOrNull { it.startsWith("DRIVER=") }
                     ?.removePrefix("DRIVER=")
             } else null
-
 
             val driverLoaded = driverName != null && (
                     File("/sys/module/$driverName").exists() ||

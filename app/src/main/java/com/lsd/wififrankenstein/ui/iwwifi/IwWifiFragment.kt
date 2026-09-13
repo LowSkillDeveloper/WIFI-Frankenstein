@@ -24,7 +24,9 @@ import com.lsd.wififrankenstein.util.ChrootType
 import com.lsd.wififrankenstein.util.Log
 import com.lsd.wififrankenstein.util.NativeWifiHelper
 import com.topjohnwu.superuser.Shell
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class IwWifiFragment : Fragment() {
 
@@ -82,9 +84,14 @@ class IwWifiFragment : Fragment() {
 
     private fun setupModeToggle() {
         val prefs = requireContext().getSharedPreferences(IW_PREFS, Context.MODE_PRIVATE)
-        val hasChroot = chrootManager.getChrootType() is ChrootType.Root
-        val useNative = prefs.getBoolean(KEY_USE_NATIVE, false) && !hasChroot
-        binding.toggleModeGroup.check(if (useNative) R.id.modeRoot else R.id.modeChroot)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val hasChroot = chrootManager.getChrootType() is ChrootType.Root
+            withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
+                val useNative = prefs.getBoolean(KEY_USE_NATIVE, false) && !hasChroot
+                binding.toggleModeGroup.check(if (useNative) R.id.modeRoot else R.id.modeChroot)
+            }
+        }
         binding.toggleModeGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
             val nativeSelected = checkedId == R.id.modeRoot
@@ -95,11 +102,16 @@ class IwWifiFragment : Fragment() {
 
     private fun updateModeToggleAvailability() {
         if (_binding == null) return
-        val chrootAvailable = chrootManager.getChrootType() is ChrootType.Root
-        binding.modeChroot.isEnabled = chrootAvailable
-        binding.modeChroot.alpha = if (chrootAvailable) 1f else 0.45f
-        if (!chrootAvailable && binding.modeChroot.isChecked) {
-            binding.toggleModeGroup.check(R.id.modeRoot)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val chrootAvailable = chrootManager.getChrootType() is ChrootType.Root
+            withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
+                binding.modeChroot.isEnabled = chrootAvailable
+                binding.modeChroot.alpha = if (chrootAvailable) 1f else 0.45f
+                if (!chrootAvailable && binding.modeChroot.isChecked) {
+                    binding.toggleModeGroup.check(R.id.modeRoot)
+                }
+            }
         }
     }
 
@@ -169,14 +181,20 @@ class IwWifiFragment : Fragment() {
         }
         updateModeToggleAvailability()
 
-        if (isNativeEnabled() || chrootManager.getChrootType() !is ChrootType.Root) {
-            lifecycleScope.launch {
-                nativeWifiHelper.ensureReady()
-                loadInterfaces()
+        lifecycleScope.launch(Dispatchers.IO) {
+            val useNative = isNativeEnabled() || chrootManager.getChrootType() !is ChrootType.Root
+            withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
+                if (useNative) {
+                    lifecycleScope.launch {
+                        nativeWifiHelper.ensureReady()
+                        loadInterfaces()
+                    }
+                } else {
+                    wlanInterfaceViewModel.startPolling()
+                    lifecycleScope.launch(Dispatchers.IO) { checkRootAndMount() }
+                }
             }
-        } else {
-            wlanInterfaceViewModel.startPolling()
-            lifecycleScope.launch { checkRootAndMount() }
         }
     }
 
@@ -187,7 +205,8 @@ class IwWifiFragment : Fragment() {
     private suspend fun checkRootAndMount() {
         try {
             Log.d(TAG, "Checking root access")
-            val hasRoot = Shell.getShell().isRoot
+            // Blocking shell call — this function already runs on Dispatchers.IO.
+            val hasRoot = withContext(Dispatchers.IO) { Shell.getShell().isRoot }
             Log.d(TAG, "Root access: $hasRoot")
 
             if (!hasRoot) {
@@ -206,7 +225,8 @@ class IwWifiFragment : Fragment() {
 
     private suspend fun mountAndLoad() {
         try {
-            val mounted = chrootManager.mountChroot()
+            // mountChroot() holds a global lock for up to ~60s — never on Main.
+            val mounted = withContext(Dispatchers.IO) { chrootManager.mountChroot() }
             isChrootMounted = mounted
 
             if (!mounted) {
