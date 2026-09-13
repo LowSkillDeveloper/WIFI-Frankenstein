@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/license-GPL--3.0-lightgrey)
 
 
-## Download the application: [WIFI-Frankenstein-2.5.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.5/WIFI-Frankenstein-2.5.apk)
+## Download the application: [WIFI-Frankenstein-2.6.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.6/WIFI-Frankenstein-2.6.apk)
 
 ## 📱 Overview
 
@@ -24,6 +24,7 @@ The application combines various WiFi tools into one package, hence the name "Fr
 - **WiFi Maps**: View WiFi points from 3WiFi db and custom databases without an internet connection (The map itself requires internet)
 - **Multiple bases**: Possibility to display wifi points from several different databases on the map at once.
 - **MAC base location (geomac)**: Finding the location of an access point by its MAC address
+- **WiFi Personal Map (wardriving)**: Real-time collection of WiFi points while moving (like Wigle), with automatic cross-check against connected databases.
 
 ### 🛠️ Tools & Features
 
@@ -61,6 +62,7 @@ The application combines various WiFi tools into one package, hence the name "Fr
 |---------|-------------------|---------------|
 | Local in-app Database | ✅ Yes  | ⚠️ Limited |
 | WiFi Maps | ✅ Yes | ❌ Not supported |
+| WiFi Maps wardriving | ✅ Yes | ❌ Not supported |
 | Offline Full 3WiFi Database | ✅ Supported | ❌ Not supported |
 | WiFi Location (geoMAC) | ✅ Yes | ❌ Not supported |
 | Handshake capture ® | ✅ Supported (Root, kernel) | ❌ Not supported |
@@ -163,4 +165,4 @@ If you find this project useful and would like to support its development, you c
 4AC1MepXZA8R6XGcL5mjejWRDqKvmbY3YWGEJTCWmFxJ8gPuLULSYxKSWafy9haMXGYuR2CdF3Vr8Q2kS8pBorVpQ4Lie48
 ```
 
-## Download the application: [WIFI-Frankenstein-2.5.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.5/WIFI-Frankenstein-2.5.apk)
+## Download the application: [WIFI-Frankenstein-2.6.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.6/WIFI-Frankenstein-2.6.apk)
