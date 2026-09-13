@@ -28,6 +28,7 @@ import com.lsd.wififrankenstein.ui.dbsetup.DbType
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.LocalAppDbHelper
 import com.lsd.wififrankenstein.ui.dbsetup.localappdb.WifiNetwork
 import com.lsd.wififrankenstein.util.QuadkeyUtils
+import com.lsd.wififrankenstein.util.ThirdPartyUploadGate
 import com.lsd.wififrankenstein.util.ThreeWiFiCsvRow
 import com.lsd.wififrankenstein.util.ThreeWiFiUploader
 import kotlinx.coroutines.Dispatchers
@@ -360,43 +361,6 @@ class InAppDatabaseFragment : Fragment() {
             showPwncrackImportDialog()
         }
 
-        bottomSheetBinding.buttonImportWifiLocTracker.setOnClickListener {
-            bottomSheetDialog.dismiss()
-            startFileSelection("application/octet-stream", REQUEST_IMPORT_WIFILOC)
-        }
-
-        bottomSheetBinding.buttonSyncPersonalLocations.setOnClickListener {
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.sync_personal_locations)
-                .setMessage(R.string.sync_personal_locations_confirm)
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.ok) { _, _ ->
-                    bottomSheetDialog.dismiss()
-                    viewModel.syncPersonalLocations { count ->
-                        showSnackbar(getString(R.string.sync_personal_locations_success, count))
-                        adapter.refresh()
-                    }
-                }
-                .show()
-        }
-
-        bottomSheetBinding.buttonSyncWifiLocTrackerDirect.setOnClickListener {
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.sync_wifiloctracker_direct)
-                .setMessage(R.string.sync_wifiloctracker_direct_confirm)
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.ok) { _, _ ->
-                    bottomSheetDialog.dismiss()
-                    startFileSelection("application/octet-stream", REQUEST_SYNC_WIFILOC_DIRECT)
-                }
-                .show()
-        }
-
-        bottomSheetBinding.buttonClearPersonalMap.setOnClickListener {
-            bottomSheetDialog.dismiss()
-            showClearPersonalMapConfirmation()
-        }
-
         bottomSheetBinding.buttonClearDatabase.setOnClickListener {
             bottomSheetDialog.dismiss()
             showClearDatabaseDialog()
@@ -581,20 +545,6 @@ class InAppDatabaseFragment : Fragment() {
             .show()
     }
 
-    private fun showClearPersonalMapConfirmation() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.clear_map)
-            .setMessage(R.string.clear_personal_map_confirm)
-            .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                viewModel.clearPersonalMap()
-                showSnackbar(getString(R.string.database_cleared))
-                adapter.refresh()
-                updateStats()
-            }
-            .show()
-    }
-
     private fun showBackupBeforeClearDialog() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.backup)
@@ -727,38 +677,6 @@ class InAppDatabaseFragment : Fragment() {
                     adapter.refresh()
                     updateStats()
                     showSnackbar(getString(R.string.database_restored))
-                }
-
-                REQUEST_IMPORT_WIFILOC -> {
-                    showProgressDialog(getString(R.string.importing_data))
-                    viewModel.importFromWifiLocTracker(uri,
-                        onResult = { count ->
-                            hideProgressDialog()
-                            showSnackbar(getString(R.string.wifiloctracker_import_success, count))
-                            adapter.refresh()
-                            updateStats()
-                        },
-                        onError = { error ->
-                            hideProgressDialog()
-                            showSnackbar(getString(R.string.wifiloctracker_import_error, error))
-                        }
-                    )
-                }
-
-                REQUEST_SYNC_WIFILOC_DIRECT -> {
-                    showProgressDialog(getString(R.string.importing_data))
-                    viewModel.syncWifiLocTrackerDirect(uri,
-                        onResult = { count ->
-                            hideProgressDialog()
-                            showSnackbar(getString(R.string.sync_personal_locations_success, count))
-                            adapter.refresh()
-                            updateStats()
-                        },
-                        onError = { error ->
-                            hideProgressDialog()
-                            showSnackbar(getString(R.string.wifiloctracker_import_error, error))
-                        }
-                    )
                 }
             }
         }
@@ -937,8 +855,10 @@ class InAppDatabaseFragment : Fragment() {
     }
 
     private fun uploadRecordTo3WiFi(records: List<WifiNetwork>) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            doUploadRecords(records)
+        ThirdPartyUploadGate.confirm(requireContext(), "3WiFi") {
+            viewLifecycleOwner.lifecycleScope.launch {
+                doUploadRecords(records)
+            }
         }
     }
 
@@ -985,8 +905,6 @@ class InAppDatabaseFragment : Fragment() {
         private const val REQUEST_IMPORT_JSON = 1003
         private const val REQUEST_IMPORT_CSV = 1004
         private const val REQUEST_IMPORT_ROUTERSCAN = 1005
-        private const val REQUEST_IMPORT_WIFILOC = 1008
-        private const val REQUEST_SYNC_WIFILOC_DIRECT = 1009
         private const val REQUEST_BACKUP_DB = 1006
         private const val REQUEST_RESTORE_DB = 1007
     }

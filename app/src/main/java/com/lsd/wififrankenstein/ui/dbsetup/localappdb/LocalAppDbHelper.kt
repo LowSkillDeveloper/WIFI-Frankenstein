@@ -12,17 +12,26 @@ import com.lsd.wififrankenstein.ui.databasefinder.SearchMode
 import com.lsd.wififrankenstein.ui.wifimap.ClusteredMapPoint
 import com.lsd.wififrankenstein.util.CompatibilityHelper
 import com.lsd.wififrankenstein.util.Log
+import com.lsd.wififrankenstein.util.MacAddressUtils
 import com.lsd.wififrankenstein.util.QuadkeyUtils
 import java.io.File
 import java.io.FileOutputStream
-import kotlin.math.pow
 
-class LocalAppDbHelper(private val context: Context) :
-    SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+class LocalAppDbHelper(
+    private val context: Context,
+    databaseName: String = DATABASE_NAME,
+    private val personalDatabaseName: String = PersonalMapDbHelper.DATABASE_NAME
+) :
+    SQLiteOpenHelper(context, databaseName, null, DATABASE_VERSION) {
+
+    init {
+
+        setWriteAheadLoggingEnabled(true)
+    }
 
     companion object {
         const val DATABASE_NAME = "local_wifi_database.db"
-        const val DATABASE_VERSION = 7
+        const val DATABASE_VERSION = 9
 
         const val TABLE_NAME = "wifi_networks"
         const val COLUMN_ID = "id"
@@ -36,16 +45,15 @@ class LocalAppDbHelper(private val context: Context) :
         const val COLUMN_QUADKEY = "quadkey"
 
         const val TABLE_PERSONAL_MAP = "personal_wifi_map"
+        const val KEY_PERSONAL_MIGRATED = "personal_map_migration_v9_done"
         const val COLUMN_PERSONAL_TIMESTAMP = "timestamp"
         const val COLUMN_PERSONAL_LEVEL = "level"
         const val COLUMN_PERSONAL_ACCURACY = "accuracy"
         const val COLUMN_PERSONAL_RELIABLE = "is_reliable"
-        const val COLUMN_PERSONAL_NOISE = "noise_level"
-        const val COLUMN_PERSONAL_SATELLITES = "satellites"
-        const val COLUMN_PERSONAL_SPEED = "speed"
         const val COLUMN_PERSONAL_COUNT = "measure_count"
         const val COLUMN_PERSONAL_WEIGHT_SUM = "weight_sum"
-        // COLUMN_QUADKEY is reused for both tables
+        const val COLUMN_PERSONAL_FIRST_SEEN = "first_seen"
+
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -64,33 +72,10 @@ class LocalAppDbHelper(private val context: Context) :
         """.trimIndent()
         db.execSQL(createTableSQL)
 
-        val createPersonalMapSQL = """
-            CREATE TABLE $TABLE_PERSONAL_MAP (
-                $COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                $COLUMN_WIFI_NAME TEXT,
-                $COLUMN_MAC_ADDRESS TEXT,
-                $COLUMN_LATITUDE REAL,
-                $COLUMN_LONGITUDE REAL,
-                $COLUMN_PERSONAL_TIMESTAMP INTEGER,
-                $COLUMN_PERSONAL_LEVEL INTEGER,
-                $COLUMN_PERSONAL_ACCURACY REAL,
-                $COLUMN_PERSONAL_RELIABLE INTEGER,
-                $COLUMN_PERSONAL_NOISE REAL,
-                $COLUMN_PERSONAL_SATELLITES INTEGER,
-                $COLUMN_PERSONAL_SPEED REAL,
-                $COLUMN_PERSONAL_COUNT INTEGER DEFAULT 1,
-                $COLUMN_PERSONAL_WEIGHT_SUM REAL DEFAULT 0,
-                $COLUMN_QUADKEY INTEGER
-            )
-        """.trimIndent()
-        db.execSQL(createPersonalMapSQL)
-
         db.execSQL("CREATE INDEX idx_wifi_network_quadkey ON $TABLE_NAME ($COLUMN_QUADKEY)")
         db.execSQL("CREATE INDEX idx_wifi_network_mac ON $TABLE_NAME ($COLUMN_MAC_ADDRESS)")
         db.execSQL("CREATE INDEX idx_wifi_network_name ON $TABLE_NAME ($COLUMN_WIFI_NAME COLLATE NOCASE)")
         db.execSQL("CREATE INDEX idx_wifi_network_coords ON $TABLE_NAME ($COLUMN_LATITUDE, $COLUMN_LONGITUDE)")
-        db.execSQL("CREATE INDEX idx_personal_map_mac ON $TABLE_PERSONAL_MAP ($COLUMN_MAC_ADDRESS)")
-        db.execSQL("CREATE INDEX idx_personal_map_quadkey ON $TABLE_PERSONAL_MAP ($COLUMN_QUADKEY)")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -145,10 +130,7 @@ class LocalAppDbHelper(private val context: Context) :
                     $COLUMN_LONGITUDE REAL,
                     $COLUMN_PERSONAL_TIMESTAMP INTEGER,
                     $COLUMN_PERSONAL_ACCURACY REAL,
-                    $COLUMN_PERSONAL_RELIABLE INTEGER,
-                    $COLUMN_PERSONAL_NOISE REAL,
-                    $COLUMN_PERSONAL_SATELLITES INTEGER,
-                    $COLUMN_PERSONAL_SPEED REAL
+                    $COLUMN_PERSONAL_RELIABLE INTEGER
                 )
             """.trimIndent()
             db.execSQL(createPersonalMapSQL)
@@ -165,8 +147,7 @@ class LocalAppDbHelper(private val context: Context) :
             try {
                 db.execSQL("ALTER TABLE $TABLE_PERSONAL_MAP ADD COLUMN $COLUMN_QUADKEY INTEGER")
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_personal_map_quadkey ON $TABLE_PERSONAL_MAP ($COLUMN_QUADKEY)")
-                
-                // Backfill quadkeys for personal map
+
                 val updates = mutableListOf<Pair<Long, Long>>()
                 db.rawQuery("SELECT $COLUMN_ID, $COLUMN_LATITUDE, $COLUMN_LONGITUDE FROM $TABLE_PERSONAL_MAP", null).use { cursor ->
                     while (cursor.moveToNext()) {
@@ -178,12 +159,12 @@ class LocalAppDbHelper(private val context: Context) :
                         }
                     }
                 }
-                
+
                 if (updates.isNotEmpty()) {
                     db.transaction {
                         updates.chunked(1000).forEach { batch ->
                             batch.forEach { (id, quadkey) ->
-                                db.execSQL("UPDATE $TABLE_PERSONAL_MAP SET $COLUMN_QUADKEY = ? WHERE $COLUMN_ID = ?", 
+                                db.execSQL("UPDATE $TABLE_PERSONAL_MAP SET $COLUMN_QUADKEY = ? WHERE $COLUMN_ID = ?",
                                     arrayOf(quadkey.toString(), id.toString()))
                             }
                         }
@@ -207,329 +188,244 @@ class LocalAppDbHelper(private val context: Context) :
                 Log.w("LocalAppDbHelper", "Version 7 upgrade error: ${e.message}")
             }
         }
+        if (oldVersion < 8) {
+            migratePersonalMapToV8(db)
+        }
+        if (oldVersion < 9) {
+            migratePersonalToSeparateDb(db)
+        }
     }
 
-    // --- Personal Map Methods ---
+    private fun migratePersonalToSeparateDb(db: SQLiteDatabase) {
+        val prefs = context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+        val alreadyDone = prefs.getBoolean(KEY_PERSONAL_MIGRATED, false)
+        try {
+            val exists = db.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                arrayOf(TABLE_PERSONAL_MAP)
+            ).use { it.moveToFirst() }
+            if (!exists) {
+                prefs.edit().putBoolean(KEY_PERSONAL_MIGRATED, true).apply()
+                return
+            }
 
-    private fun calculateRssiWeight(rssi: Int): Double {
-        // Логарифмическая модель затухания сигнала (log-distance path loss)
-        // RSSI_REF — сигнал на расстоянии 1 м, PATH_LOSS_EXPONENT — коэффициент затухания (2.0-4.0)
-        val rssiRef = -45.0
-        val n = 2.7
-        val distance = 10.0.pow((rssiRef - rssi) / (10.0 * n)).coerceIn(1.0, 500.0)
-        return 1.0 / (distance * distance)
-    }
+            if (!alreadyDone) {
 
-    fun addPersonalRecord(network: PersonalWifiNetwork): Long {
-        val db = writableDatabase
-        val weight = calculateRssiWeight(network.level)
-        
-        // Берем текущие данные для усреднения
-        val query = "SELECT $COLUMN_ID, $COLUMN_LATITUDE, $COLUMN_LONGITUDE, $COLUMN_PERSONAL_COUNT, $COLUMN_PERSONAL_LEVEL, $COLUMN_PERSONAL_WEIGHT_SUM FROM $TABLE_PERSONAL_MAP WHERE $COLUMN_MAC_ADDRESS = ?"
-        db.rawQuery(query, arrayOf(network.macAddress)).use { cursor ->
-            if (cursor.moveToFirst()) {
-                val id = cursor.getLong(0)
-                val oldLat = cursor.getDouble(1)
-                val oldLon = cursor.getDouble(2)
-                val count = cursor.getInt(3)
-                val existingLevel = cursor.getInt(4)
-                val oldWeightSum = cursor.getDouble(5)
-
-                val values = createPersonalValues(network)
-                
-                if (network.isReliable) {
-                    val newWeightSum = oldWeightSum + weight
-                    // Взвешенное среднее координат: AP тяготеет к точкам с сильным сигналом
-                    val newLat = (oldLat * oldWeightSum + network.latitude * weight) / newWeightSum
-                    val newLon = (oldLon * oldWeightSum + network.longitude * weight) / newWeightSum
-                    
-                    values.put(COLUMN_LATITUDE, newLat)
-                    values.put(COLUMN_LONGITUDE, newLon)
-                    values.put(COLUMN_PERSONAL_COUNT, count + 1)
-                    values.put(COLUMN_PERSONAL_WEIGHT_SUM, newWeightSum)
-                    
-                    // Обновляем quadkey для новой позиции
-                    values.put(COLUMN_QUADKEY, QuadkeyUtils.latLonToQuadkey(newLat, newLon))
-                } else {
-                    // Если GPS плохой, координаты не трогаем
-                    values.put(COLUMN_LATITUDE, oldLat)
-                    values.put(COLUMN_LONGITUDE, oldLon)
-                    values.put(COLUMN_PERSONAL_COUNT, count)
-                    values.put(COLUMN_PERSONAL_WEIGHT_SUM, oldWeightSum)
-                }
-                
-                // Сохраняем лучший уровень сигнала для маркера (отрицательное значение, -40 > -70)
-                if (network.level > existingLevel) {
-                     values.put(COLUMN_PERSONAL_LEVEL, network.level)
-                } else {
-                     values.put(COLUMN_PERSONAL_LEVEL, existingLevel)
+                val personal = PersonalMapDbHelper(context, personalDatabaseName)
+                try {
+                    personal.importFromLegacy(db)
+                } finally {
+                    personal.close()
                 }
 
-                db.update(TABLE_PERSONAL_MAP, values, "$COLUMN_ID = ?", arrayOf(id.toString()))
-                return id
+                prefs.edit().putBoolean(KEY_PERSONAL_MIGRATED, true).commit()
             }
+
+            db.execSQL("DROP TABLE IF EXISTS $TABLE_PERSONAL_MAP")
+        } catch (e: Exception) {
+            Log.e("LocalAppDbHelper", "v9 personal map split migration failed", e)
         }
-        
-        // Если новая точка, создаем запись с начальным весом
-        val initialValues = createPersonalValues(network)
-        if (network.isReliable) {
-            initialValues.put(COLUMN_PERSONAL_WEIGHT_SUM, weight)
-        }
-        return db.insert(TABLE_PERSONAL_MAP, null, initialValues)
     }
 
-    fun findReliableLocation(scans: List<Pair<String, Int>>): Pair<Double, Double>? {
-        if (scans.isEmpty()) return null
-        val bssids = scans.map { it.first }
-        
-        val db = readableDatabase
-        val placeholders = bssids.joinToString(",") { "?" }
-        
-        // Ищем известные надежные точки из персональной карты
-        val query = "SELECT $COLUMN_MAC_ADDRESS, $COLUMN_LATITUDE, $COLUMN_LONGITUDE FROM $TABLE_PERSONAL_MAP WHERE $COLUMN_MAC_ADDRESS IN ($placeholders) AND $COLUMN_PERSONAL_RELIABLE = 1"
-        
-        val knownAps = mutableMapOf<String, Pair<Double, Double>>()
-        db.rawQuery(query, bssids.toTypedArray()).use { cursor ->
-            while (cursor.moveToNext()) {
-                knownAps[cursor.getString(0)] = Pair(cursor.getDouble(1), cursor.getDouble(2))
-            }
-        }
-        
-        // Если в персональной не густо, добавляем из общей базы
-        if (knownAps.size < 3) {
-            val queryMain = "SELECT $COLUMN_MAC_ADDRESS, $COLUMN_LATITUDE, $COLUMN_LONGITUDE FROM $TABLE_NAME WHERE $COLUMN_MAC_ADDRESS IN ($placeholders) AND $COLUMN_LATITUDE != 0"
-            db.rawQuery(queryMain, bssids.toTypedArray()).use { cursor ->
+    private fun migratePersonalMapToV8(db: SQLiteDatabase) {
+        val newTable = "${TABLE_PERSONAL_MAP}_new"
+        try {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS $newTable (
+                    $COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    $COLUMN_WIFI_NAME TEXT,
+                    $COLUMN_MAC_ADDRESS TEXT,
+                    $COLUMN_LATITUDE REAL,
+                    $COLUMN_LONGITUDE REAL,
+                    $COLUMN_PERSONAL_TIMESTAMP INTEGER,
+                    $COLUMN_PERSONAL_LEVEL INTEGER DEFAULT -100,
+                    $COLUMN_PERSONAL_ACCURACY REAL,
+                    $COLUMN_PERSONAL_RELIABLE INTEGER DEFAULT 0,
+                    $COLUMN_PERSONAL_COUNT INTEGER DEFAULT 1,
+                    $COLUMN_PERSONAL_WEIGHT_SUM REAL DEFAULT 0,
+                    $COLUMN_PERSONAL_FIRST_SEEN INTEGER,
+                    $COLUMN_QUADKEY INTEGER
+                )
+                """.trimIndent()
+            )
+
+            val aggregates = LinkedHashMap<String, PersonalAggregate>()
+            val columns = "SELECT $COLUMN_WIFI_NAME, $COLUMN_MAC_ADDRESS, $COLUMN_LATITUDE, " +
+                    "$COLUMN_LONGITUDE, $COLUMN_PERSONAL_TIMESTAMP, $COLUMN_PERSONAL_LEVEL, " +
+                    "$COLUMN_PERSONAL_ACCURACY, $COLUMN_PERSONAL_RELIABLE, $COLUMN_PERSONAL_COUNT, " +
+                    "$COLUMN_PERSONAL_WEIGHT_SUM FROM $TABLE_PERSONAL_MAP"
+            db.rawQuery(columns, null).use { cursor ->
                 while (cursor.moveToNext()) {
-                    val mac = cursor.getString(0)
-                    if (!knownAps.containsKey(mac)) {
-                        knownAps[mac] = Pair(cursor.getDouble(1), cursor.getDouble(2))
+                    val rawMac = cursor.getString(1) ?: continue
+                    if (rawMac.isBlank()) continue
+                    val mac = normalizeMac(rawMac)
+                    val lat = cursor.getDouble(2)
+                    val lon = cursor.getDouble(3)
+                    if (lat == 0.0 && lon == 0.0) continue
+
+                    val timestamp = cursor.getLong(4)
+                    val level = cursor.getInt(5)
+                    val accuracy = cursor.getFloat(6)
+                    val reliable = cursor.getInt(7) == 1
+                    val count = cursor.getInt(8).coerceAtLeast(1)
+                    val weightSum = cursor.getDouble(9)
+
+                    val agg = aggregates.getOrPut(mac) {
+                        PersonalAggregate(
+                            wifiName = cursor.getString(0).orEmpty(),
+                            firstSeen = timestamp
+                        )
                     }
+                    val w = if (weightSum > 0) weightSum else count.toDouble()
+                    agg.latSum += lat * w
+                    agg.lonSum += lon * w
+                    agg.weightSum += w
+                    agg.measureCount += count
+                    agg.lastSeen = maxOf(agg.lastSeen, timestamp)
+                    agg.firstSeen = if (agg.firstSeen == 0L) timestamp else minOf(agg.firstSeen, timestamp)
+                    agg.bestLevel = if (agg.bestLevel == Int.MIN_VALUE) level else maxOf(agg.bestLevel, level)
+                    if (accuracy > 0f && (agg.bestAccuracy <= 0f || accuracy < agg.bestAccuracy)) {
+                        agg.bestAccuracy = accuracy
+                    }
+                    agg.reliable = agg.reliable || reliable
+                    if (agg.wifiName.isBlank()) agg.wifiName = cursor.getString(0).orEmpty()
                 }
             }
-        }
 
-        if (knownAps.isEmpty()) return null
-
-        // Взвешенный центроид (Weighted Centroid Localization)
-        var sumWeightLat = 0.0
-        var sumWeightLon = 0.0
-        var sumWeight = 0.0
-
-        for (scan in scans) {
-            val coords = knownAps[scan.first] ?: continue
-            val weight = calculateRssiWeight(scan.second)
-            sumWeightLat += coords.first * weight
-            sumWeightLon += coords.second * weight
-            sumWeight += weight
-        }
-
-        return if (sumWeight > 0) {
-            Pair(sumWeightLat / sumWeight, sumWeightLon / sumWeight)
-        } else null
-    }
-
-    fun updatePersonalNetworkInfo(id: Long, newName: String, newPassword: String?) {
-        val db = writableDatabase
-        val values = ContentValues().apply {
-            put(COLUMN_WIFI_NAME, newName)
-            if (newPassword != null) {
-                put(COLUMN_WIFI_PASSWORD, newPassword)
-            }
-        }
-        db.update(TABLE_PERSONAL_MAP, values, "$COLUMN_ID = ?", arrayOf(id.toString()))
-    }
-
-    private fun createPersonalValues(network: PersonalWifiNetwork): ContentValues {
-        return ContentValues().apply {
-            put(COLUMN_WIFI_NAME, network.wifiName)
-            put(COLUMN_MAC_ADDRESS, network.macAddress)
-            put(COLUMN_LATITUDE, network.latitude)
-            put(COLUMN_LONGITUDE, network.longitude)
-            put(COLUMN_PERSONAL_TIMESTAMP, network.timestamp)
-            put(COLUMN_PERSONAL_LEVEL, network.level)
-            put(COLUMN_PERSONAL_ACCURACY, network.accuracy)
-            put(COLUMN_PERSONAL_RELIABLE, if (network.isReliable) 1 else 0)
-            put(COLUMN_PERSONAL_NOISE, network.noiseLevel)
-            put(COLUMN_PERSONAL_SATELLITES, network.satellites)
-            put(COLUMN_PERSONAL_SPEED, network.speed)
-            put(COLUMN_PERSONAL_COUNT, 1)
-            put(COLUMN_QUADKEY, computeQuadkey(network.latitude, network.longitude))
-        }
-    }
-
-    fun getPersonalPointsInBounds(
-        minLat: Double,
-        maxLat: Double,
-        minLon: Double,
-        maxLon: Double,
-        limit: Int = 1000
-    ): List<PersonalWifiNetwork> {
-        val query = "SELECT * FROM $TABLE_PERSONAL_MAP WHERE $COLUMN_LATITUDE BETWEEN ? AND ? AND $COLUMN_LONGITUDE BETWEEN ? AND ? LIMIT ?"
-        return readableDatabase.rawQuery(query, arrayOf(minLat.toString(), maxLat.toString(), minLon.toString(), maxLon.toString(), limit.toString()))
-            .use { cursor ->
-                val list = mutableListOf<PersonalWifiNetwork>()
-                val idIdx = cursor.getColumnIndexOrThrow(COLUMN_ID)
-                val nameIdx = cursor.getColumnIndexOrThrow(COLUMN_WIFI_NAME)
-                val macIdx = cursor.getColumnIndexOrThrow(COLUMN_MAC_ADDRESS)
-                val latIdx = cursor.getColumnIndexOrThrow(COLUMN_LATITUDE)
-                val lonIdx = cursor.getColumnIndexOrThrow(COLUMN_LONGITUDE)
-                val timeIdx = cursor.getColumnIndexOrThrow(COLUMN_PERSONAL_TIMESTAMP)
-                val levelIdx = cursor.getColumnIndexOrThrow(COLUMN_PERSONAL_LEVEL)
-                val accIdx = cursor.getColumnIndexOrThrow(COLUMN_PERSONAL_ACCURACY)
-                val relIdx = cursor.getColumnIndexOrThrow(COLUMN_PERSONAL_RELIABLE)
-                val noiseIdx = cursor.getColumnIndexOrThrow(COLUMN_PERSONAL_NOISE)
-                val satIdx = cursor.getColumnIndexOrThrow(COLUMN_PERSONAL_SATELLITES)
-                val speedIdx = cursor.getColumnIndexOrThrow(COLUMN_PERSONAL_SPEED)
-
-                while (cursor.moveToNext()) {
-                    list.add(PersonalWifiNetwork(
-                        id = cursor.getLong(idIdx),
-                        wifiName = cursor.getString(nameIdx) ?: "",
-                        macAddress = cursor.getString(macIdx) ?: "",
-                        latitude = cursor.getDouble(latIdx),
-                        longitude = cursor.getDouble(lonIdx),
-                        timestamp = cursor.getLong(timeIdx),
-                        level = cursor.getInt(levelIdx),
-                        accuracy = cursor.getFloat(accIdx),
-                        isReliable = cursor.getInt(relIdx) == 1,
-                        noiseLevel = cursor.getFloat(noiseIdx),
-                        satellites = cursor.getInt(satIdx),
-                        speed = cursor.getFloat(speedIdx)
-                    ))
+            db.transaction {
+                aggregates.forEach { (mac, agg) ->
+                    val lat = if (agg.weightSum > 0) agg.latSum / agg.weightSum else 0.0
+                    val lon = if (agg.weightSum > 0) agg.lonSum / agg.weightSum else 0.0
+                    db.execSQL(
+                        "INSERT INTO $newTable ($COLUMN_WIFI_NAME, $COLUMN_MAC_ADDRESS, $COLUMN_LATITUDE, " +
+                                "$COLUMN_LONGITUDE, $COLUMN_PERSONAL_TIMESTAMP, $COLUMN_PERSONAL_LEVEL, " +
+                                "$COLUMN_PERSONAL_ACCURACY, $COLUMN_PERSONAL_RELIABLE, $COLUMN_PERSONAL_COUNT, " +
+                                "$COLUMN_PERSONAL_WEIGHT_SUM, $COLUMN_PERSONAL_FIRST_SEEN, $COLUMN_QUADKEY) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        arrayOf<Any?>(
+                            agg.wifiName, mac, lat, lon, agg.lastSeen, agg.bestLevel,
+                            agg.bestAccuracy, if (agg.reliable) 1 else 0, agg.measureCount,
+                            agg.weightSum, agg.firstSeen,
+                            QuadkeyUtils.latLonToQuadkey(lat, lon)
+                        )
+                    )
                 }
-                list
+
+                db.execSQL("DROP TABLE $TABLE_PERSONAL_MAP")
+                db.execSQL("ALTER TABLE $newTable RENAME TO $TABLE_PERSONAL_MAP")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_personal_map_mac ON $TABLE_PERSONAL_MAP ($COLUMN_MAC_ADDRESS)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_personal_map_quadkey ON $TABLE_PERSONAL_MAP ($COLUMN_QUADKEY)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_personal_map_coords ON $TABLE_PERSONAL_MAP ($COLUMN_LATITUDE, $COLUMN_LONGITUDE)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_personal_map_time ON $TABLE_PERSONAL_MAP ($COLUMN_PERSONAL_TIMESTAMP)")
             }
-    }
-
-    suspend fun getClusteredPersonalPointsByTileRange(
-        tileX1: Int,
-        tileY1: Int,
-        tileX2: Int,
-        tileY2: Int,
-        zoom: Int,
-        scatterMode: Boolean = false
-    ): List<ClusteredMapPoint> {
-        val maxZoom = 23.0
-        val isHighZoom = zoom >= maxZoom - 1
-        val effectiveScatterMode = scatterMode || isHighZoom
-        val groupLevel = if (effectiveScatterMode) maxZoom else zoom + 2
-        val mask = (2 * (maxZoom.toInt() - groupLevel.toInt())).coerceAtLeast(0)
-
-        val latNorth = QuadkeyUtils.tileXYToLat(tileY1, zoom)
-        val latSouth = QuadkeyUtils.tileXYToLat(tileY2 + 1, zoom)
-        val lonWest = QuadkeyUtils.tileXYToLon(tileX1, zoom)
-        val lonEast = QuadkeyUtils.tileXYToLon(tileX2 + 1, zoom)
-
-        val db = readableDatabase
-        val points = mutableListOf<ClusteredMapPoint>()
-
-        if (effectiveScatterMode) {
-            val query = "SELECT $COLUMN_MAC_ADDRESS, $COLUMN_LATITUDE, $COLUMN_LONGITUDE, $COLUMN_WIFI_NAME FROM $TABLE_PERSONAL_MAP WHERE $COLUMN_LATITUDE >= ? AND $COLUMN_LATITUDE <= ? AND $COLUMN_LONGITUDE >= ? AND $COLUMN_LONGITUDE <= ? LIMIT 5000"
-            db.rawQuery(query, arrayOf(latSouth.toString(), latNorth.toString(), lonWest.toString(), lonEast.toString())).use { cursor ->
-                while (cursor.moveToNext()) {
-                    val macStr = cursor.getString(0)
-                    val mac = macToDecimal(macStr) ?: continue
-                    points.add(ClusteredMapPoint(mac, cursor.getDouble(1), cursor.getDouble(2), 1, false, cursor.getString(3)))
-                }
-            }
-        } else {
-            val divisor = 1L shl mask
-            val query = "SELECT MIN($COLUMN_MAC_ADDRESS), AVG($COLUMN_LATITUDE), AVG($COLUMN_LONGITUDE), COUNT(*), MIN($COLUMN_WIFI_NAME) FROM $TABLE_PERSONAL_MAP WHERE $COLUMN_LATITUDE >= ? AND $COLUMN_LATITUDE <= ? AND $COLUMN_LONGITUDE >= ? AND $COLUMN_LONGITUDE <= ? GROUP BY (CAST($COLUMN_QUADKEY / $divisor AS INTEGER)) LIMIT 2000"
-            db.rawQuery(query, arrayOf(latSouth.toString(), latNorth.toString(), lonWest.toString(), lonEast.toString())).use { cursor ->
-                while (cursor.moveToNext()) {
-                    val macStr = cursor.getString(0)
-                    val mac = macToDecimal(macStr) ?: continue
-                    val count = cursor.getInt(3)
-                    points.add(ClusteredMapPoint(mac, cursor.getDouble(1), cursor.getDouble(2), count, count > 1, cursor.getString(4)))
-                }
-            }
-        }
-        return points
-    }
-
-    fun getPersonalRecords(): List<PersonalWifiNetwork> {
-        val records = mutableListOf<PersonalWifiNetwork>()
-        readableDatabase.query(TABLE_PERSONAL_MAP, null, null, null, null, null, "$COLUMN_PERSONAL_TIMESTAMP DESC").use { cursor ->
-            records.addAll(buildPersonalList(cursor))
-        }
-        return records
-    }
-
-    fun searchPersonalRecordsByBssid(bssid: String): List<PersonalWifiNetwork> {
-        val query = "SELECT * FROM $TABLE_PERSONAL_MAP WHERE $COLUMN_MAC_ADDRESS = ?"
-        return readableDatabase.rawQuery(query, arrayOf(bssid)).use { cursor ->
-            buildPersonalList(cursor)
+        } catch (e: Exception) {
+            Log.e("LocalAppDbHelper", "Version 8 personal map migration failed", e)
         }
     }
 
-    private fun buildPersonalList(cursor: Cursor): List<PersonalWifiNetwork> {
-        val list = mutableListOf<PersonalWifiNetwork>()
-        val idIdx = cursor.getColumnIndex(COLUMN_ID)
-        val nameIdx = cursor.getColumnIndex(COLUMN_WIFI_NAME)
-        val macIdx = cursor.getColumnIndex(COLUMN_MAC_ADDRESS)
-        val latIdx = cursor.getColumnIndex(COLUMN_LATITUDE)
-        val lonIdx = cursor.getColumnIndex(COLUMN_LONGITUDE)
-        val timeIdx = cursor.getColumnIndex(COLUMN_PERSONAL_TIMESTAMP)
-        val levelIdx = cursor.getColumnIndex(COLUMN_PERSONAL_LEVEL)
-        val accIdx = cursor.getColumnIndex(COLUMN_PERSONAL_ACCURACY)
-        val relIdx = cursor.getColumnIndex(COLUMN_PERSONAL_RELIABLE)
-        val noiseIdx = cursor.getColumnIndex(COLUMN_PERSONAL_NOISE)
-        val satIdx = cursor.getColumnIndex(COLUMN_PERSONAL_SATELLITES)
-        val speedIdx = cursor.getColumnIndex(COLUMN_PERSONAL_SPEED)
-
-        while (cursor.moveToNext()) {
-            list.add(PersonalWifiNetwork(
-                id = if (idIdx >= 0) cursor.getLong(idIdx) else 0,
-                wifiName = if (nameIdx >= 0) cursor.getString(nameIdx) ?: "" else "",
-                macAddress = if (macIdx >= 0) cursor.getString(macIdx) ?: "" else "",
-                latitude = if (latIdx >= 0) cursor.getDouble(latIdx) else 0.0,
-                longitude = if (lonIdx >= 0) cursor.getDouble(lonIdx) else 0.0,
-                timestamp = if (timeIdx >= 0) cursor.getLong(timeIdx) else 0L,
-                level = if (levelIdx >= 0) cursor.getInt(levelIdx) else -100,
-                accuracy = if (accIdx >= 0) cursor.getFloat(accIdx) else 0f,
-                isReliable = if (relIdx >= 0) cursor.getInt(relIdx) == 1 else false,
-                noiseLevel = if (noiseIdx >= 0) cursor.getFloat(noiseIdx) else 0f,
-                satellites = if (satIdx >= 0) cursor.getInt(satIdx) else 0,
-                speed = if (speedIdx >= 0) cursor.getFloat(speedIdx) else 0f
-            ))
-        }
-        return list
+    private class PersonalAggregate(
+        var wifiName: String,
+        var firstSeen: Long
+    ) {
+        var latSum: Double = 0.0
+        var lonSum: Double = 0.0
+        var weightSum: Double = 0.0
+        var measureCount: Int = 0
+        var lastSeen: Long = 0L
+        var bestLevel: Int = Int.MIN_VALUE
+        var bestAccuracy: Float = 0f
+        var reliable: Boolean = false
     }
 
-    fun clearPersonalMap() {
-        writableDatabase.delete(TABLE_PERSONAL_MAP, null, null)
-    }
+    private fun normalizeMac(mac: String): String =
+        MacAddressUtils.formatToColonSeparated(mac) ?: mac.trim().uppercase()
 
-    fun syncLocationsFromPersonalMap(): Int {
+    fun syncLocationsFromPersonalMap(personalDbPath: String): Int {
         val db = writableDatabase
         var updatedCount = 0
-        db.transaction {
-            val query = """
-                UPDATE $TABLE_NAME 
-                SET $COLUMN_LATITUDE = (SELECT $COLUMN_LATITUDE FROM $TABLE_PERSONAL_MAP p WHERE p.$COLUMN_WIFI_NAME = $TABLE_NAME.$COLUMN_WIFI_NAME AND p.$COLUMN_MAC_ADDRESS = $TABLE_NAME.$COLUMN_MAC_ADDRESS LIMIT 1),
-                    $COLUMN_LONGITUDE = (SELECT $COLUMN_LONGITUDE FROM $TABLE_PERSONAL_MAP p WHERE p.$COLUMN_WIFI_NAME = $TABLE_NAME.$COLUMN_WIFI_NAME AND p.$COLUMN_MAC_ADDRESS = $TABLE_NAME.$COLUMN_MAC_ADDRESS LIMIT 1),
-                    $COLUMN_QUADKEY = (SELECT $COLUMN_QUADKEY FROM $TABLE_PERSONAL_MAP p WHERE p.$COLUMN_WIFI_NAME = $TABLE_NAME.$COLUMN_WIFI_NAME AND p.$COLUMN_MAC_ADDRESS = $TABLE_NAME.$COLUMN_MAC_ADDRESS LIMIT 1)
-                WHERE EXISTS (SELECT 1 FROM $TABLE_PERSONAL_MAP p WHERE p.$COLUMN_WIFI_NAME = $TABLE_NAME.$COLUMN_WIFI_NAME AND p.$COLUMN_MAC_ADDRESS = $TABLE_NAME.$COLUMN_MAC_ADDRESS)
-            """.trimIndent()
-            db.execSQL(query)
-            
-            val cursor = db.rawQuery("SELECT changes()", null)
-            if (cursor.moveToFirst()) {
-                updatedCount = cursor.getInt(0)
+        try {
+            db.execSQL("ATTACH DATABASE ? AS personaldb", arrayOf(personalDbPath))
+            db.transaction {
+
+                val matchMac = "REPLACE(REPLACE(UPPER(p.macaddress), ':', ''), '-', '') = " +
+                        "REPLACE(REPLACE(UPPER($TABLE_NAME.$COLUMN_MAC_ADDRESS), ':', ''), '-', '')"
+                val reliable = "p.latitude != 0 AND p.longitude != 0 AND p.is_reliable = 1"
+                val differs = "(COALESCE(p.latitude, 0.0) != COALESCE($TABLE_NAME.$COLUMN_LATITUDE, 0.0) " +
+                        "OR COALESCE(p.longitude, 0.0) != COALESCE($TABLE_NAME.$COLUMN_LONGITUDE, 0.0))"
+
+                val newestRow = "SELECT p2.rowid FROM personaldb.$TABLE_PERSONAL_MAP p2 " +
+                        "WHERE p2.wifiname = $TABLE_NAME.$COLUMN_WIFI_NAME " +
+                        "AND REPLACE(REPLACE(UPPER(p2.macaddress), ':', ''), '-', '') = " +
+                        "REPLACE(REPLACE(UPPER($TABLE_NAME.$COLUMN_MAC_ADDRESS), ':', ''), '-', '') " +
+                        "AND p2.latitude != 0 AND p2.longitude != 0 AND p2.is_reliable = 1 " +
+                        "ORDER BY p2.timestamp DESC LIMIT 1"
+                val query = """
+                    UPDATE $TABLE_NAME
+                    SET $COLUMN_LATITUDE = (SELECT p.latitude FROM personaldb.$TABLE_PERSONAL_MAP p WHERE p.rowid = ($newestRow)),
+                        $COLUMN_LONGITUDE = (SELECT p.longitude FROM personaldb.$TABLE_PERSONAL_MAP p WHERE p.rowid = ($newestRow)),
+                        $COLUMN_QUADKEY = (SELECT p.quadkey FROM personaldb.$TABLE_PERSONAL_MAP p WHERE p.rowid = ($newestRow))
+                    WHERE EXISTS (SELECT 1 FROM personaldb.$TABLE_PERSONAL_MAP p WHERE p.wifiname = $TABLE_NAME.$COLUMN_WIFI_NAME AND $matchMac AND $reliable AND $differs)
+                """.trimIndent()
+                db.execSQL(query)
+                db.rawQuery("SELECT changes()", null).use { cursor ->
+                    if (cursor.moveToFirst()) updatedCount = cursor.getInt(0)
+                }
             }
-            cursor.close()
+        } catch (e: Exception) {
+            Log.e("LocalAppDbHelper", "Failed to sync locations from personal DB", e)
+        } finally {
+            try {
+                db.execSQL("DETACH DATABASE personaldb")
+            } catch (_: Exception) {
+            }
         }
         return updatedCount
+    }
+
+    fun findKnownLocations(normalizedMacs: Set<String>): Map<String, Pair<Double, Double>> {
+        if (normalizedMacs.isEmpty()) return emptyMap()
+        val result = mutableMapOf<String, Pair<Double, Double>>()
+        normalizedMacs.toList().chunked(500).forEach { chunk ->
+            val placeholders = chunk.joinToString(",") { "?" }
+            val query = "SELECT UPPER($COLUMN_MAC_ADDRESS), $COLUMN_LATITUDE, $COLUMN_LONGITUDE FROM $TABLE_NAME WHERE UPPER($COLUMN_MAC_ADDRESS) IN ($placeholders) AND $COLUMN_LATITUDE != 0"
+            readableDatabase.rawQuery(query, chunk.toTypedArray()).use { cursor ->
+                while (cursor.moveToNext()) {
+                    result[cursor.getString(0)] = Pair(cursor.getDouble(1), cursor.getDouble(2))
+                }
+            }
+        }
+        return result
+    }
+
+    fun filterExistingMacDecimals(decimals: List<Long>): Set<Long> {
+        if (decimals.isEmpty()) return emptySet()
+        val result = mutableSetOf<Long>()
+        decimals.distinct().chunked(400).forEach { chunk ->
+            val conditions = chunk.joinToString(" OR ") {
+                "REPLACE(REPLACE(UPPER($COLUMN_MAC_ADDRESS), ':', ''), '-', '') = ?"
+            }
+            val args = chunk.map { String.format("%012X", it) }.toTypedArray()
+            readableDatabase.rawQuery(
+                "SELECT REPLACE(REPLACE(UPPER($COLUMN_MAC_ADDRESS), ':', ''), '-', '') FROM $TABLE_NAME WHERE $conditions",
+                args
+            ).use { cursor ->
+                while (cursor.moveToNext()) {
+                    cursor.getString(0)?.toLongOrNull(16)?.let { result.add(it) }
+                }
+            }
+        }
+        return result
     }
 
     fun syncLocationsFromExternalWifiLoc(externalDbPath: String): Int {
         val db = writableDatabase
         var updatedCount = 0
-        
+
         try {
             val externalDb = SQLiteDatabase.openDatabase(externalDbPath, null, SQLiteDatabase.OPEN_READONLY)
             val cursor = externalDb.query("access_points", arrayOf("ssid", "bssid", "latitude", "longitude"), null, null, null, null, null)
-            
+
             db.transaction {
                 while (cursor.moveToNext()) {
                     val ssid = cursor.getString(0)
@@ -545,9 +441,9 @@ class LocalAppDbHelper(private val context: Context) :
                     }
 
                     val affected = db.update(
-                        TABLE_NAME, 
-                        values, 
-                        "$COLUMN_WIFI_NAME = ? AND $COLUMN_MAC_ADDRESS = ?", 
+                        TABLE_NAME,
+                        values,
+                        "$COLUMN_WIFI_NAME = ? AND $COLUMN_MAC_ADDRESS = ?",
                         arrayOf(ssid, bssid)
                     )
                     updatedCount += affected
@@ -559,11 +455,9 @@ class LocalAppDbHelper(private val context: Context) :
             Log.e("LocalAppDbHelper", "Error during direct sync from external DB", e)
             throw e
         }
-        
+
         return updatedCount
     }
-
-    // --- Original Methods Restored from 58KB version ---
 
     private fun hasIndex(indexName: String): Boolean {
         return try {
@@ -989,7 +883,6 @@ class LocalAppDbHelper(private val context: Context) :
         return writableDatabase.insert(TABLE_NAME, null, values)
     }
 
-
     fun updateRecord(wifiNetwork: WifiNetwork) {
         val values = ContentValues().apply {
             put(COLUMN_WIFI_NAME, wifiNetwork.wifiName)
@@ -1361,7 +1254,6 @@ class LocalAppDbHelper(private val context: Context) :
         }
     }
 
-
     data class ImportStats(
         val totalProcessed: Int,
         val inserted: Int,
@@ -1527,20 +1419,35 @@ class LocalAppDbHelper(private val context: Context) :
         try {
             val currentDbPath = context.getDatabasePath(DATABASE_NAME).absolutePath
             val currentDbFile = File(currentDbPath)
+            val backupFile = File("$currentDbPath.bak")
 
             close()
 
+            File("$currentDbPath-wal").takeIf { it.exists() }?.delete()
+            File("$currentDbPath-shm").takeIf { it.exists() }?.delete()
+
             if (currentDbFile.exists()) {
+                if (backupFile.exists()) backupFile.delete()
+                currentDbFile.copyTo(backupFile, overwrite = true)
                 currentDbFile.delete()
             }
 
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            val restored = context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 FileOutputStream(currentDbFile).use { outputStream ->
                     inputStream.copyTo(outputStream)
                 }
-            }
+                true
+            } ?: false
 
-            Log.d("LocalAppDbHelper", "Database restored successfully from $uri")
+            if (restored) {
+                backupFile.delete()
+                Log.d("LocalAppDbHelper", "Database restored successfully from $uri")
+            } else if (backupFile.exists()) {
+
+                backupFile.copyTo(currentDbFile, overwrite = true)
+                backupFile.delete()
+                Log.e("LocalAppDbHelper", "Restore failed: input stream is null, rolled back")
+            }
         } catch (e: Exception) {
             Log.e("LocalAppDbHelper", "Error restoring database: ${e.message}", e)
         }
@@ -1571,7 +1478,7 @@ class LocalAppDbHelper(private val context: Context) :
         if (effectiveScatterMode) {
             val scatterLimit = getZoomBasedLimit(zoom.toDouble())
             val query =
-                "SELECT $COLUMN_MAC_ADDRESS, $COLUMN_LATITUDE, $COLUMN_LONGITUDE FROM $TABLE_NAME WHERE $COLUMN_LATITUDE >= ? AND $COLUMN_LATITUDE <= ? AND $COLUMN_LONGITUDE >= ? AND $COLUMN_LONGITUDE <= ? LIMIT ?"
+                "SELECT $COLUMN_MAC_ADDRESS, $COLUMN_LATITUDE, $COLUMN_LONGITUDE, $COLUMN_WIFI_NAME FROM $TABLE_NAME WHERE $COLUMN_LATITUDE >= ? AND $COLUMN_LATITUDE <= ? AND $COLUMN_LONGITUDE >= ? AND $COLUMN_LONGITUDE <= ? LIMIT ?"
             val args = arrayOf(
                 latSouth.toString(), latNorth.toString(),
                 lonWest.toString(), lonEast.toString(),

@@ -57,6 +57,7 @@
     <color name="signal_good">#4CAF50</color>
     <color name="signal_fair">#FF9800</color>
     <color name="signal_poor">#F44336</color>
+    <color name="badge_updated">#607D8B</color>
     <color name="chip_pixiedust_bg">#D6EAFF</color>
     <color name="chip_pixiedust_stroke">#2196F3</color>
     <color name="code_block_background">#F0F0F0</color>

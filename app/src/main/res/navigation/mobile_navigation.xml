@@ -286,6 +286,12 @@
         android:name="com.lsd.wififrankenstein.ui.personalmap.PersonalWiFiMapFragment"
         android:label="@string/menu_personal_wifi_map"
         app:route="nav_personal_wifi_map"
-        tools:layout="@layout/fragment_personal_wifi_map" />
+        tools:layout="@layout/fragment_personal_map_host" />
+    <fragment
+        android:id="@+id/nav_personal_map_stats"
+        android:name="com.lsd.wififrankenstein.ui.personalmap.PersonalMapStatsFragment"
+        android:label="@string/pm_open_stats"
+        app:route="nav_personal_map_stats"
+        tools:layout="@layout/fragment_personal_map_stats" />
 </navigation>
 
