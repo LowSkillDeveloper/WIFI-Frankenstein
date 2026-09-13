@@ -1416,11 +1416,11 @@ class LocalAppDbHelper(
     }
 
     fun restoreDatabaseFromUri(uri: Uri) {
-        try {
-            val currentDbPath = context.getDatabasePath(DATABASE_NAME).absolutePath
-            val currentDbFile = File(currentDbPath)
-            val backupFile = File("$currentDbPath.bak")
+        val currentDbPath = context.getDatabasePath(DATABASE_NAME).absolutePath
+        val currentDbFile = File(currentDbPath)
+        val backupFile = File("$currentDbPath.bak")
 
+        try {
             close()
 
             File("$currentDbPath-wal").takeIf { it.exists() }?.delete()
@@ -1443,13 +1443,22 @@ class LocalAppDbHelper(
                 backupFile.delete()
                 Log.d("LocalAppDbHelper", "Database restored successfully from $uri")
             } else if (backupFile.exists()) {
-
                 backupFile.copyTo(currentDbFile, overwrite = true)
                 backupFile.delete()
                 Log.e("LocalAppDbHelper", "Restore failed: input stream is null, rolled back")
             }
         } catch (e: Exception) {
             Log.e("LocalAppDbHelper", "Error restoring database: ${e.message}", e)
+            if (backupFile.exists()) {
+                try {
+                    if (currentDbFile.exists()) currentDbFile.delete()
+                    backupFile.copyTo(currentDbFile, overwrite = true)
+                    backupFile.delete()
+                    Log.d("LocalAppDbHelper", "Rolled back to previous database after error")
+                } catch (rollback: Exception) {
+                    Log.e("LocalAppDbHelper", "Rollback also failed: ${rollback.message}", rollback)
+                }
+            }
         }
     }
 

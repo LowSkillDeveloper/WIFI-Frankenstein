@@ -692,10 +692,7 @@ class InAppDatabaseFragment : Fragment() {
                 }
 
                 REQUEST_RESTORE_DB -> {
-                    viewModel.restoreDatabaseFromUri(uri)
-                    adapter.refresh()
-                    updateStats()
-                    showSnackbar(getString(R.string.database_restored))
+                    showRestoreOptionsDialog(uri)
                 }
             }
         }
@@ -798,6 +795,88 @@ class InAppDatabaseFragment : Fragment() {
                     }
                 }
 
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    if (isAdded && _binding != null) {
+                        progressDialog.dismiss()
+                        showSnackbar(getString(R.string.import_error, e.message))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showRestoreOptionsDialog(uri: Uri) {
+        val options = arrayOf(
+            getString(R.string.restore_replace_file),
+            getString(R.string.restore_import_records)
+        )
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.restore_select_method)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> {
+                        viewModel.restoreDatabaseFromUri(uri)
+                        adapter.refresh()
+                        updateStats()
+                        showSnackbar(getString(R.string.database_restored))
+                    }
+                    1 -> {
+                        showBackupImportProgress(uri)
+                    }
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showBackupImportProgress(uri: Uri) {
+        if (!isAdded) return
+        val context = context ?: return
+
+        val progressDialog = MaterialAlertDialogBuilder(context)
+            .setView(R.layout.dialog_import_progress)
+            .setCancelable(false)
+            .show()
+
+        val progressText = progressDialog.findViewById<TextView>(R.id.textViewImportProgress)
+        val progressBar = progressDialog.findViewById<ProgressBar>(R.id.progressBarImport)
+
+        progressText?.text = getString(R.string.importing_data)
+        progressBar?.progress = 0
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val result = viewModel.importRecordsFromBackup(
+                    uri, "append_check_duplicates"
+                ) { message, progress ->
+                    launch(Dispatchers.Main) {
+                        if (isAdded && progressDialog.isShowing && _binding != null) {
+                            progressText?.text = message
+                            progressBar?.progress = progress
+                        }
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    if (isAdded && _binding != null) {
+                        progressDialog.dismiss()
+                        adapter.refresh()
+                        updateStats()
+
+                        val message = if (result.errorMessage != null) {
+                            getString(R.string.import_error, result.errorMessage)
+                        } else {
+                            getString(
+                                R.string.restore_import_result,
+                                result.totalRead,
+                                result.inserted
+                            )
+                        }
+                        showSnackbar(message)
+                    }
+                }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     if (isAdded && _binding != null) {

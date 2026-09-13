@@ -27,13 +27,16 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.database.sqlite.SQLiteDatabase
 import kotlinx.serialization.json.Json
+import java.io.File
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
 
 class InAppDatabaseViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val dbHelper = LocalAppDbHelper(application)
+    @Volatile
+    private var dbHelper = LocalAppDbHelper(application)
 
     private val wpaSecClient = WpaSecClient(application)
 
@@ -648,6 +651,14 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
     fun exportDatabase(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                val checkpointHelper = LocalAppDbHelper(getApplication())
+                try {
+                    checkpointHelper.writableDatabase.execSQL("PRAGMA wal_checkpoint(TRUNCATE)")
+                } catch (_: Exception) {
+                } finally {
+                    checkpointHelper.close()
+                }
+
                 val dbFile =
                     getApplication<Application>().getDatabasePath(LocalAppDbHelper.DATABASE_NAME)
                 getApplication<Application>().contentResolver.openOutputStream(uri)
@@ -665,16 +676,213 @@ class InAppDatabaseViewModel(application: Application) : AndroidViewModel(applic
     fun restoreDatabaseFromUri(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-
                 dbHelper.close()
                 val localDbHelper = LocalAppDbHelper(getApplication())
                 localDbHelper.restoreDatabaseFromUri(uri)
                 localDbHelper.close()
+                dbHelper = LocalAppDbHelper(getApplication())
                 updateStats()
             } catch (e: Exception) {
                 Log.e("InAppDatabaseViewModel", "Error restoring database", e)
             }
         }
+    }
+
+    data class ImportBackupResult(
+        val totalRead: Int,
+        val inserted: Int,
+        val duplicates: Int,
+        val errors: Int,
+        val errorMessage: String? = null
+    )
+
+    suspend fun importRecordsFromBackup(
+        uri: Uri,
+        importType: String,
+        progressCallback: (String, Int) -> Unit
+    ): ImportBackupResult = withContext(Dispatchers.IO) {
+        val app = getApplication<Application>()
+        val tempFile = File(app.cacheDir, "backup_restore_temp.db")
+
+        try {
+            progressCallback(app.getString(R.string.restore_copying_cache), 2)
+            app.contentResolver.openInputStream(uri)?.use { input ->
+                tempFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            } ?: return@withContext ImportBackupResult(
+                0, 0, 0, 1,
+                app.getString(R.string.import_error, "Cannot open backup file")
+            )
+
+            progressCallback(app.getString(R.string.restore_validating), 5)
+            val backupDb = try {
+                SQLiteDatabase.openDatabase(
+                    tempFile.path, null, SQLiteDatabase.OPEN_READONLY
+                )
+            } catch (e: Exception) {
+                return@withContext ImportBackupResult(
+                    0, 0, 0, 1,
+                    app.getString(R.string.restore_not_valid_sqlite)
+                )
+            }
+
+            val hasTable = try {
+                backupDb.rawQuery(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    arrayOf(LocalAppDbHelper.TABLE_NAME)
+                ).use { it.moveToFirst() }
+            } catch (_: Exception) {
+                false
+            }
+
+            if (!hasTable) {
+                backupDb.close()
+                return@withContext ImportBackupResult(
+                    0, 0, 0, 1,
+                    app.getString(R.string.restore_no_wifi_table)
+                )
+            }
+
+            val totalCount = backupDb.rawQuery(
+                "SELECT COUNT(*) FROM ${LocalAppDbHelper.TABLE_NAME}", null
+            ).use { if (it.moveToFirst()) it.getInt(0) else 0 }
+
+            if (totalCount == 0) {
+                backupDb.close()
+                return@withContext ImportBackupResult(
+                    0, 0, 0, 0,
+                    app.getString(R.string.restore_empty_backup)
+                )
+            }
+
+            progressCallback(app.getString(R.string.restore_records_found, totalCount), 10)
+
+            if (importType == "replace") {
+                progressCallback(app.getString(R.string.ia_clearing_database), 12)
+                dbHelper.clearDatabase()
+            }
+
+            val shouldOptimize = totalCount > 5000
+            if (shouldOptimize) {
+                progressCallback(app.getString(R.string.ia_optimizing_db), 15)
+                dbHelper.temporaryDropIndexes()
+                dbHelper.optimizeForBulkInsert()
+            }
+
+            val checkDuplicates = importType == "append_check_duplicates"
+            val existingKeys: MutableSet<String> = if (checkDuplicates && totalCount > 1000) {
+                progressCallback(app.getString(R.string.ia_loading_existing), 18)
+                Collections.synchronizedSet(dbHelper.getAllExistingKeys())
+            } else {
+                mutableSetOf()
+            }
+
+            val chunkSize = 1000
+            var processed = 0
+            var inserted = 0
+            var duplicates = 0
+            var errors = 0
+
+            val cursor = backupDb.query(
+                LocalAppDbHelper.TABLE_NAME, null, null, null, null, null, null
+            )
+
+            val nameIdx = cursor.getColumnIndex(LocalAppDbHelper.COLUMN_WIFI_NAME)
+            val macIdx = cursor.getColumnIndex(LocalAppDbHelper.COLUMN_MAC_ADDRESS)
+            val passIdx = cursor.getColumnIndex(LocalAppDbHelper.COLUMN_WIFI_PASSWORD)
+            val wpsIdx = cursor.getColumnIndex(LocalAppDbHelper.COLUMN_WPS_CODE)
+            val adminIdx = cursor.getColumnIndex(LocalAppDbHelper.COLUMN_ADMIN_PANEL)
+            val latIdx = cursor.getColumnIndex(LocalAppDbHelper.COLUMN_LATITUDE)
+            val lonIdx = cursor.getColumnIndex(LocalAppDbHelper.COLUMN_LONGITUDE)
+
+            val currentBatch = mutableListOf<WifiNetwork>()
+
+            try {
+                while (cursor.moveToNext()) {
+                    try {
+                        currentBatch.add(
+                            WifiNetwork(
+                                id = 0,
+                                wifiName = if (nameIdx >= 0) cursor.getString(nameIdx) ?: "" else "",
+                                macAddress = if (macIdx >= 0) cursor.getString(macIdx) ?: "" else "",
+                                wifiPassword = if (passIdx >= 0) cursor.getString(passIdx) else null,
+                                wpsCode = if (wpsIdx >= 0) cursor.getString(wpsIdx) else null,
+                                adminPanel = if (adminIdx >= 0) cursor.getString(adminIdx) else null,
+                                latitude = if (latIdx >= 0) cursor.getDouble(latIdx) else null,
+                                longitude = if (lonIdx >= 0) cursor.getDouble(lonIdx) else null
+                            )
+                        )
+                    } catch (e: Exception) {
+                        errors++
+                        Log.e("InAppDatabaseViewModel", "Error reading backup record", e)
+                    }
+
+                    if (currentBatch.size >= chunkSize) {
+                        val batchResult = insertBatchFromBackup(currentBatch, checkDuplicates, existingKeys)
+                        inserted += batchResult.first
+                        duplicates += batchResult.second
+                        processed += currentBatch.size
+                        currentBatch.clear()
+
+                        val progress = 20 + (processed * 65) / totalCount
+                        progressCallback(
+                            app.getString(R.string.restore_importing, processed, totalCount),
+                            progress
+                        )
+                    }
+                }
+
+                if (currentBatch.isNotEmpty()) {
+                    val batchResult = insertBatchFromBackup(currentBatch, checkDuplicates, existingKeys)
+                    inserted += batchResult.first
+                    duplicates += batchResult.second
+                    processed += currentBatch.size
+                }
+            } finally {
+                cursor.close()
+                backupDb.close()
+            }
+
+            progressCallback(app.getString(R.string.ia_restoring_indexes), 88)
+
+            if (shouldOptimize) {
+                dbHelper.recreateIndexes()
+                dbHelper.restoreNormalSettings()
+            }
+
+            progressCallback("Done", 100)
+
+            ImportBackupResult(processed, inserted, duplicates, errors)
+        } catch (e: Exception) {
+            Log.e("InAppDatabaseViewModel", "Error importing from backup", e)
+            ImportBackupResult(0, 0, 0, 1, e.message)
+        } finally {
+            if (tempFile.exists()) tempFile.delete()
+        }
+    }
+
+    private fun insertBatchFromBackup(
+        batch: List<WifiNetwork>,
+        checkDuplicates: Boolean,
+        existingKeys: MutableSet<String>
+    ): Pair<Int, Int> {
+        if (!checkDuplicates) {
+            val count = dbHelper.bulkInsertBatch(batch)
+            return Pair(count, 0)
+        }
+
+        val unique = batch.filter { network ->
+            val key = "${network.wifiName}|${network.macAddress}"
+            existingKeys.add(key)
+        }
+        val dupCount = batch.size - unique.size
+
+        if (unique.isNotEmpty()) {
+            val count = dbHelper.bulkInsertBatch(unique)
+            return Pair(count, dupCount)
+        }
+        return Pair(0, dupCount)
     }
 
     fun importFromWpaSec(

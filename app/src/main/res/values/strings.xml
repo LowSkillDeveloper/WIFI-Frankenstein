@@ -3033,6 +3033,17 @@
     <string name="ia_loading_existing">Loading existing records…</string>
     <string name="ia_processing_records">Processing %1$d records…</string>
     <string name="ia_processing_chunk">Processing chunk %1$d/%2$d…</string>
+    <string name="restore_select_method">Select restore method</string>
+    <string name="restore_replace_file">Replace database (fast)</string>
+    <string name="restore_import_records">Import records (safe fallback)</string>
+    <string name="restore_validating">Validating backup file…</string>
+    <string name="restore_not_valid_sqlite">Selected file is not a valid SQLite database</string>
+    <string name="restore_no_wifi_table">Backup does not contain a wifi_networks table</string>
+    <string name="restore_records_found">Found %1$d records in backup</string>
+    <string name="restore_importing">Importing: %1$d / %2$d</string>
+    <string name="restore_empty_backup">Backup file contains no records</string>
+    <string name="restore_import_result">Import completed\nRead: %1$d\nAdded: %2$d</string>
+    <string name="restore_copying_cache">Copying backup to temp file…</string>
     <string name="qr_network_name_empty">Network name cannot be empty</string>
     <string name="qr_code_generation_failed_detail">Failed to generate QR code: %1$s</string>
     <string name="mac_marker_format">BSSID: %1$s\nSSID: %2$s</string>
