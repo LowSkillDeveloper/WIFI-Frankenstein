@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.wpacracker
 
 import android.app.Application
+import com.lsd.wififrankenstein.BuildConfig
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -1349,7 +1350,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
             }
 
             val request = okhttp3.Request.Builder().url(url)
-                .addHeader("User-Agent", "WIFI-Frankenstein/1.1").build()
+                .addHeader("User-Agent", "WIFI-Frankenstein/${BuildConfig.VERSION_NAME}").build()
             httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext null
                 val stream = response.body?.byteStream() ?: return@withContext null

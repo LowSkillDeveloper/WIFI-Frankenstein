@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.network
 
 import android.content.Context
+import com.lsd.wififrankenstein.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -104,7 +105,7 @@ class NetworkClient(private val context: Context) {
             try {
                 val request = Request.Builder()
                     .url(attemptUrl)
-                    .addHeader("User-Agent", "WIFI-Frankenstein/1.1")
+                    .addHeader("User-Agent", "WIFI-Frankenstein/${BuildConfig.VERSION_NAME}")
                     .build()
 
                 val response = okHttpClient.newCall(request).execute()
@@ -156,7 +157,7 @@ class NetworkClient(private val context: Context) {
 
         val requestBuilder = Request.Builder()
             .url(url)
-            .addHeader("User-Agent", "WIFI-Frankenstein/1.1")
+            .addHeader("User-Agent", "WIFI-Frankenstein/${BuildConfig.VERSION_NAME}")
             .post(multipartBuilder.build())
 
         for ((key, value) in headers) {

@@ -1,5 +1,6 @@
 package com.lsd.wififrankenstein.util
 
+import com.lsd.wififrankenstein.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -26,7 +27,7 @@ object WpaSecImporter {
         val request = Request.Builder()
             .url(url)
             .addHeader("Cookie", "key=$apiKey")
-            .addHeader("User-Agent", "WIFI-Frankenstein/1.1")
+            .addHeader("User-Agent", "WIFI-Frankenstein/${BuildConfig.VERSION_NAME}")
             .build()
 
         val response = client.newCall(request).execute()

@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.network
 
 import android.content.Context
+import com.lsd.wififrankenstein.BuildConfig
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -100,7 +101,7 @@ class OhcClient(private val context: Context) {
             val request = okhttp3.Request.Builder()
                 .url(PRIVATE_API_URL)
                 .post(body)
-                .addHeader("User-Agent", "WIFI-Frankenstein/1.1")
+                .addHeader("User-Agent", "WIFI-Frankenstein/${BuildConfig.VERSION_NAME}")
                 .build()
             val response = client.newCall(request).execute()
             val bodyStr = response.body?.string() ?: "{}"
@@ -150,7 +151,7 @@ class OhcClient(private val context: Context) {
             val request = okhttp3.Request.Builder()
                 .url(PRIVATE_API_URL)
                 .post(body)
-                .addHeader("User-Agent", "WIFI-Frankenstein/1.1")
+                .addHeader("User-Agent", "WIFI-Frankenstein/${BuildConfig.VERSION_NAME}")
                 .build()
             val response = client.newCall(request).execute()
             val bodyStr = response.body?.string() ?: "{}"

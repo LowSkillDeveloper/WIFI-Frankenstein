@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.bruteforce
 
 import android.content.Intent
+import com.lsd.wififrankenstein.BuildConfig
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -240,7 +241,7 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
                 .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
                 .build()
             val request = okhttp3.Request.Builder().url(url)
-                .addHeader("User-Agent", "WIFI-Frankenstein/1.1").build()
+                .addHeader("User-Agent", "WIFI-Frankenstein/${BuildConfig.VERSION_NAME}").build()
             val response = client.newCall(request).execute()
             if (!response.isSuccessful) return@withContext null
             response.body?.bytes()?.let { tempFile.writeBytes(it) }

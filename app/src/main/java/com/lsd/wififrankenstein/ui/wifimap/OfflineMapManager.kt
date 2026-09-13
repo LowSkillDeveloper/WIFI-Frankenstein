@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.ui.wifimap
 
 import android.content.Context
+import com.lsd.wififrankenstein.BuildConfig
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -187,7 +188,7 @@ class OfflineMapManager(private val context: Context) {
                             val url = "https://tile.openstreetmap.org/$zoom/$x/$y.png"
                             try {
                                 val request = Request.Builder().url(url)
-                                    .header("User-Agent", "WiFiFrankenstein/1.0")
+                                    .header("User-Agent", "WIFI-Frankenstein/${BuildConfig.VERSION_NAME}")
                                     .build()
                                 val response = client.newCall(request).execute()
                                 val code = response.code

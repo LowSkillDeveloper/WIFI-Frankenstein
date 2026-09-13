@@ -1,6 +1,7 @@
 package com.lsd.wififrankenstein.util
 
 import android.content.Context
+import com.lsd.wififrankenstein.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -38,7 +39,7 @@ class WpaSecDictManager(private val context: Context) {
     suspend fun downloadIfNeeded(): String? {
         try {
             val headRequest = Request.Builder().head().url(DICT_URL)
-                .addHeader("User-Agent", "WIFI-Frankenstein/1.1")
+                .addHeader("User-Agent", "WIFI-Frankenstein/${BuildConfig.VERSION_NAME}")
                 .build()
             val headResponse = client.newCall(headRequest).execute()
             val serverLastModified = headResponse.header("Last-Modified")
@@ -56,7 +57,7 @@ class WpaSecDictManager(private val context: Context) {
             )
 
             val getRequest = Request.Builder().url(DICT_URL)
-                .addHeader("User-Agent", "WIFI-Frankenstein/1.1")
+                .addHeader("User-Agent", "WIFI-Frankenstein/${BuildConfig.VERSION_NAME}")
                 .build()
             val response = client.newCall(getRequest).execute()
             if (!response.isSuccessful) {
