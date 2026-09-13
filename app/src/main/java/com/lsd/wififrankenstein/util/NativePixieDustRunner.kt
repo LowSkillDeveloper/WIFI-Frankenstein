@@ -12,7 +12,6 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
 
-
 class NativePixieDustRunner(private val context: Context) {
 
     private val PIN_REGEX =
@@ -123,7 +122,6 @@ class NativePixieDustRunner(private val context: Context) {
                             )
                         }
                     }
-
 
                     var m3: M3Parser.M3Data? = null
                     var m5m7: M3Parser.M5M7Capture? = null
@@ -279,7 +277,6 @@ class NativePixieDustRunner(private val context: Context) {
         }
     }
 
-
     private fun startAttackSupplicant(iface: String, log: (String) -> Unit): BufferedReader? {
         val ctrlDir = NativeWifiBinaries.ctrlDir()
         log("[*] Preparing ctrl dir: $ctrlDir")
@@ -308,7 +305,6 @@ class NativePixieDustRunner(private val context: Context) {
         }
         return reader
     }
-
 
     private fun waitForInterfaceReady(
         iface: String,
@@ -399,14 +395,12 @@ class NativePixieDustRunner(private val context: Context) {
                 5
             )
 
-
         val freqSuffix = if (freqMHz != null) " freq=$freqMHz" else ""
         val regCmd = cli("wps_reg $bssid 12345670$freqSuffix")
         log("[*] wpa_cli (wps_reg): $regCmd")
         logResult("wpa_cli (wps_reg)", regCmd, log)
         return regCmd
     }
-
 
     private fun isWpsRegAccepted(result: Shell.Result?): Boolean {
         return result != null && result.isSuccess &&
@@ -618,7 +612,6 @@ class NativePixieDustRunner(private val context: Context) {
         cleanup()
     }
 
-
     private suspend fun captureM3WithRetries(
         reader: BufferedReader,
         bssid: String,
@@ -699,7 +692,6 @@ class NativePixieDustRunner(private val context: Context) {
         return M3Attempt(null, reason)
     }
 
-
     private fun killSupplicantProcess() {
         try {
             supplicantProcess?.destroy()
@@ -708,7 +700,6 @@ class NativePixieDustRunner(private val context: Context) {
         supplicantProcess = null
         pkillByDir()
     }
-
 
     private fun pkillByDir(): Shell.Result {
         val dir = NativeWifiBinaries.binaryDir(context)
@@ -724,7 +715,6 @@ class NativePixieDustRunner(private val context: Context) {
         val failureReason: String?,
         val m5m7: M3Parser.M5M7Capture? = null
     )
-
 
     private fun isInterfaceInUse(iface: String): Boolean {
         return try {

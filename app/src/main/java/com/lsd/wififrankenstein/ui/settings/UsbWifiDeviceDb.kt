@@ -859,4 +859,3 @@ object UsbWifiDeviceDb {
         "cace:0300" to "CACE Technologies Inc. AirPcap NX [Atheros AR9170+AR9104]"
     )
 }
-

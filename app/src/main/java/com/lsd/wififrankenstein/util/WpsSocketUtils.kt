@@ -2,11 +2,9 @@ package com.lsd.wififrankenstein.util
 
 import com.topjohnwu.superuser.Shell
 
-
 object WpsSocketUtils {
 
     private const val TAG = "WpsSocketUtils"
-
 
     private val CANDIDATE_DIRS = listOf(
         "/data/misc/wifi/wpa_supplicant",
@@ -15,7 +13,6 @@ object WpsSocketUtils {
         "/data/vendor/wifi/wpa",
         "/data/misc/wifi/sockets"
     )
-
 
     fun findControlSocketDir(interfaceName: String = "wlan0"): String? {
         return CANDIDATE_DIRS.find { path ->
@@ -28,7 +25,6 @@ object WpsSocketUtils {
             }
         }
     }
-
 
     fun ctrlDirForWpaCli(interfaceName: String = "wlan0"): String {
         return findControlSocketDir(interfaceName) ?: "/data/misc/wifi/sockets"

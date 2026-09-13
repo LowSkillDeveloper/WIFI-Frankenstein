@@ -101,18 +101,17 @@ class DownloadService : Service() {
             context.startService(intent)
         }
 
+        @Volatile
+        private var instance: DownloadService? = null
+
         fun hasActiveDownloads(context: Context): Boolean {
-            return try {
-                val service = context as? DownloadService
-                service?.activeDownloads?.isNotEmpty() ?: false
-            } catch (e: Exception) {
-                false
-            }
+            return instance?.activeDownloads?.isNotEmpty() == true
         }
     }
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         createNotificationChannel()
     }
 
@@ -519,6 +518,7 @@ class DownloadService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        instance = null
         serviceScope.cancel()
         cancelAllNotifications()
         notificationProgress.clear()

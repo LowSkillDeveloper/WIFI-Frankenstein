@@ -363,7 +363,6 @@ class HandshakeImportManager(private val context: Context) {
             try {
                 var allHashes = mutableListOf<HandshakeHash>()
 
-
                 var nativeCount = 0
                 try {
                     val parsed = captureRunner.readCapBytesAndParse(chrootStored)
@@ -374,7 +373,6 @@ class HandshakeImportManager(private val context: Context) {
                 } catch (e: Exception) {
                     Log.w(tag, "processSingleFile: native parse failed", e)
                 }
-
 
                 var hcxCount = 0
                 if (ChrootCapabilities.hasChrootTools(context)) {
@@ -431,7 +429,6 @@ class HandshakeImportManager(private val context: Context) {
                         hash16800 = hash16800
                     )
                 )
-
 
                 try {
                     val meta = captureRunner.readCapApMetadata(chrootStored)

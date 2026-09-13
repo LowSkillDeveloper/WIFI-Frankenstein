@@ -127,7 +127,6 @@ class BettercapDashboardAdapter(
             textWps.visibility = if (ap.wps.isNotEmpty()) View.VISIBLE else View.GONE
             textHandshakeBadge.visibility = if (ap.handshake) View.VISIBLE else View.GONE
 
-
             val card = itemView as? MaterialCardView
             if (card != null) {
                 if (ap.handshake) {

@@ -711,11 +711,15 @@ class SearchResultsAdapter(
                 result
             } catch (e: Exception) {
                 Log.w(TAG, "createScanResult via Unsafe failed, using fallback", e)
-                ScanResult().apply {
-                    SSID = ssid
-                    BSSID = bssid
-                    this.capabilities =
-                        if (!password.isNullOrEmpty()) "[WPA2-PSK-CCMP][WPS]" else "[ESS]"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    ScanResult().apply {
+                        SSID = ssid
+                        BSSID = bssid
+                        this.capabilities =
+                            if (!password.isNullOrEmpty()) "[WPA2-PSK-CCMP][WPS]" else "[ESS]"
+                    }
+                } else {
+                    throw e
                 }
             }
         }

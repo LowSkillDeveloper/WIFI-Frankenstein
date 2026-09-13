@@ -32,6 +32,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -112,7 +113,6 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                     var essid = cap.essid
                     var bssid = cap.bssid
 
-
                     try {
                         val raw = captureRunner.getHcxpcapngtoolOutput(cap.filePath)
                         val parsed =
@@ -122,7 +122,6 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
                         }
                     } catch (_: Exception) {
                     }
-
 
                     if (allHashes.isEmpty()) {
                         try {
@@ -416,7 +415,8 @@ class AirodumpViewModel(application: Application) : AndroidViewModel(application
         val secondsLeft: Int
     )
 
-    private val reportedClients = ConcurrentHashMap.newKeySet<String>()
+    private val reportedClients: MutableSet<String> =
+        Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
 
     fun updateCaptureStats(stats: CaptureStats) {
         for (client in stats.clients) {

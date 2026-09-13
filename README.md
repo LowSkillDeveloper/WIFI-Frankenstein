@@ -1,37 +1,24 @@
 # WiFi Frankenstein
 
-![App Version](https://img.shields.io/badge/app_version-2.5-blue)
+![App Version](https://img.shields.io/badge/app_version-2.6-blue)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
-![Kotlin](https://img.shields.io/badge/kotlin-2.4.10-purple)
+![Kotlin](https://img.shields.io/badge/kotlin-2.4.20-purple)
+![License](https://img.shields.io/badge/license-GPL--3.0-lightgrey)
 
 
-
-- 📱 **Download the application:**  
-  [WIFI-Frankenstein-2.5.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.5/WIFI-Frankenstein-2.5.apk)
-
-
-
-- 🛠️ **Download scripts and view the instructions for converting SQL 3WiFi to SQLite 3Wifi:**  
-  [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SQL_3WIFi_to_SQLite_converter_python](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SQL_3WIFi_to_SQLite_converter_python)
-
-- 📂 **Example of the SmartLinkDB file:**  
-  [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SmartLinkDB-Example](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SmartLinkDB-Example)
-
->If you want to add your database to the SmartLinkDB recommendation section in the application for all users, i.e. share your database, then create a ticket in the "Issues" section on github, with a request to add your smartlinkdb link to the application.
-
-
+## Download the application: [WIFI-Frankenstein-2.5.apk](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/releases/download/WIFI-Frankenstein_v2.5/WIFI-Frankenstein-2.5.apk)
 
 ## 📱 Overview
 
-**WiFi Frankenstein** is a comprehensive WiFi pentesting and database management application for Android. This application serves as the successor to the original 3WiFi Locator, offering significant improvements and new features for WiFi network analysis, mapping, and database management.
+**WiFi Frankenstein** is a comprehensive WiFi security-audit and database management application for Android. This application serves as the successor to the original 3WiFi Locator, offering significant improvements and new features for WiFi network analysis, mapping, and database management.
 
-The application combines various WiFi tools and functionality into one powerful package, hence the name "Frankenstein" - it's built from the best parts of different WiFi analysis tools.
+The application combines various WiFi tools into one package, hence the name "Frankenstein", it's built from the best parts of different WiFi analysis tools.
 
 ## ✨ Features
 
 ### 📊 Database Management
 - **Local Database Support**: The local database supports indexing and WiFi points can be displayed on the map
-- **SQlite Database Integration**: Connect any SQLite databases
+- **SQLite Database Integration**: Connect any SQLite databases you have the right to use
 
 ### 🗺️ Mapping & Location
 - **WiFi Maps**: View WiFi points from 3WiFi db and custom databases without an internet connection (The map itself requires internet)
@@ -40,24 +27,24 @@ The application combines various WiFi tools and functionality into one powerful 
 
 ### 🛠️ Tools & Features
 
-- **WPS PixieDust Android (OneShot)**: If you have root, you can perform a pixeldust attack from your smartphone with built-in wifi module.
+- **WPS PixieDust Audit ®**: With root, run a PixieDust check from your smartphone with the built-in wifi module to assess whether **your own routers** are vulnerable.
 - **MAC Address Locating (geomac)**: Find the geographical location of WiFi access points by MAC address
-- **Handshake Capture**: Capture WPA/WPA2 handshakes (supported with root and a custom kernel)
+- **Handshake Capture ®**: Capture WPA/WPA2 handshakes on networks you are authorized to test (root + custom kernel)
 - **DPI/RKN Blocking Check**: Check whether your provider or RKN is blocking DPI/websites
-- **Router Scan**: Scan routers via Router Scan by Stas'M
-- **Handshake Cracker**: Bruteforce captured handshakes or PMKID
-- **wpa-sec.stanev.org**: Check if a network is present in the online database, upload handshakes and import your account's data into the local database
+- **Router Scan Integration®**: Scan routers via Router Scan by Stas'M
+- **Offline Handshake cracker**: Verify the strength of handshakes / PMKIDs captured during authorized engagements
+- **wpa-sec.stanev.org**: Optionally check whether an audit handshake is present in the public research database; uploads require explicit user confirmation
 - **Handshake Converter**: Convert handshakes / handshake files between various formats
 - **WiFi Channel Analysis**: Page for analyzing WiFi channels, providing insights into channel usage and performance.
 - **More Detailed Information**: If you have root rights, you can do an iw scan and get the most detailed information about the Wi-Fi network.
-- **Viewing Saved Passwords**:  If you have root, you can view passwords to networks to which the phone was connected and they are saved in its memory.
-- **WPS Pin Generator**: Local WPS PIN code generation using many different algorithms and data from databases
-- **WPA Password Generator**: Local wpa passwords generation using many different algorithms for old wifi routers
-- **Neighbor-based WPS PIN suggestions**: multi-level neighbor-based WPS PIN suggestions from your DB
-- **WPS Connect**: Possibility to connect via WPS using non-root and root methods
-- **3WiFi API Integration**: Advanced settings and direct API requests
+- **Viewing Saved Passwords®**: If you have root, view passwords to networks saved on your own device.
+- **WPS PIN Generator**: Local WPS PIN candidate generation using known algorithms of old routers for analysis of WPS resilience
+- **WPA Password Generator**: Local WPA passphrase candidate generation using known default algorithms of legacy routers for auditing your own equipment
+- **Neighbor-based WPS PIN candidates**: multi-level PIN candidate generation from your DB, laboratory tool for researching known-vulnerable router generations
+- **WPS Connect**: Connect via WPS to networks non-root and root methods
+- **3WiFi API Integration**: Advanced settings and direct API requests with **your own** API key
 - **Distance Calculation**: Measure distance to WiFi access point
-- **Offline IP ranges**: Using local databases, we find ranges of IP addresses for scanning with RouterScan
+- **Offline IP ranges**: Using local databases, find ranges of IP addresses for auditing with RouterScan
 - **Updates**: Support for updating the application and its components
 
 ### 🎨 Customization
@@ -80,7 +67,7 @@ The application combines various WiFi tools and functionality into one powerful 
 | Handshake cracker | ✅ Supported | ❌ Not supported |
 | wpa-sec.stanev.org integration| ✅ Supported | ❌ Not supported |
 | WPS PixieDust (OneShot) ® | ✅ Supported (Root) | ❌ Not supported |
-| Router Scan by by Stas'M ® | ✅ Supported (proot) | ❌ Not supported |
+| Router Scan by Stas'M ® | ✅ Supported (proot) | ❌ Not supported |
 | Checking DPI blocking by your provider or RKN | ✅ Supported | ❌ Not supported |
 | Custom SQLite Database connection | ✅ Supported | ❌ Not supported |
 | Advanced 3WiFi API Settings | ✅ Full access | ⚠️ Limited API access |
@@ -99,7 +86,6 @@ The application combines various WiFi tools and functionality into one powerful 
 | Manufacturer Databases | ✅ 3 databases | ✅ 3 databases |
 | Distance Calculation | ✅ Supported | ❌ Not supported |
 | SDK version | ✅ Latest | ⚠️Old |
-
 
 ## 📱 Screenshots
 
@@ -125,6 +111,13 @@ The application combines various WiFi tools and functionality into one powerful 
   <img width="200" alt="Screenshot 12" src="https://github.com/user-attachments/assets/28ec597a-3629-4272-a5c0-ce09890969d2" />
 </div>
 
+## ⚖️ Disclaimer
+
+> **This toolkit is intended ONLY for network administrators, security researchers and WiFi enthusiasts for education or to audit, test and analyze Wi-Fi networks that they OWN or are explicitly authorized, you must always ensure you have proper authorization before analyzing any Wi-Fi network.**
+
+> **All access-point databases available via this app (SmartLinkDB links, user-supplied SQLite files, 3WiFi, wpa-sec, etc.) are provided ENTIRELY BY THIRD PARTIES AND THE COMMUNITY. The author does not host, verify or endorse them and bears no responsibility for their content.**
+
+
 ## 📥 Installation
 
 1. Download the latest release from the Releases section
@@ -143,20 +136,24 @@ The application requires the following permissions:
 
 - Android 5.0 or higher
 
-## ⚖️ Disclaimer
+## 📋 Other
+- 🛠️ **Download scripts and view the instructions for converting SQL 3WiFi to SQLite 3Wifi:**
+  [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SQL_3WIFi_to_SQLite_converter_python](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SQL_3WIFi_to_SQLite_converter_python)
 
-This application is designed for network administrators, security researchers and WiFi enthusiasts to test and analyze their own networks. Always ensure you have proper authorization before analyzing any WiFi network.
+- 📂 **Example of the SmartLinkDB file:**
+  [https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SmartLinkDB-Example](https://github.com/LowSkillDeveloper/WIFI-Frankenstein/tree/main/SmartLinkDB-Example)
+
 
 ## 💝 Support Development
 
-If you find this project useful and would like to support its development, you can make a donation using cryptocurrency:
+If you find this project useful and would like to support its development, you can make a donation using cryptocurrency. Donations support development and infrastructure; the application contains no paid "unlocking" features.
 
 ### Bitcoin (BTC)
 ```
 19LYe2QhHXp2YAXSPrYydGc8v3t2TPdEPf
 ```
 
-### Ethereum (ETH) 
+### Ethereum (ETH)
 ```
 0x5ebC5Eb2f59E6B62Ca9b221F2549D5067457D9b8
 ```

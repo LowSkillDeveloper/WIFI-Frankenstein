@@ -25,6 +25,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 class BettercapDaemonService : Service() {
@@ -38,7 +39,7 @@ class BettercapDaemonService : Service() {
     companion object {
         private const val TAG = "BettercapDaemonSvc"
         private const val CHANNEL_ID = "bettercap_channel"
-        private const val NOTIFICATION_ID = 5001
+        private const val NOTIFICATION_ID = 6003
 
         const val ACTION_START = "bettercap_start"
         const val ACTION_STOP = "bettercap_stop"
@@ -234,13 +235,14 @@ class BettercapDaemonService : Service() {
     override fun onDestroy() {
         daemonJob?.cancel()
         daemonJob = null
-        serviceScope.launch(NonCancellable) {
+        val cleanupJob = serviceScope.launch(NonCancellable) {
             try {
                 bettercapManager.stopDaemon()
             } catch (_: Exception) {
             }
         }
         serviceScope.cancel()
+        runBlocking { cleanupJob.join() }
         super.onDestroy()
     }
 

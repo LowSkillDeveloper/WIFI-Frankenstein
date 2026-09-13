@@ -368,7 +368,6 @@ class HandshakeCaptureRunner(private val context: Context) {
     suspend fun readCapBytes(chrootPath: String): ByteArray? = withContext(Dispatchers.IO) {
         val jvmPath = chrootPath.replaceFirst("/sdcard", "/storage/emulated/0")
 
-
         if (hasChrootTools) {
             try {
                 val res = chrootManager.executeInChroot("base64 '$chrootPath' 2>/dev/null")
@@ -387,9 +386,6 @@ class HandshakeCaptureRunner(private val context: Context) {
             }
         }
 
-
-
-
         try {
             val res = com.topjohnwu.superuser.Shell.cmd("base64 '$jvmPath' 2>/dev/null").exec()
             if (res.isSuccess && res.out.any { it.isNotEmpty() }) {
@@ -405,7 +401,6 @@ class HandshakeCaptureRunner(private val context: Context) {
             }
         } catch (_: Exception) {
         }
-
 
         try {
             val file = File(jvmPath)

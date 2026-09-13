@@ -237,7 +237,6 @@ class HandshakeStorageAdapter(
                 layoutHashPmkid.visibility = View.GONE
             }
 
-
             textWpaSecStatus.visibility = View.GONE
             if (item.wpasecPasswordFound) {
                 textWpaSecStatus.visibility = View.VISIBLE
@@ -312,7 +311,6 @@ class HandshakeStorageAdapter(
             btnShare.isEnabled = shareable
             btnShare.alpha = if (shareable) 1f else 0.4f
             btnDelete.visibility = if (actionsVisible) View.VISIBLE else View.GONE
-
 
             if (actionsVisible) {
                 btnMore.visibility = View.VISIBLE

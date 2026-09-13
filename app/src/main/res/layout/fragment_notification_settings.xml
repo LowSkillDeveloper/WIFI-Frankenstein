@@ -88,21 +88,6 @@
                     android:textAppearance="?attr/textAppearanceCaption" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switchRecommendedDatabases"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/notification_recommended_databases" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="32dp"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/notification_recommended_databases_desc"
-                    android:textAppearance="?attr/textAppearanceCaption" />
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/switchGeneralNotifications"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

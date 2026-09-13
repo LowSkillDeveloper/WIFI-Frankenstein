@@ -2,7 +2,6 @@ package com.lsd.wififrankenstein.util
 
 import java.io.BufferedReader
 
-
 object M3Parser {
 
     data class M3Data(
@@ -18,19 +17,16 @@ object M3Parser {
                     "--e-hash2 $eHash2 --authkey $authKey --e-nonce $enroleeNonce"
     }
 
-
     sealed class M3Capture {
         data class Complete(val data: M3Data) : M3Capture()
         data class Incomplete(val capturedCount: Int, val missing: List<String>) : M3Capture()
     }
-
 
     data class M5M7Capture(
         val bssid: String = "",
         val m5Enc: String? = null,
         val m7Enc: String? = null
     ) {
-
 
         fun toPixiewpsMode3Args(m3: M3Data): String =
             "--mode 3 ${m3.toPixiewpsArgs()}" +
@@ -58,12 +54,9 @@ object M3Parser {
         "E-Hash2"
     )
 
-
     private const val MIN_HEX_LENGTH = 32
 
-
     private const val M5M7_DWELL_MS = 4_000L
-
 
     private val KEY_VALUE = Regex("""([A-Z0-9]+)=([0-9a-fA-F]+)""")
     private val BSSID_VALUE = Regex("""BSSID=([0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5})""")
@@ -72,7 +65,6 @@ object M3Parser {
     private val WPS_M3_PREFIX = "WPS-M3: "
     private const val M5_PREFIX = "WPS-M5:"
     private const val M7_PREFIX = "WPS-M7:"
-
 
     fun parse(
         reader: BufferedReader,
@@ -105,7 +97,6 @@ object M3Parser {
                 val line = reader.readLine() ?: break
                 if (line.isEmpty()) continue
                 onLine?.invoke(line)
-
 
                 if (line.startsWith(WPS_M3_PREFIX)) {
                     bssid = BSSID_VALUE.find(line)?.groupValues?.get(1) ?: bssid
@@ -174,14 +165,12 @@ object M3Parser {
         }
     }
 
-
     private fun armDwell(completeReturnAt: Long): Long {
         if (completeReturnAt != Long.MAX_VALUE) return completeReturnAt
         val updated = System.currentTimeMillis() + M5M7_DWELL_MS
         Log.d(TAG, "Dwelling ${M5M7_DWELL_MS}ms for WPS-M5/M7 (P4) after M3...")
         return updated
     }
-
 
     private fun maybeNotifyM5M7(
         onM5M7: ((M5M7Capture) -> Unit)?,
@@ -194,7 +183,6 @@ object M3Parser {
         onM5M7(M5M7Capture(bssid = bssid, m5Enc = m5, m7Enc = m7))
         return true
     }
-
 
     private fun parseM3Line(line: String, fields: Array<String?>, onCaptured: () -> Unit) {
         for (m in KEY_VALUE.findAll(line)) {
@@ -220,7 +208,6 @@ object M3Parser {
         }
     }
 
-
     private fun extractEncr(line: String): String? {
         return ENCR_VALUE.find(line)?.groupValues?.get(1)?.ifEmpty { null }
     }
@@ -241,7 +228,6 @@ object M3Parser {
         eHash1 = fields[FIELD_EHASH1]!!,
         eHash2 = fields[FIELD_EHASH2]!!
     )
-
 
     fun cleanHex(line: String): String? {
         val idx = line.indexOf("):")

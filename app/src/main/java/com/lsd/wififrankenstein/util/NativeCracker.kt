@@ -6,7 +6,6 @@ object NativeCracker {
 
     const val BATCH_SIZE = 10
 
-
     @JvmStatic
     external fun benchmarkPbkdf2(iterations: Int): Long
 
@@ -83,7 +82,6 @@ object NativeCracker {
         }
     }
 
-
     external fun tryPasswordHex(
         password: String,
         ssid: String,
@@ -95,7 +93,6 @@ object NativeCracker {
         keyver: Int,
         typeCode: Int
     ): Boolean
-
 
     external fun crackBatchHex(
         passwords: Array<String>,

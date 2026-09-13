@@ -24,15 +24,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
-/**
- * Foreground service that keeps the process alive while background database
- * downloads are running and shows progress notifications.
- *
- * The actual download orchestration lives in [DatabaseDownloadManager]; this
- * service only renders its state as notifications. Tapping any notification
- * opens the Database Setup screen (the page with the active downloads card)
- * via the "open_db_setup" extra handled in MainActivity.
- */
 class DatabaseDownloadService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -69,8 +60,6 @@ class DatabaseDownloadService : Service() {
             }
         }
 
-        // Cancellations go straight to the process-wide manager; the service
-        // action variants exist for notification PendingIntents.
         fun cancelAll(context: Context) = manager(context).cancelAll()
 
         fun cancelItem(context: Context, dbId: String) = manager(context).cancel(dbId)
@@ -102,11 +91,11 @@ class DatabaseDownloadService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         commandReceived = true
-        // Must be called promptly after startForegroundService()
+
         startForegroundCompat()
 
         when (intent?.action) {
-            ACTION_START_QUEUE -> Unit // state collector handles rendering
+            ACTION_START_QUEUE -> Unit
 
             ACTION_CANCEL_ITEM -> {
                 val dbId = intent.getStringExtra(EXTRA_DB_ID)
@@ -126,8 +115,6 @@ class DatabaseDownloadService : Service() {
         serviceScope.cancel()
         super.onDestroy()
     }
-
-    // ------------------------------------------------------------- rendering
 
     private fun startForegroundCompat() {
         val initial = NotificationCompat.Builder(this, CHANNEL_ID)
@@ -207,7 +194,7 @@ class DatabaseDownloadService : Service() {
             }
 
             else -> {
-                // Nothing actively downloading: everything waits for MEGA quota
+
                 val names = waiting.joinToString(", ") { it.name }
                 NotificationCompat.Builder(this, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_file_download)

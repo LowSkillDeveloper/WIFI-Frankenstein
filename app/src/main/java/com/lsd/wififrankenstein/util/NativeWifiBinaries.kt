@@ -82,9 +82,6 @@ object NativeWifiBinaries {
             for (asset in binaryAssets + libraryAssets()) {
                 val target = File(binaryDir(context), asset)
 
-
-
-
                 if (!copyAsset(context, asset, target)) {
                     Log.e(TAG, "Failed to copy asset: $asset")
                     ok = false

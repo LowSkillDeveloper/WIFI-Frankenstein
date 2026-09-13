@@ -49,7 +49,6 @@ class RouterScanAdapter(
             binding.statusIndicator.setBackgroundColor(accentColor)
             binding.textStatus.backgroundTintList = ColorStateList.valueOf(accentColor)
 
-
             if (result.ssid.isNotEmpty()) {
                 binding.ssidLayout.visibility = android.view.View.VISIBLE
                 binding.textSsid.text = result.ssid
@@ -105,7 +104,6 @@ class RouterScanAdapter(
             } else {
                 binding.serverTypeLayout.visibility = android.view.View.GONE
             }
-
 
             val hasDetails = result.psk.isNotEmpty() || result.wps.isNotEmpty()
                     || result.title.isNotEmpty() || result.serverType.isNotEmpty()

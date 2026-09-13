@@ -17,14 +17,13 @@ import com.lsd.wififrankenstein.databinding.ActivityWelcomeBinding
 import com.lsd.wififrankenstein.ui.dbsetup.DatabaseDownloadManager
 import com.lsd.wififrankenstein.ui.settings.SettingsViewModel
 import com.lsd.wififrankenstein.ui.welcome.ChrootInstallFragment
-
+import com.lsd.wififrankenstein.ui.welcome.WelcomeBiometricsFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeCompletedFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeDatabasesFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeDisclaimerFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeRootFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeThemePermissionsFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeUpdatesFragment
-import com.lsd.wififrankenstein.ui.welcome.WelcomeBiometricsFragment
 import com.lsd.wififrankenstein.ui.welcome.WelcomeVersionCheckFragment
 import com.lsd.wififrankenstein.util.Log
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +56,8 @@ class WelcomeActivity : AppCompatActivity() {
             }
         }
     }
+
+    private val settingsViewModel by viewModels<SettingsViewModel>()
 
     private lateinit var viewPager: ViewPager2
     private val fragments by lazy {
@@ -97,7 +98,6 @@ class WelcomeActivity : AppCompatActivity() {
                 updateDatabasesButton(dbs.isNotEmpty())
             }
 
-            // Re-evaluate the Next button while background downloads progress
             lifecycleScope.launch {
                 DatabaseDownloadManager.getOrCreate(applicationContext).downloads.collect {
                     if (viewPager.currentItem == 3) {
@@ -200,7 +200,7 @@ class WelcomeActivity : AppCompatActivity() {
 
     private fun updateDatabasesButton(hasDatabases: Boolean) {
         if (viewPager.currentItem == 3) {
-            // Allow moving on while background database downloads are running
+
             val hasPendingDownloads = DatabaseDownloadManager.getOrCreate(applicationContext)
                 .hasActiveWork()
             if (hasDatabases || hasPendingDownloads) {
@@ -263,9 +263,7 @@ class WelcomeActivity : AppCompatActivity() {
     private fun applySelectedIcon() {
         val prefs = getSharedPreferences("com.lsd.wififrankenstein", MODE_PRIVATE)
         val selectedIcon = prefs.getString("app_icon", "default") ?: "default"
-
         if (selectedIcon != "default") {
-            val settingsViewModel = SettingsViewModel(application)
             settingsViewModel.setAppIcon(selectedIcon)
         }
     }

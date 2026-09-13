@@ -130,7 +130,6 @@ class WpsGeneratorAdapter :
         }
     }
 
-
     class PinDiffCallback : DiffUtil.ItemCallback<WPSPin>() {
         override fun areItemsTheSame(oldItem: WPSPin, newItem: WPSPin): Boolean {
             return oldItem.pin == newItem.pin && oldItem.name == newItem.name

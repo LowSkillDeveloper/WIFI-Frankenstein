@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.lsd.wififrankenstein.MainActivity
 import com.lsd.wififrankenstein.R
@@ -44,7 +45,6 @@ object CrackRuntimeState {
     @Volatile var wordlistUri: String = ""
 }
 
-
 class WpaCrackService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -67,6 +67,8 @@ class WpaCrackService : Service() {
 
     companion object {
         private const val TAG = "WpaCrackService"
+        private val ANSI_ESC_RE = Regex("\u001B\\[[0-9;]*[a-zA-Z]")
+        private val ANSI_BRACKET_RE = Regex("\u001B\\]")
         private const val CHANNEL_ID = "wpa_crack_channel"
         private const val NOTIFICATION_ID = 4002
         private const val CHROOT_CHANNEL_ID = "wpa_crack_chroot_channel"
@@ -140,7 +142,7 @@ class WpaCrackService : Service() {
                 putExtra(EXTRA_OFFSET, offset)
                 putExtra(EXTRA_TOTAL_LINES, totalLines)
             }
-            context.startForegroundService(intent)
+            ContextCompat.startForegroundService(context, intent)
         }
 
         fun startCrack(
@@ -521,8 +523,8 @@ class WpaCrackService : Service() {
 
         val found = crackWithWordlistStreaming(capPath, wPath, cm) { line ->
             val clean = line
-                .replace(Regex("\u001B\\[[0-9;]*[a-zA-Z]"), "")
-                .replace(Regex("\u001B\\]"), "")
+                .replace(ANSI_ESC_RE, "")
+                .replace(ANSI_BRACKET_RE, "")
                 .replace("\r", "")
                 .trim()
             if (clean.isNotBlank()) {
@@ -611,7 +613,6 @@ class WpaCrackService : Service() {
         cm.executeInChroot("aircrack-ng -w \"$wPath\" \"$capPath\" > \"$chrootOut\" 2>&1 &")
 
         val keyFoundRegex = Regex("""KEY\s*FOUND!\s*\[([^\]]+)]""", RegexOption.IGNORE_CASE)
-        val ansiCleaner = Regex("\u001B\\[[0-9;]*[a-zA-Z]")
         var found: String? = null
         var lastLineCount = 0
 
@@ -626,7 +627,7 @@ class WpaCrackService : Service() {
                 if (lines.size > lastLineCount) {
                     for (i in lastLineCount until lines.size) {
                         val raw = lines[i]
-                        val clean = raw.replace(ansiCleaner, "").replace("\r", "").trim()
+                        val clean = raw.replace(ANSI_ESC_RE, "").replace("\r", "").trim()
                         if (clean.isNotBlank()) onLine(clean)
                         val match = keyFoundRegex.find(raw)
                         if (match != null) found = match.groupValues[1]

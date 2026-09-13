@@ -899,7 +899,6 @@ class WpsGeneratorFragment : Fragment() {
         return file
     }
 
-
     private fun isValidWpsPin(pin: String): Boolean {
         return pin.isEmpty() || pin.matches(WPS_PIN_REGEX)
     }

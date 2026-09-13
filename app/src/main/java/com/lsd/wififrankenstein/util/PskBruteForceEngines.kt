@@ -3,7 +3,6 @@ package com.lsd.wififrankenstein.util
 import android.content.Context
 import android.os.Build
 
-
 object PskBruteForceEngines {
 
     const val NATIVE_REQUIRES_LEGACY_WIFI_API = 29

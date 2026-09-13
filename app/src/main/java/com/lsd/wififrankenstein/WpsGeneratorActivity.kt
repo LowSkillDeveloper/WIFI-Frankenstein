@@ -59,12 +59,12 @@ class WpsGeneratorActivity : AppCompatActivity() {
     private lateinit var contentBinding: ContentWpsGeneratorBinding
     private lateinit var bssid: String
     private val pinListAdapter = PinListAdapter()
-    private val algos = mutableListOf<Algo>()
+    private val algos = java.util.concurrent.CopyOnWriteArrayList<Algo>()
     private lateinit var dbSetupViewModel: DbSetupViewModel
     private lateinit var settingsViewModel: SettingsViewModel
 
     private var currentServerIndex = 0
-    private var serverResults = mutableMapOf<String, List<WPSPin>>()
+    private var serverResults = java.util.concurrent.ConcurrentHashMap<String, List<WPSPin>>()
 
     private lateinit var wpsPinGenerator: WpsPinGenerator
 
@@ -312,12 +312,12 @@ class WpsGeneratorActivity : AppCompatActivity() {
     ): List<WPSPin> {
         return withContext(Dispatchers.IO) {
             val pinList = mutableListOf<WPSPin>()
+            val helper = SQLite3WiFiHelper(
+                this@WpsGeneratorActivity,
+                dbItem.path.toUri(),
+                dbItem.directPath
+            )
             try {
-                val helper = SQLite3WiFiHelper(
-                    this@WpsGeneratorActivity,
-                    dbItem.path.toUri(),
-                    dbItem.directPath
-                )
                 val targetDecimal = convertBssidToDecimal(bssid)
                 val targetNic = targetDecimal and 0xFFFFFF
                 val ouiBase = targetDecimal and 0xFFFFFF000000L
@@ -335,14 +335,14 @@ class WpsGeneratorActivity : AppCompatActivity() {
                 val dbName = formatSourcePath(dbItem.path)
 
                 val query = """
-                SELECT BSSID, WPSPIN 
-                FROM ${DatabaseTypeUtils.getMainTableName(helper.database!!)} 
-                WHERE BSSID BETWEEN ? AND ? 
+                SELECT BSSID, WPSPIN
+                FROM ${DatabaseTypeUtils.getMainTableName(helper.database!!)}
+                WHERE BSSID BETWEEN ? AND ?
                 AND BSSID != ?
-                AND WPSPIN IS NOT NULL 
-                AND WPSPIN != '0' 
+                AND WPSPIN IS NOT NULL
+                AND WPSPIN != '0'
                 AND WPSPIN != '1'
-                ORDER BY ABS(BSSID - ?) 
+                ORDER BY ABS(BSSID - ?)
                 LIMIT 500
             """.trimIndent()
 
@@ -402,9 +402,10 @@ class WpsGeneratorActivity : AppCompatActivity() {
                     )
                 }
 
-                helper.close()
             } catch (e: Exception) {
                 Log.e(TAG, "Error searching neighbor pins by distance", e)
+            } finally {
+                try { helper.close() } catch (_: Exception) {}
             }
             pinList.sortedByDescending { it.score }
         }
@@ -445,6 +446,10 @@ class WpsGeneratorActivity : AppCompatActivity() {
                 val dbFile = getFileFromInternalStorageOrAssets("wps_pin.db")
                 val db =
                     SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY)
+                if (bssid.length < 8) {
+                    Log.e(TAG, "BSSID too short for MAC prefix: $bssid")
+                    return@withContext pinList
+                }
                 val macPrefix = bssid.substring(0, 8).uppercase()
                 Log.d(TAG, "Searching in WPS database for MAC Prefix: $macPrefix")
 
@@ -517,12 +522,12 @@ class WpsGeneratorActivity : AppCompatActivity() {
 
         val exactPins = withContext(Dispatchers.IO) {
             val pinList = mutableListOf<WPSPin>()
+            val helper = SQLite3WiFiHelper(
+                this@WpsGeneratorActivity,
+                dbItem.path.toUri(),
+                dbItem.directPath
+            )
             try {
-                val helper = SQLite3WiFiHelper(
-                    this@WpsGeneratorActivity,
-                    dbItem.path.toUri(),
-                    dbItem.directPath
-                )
                 val results = helper.searchNetworksByBSSIDsAsync(listOf(bssid))
 
                 val dbName = formatSourcePath(dbItem.path)
@@ -549,9 +554,10 @@ class WpsGeneratorActivity : AppCompatActivity() {
                         )
                     }
                 }
-                helper.close()
             } catch (e: Exception) {
                 Log.e(TAG, "Error searching in 3WiFi database", e)
+            } finally {
+                try { helper.close() } catch (_: Exception) {}
             }
             pinList
         }
@@ -570,12 +576,12 @@ class WpsGeneratorActivity : AppCompatActivity() {
     private suspend fun getPinsFromCustomDatabase(bssid: String, dbItem: DbItem): List<WPSPin> {
         return withContext(Dispatchers.IO) {
             val pinList = mutableListOf<WPSPin>()
+            val helper = SQLiteCustomHelper(
+                this@WpsGeneratorActivity,
+                dbItem.path.toUri(),
+                dbItem.directPath
+            )
             try {
-                val helper = SQLiteCustomHelper(
-                    this@WpsGeneratorActivity,
-                    dbItem.path.toUri(),
-                    dbItem.directPath
-                )
                 val tableName = dbItem.tableName ?: return@withContext pinList
                 val columnMap = dbItem.columnMap ?: return@withContext pinList
 
@@ -605,9 +611,10 @@ class WpsGeneratorActivity : AppCompatActivity() {
                         }
                     }
                 }
-                helper.close()
             } catch (e: Exception) {
                 Log.e(TAG, "Error searching in custom database", e)
+            } finally {
+                try { helper.close() } catch (_: Exception) {}
             }
             pinList
         }
@@ -800,6 +807,7 @@ class WpsGeneratorActivity : AppCompatActivity() {
 
         withContext(Dispatchers.IO) {
             servers.forEach { server ->
+                var connection: HttpURLConnection? = null
                 try {
                     val apiKey = server.apiReadKey ?: "000000000000"
 
@@ -809,7 +817,7 @@ class WpsGeneratorActivity : AppCompatActivity() {
                         URL("${server.path}/api/apiwps?key=${apiKey}&bssid=$uppercaseBssid")
                     }
 
-                    val connection = url.openConnection() as HttpURLConnection
+                    connection = url.openConnection() as HttpURLConnection
                     SslHelper.configure(connection)
                     connection.apply {
                         if (usePostMethod) {
@@ -905,6 +913,8 @@ class WpsGeneratorActivity : AppCompatActivity() {
                         "Error getting pins from server ${server.path}",
                         e
                     )
+                } finally {
+                    try { connection?.disconnect() } catch (_: Exception) {}
                 }
             }
         }
@@ -933,7 +943,6 @@ class WpsGeneratorActivity : AppCompatActivity() {
     }
 
     inner class MyJavascriptInterface {
-
 
         @JavascriptInterface
         fun initAlgos(json: String?, bssid: String) {

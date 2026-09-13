@@ -36,7 +36,6 @@ class PinListAdapter(
 
     var targetBssid: String = bssid
 
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PinViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_pin, parent, false)
         return PinViewHolder(view)

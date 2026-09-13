@@ -397,7 +397,6 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun scanWithFallback(iface: String): List<IwWifiNetwork> {
         val isNative = isNativeMode()
 
-
         if (!isNative) {
             val chrootType = chrootManager.getChrootType()
             if (chrootType is ChrootType.Root) {
@@ -436,7 +435,6 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
 
-
         addConsoleLine(
             getApplication<Application>().getString(R.string.pixie_scanning_inapp, iface)
         )
@@ -468,7 +466,6 @@ class PixieDustViewModel(application: Application) : AndroidViewModel(applicatio
                 getApplication<Application>().getString(R.string.pixie_inapp_scan_failed)
             )
         }
-
 
         addConsoleLine(getApplication<Application>().getString(R.string.pixie_scanning_system))
         val systemNets = iwWifiManager.scanWifiNetworksNative()

@@ -214,9 +214,9 @@ class CustomDbDetailLoader(
                         val macColumn = columnMap["mac"] ?: "bssid"
 
                         val query = """
-                    SELECT * FROM $tableName WHERE 
-                    $macColumn = ? OR 
-                    UPPER($macColumn) = ? OR 
+                    SELECT * FROM $tableName WHERE
+                    $macColumn = ? OR
+                    UPPER($macColumn) = ? OR
                     REPLACE(REPLACE(UPPER($macColumn), ':', ''), '-', '') = ?
                 """.trimIndent()
 
@@ -412,7 +412,7 @@ class LocalAppDetailLoader(
                 }
 
                 val query = """
-            SELECT * FROM ${LocalAppDbHelper.TABLE_NAME} 
+            SELECT * FROM ${LocalAppDbHelper.TABLE_NAME}
             WHERE ${conditions.joinToString(" OR ")}
         """.trimIndent()
 
@@ -489,7 +489,6 @@ class LocalAppDetailLoader(
         return formats.filter { it.isNotEmpty() }.distinct()
     }
 }
-
 
 class ApiDetailLoader(
     private val context: Context,

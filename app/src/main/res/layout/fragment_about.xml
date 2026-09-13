@@ -215,9 +215,18 @@
                     android:id="@+id/license_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
+                    android:layout_marginBottom="12dp"
                     android:text="@string/app_license_text"
                     android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/license_third_party"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/app_license_third_party"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/license_button"

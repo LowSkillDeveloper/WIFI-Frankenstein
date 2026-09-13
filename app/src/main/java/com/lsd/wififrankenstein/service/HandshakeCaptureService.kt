@@ -37,6 +37,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
+import java.lang.ref.WeakReference
 
 class HandshakeCaptureService : Service() {
 
@@ -118,19 +119,19 @@ class HandshakeCaptureService : Service() {
         const val EXTRA_ERROR_MESSAGE = "error_message"
 
         @Volatile
-        private var serviceInstance: HandshakeCaptureService? = null
+        private var serviceInstance: WeakReference<HandshakeCaptureService>? = null
 
         private const val MAX_CONSOLE_LINES = 2000
 
-        fun isActive(): Boolean = serviceInstance?.activeCapture != null
+        fun isActive(): Boolean = serviceInstance?.get()?.activeCapture != null
 
-        fun getActive(): ActiveCapture? = serviceInstance?.activeCapture
+        fun getActive(): ActiveCapture? = serviceInstance?.get()?.activeCapture
 
         fun getConsoleHistory(): List<String> =
-            serviceInstance?.snapshotConsoleHistory() ?: emptyList()
+            serviceInstance?.get()?.snapshotConsoleHistory() ?: emptyList()
 
         fun getLatestStats(): com.lsd.wififrankenstein.util.CaptureStats? =
-            serviceInstance?.latestStats
+            serviceInstance?.get()?.latestStats
 
         fun start(
             context: Context,
@@ -176,7 +177,7 @@ class HandshakeCaptureService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        serviceInstance = this
+        serviceInstance = WeakReference(this)
         captureRunner = HandshakeCaptureRunner(this)
         storageManager = HandshakeStorageManager(this)
         captureLocationProvider = CaptureLocationProvider(this)

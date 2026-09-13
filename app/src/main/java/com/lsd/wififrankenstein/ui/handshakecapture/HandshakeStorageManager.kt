@@ -24,7 +24,6 @@ class HandshakeStorageManager(private val context: Context) {
     private val chrootManager = ChrootManager.get(context)
     private val metadataDb = HandshakeMetadataDbHelper(context)
 
-
     private fun chrootOrShell(cmd: String): Shell.Result {
         if (ChrootCapabilities.hasChrootTools(context)) {
             val chrootR = chrootManager.executeInChroot(cmd)
@@ -125,7 +124,6 @@ class HandshakeStorageManager(private val context: Context) {
                 return@withContext resolvedPath
             }
 
-
             val jvmFile = File(storageDirHost(), fileName)
             if (jvmFile.exists()) return@withContext resolvedPath
 
@@ -213,7 +211,6 @@ class HandshakeStorageManager(private val context: Context) {
         val names = mutableSetOf<String>()
         val lsCmd = "ls -1 '$dir' 2>/dev/null"
 
-
         if (ChrootCapabilities.hasChrootTools(context)) {
             try {
                 val result =
@@ -227,7 +224,6 @@ class HandshakeStorageManager(private val context: Context) {
             }
         }
 
-
         try {
             val result = Shell.cmd("$lsCmd").exec()
             if (result.isSuccess && result.out.any { it.isNotBlank() }) {
@@ -238,7 +234,6 @@ class HandshakeStorageManager(private val context: Context) {
             }
         } catch (_: Exception) {
         }
-
 
         try {
             val hostDir = File(dir.replaceFirst("/sdcard", "/storage/emulated/0"))

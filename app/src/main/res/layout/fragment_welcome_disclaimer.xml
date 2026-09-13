@@ -14,7 +14,7 @@
             android:id="@+id/groupContent"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:constraint_referenced_ids="imageViewHeroIcon,textViewWelcomeTitle,textViewSubtitle,cardViewDisclaimer,cardViewRootNotice,textViewBottomHint,buttonNext" />
+            app:constraint_referenced_ids="imageViewHeroIcon,textViewWelcomeTitle,textViewSubtitle,cardViewDisclaimer,cardViewRootNotice,textViewBottomHint,checkBoxEulaAccept,buttonNext" />
 
         <ImageView
             android:id="@+id/imageViewHeroIcon"
@@ -137,6 +137,18 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkBoxEulaAccept"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/eula_accept_checkbox"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+            app:layout_constraintBottom_toTopOf="@+id/textViewBottomHint"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/cardViewRootNotice" />
+
         <TextView
             android:id="@+id/textViewBottomHint"
             android:layout_width="0dp"
@@ -149,7 +161,7 @@
             app:layout_constraintBottom_toTopOf="@+id/buttonNext"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/cardViewRootNotice" />
+            app:layout_constraintTop_toBottomOf="@+id/checkBoxEulaAccept" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonNext"

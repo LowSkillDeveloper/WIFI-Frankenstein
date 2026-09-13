@@ -719,7 +719,7 @@ class WpaCrackerViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun updateStartButton() {
-        // Called from fragment via state observer; no-op here
+
     }
 
     fun loadWordlistFromUrl(url: String, isMega: Boolean) {

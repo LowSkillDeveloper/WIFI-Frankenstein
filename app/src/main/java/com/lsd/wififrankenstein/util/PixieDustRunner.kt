@@ -187,13 +187,11 @@ class PixieDustRunner(private val context: Context) {
 
             if (trimmed.isEmpty()) continue
 
-
             val pinMatch = PIN_REGEX.find(trimmed)
             if (pinMatch != null) {
                 pin = pinMatch.groups[2]?.value
                 Log.d(TAG, "Line $index: Found WPS PIN: $pin")
             }
-
 
             val pskMatch = PSK_REGEX.find(trimmed)
             if (pskMatch != null) {
@@ -202,11 +200,9 @@ class PixieDustRunner(private val context: Context) {
             }
         }
 
-
         val lastLines = output.lines().takeLast(10)
         val hasTimeout = lastLines.any { it.contains("timeout", ignoreCase = true) }
         val hasTerminated = lastLines.any { it.contains("Terminated", ignoreCase = true) }
-
 
         val hasNotEnoughData = lastLines.any {
             it.contains(

@@ -2,6 +2,7 @@ package com.lsd.wififrankenstein.ui.bruteforce
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -15,6 +16,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.widget.TextViewCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.card.MaterialCardView
@@ -109,7 +111,7 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
                 requireContext().theme.resolveAttribute(
                     android.R.attr.selectableItemBackground, attr, true
                 )
-                if (attr.resourceId != 0) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && attr.resourceId != 0) {
                     foreground = ContextCompat.getDrawable(requireContext(), attr.resourceId)
                 }
                 setOnClickListener { handleOption(index) }
@@ -133,7 +135,7 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
 
             val text = TextView(requireContext()).apply {
                 text = option.title
-                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
+                TextViewCompat.setTextAppearance(this, com.google.android.material.R.style.TextAppearance_Material3_BodyLarge)
                 layoutParams = LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
                 ).also { it.marginStart = dp16 }
@@ -326,7 +328,8 @@ class PskWordlistSourcePicker : BottomSheetDialogFragment() {
 
         val countLabel = TextView(context).apply {
             setPadding(dp * 12, dp * 8, dp * 12, dp * 8)
-            setTextAppearance(
+            TextViewCompat.setTextAppearance(
+                this,
                 com.google.android.material.R.style.TextAppearance_Material3_BodySmall
             )
         }

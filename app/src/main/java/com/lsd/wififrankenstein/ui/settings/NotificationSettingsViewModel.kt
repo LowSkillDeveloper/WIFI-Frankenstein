@@ -21,9 +21,6 @@ class NotificationSettingsViewModel(application: Application) : AndroidViewModel
     private val _componentUpdatesEnabled = MutableLiveData<Boolean>()
     val componentUpdatesEnabled: LiveData<Boolean> = _componentUpdatesEnabled
 
-    private val _recommendedDatabasesEnabled = MutableLiveData<Boolean>()
-    val recommendedDatabasesEnabled: LiveData<Boolean> = _recommendedDatabasesEnabled
-
     private val _generalNotificationsEnabled = MutableLiveData<Boolean>()
     val generalNotificationsEnabled: LiveData<Boolean> = _generalNotificationsEnabled
 
@@ -38,7 +35,6 @@ class NotificationSettingsViewModel(application: Application) : AndroidViewModel
         _appUpdatesEnabled.value = prefs.getBoolean("app_updates", true)
         _databaseUpdatesEnabled.value = prefs.getBoolean("database_updates", true)
         _componentUpdatesEnabled.value = prefs.getBoolean("component_updates", false)
-        _recommendedDatabasesEnabled.value = prefs.getBoolean("recommended_databases", true)
         _generalNotificationsEnabled.value = prefs.getBoolean("general_notifications", true)
     }
 
@@ -55,11 +51,6 @@ class NotificationSettingsViewModel(application: Application) : AndroidViewModel
     fun setComponentUpdatesEnabled(enabled: Boolean) {
         prefs.edit { putBoolean("component_updates", enabled) }
         _componentUpdatesEnabled.value = enabled
-    }
-
-    fun setRecommendedDatabasesEnabled(enabled: Boolean) {
-        prefs.edit { putBoolean("recommended_databases", enabled) }
-        _recommendedDatabasesEnabled.value = enabled
     }
 
     fun setGeneralNotificationsEnabled(enabled: Boolean) {

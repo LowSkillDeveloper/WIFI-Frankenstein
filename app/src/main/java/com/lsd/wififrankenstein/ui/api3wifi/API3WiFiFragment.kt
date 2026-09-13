@@ -95,7 +95,6 @@ class API3WiFiFragment : Fragment() {
         binding.expandIconRightRes.setOnClickListener { toggle() }
     }
 
-
     private fun setupResponseButtons() {
         binding.copyResponseButton.setOnClickListener {
             val text = binding.responseText.text.toString()

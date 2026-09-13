@@ -138,9 +138,9 @@ class MapCoordinatesHelper(private val context: Context) {
                 val db = helper.database
                 if (db != null) {
                     val query = """
-                    SELECT $latColumn, $lonColumn FROM $tableName 
-                    WHERE $macColumn = ? OR 
-                    UPPER($macColumn) = ? OR 
+                    SELECT $latColumn, $lonColumn FROM $tableName
+                    WHERE $macColumn = ? OR
+                    UPPER($macColumn) = ? OR
                     REPLACE(REPLACE(UPPER($macColumn), ':', ''), '-', '') = ?
                 """.trimIndent()
 
@@ -178,9 +178,9 @@ class MapCoordinatesHelper(private val context: Context) {
                 val cleanMac = bssid.replace("[^a-fA-F0-9]".toRegex(), "")
 
                 val query = """
-                SELECT ${LocalAppDbHelper.COLUMN_LATITUDE}, ${LocalAppDbHelper.COLUMN_LONGITUDE} 
+                SELECT ${LocalAppDbHelper.COLUMN_LATITUDE}, ${LocalAppDbHelper.COLUMN_LONGITUDE}
                 FROM ${LocalAppDbHelper.TABLE_NAME}
-                WHERE ${LocalAppDbHelper.COLUMN_MAC_ADDRESS} = ? OR 
+                WHERE ${LocalAppDbHelper.COLUMN_MAC_ADDRESS} = ? OR
                 ${LocalAppDbHelper.COLUMN_MAC_ADDRESS} LIKE ? OR
                 REPLACE(REPLACE(${LocalAppDbHelper.COLUMN_MAC_ADDRESS}, ':', ''), '-', '') = ?
             """.trimIndent()

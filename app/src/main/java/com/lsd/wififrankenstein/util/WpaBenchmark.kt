@@ -108,7 +108,6 @@ class WpaBenchmark(private val context: Context) {
                 "Adaptive iteration count: $targetIter (target ${TARGET_MS_PER_TEST}ms/test)"
             )
 
-
             if (NativeCracker.isAvailable) {
                 onProgress(BenchmarkProgress("C PBKDF2 raw", "native baseline..."))
                 val cNanos = NativeCracker.benchmarkPbkdf2(10)
@@ -127,7 +126,6 @@ class WpaBenchmark(private val context: Context) {
                     )
                 )
             }
-
 
             results.add(
                 runBatchTest(
@@ -279,7 +277,6 @@ class WpaBenchmark(private val context: Context) {
         Log.i(TAG, "  $tag done: ${actual}x in ${elapsed}ms = $speed%.1f pw/s".format(speed))
         return BenchmarkResult(name, actual, elapsed, speed)
     }
-
 
     private fun runBatchTest(
         name: String,

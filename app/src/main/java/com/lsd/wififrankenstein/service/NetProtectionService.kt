@@ -32,7 +32,7 @@ class NetProtectionService : Service() {
     private val connectionMonitor = ConnectionMonitor()
     private var detectionResult: com.lsd.wififrankenstein.ui.netprotection.DetectionResult? = null
     private var gatewayIp: String = ""
-    private var events = mutableListOf<NetProtectionEvent>()
+    private val events = java.util.Collections.synchronizedList(mutableListOf<NetProtectionEvent>())
 
     private var arpEnabled = true
     private var portScanEnabled = true
@@ -71,7 +71,7 @@ class NetProtectionService : Service() {
     companion object {
         private const val TAG = "NetProtectionService"
         private const val CHANNEL_ID = "net_protection_channel"
-        private const val NOTIFICATION_ID = 5001
+        private const val NOTIFICATION_ID = 6001
 
         private const val ARP_INTERVAL = 10_000L
         private const val PORT_SCAN_INTERVAL = 5_000L
@@ -225,7 +225,7 @@ class NetProtectionService : Service() {
                 val network = cm.activeNetwork ?: return
                 val lp = cm.getLinkProperties(network) ?: return
                 for (route in lp.routes) {
-                    if (route.isDefaultRoute && route.hasGateway()) {
+                    if (route.isDefaultRoute && route.gateway != null) {
                         gatewayIp = route.gateway?.hostAddress ?: ""
                         if (gatewayIp.isNotEmpty()) {
                             Log.d(TAG, "Gateway resolved via ConnectivityManager: $gatewayIp")

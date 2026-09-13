@@ -17,7 +17,6 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Target card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -108,7 +107,6 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Console card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -161,7 +159,6 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Results card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -335,7 +332,6 @@
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 
-    <!-- Bottom progress sheet -->
     <LinearLayout
         android:id="@+id/bottomProgressCard"
         android:layout_width="match_parent"

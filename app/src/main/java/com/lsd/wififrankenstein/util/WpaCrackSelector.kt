@@ -43,7 +43,6 @@ object WpaCrackSelector {
     private fun isArm64(): Boolean =
         Build.SUPPORTED_64_BIT_ABIS.any { it.startsWith("arm64") }
 
-
     fun tryPassword(password: String, hash: HandshakeHash): Boolean {
         if (backend.priority >= CrackBackend.JNI_SCALAR.priority) {
             try {
@@ -54,7 +53,6 @@ object WpaCrackSelector {
         }
         return WpaCracker.tryPasswordAny(password, hash)
     }
-
 
     private fun nativeTryPassword(password: String, hash: HandshakeHash): Boolean {
         val macApHex = hash.macAp.replace(":", "")
@@ -76,7 +74,6 @@ object WpaCrackSelector {
             eapolHex, micHex, keyver, typeCode
         )
     }
-
 
     fun crackBatch(passwords: List<String>, hash: HandshakeHash): Int {
         if (backend.priority < CrackBackend.JNI_SCALAR.priority) {

@@ -49,10 +49,6 @@ class NotificationSettingsFragment : Fragment() {
             viewModel.setComponentUpdatesEnabled(isChecked)
         }
 
-        binding.switchRecommendedDatabases.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setRecommendedDatabasesEnabled(isChecked)
-        }
-
         binding.switchGeneralNotifications.setOnCheckedChangeListener { _, isChecked ->
             viewModel.setGeneralNotificationsEnabled(isChecked)
         }
@@ -96,10 +92,6 @@ class NotificationSettingsFragment : Fragment() {
 
         viewModel.componentUpdatesEnabled.observe(viewLifecycleOwner) { enabled ->
             binding.switchComponentUpdates.isChecked = enabled
-        }
-
-        viewModel.recommendedDatabasesEnabled.observe(viewLifecycleOwner) { enabled ->
-            binding.switchRecommendedDatabases.isChecked = enabled
         }
 
         viewModel.generalNotificationsEnabled.observe(viewLifecycleOwner) { enabled ->

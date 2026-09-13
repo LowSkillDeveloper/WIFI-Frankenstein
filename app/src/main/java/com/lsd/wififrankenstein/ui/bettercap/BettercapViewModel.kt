@@ -360,7 +360,6 @@ class BettercapViewModel(application: Application) : AndroidViewModel(applicatio
         return hex.uppercase().chunked(2).joinToString(":")
     }
 
-
     private fun bettercapPathFriendlyName(ap: BettercapAP): String {
         val bssid = ap.mac.replace(":", "")
         val cleanEssid = ap.hostname.replace(Regex("[^a-zA-Z0-9]+"), "")
@@ -552,7 +551,6 @@ class BettercapViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
         _captureMode.value = mode
-
 
         if (prev != channels) {
             executeCommand("wifi.clear")

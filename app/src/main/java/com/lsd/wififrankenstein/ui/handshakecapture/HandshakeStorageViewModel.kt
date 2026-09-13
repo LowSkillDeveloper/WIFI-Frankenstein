@@ -206,7 +206,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
     ): ParseResult {
         val allHashes = mutableListOf<HandshakeHash>()
 
-
         try {
             val parsed = captureRunner.readCapBytesAndParse(chrootPath)
             if (parsed.isNotEmpty()) {
@@ -214,7 +213,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
             }
         } catch (_: Exception) {
         }
-
 
         if (ChrootCapabilities.hasChrootTools(getApplication())) {
             try {
@@ -581,7 +579,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                 if (orphanImported > 0) {
                     Log.d(tag, "refreshStorage: imported $orphanImported orphans")
                 }
-
 
                 if (mode == RefreshMode.REPARSE_ALL) {
                     val items = storageManager.listHandshakes().filter { it.fileExists }
@@ -988,7 +985,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                     storageManager.updateHandshakeKeyver(item.fileName, firstHash.keyver)
                 }
 
-
                 try {
                     val apMetadata = captureRunner.readCapApMetadata(chrootPath)
                     val apsInFile = buildApsInFile(apMetadata)
@@ -1018,7 +1014,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                     }
                 } catch (_: Exception) {
                 }
-
 
                 val resultHashes = allHashes.map { it.to22000Line() }.distinct()
                 _hcxpcapngtoolResult.postValue(
@@ -1150,7 +1145,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                 File(jvmTempDir).mkdirs()
                 val baseName = item.fileName.substringBeforeLast('.')
 
-
                 if (format == "22000" && item.hash22000 != null) {
                     val jvmDest = "$jvmTempDir/$baseName.22000"
                     File(jvmDest).writeText(item.hash22000)
@@ -1169,7 +1163,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                     withContext(Dispatchers.Main) { onResult(jvmDest) }
                     return@launch
                 }
-
 
                 val hashText = item.hash22000
                 val hashes = if (hashText != null) {
@@ -1248,7 +1241,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                         }
                     }
                 }
-
 
                 if (format == "cap" && ChrootCapabilities.hasChrootTools(getApplication())) {
 
@@ -1641,7 +1633,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
         }
     }
 
-
     fun uploadToOnlineHashCrack(
         item: HandshakeItem,
         email: String,
@@ -1711,7 +1702,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
         }
     }
 
-
     fun uploadHashToOhcPrivate(
         hash22000: String,
         item: HandshakeItem,
@@ -1743,7 +1733,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
             }
         }
     }
-
 
     fun uploadToWpaSec(item: HandshakeItem, apiKey: String? = null) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -1820,13 +1809,11 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
         }
     }
 
-
     fun checkOnWpaSec(item: HandshakeItem) {
         viewModelScope.launch(Dispatchers.IO) {
             checkOnWpaSecSuspend(item)
         }
     }
-
 
     fun checkAllOnWpaSec() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -2035,7 +2022,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                 val bssidPasswords = mutableSetOf<String>()
                 val essidPasswords = mutableSetOf<String>()
 
-
                 try {
                     val localMatches = LocalAppDbHelper(getApplication())
                         .searchRecordsWithFiltersOptimized(bssid, false, true, false, false)
@@ -2090,7 +2076,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                         Log.e(tag, "DB BSSID search failed for ${dbItem.id}", e)
                     }
                 }
-
 
                 if (essid != null) {
                     try {
@@ -2151,7 +2136,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                     }
                 }
 
-
                 val candidates = (bssidPasswords.take(10) + essidPasswords.take(10)).distinct()
                 for (password in candidates) {
                     val result = WpaCracker.tryPassword(password, hash)
@@ -2166,7 +2150,6 @@ class HandshakeStorageViewModel(application: Application) : AndroidViewModel(app
                         break
                     }
                 }
-
 
                 try {
                     val bssidHex = wpaSecClient.bssidToHex(bssid)

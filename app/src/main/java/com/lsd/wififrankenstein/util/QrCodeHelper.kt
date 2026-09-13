@@ -33,7 +33,6 @@ object QrCodeHelper {
         val hidden: Boolean = false
     )
 
-
     fun generateWiFiQrString(network: WiFiNetwork): String {
         val ssidEscaped = escapeSpecialChars(network.ssid)
         val passwordEscaped = escapeSpecialChars(network.password)

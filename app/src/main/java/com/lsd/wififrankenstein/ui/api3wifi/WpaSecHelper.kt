@@ -43,16 +43,17 @@ class WpaSecHelper {
         return withContext(Dispatchers.IO) {
             try {
                 val cleanBssid = cleanBssid(bssid)
-                val (clid, suffix) = computeClidAndSuffix(bssid, ssid)
+                val fullHash = sha1Hex("$cleanBssid${ssidToHex(ssid)}")
+                val prefix = fullHash.substring(0, 4)
 
-                val requestBody = JSONArray(listOf(clid)).toString()
+                val requestBody = JSONArray(listOf(prefix)).toString()
                 val response = postJson(ENDPOINT_MACSSID, requestBody)
 
                 val json = JSONObject(response)
-                val suffixes = json.optJSONArray(clid)
+                val suffixes = json.optJSONArray(prefix)
                 if (suffixes != null) {
                     for (i in 0 until suffixes.length()) {
-                        if (suffixes.getString(i) == suffix) {
+                        if (fullHash.endsWith(suffixes.getString(i).lowercase())) {
                             return@withContext WpaSecResult(cleanBssid, ssid, true)
                         }
                     }
