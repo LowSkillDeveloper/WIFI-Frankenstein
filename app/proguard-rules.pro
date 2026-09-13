@@ -1,8 +1,5 @@
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,SourceFile,LineNumberTable,RuntimeVisibleAnnotations,AnnotationDefault,JavascriptInterface
 -verbose
--printmapping mapping.txt
--printseeds seeds.txt
--printusage unused.txt
 -dontwarn okio.**,okhttp3.**,okhttp3.internal.**,com.topjohnwu.superuser.**,org.osmdroid.**,com.bumptech.glide.**,com.github.luben.**,jcifs.**,com.github.seancfoley.**,com.opencsv.**,org.apache.commons.**,org.tukaani.**,org.jsoup.**,com.google.zxing.**,com.google.android.flexbox.**,androidx.**,kotlinx.**,kotlin.**,sun.misc.**,dalvik.**,org.conscrypt.**,org.bouncycastle.**,org.openjsse.**
 -dontnote okio.**,okhttp3.**,kotlinx.serialization.**,com.bumptech.glide.**,org.osmdroid.**,androidx.work.**,androidx.navigation.**
 -keep class kotlin.Metadata { *; }
@@ -118,10 +115,8 @@
     public <init>(...);
 }
 -keep class * implements androidx.lifecycle.ViewModelProvider$Factory { *; }
--keep class androidx.lifecycle.** { *; }
 -keep class * extends androidx.paging.PagingSource { *; }
 -keep class * extends androidx.paging.PagingDataAdapter { *; }
--keep class androidx.paging.** { *; }
 -keep public class com.lsd.wififrankenstein.workers.NotificationWorker { *; }
 -keep public class * extends androidx.work.Worker {
     public <init>(android.content.Context,androidx.work.WorkerParameters);
@@ -133,12 +128,10 @@
     public <init>(android.content.Context,androidx.work.WorkerParameters);
 }
 -keep class * extends androidx.work.WorkerFactory { *; }
--keep class androidx.work.** { *; }
 -keep public class com.lsd.wififrankenstein.util.NativeCracker {
     native <methods>;
     *;
 }
--keep class com.github.luben.zstd.** { *; }
 -keep class android.net.wifi.ScanResult { *; }
 -keepclassmembers class android.net.wifi.ScanResult {
     <fields>;
@@ -169,16 +162,11 @@
     public void onCreate(android.database.sqlite.SQLiteDatabase);
     public void onUpgrade(android.database.sqlite.SQLiteDatabase, int, int);
 }
--keep class android.database.sqlite.** { *; }
--keep class androidx.sqlite.** { *; }
 -keep class androidx.localbroadcastmanager.content.LocalBroadcastManager { *; }
 -keep public class * extends android.content.BroadcastReceiver {
     public <init>(...);
     public void onReceive(android.content.Context, android.content.Intent);
 }
--keep class androidx.biometric.** { *; }
--keep class androidx.preference.** { *; }
--keep class androidx.documentfile.** { *; }
 -keep public class com.lsd.wififrankenstein.shell.ShellInitializer { *; }
 -keep public class * extends com.topjohnwu.superuser.Shell$Initializer {
     public <init>(...);
@@ -210,9 +198,6 @@
     **[] $VALUES;
     *;
 }
--keep class okhttp3.** { *; }
--keep class okio.** { *; }
--keep interface okhttp3.** { *; }
 -keep class okhttp3.EventListener { *; }
 -keep class okhttp3.EventListener$Factory { *; }
 -keep public class com.lsd.wififrankenstein.ui.internetblocking.scanner.DpiTraceEventListener { *; }
@@ -221,17 +206,9 @@
 -keep class com.lsd.wififrankenstein.util.SslHelper { *; }
 -keep class * implements javax.net.ssl.X509TrustManager { *; }
 -keep class * implements javax.net.ssl.HostnameVerifier { *; }
--keep class com.google.zxing.** { *; }
 -keep class com.lsd.wififrankenstein.util.QrCodeHelper { *; }
 -keep class com.lsd.wififrankenstein.util.QrNavigationHelper { *; }
--keep class com.google.android.flexbox.** { *; }
 -keep class com.google.android.gms.location.** { *; }
--keep class org.jsoup.** { *; }
--keep class com.opencsv.** { *; }
--keep class org.apache.commons.compress.** { *; }
--keep class org.tukaani.xz.** { *; }
--keep class com.github.seancfoley.ipaddress.** { *; }
--keep class commons.net.** { *; }
 -keep class jcifs.** { *; }
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory { *; }
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler { *; }
@@ -240,5 +217,6 @@
 }
 -dontwarn com.android.tools.r8.**
 -dontwarn org.objectweb.asm.**
+-dontwarn com.google.android.gms.internal.location.**
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile

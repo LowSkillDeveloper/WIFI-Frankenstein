@@ -14,3 +14,7 @@ gradle/gradle-daemon-jvm.properties
 /app/release
 /app/src/test/
 /app/src/androidTest/
+/temp
+app/mapping.txt
+app/seeds.txt
+app/unused.txt

@@ -206,7 +206,7 @@ class PersonalWiFiMapViewModel(application: Application) : AndroidViewModel(appl
             if (entries.isNotEmpty()) {
 
                 viewModelScope.launch(Dispatchers.Default) {
-                    val snapshot: List<PersonalMapLogEntry>?
+                    val snapshot: List<PersonalMapLogEntry>
                     val stats: PersonalSessionStats
                     var triggerWpasec = false
                     synchronized(sessionLock) {
