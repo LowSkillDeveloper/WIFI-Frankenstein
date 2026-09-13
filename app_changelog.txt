@@ -1,3 +1,33 @@
+#2.6
+Added WiFi Personal Map (wardriving) with background scanning, GPS anti-spoofing, Kalman filter and weighted averaging
+Added personal networks database with stats, search, tags, notes, export/import and backup
+Added cross-check of personal points against loaded databases and WPA-sec check
+Added WiFi Map legend
+Added unified handshake storage
+Added storage permission dialogs
+Added scrollable handshake picker with search in the cracker
+Added low-SDK compatibility helpers and authorization gates
+Fixed pause-aware elapsed timer
+Fixed handshake storage empty after root revocation
+Fixed zero file size/date for discovered handshakes
+Fixed storage UI not refreshing after automatic hash parsing
+Fixed external storage access on Android 10/11+
+Fixed JNI cracker null-pointer and out-of-bounds issues
+Fixed zip-slip and unbounded archive extraction
+Fixed database helpers blocking the main thread
+Improved pcap parsing
+Synced User-Agent to versionName
+Fixed 3WiFi App API
+Fixed WPS/Wi-Fi helpers and crypto compatibility on old Android versions
+Fixed a large number of smaller bugs
+Removed Recommended DB (manual SmartlinDB links still work)
+Removed dead internet-blocking scanner code and local network leftovers
+Removed unused iwWifi scanner details and database UI pieces
+Updated build: Gradle 9.7.1, AGP 9.4.0, Kotlin 2.4.20, desugaring, reworked ProGuard
+Cleaned up database setup screen, SmartLink DB helper and download manager
+Refactored ChrootManager, improved iwWifi and WLAN interface assignment
+General cleanup and updated libraries to the latest versions
+
 #2.5
 Added the ability to lock the app using biometrics
 Added mask-based brute-force
