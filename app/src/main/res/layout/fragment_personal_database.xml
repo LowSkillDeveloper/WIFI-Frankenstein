@@ -10,16 +10,17 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingStart="12dp"
-        android:paddingTop="12dp"
-        android:paddingEnd="12dp">
+        android:padding="8dp">
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="1dp">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#1AFFFFFF"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -31,33 +32,47 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/pm_stats_title"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:textAppearance="?attr/textAppearanceBody2"
+                    android:textColor="?attr/colorPrimary"
                     android:textStyle="bold" />
 
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="10dp"
+                    android:alpha="0.08"
+                    android:background="?attr/colorOnSurface" />
+
+                <!-- Статистика в 2 ряда -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:weightSum="3">
 
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:gravity="center"
                         android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/stat_total_points"
-                            android:textAppearance="?attr/textAppearanceLabelSmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
+                            android:textAppearance="?attr/textAppearanceCaption"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:alpha="0.7"
+                            android:textSize="10sp"/>
 
                         <TextView
                             android:id="@+id/pm_stat_total"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textColor="?attr/colorOnSurface"
                             android:textStyle="bold"
                             tools:text="1248" />
                     </LinearLayout>
@@ -66,20 +81,24 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:gravity="center"
                         android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/pm_stats_open"
-                            android:textAppearance="?attr/textAppearanceLabelSmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
+                            android:textAppearance="?attr/textAppearanceCaption"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:alpha="0.7"
+                            android:textSize="10sp"/>
 
                         <TextView
                             android:id="@+id/pm_stat_open"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textColor="#4CAF50"
                             android:textStyle="bold"
                             tools:text="42" />
                     </LinearLayout>
@@ -88,20 +107,58 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/badge_wps"
+                            android:textAppearance="?attr/textAppearanceCaption"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:alpha="0.7"
+                            android:textSize="10sp"/>
+
+                        <TextView
+                            android:id="@+id/pm_stat_wps"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold"
+                            tools:text="11" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal"
+                    android:weightSum="2">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
                         android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/pm_stats_cross"
-                            android:textAppearance="?attr/textAppearanceLabelSmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
+                            android:textAppearance="?attr/textAppearanceCaption"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:alpha="0.7"
+                            android:textSize="10sp"/>
 
                         <TextView
                             android:id="@+id/pm_stat_cross"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textColor="?attr/colorOnSurface"
                             android:textStyle="bold"
                             tools:text="17" />
                     </LinearLayout>
@@ -110,44 +167,26 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:gravity="center"
                         android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/pm_stats_wpasec"
-                            android:textAppearance="?attr/textAppearanceLabelSmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
+                            android:textAppearance="?attr/textAppearanceCaption"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:alpha="0.7"
+                            android:textSize="10sp"/>
 
                         <TextView
                             android:id="@+id/pm_stat_wpasec"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textAppearance="?attr/textAppearanceHeadline6"
+                            android:textColor="?attr/colorPrimary"
                             android:textStyle="bold"
                             tools:text="5" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/badge_wps"
-                            android:textAppearance="?attr/textAppearanceLabelSmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:id="@+id/pm_stat_wps"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:textStyle="bold"
-                            tools:text="11" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
@@ -156,7 +195,7 @@
         <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/pm_busy"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="4dp"
             android:layout_marginBottom="8dp"
             android:indeterminate="true"
             android:visibility="gone" />
@@ -165,31 +204,34 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="1dp">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#1AFFFFFF"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:paddingTop="10dp">
+                android:paddingTop="12dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginEnd="12dp"
+                    android:layout_marginHorizontal="12dp"
                     android:text="@string/pm_records_title"
-                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    android:textAppearance="?attr/textAppearanceSubtitle2"
+                    android:textColor="?attr/colorOnSurface"
                     android:textStyle="bold" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginEnd="12dp"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginHorizontal="12dp"
+                    android:layout_marginTop="6dp"
                     android:hint="@string/pm_search_hint"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
                     app:endIconMode="clear_text">
 
                     <com.google.android.material.textfield.TextInputEditText
@@ -198,21 +240,24 @@
                         android:layout_height="wrap_content"
                         android:imeOptions="actionSearch"
                         android:inputType="text"
-                        android:maxLines="1" />
+                        android:maxLines="1"
+                        android:textSize="14sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_weight="1">
+                    android:layout_weight="1"
+                    android:layout_marginTop="6dp">
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/pm_records_recycler"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:clipToPadding="false"
-                        android:paddingBottom="80dp"
-                        tools:itemCount="6"
+                        android:paddingHorizontal="12dp"
+                        android:paddingBottom="70dp"
+                        tools:itemCount="10"
                         tools:listitem="@layout/item_recent_network" />
 
                     <TextView
@@ -223,7 +268,7 @@
                         android:layout_margin="20dp"
                         android:gravity="center"
                         android:text="@string/pm_records_empty"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textAppearance="?attr/textAppearanceBody2"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:visibility="gone" />
                 </FrameLayout>
@@ -239,5 +284,6 @@
         android:layout_margin="16dp"
         android:contentDescription="@string/database_management"
         android:src="@drawable/ic_tune"
-        app:tint="?attr/colorOnPrimary" />
+        app:tint="?attr/colorOnPrimary"
+        app:elevation="4dp" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

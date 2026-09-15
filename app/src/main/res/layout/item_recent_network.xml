@@ -5,20 +5,20 @@
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingTop="7dp"
-    android:paddingBottom="7dp">
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <View
         android:id="@+id/signalDot"
         android:layout_width="10dp"
         android:layout_height="10dp"
+        android:layout_marginEnd="10dp"
         android:background="@drawable/bg_signal_dot"
         android:importantForAccessibility="no" />
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -28,8 +28,8 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textSize="14sp"
+            android:textAppearance="?attr/textAppearanceSubtitle2"
+            android:textColor="?attr/colorOnSurface"
             android:textStyle="bold"
             tools:text="MyHomeWiFi" />
 
@@ -40,8 +40,9 @@
             android:ellipsize="end"
             android:fontFamily="monospace"
             android:maxLines="1"
+            android:textAppearance="?attr/textAppearanceCaption"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="11sp"
+            android:alpha="0.8"
             tools:text="AA:BB:CC:DD:EE:FF" />
 
         <TextView
@@ -61,18 +62,18 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:textAppearance="?attr/textAppearanceBodyMedium"
-        android:textSize="13sp"
+        android:textAppearance="?attr/textAppearanceBody2"
+        android:textColor="?attr/colorOnSurface"
         android:textStyle="bold"
-        tools:text="-67" />
+        tools:text="-67 dBm" />
 
     <TextView
         android:id="@+id/textTime"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
+        android:textAppearance="?attr/textAppearanceCaption"
         android:textColor="?attr/colorOnSurfaceVariant"
-        android:textSize="11sp"
         tools:text="12:41:07" />
 
     <TextView
@@ -81,14 +82,12 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:background="@drawable/bg_badge"
-        android:minHeight="24dp"
-        android:gravity="center_vertical"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
+        android:minHeight="22dp"
+        android:gravity="center"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
         android:textColor="@android:color/white"
-        android:textSize="11sp"
+        android:textSize="10sp"
         android:textStyle="bold"
         tools:text="NEW" />
 
@@ -98,14 +97,12 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="6dp"
         android:background="@drawable/bg_badge"
-        android:minHeight="24dp"
-        android:gravity="center_vertical"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
+        android:minHeight="22dp"
+        android:gravity="center"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
         android:textColor="@android:color/white"
-        android:textSize="11sp"
+        android:textSize="10sp"
         android:textStyle="bold"
         android:visibility="gone"
         tools:text="IN DB" />
@@ -116,14 +113,12 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="6dp"
         android:background="@drawable/bg_badge"
-        android:minHeight="24dp"
-        android:gravity="center_vertical"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
+        android:minHeight="22dp"
+        android:gravity="center"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
         android:textColor="@android:color/white"
-        android:textSize="11sp"
+        android:textSize="10sp"
         android:textStyle="bold"
         android:visibility="gone"
         tools:text="OPEN" />
@@ -134,14 +129,12 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="6dp"
         android:background="@drawable/bg_badge"
-        android:minHeight="24dp"
-        android:gravity="center_vertical"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
+        android:minHeight="22dp"
+        android:gravity="center"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
         android:textColor="@android:color/white"
-        android:textSize="11sp"
+        android:textSize="10sp"
         android:textStyle="bold"
         android:visibility="gone"
         tools:text="WPS" />

@@ -8,20 +8,25 @@
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="8dp">
 
+            <!-- Главная Информационная Карточка -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="1dp">
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#1AFFFFFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="?attr/colorSurfaceVariant">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -29,19 +34,22 @@
                     android:orientation="vertical"
                     android:padding="12dp">
 
-                    <LinearLayout
+                    <!-- Компактная Шапка -->
+                    <RelativeLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:layout_height="wrap_content">
 
                         <TextView
                             android:id="@+id/text_status"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
+                            android:layout_alignParentStart="true"
+                            android:layout_toStartOf="@+id/text_gps_health"
+                            android:layout_marginEnd="8dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
                             android:text="@string/scanning_idle"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textAppearance="?attr/textAppearanceBody2"
                             android:textColor="?attr/colorPrimary"
                             android:textStyle="bold" />
 
@@ -49,43 +57,50 @@
                             android:id="@+id/text_gps_health"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:drawablePadding="4dp"
+                            android:layout_alignParentEnd="true"
                             android:text="@string/gps_health_bad"
-                            android:textAppearance="?attr/textAppearanceLabelMedium"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-                    </LinearLayout>
+                            android:textAppearance="?attr/textAppearanceCaption"
+                            android:textColor="?attr/colorError"
+                            android:textStyle="bold" />
+                    </RelativeLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="8dp"
                         android:layout_marginBottom="10dp"
-                        android:alpha="0.15"
+                        android:alpha="0.08"
                         android:background="?attr/colorOnSurface" />
 
+                    <!-- Сетка параметров: Ряд 1 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:weightSum="3">
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:gravity="center"
                             android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/stat_total_points"
-                                android:textAppearance="?attr/textAppearanceLabelSmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                android:textAppearance="?attr/textAppearanceCaption"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:alpha="0.7"
+                                android:textSize="10sp"/>
 
                             <TextView
                                 android:id="@+id/stat_total"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textAppearance="?attr/textAppearanceTitleMedium"
+                                android:textAppearance="?attr/textAppearanceHeadline6"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textStyle="bold"
                                 tools:text="1 248" />
                         </LinearLayout>
@@ -94,20 +109,24 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:gravity="center"
                             android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/stat_reliable"
-                                android:textAppearance="?attr/textAppearanceLabelSmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                android:textAppearance="?attr/textAppearanceCaption"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:alpha="0.7"
+                                android:textSize="10sp"/>
 
                             <TextView
                                 android:id="@+id/stat_reliable"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textAppearance="?attr/textAppearanceTitleMedium"
+                                android:textAppearance="?attr/textAppearanceHeadline6"
+                                android:textColor="#4CAF50"
                                 android:textStyle="bold"
                                 tools:text="980" />
                         </LinearLayout>
@@ -116,49 +135,59 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:gravity="center"
                             android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/stat_distinct"
-                                android:textAppearance="?attr/textAppearanceLabelSmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                android:textAppearance="?attr/textAppearanceCaption"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:alpha="0.7"
+                                android:textSize="10sp"/>
 
                             <TextView
                                 android:id="@+id/stat_distinct"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textAppearance="?attr/textAppearanceTitleMedium"
+                                android:textAppearance="?attr/textAppearanceHeadline6"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textStyle="bold"
                                 tools:text="42" />
                         </LinearLayout>
                     </LinearLayout>
 
+                    <!-- Сетка параметров: Ряд 2 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:weightSum="3">
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:gravity="center"
                             android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/stat_measurements"
-                                android:textAppearance="?attr/textAppearanceLabelSmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                android:textAppearance="?attr/textAppearanceCaption"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:alpha="0.7"
+                                android:textSize="10sp"/>
 
                             <TextView
                                 android:id="@+id/stat_measurements"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textAppearance="?attr/textAppearanceTitleMedium"
+                                android:textAppearance="?attr/textAppearanceHeadline6"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textStyle="bold"
                                 tools:text="512" />
                         </LinearLayout>
@@ -167,20 +196,24 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:gravity="center"
                             android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/stat_scans"
-                                android:textAppearance="?attr/textAppearanceLabelSmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                android:textAppearance="?attr/textAppearanceCaption"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:alpha="0.7"
+                                android:textSize="10sp"/>
 
                             <TextView
                                 android:id="@+id/stat_scans"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textAppearance="?attr/textAppearanceTitleMedium"
+                                android:textAppearance="?attr/textAppearanceHeadline6"
+                                android:textColor="?attr/colorOnSurface"
                                 android:textStyle="bold"
                                 tools:text="64" />
                         </LinearLayout>
@@ -189,32 +222,46 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:gravity="center"
                             android:orientation="vertical">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/stat_last_added"
-                                android:textAppearance="?attr/textAppearanceLabelSmall"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
+                                android:textAppearance="?attr/textAppearanceCaption"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:alpha="0.7"
+                                android:textSize="10sp"/>
 
                             <TextView
                                 android:id="@+id/stat_last_added"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textAppearance="?attr/textAppearanceTitleMedium"
+                                android:textAppearance="?attr/textAppearanceHeadline6"
+                                android:textColor="?attr/colorPrimary"
                                 android:textStyle="bold"
                                 tools:text="12:41" />
                         </LinearLayout>
                     </LinearLayout>
 
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginBottom="8dp"
+                        android:alpha="0.05"
+                        android:background="?attr/colorOnSurface" />
+
+                    <!-- Подробности -->
                     <TextView
                         android:id="@+id/text_last_scan"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:gravity="center"
+                        android:textAppearance="?attr/textAppearanceCaption"
                         android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp"
                         tools:text="Found 18 • new 3 • updated 15" />
 
                     <TextView
@@ -222,21 +269,29 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:gravity="center"
+                        android:textAppearance="?attr/textAppearanceCaption"
                         android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp"
                         tools:text="±8 m • 11 sats • fix 2 s • 1.4 m/s" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Блок частоты -->
             <TextView
                 android:id="@+id/text_scan_rate"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:layout_marginHorizontal="6dp"
+                android:layout_marginBottom="8dp"
+                android:gravity="center_horizontal"
+                android:textAppearance="?attr/textAppearanceCaption"
                 android:textColor="?attr/colorOnSurfaceVariant"
+                android:alpha="0.8"
+                android:textSize="11sp"
                 tools:text="Scan rate: Adaptive by speed" />
 
+            <!-- Кнопки -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -246,100 +301,107 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_toggle_scan"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="6dp"
                     android:layout_weight="1"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     android:text="@string/start"
-                    android:textSize="15sp"
+                    android:textAppearance="?attr/textAppearanceButton"
+                    android:textSize="14sp"
                     android:textStyle="bold"
-                    app:cornerRadius="10dp"
-                    app:icon="@drawable/ic_scan" />
+                    app:cornerRadius="12dp"
+                    app:icon="@drawable/ic_scan"
+                    app:iconSize="18dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_settings"
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="4dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="6dp"
                     android:layout_weight="1"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     android:text="@string/pm_settings"
-                    android:textSize="15sp"
+                    android:textAppearance="?attr/textAppearanceButton"
+                    android:textSize="14sp"
                     android:textStyle="bold"
-                    app:cornerRadius="10dp"
-                    app:icon="@drawable/ic_settings" />
+                    app:cornerRadius="12dp"
+                    app:icon="@drawable/ic_settings"
+                    app:iconSize="18dp"
+                    app:strokeWidth="1.2dp" />
             </LinearLayout>
 
+            <!-- Карточка Списка -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="1dp">
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#1AFFFFFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="?attr/colorSurfaceVariant">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:orientation="vertical"
                     android:paddingTop="10dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_marginEnd="12dp"
+                        android:layout_marginHorizontal="12dp"
                         android:text="@string/recent_networks"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:textAppearance="?attr/textAppearanceSubtitle2"
+                        android:textColor="?attr/colorOnSurface"
                         android:textStyle="bold" />
 
                     <FrameLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp">
+                        android:layout_height="match_parent"
+                        android:layout_marginTop="6dp">
 
                         <androidx.recyclerview.widget.RecyclerView
                             android:id="@+id/recycler_recent_networks"
                             android:layout_width="match_parent"
-                            android:layout_height="220dp"
+                            android:layout_height="match_parent"
                             android:clipToPadding="false"
-                            android:paddingStart="12dp"
-                            android:paddingEnd="12dp"
-                            android:paddingBottom="8dp"
-                            tools:itemCount="5"
+                            android:paddingHorizontal="12dp"
+                            android:paddingBottom="10dp"
+                            tools:itemCount="10"
                             tools:listitem="@layout/item_recent_network" />
 
-                        <!-- Scroll-to-bottom FAB: appears when user scrolled away from bottom -->
                         <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
                             android:id="@+id/fab_scroll_bottom"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="bottom|end"
-                            android:layout_marginEnd="8dp"
-                            android:layout_marginBottom="4dp"
+                            android:layout_marginEnd="10dp"
+                            android:layout_marginBottom="10dp"
                             android:text="@string/scroll_to_new"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             android:visibility="gone"
                             app:icon="@drawable/ic_expand_more"
-                            app:iconSize="16dp"
-                            app:cornerRadius="16dp" />
+                            app:iconSize="14dp"
+                            app:cornerRadius="12dp" />
                     </FrameLayout>
 
-                    <!-- UX-8: Better empty state -->
                     <LinearLayout
                         android:id="@+id/text_log_empty"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="20dp"
+                        android:padding="24dp"
                         android:visibility="gone">
 
                         <ImageView
                             android:layout_width="48dp"
                             android:layout_height="48dp"
-                            android:alpha="0.3"
+                            android:alpha="0.25"
                             android:contentDescription="@string/recent_networks_empty"
                             android:src="@drawable/ic_scan"
                             android:tint="?attr/colorOnSurfaceVariant" />
@@ -347,11 +409,12 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="10dp"
                             android:gravity="center"
                             android:text="@string/pm_scanner_empty_hint"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
+                            android:textAppearance="?attr/textAppearanceBody2"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
