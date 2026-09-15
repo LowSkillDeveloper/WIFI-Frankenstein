@@ -1419,6 +1419,7 @@ class LocalAppDbHelper(
         val currentDbPath = context.getDatabasePath(DATABASE_NAME).absolutePath
         val currentDbFile = File(currentDbPath)
         val backupFile = File("$currentDbPath.bak")
+        val tempRestoreFile = File(context.cacheDir, "temp_restore.db")
 
         try {
             close()
@@ -1426,26 +1427,132 @@ class LocalAppDbHelper(
             File("$currentDbPath-wal").takeIf { it.exists() }?.delete()
             File("$currentDbPath-shm").takeIf { it.exists() }?.delete()
 
-            if (currentDbFile.exists()) {
-                if (backupFile.exists()) backupFile.delete()
-                currentDbFile.copyTo(backupFile, overwrite = true)
-                currentDbFile.delete()
-            }
-
-            val restored = context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                FileOutputStream(currentDbFile).use { outputStream ->
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                tempRestoreFile.outputStream().use { outputStream ->
                     inputStream.copyTo(outputStream)
                 }
-                true
-            } ?: false
+            } ?: throw Exception("Failed to open input stream from URI")
 
-            if (restored) {
+            var is3WiFiFormat = false
+            var isNativeAppFormat = false
+            
+            try {
+                SQLiteDatabase.openDatabase(tempRestoreFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { srcDb ->
+                    val hasNets = srcDb.rawQuery("SELECT 1 FROM sqlite_master WHERE type='table' AND (name='nets' OR name='base')", null).use { it.moveToFirst() }
+                    val hasWifiNetworks = srcDb.rawQuery("SELECT 1 FROM sqlite_master WHERE type='table' AND name='$TABLE_NAME'", null).use { it.moveToFirst() }
+                    
+                    if (hasNets) {
+                        is3WiFiFormat = true
+                    } else if (hasWifiNetworks) {
+                        isNativeAppFormat = true
+                    }
+                }
+            } catch (e: Exception) {
+            }
+
+            if (is3WiFiFormat) {
+                if (currentDbFile.exists()) {
+                    if (backupFile.exists()) backupFile.delete()
+                    currentDbFile.copyTo(backupFile, overwrite = true)
+                    currentDbFile.delete()
+                }
+
+                SQLiteDatabase.openOrCreateDatabase(currentDbFile, null).use { db ->
+                    onCreate(db)
+                    
+                    SQLiteDatabase.openDatabase(tempRestoreFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY).use { srcDb ->
+                        val hasGeo = srcDb.rawQuery("SELECT 1 FROM sqlite_master WHERE type='table' AND name='geo'", null).use { it.moveToFirst() }
+                        val targetTable = srcDb.rawQuery("SELECT 1 FROM sqlite_master WHERE type='table' AND (name='nets' OR name='base')", null).use { 
+                            var table = "nets"
+                            if (it.moveToFirst()) {
+                                try {
+                                    srcDb.rawQuery("SELECT 1 FROM nets LIMIT 1", null).use { _ -> table = "nets" }
+                                } catch(_: Exception) {
+                                    table = "base"
+                                }
+                            }
+                            table
+                        }
+
+                        val query = if (hasGeo) {
+                            "SELECT n.BSSID, n.ESSID, n.WiFiKey, n.WPSPIN, n.Authorization, g.latitude, g.longitude FROM $targetTable n LEFT JOIN geo g ON n.BSSID = g.BSSID"
+                        } else {
+                            "SELECT BSSID, ESSID, WiFiKey, WPSPIN, Authorization, NULL as latitude, NULL as longitude FROM $targetTable"
+                        }
+
+                        srcDb.rawQuery(query, null).use { cursor ->
+                            val bssidIdx = cursor.getColumnIndex("BSSID")
+                            val essidIdx = cursor.getColumnIndex("ESSID")
+                            val wifiKeyIdx = cursor.getColumnIndex("WiFiKey")
+                            val wpsPinIdx = cursor.getColumnIndex("WPSPIN")
+                            val authIdx = cursor.getColumnIndex("Authorization")
+                            val latIdx = cursor.getColumnIndex("latitude")
+                            val lonIdx = cursor.getColumnIndex("longitude")
+
+                            db.beginTransaction()
+                            try {
+                                var count = 0
+                                while (cursor.moveToNext()) {
+                                    val bssidLong = if (bssidIdx >= 0) cursor.getLong(bssidIdx) else 0L
+                                    val essid = if (essidIdx >= 0) cursor.getString(essidIdx) ?: "" else ""
+                                    val wifiKey = if (wifiKeyIdx >= 0) cursor.getString(wifiKeyIdx) else null
+                                    val wpsPin = if (wpsPinIdx >= 0) cursor.getString(wpsPinIdx) else null
+                                    val auth = if (authIdx >= 0) cursor.getString(authIdx) else null
+                                    val lat = if (latIdx >= 0 && !cursor.isNull(latIdx)) cursor.getDouble(latIdx) else null
+                                    val lon = if (lonIdx >= 0 && !cursor.isNull(lonIdx)) cursor.getDouble(lonIdx) else null
+
+                                    val hex = String.format("%012X", bssidLong)
+                                    val macStr = "${hex.substring(0,2)}:${hex.substring(2,4)}:${hex.substring(4,6)}:${hex.substring(6,8)}:${hex.substring(8,10)}:${hex.substring(10,12)}"
+
+                                    val values = ContentValues().apply {
+                                        put(COLUMN_WIFI_NAME, essid)
+                                        put(COLUMN_MAC_ADDRESS, macStr)
+                                        put(COLUMN_WIFI_PASSWORD, wifiKey)
+                                        put(COLUMN_WPS_CODE, wpsPin)
+                                        put(COLUMN_ADMIN_PANEL, auth)
+                                        put(COLUMN_LATITUDE, lat)
+                                        put(COLUMN_LONGITUDE, lon)
+                                        put(COLUMN_QUADKEY, computeQuadkey(lat, lon))
+                                    }
+                                    db.insert(TABLE_NAME, null, values)
+                                    
+                                    count++
+                                    if (count % 25000 == 0) {
+                                        db.setTransactionSuccessful()
+                                        db.endTransaction()
+                                        db.beginTransaction()
+                                    }
+                                }
+                                db.setTransactionSuccessful()
+                            } finally {
+                                db.endTransaction()
+                            }
+                        }
+                    }
+                }
                 backupFile.delete()
-                Log.d("LocalAppDbHelper", "Database restored successfully from $uri")
-            } else if (backupFile.exists()) {
-                backupFile.copyTo(currentDbFile, overwrite = true)
+                Log.d("LocalAppDbHelper", "3WiFi Database converted and restored successfully")
+            } else {
+                if (currentDbFile.exists()) {
+                    if (backupFile.exists()) backupFile.delete()
+                    currentDbFile.copyTo(backupFile, overwrite = true)
+                    currentDbFile.delete()
+                }
+                
+                tempRestoreFile.copyTo(currentDbFile, overwrite = true)
+                
+                File("${tempRestoreFile.absolutePath}-wal").takeIf { it.exists() }?.delete()
+                File("${tempRestoreFile.absolutePath}-shm").takeIf { it.exists() }?.delete()
+                
+                try {
+                    SQLiteDatabase.openDatabase(currentDbFile.absolutePath, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                        db.disableWriteAheadLogging()
+                        db.enableWriteAheadLogging()
+                    }
+                } catch (_: Exception) {}
+                
                 backupFile.delete()
-                Log.e("LocalAppDbHelper", "Restore failed: input stream is null, rolled back")
+                Log.d("LocalAppDbHelper", "App Database restored successfully from standard backup")
             }
         } catch (e: Exception) {
             Log.e("LocalAppDbHelper", "Error restoring database: ${e.message}", e)
@@ -1459,6 +1566,9 @@ class LocalAppDbHelper(
                     Log.e("LocalAppDbHelper", "Rollback also failed: ${rollback.message}", rollback)
                 }
             }
+            throw e
+        } finally {
+            if (tempRestoreFile.exists()) tempRestoreFile.delete()
         }
     }
 

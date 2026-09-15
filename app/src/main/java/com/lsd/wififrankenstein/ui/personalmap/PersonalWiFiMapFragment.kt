@@ -33,7 +33,7 @@ class PersonalWiFiMapFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.personalPager.adapter = PersonalPagerAdapter(this)
-        binding.personalPager.isUserInputEnabled = false
+        binding.personalPager.isUserInputEnabled = true
 
         binding.personalPager.offscreenPageLimit = 1
         tabMediator = TabLayoutMediator(binding.personalTabs, binding.personalPager) { tab, position ->

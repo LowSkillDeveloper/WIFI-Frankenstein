@@ -18,3 +18,4 @@ gradle/gradle-daemon-jvm.properties
 app/mapping.txt
 app/seeds.txt
 app/unused.txt
+hs_err_pid*.log
